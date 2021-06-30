@@ -1,23 +1,23 @@
-#include "cc.h"
+#include "avatar.h"
 
 using namespace TOCABI;
 
-CustomController::CustomController(RobotData &rd) : rd_(rd) //, wbc_(dc.wbc_)
+AvatarController::AvatarController(RobotData &rd) : rd_(rd) //, wbc_(dc.wbc_)
 {
     ControlVal_.setZero();
 }
 
-Eigen::VectorQd CustomController::getControl()
+Eigen::VectorQd AvatarController::getControl()
 {
     return ControlVal_;
 }
 
-// void CustomController::taskCommandToCC(TaskCommand tc_)
+// void AvatarController::taskCommandToCC(TaskCommand tc_)
 // {
 //     tc = tc_;
 // }
 
-void CustomController::computeSlow()
+void AvatarController::computeSlow()
 {
     if (rd_.tc_.mode == 10)
     {
@@ -55,7 +55,7 @@ void CustomController::computeSlow()
     }
 }
 
-void CustomController::computeFast()
+void AvatarController::computeFast()
 {
     // if (tc.mode == 10)
     // {
@@ -65,11 +65,11 @@ void CustomController::computeFast()
     // }
 }
 
-void CustomController::computePlanner()
+void AvatarController::computePlanner()
 {
 }
 
-void CustomController::copyRobotData(RobotData &rd_l)
+void AvatarController::copyRobotData(RobotData &rd_l)
 {
     std::memcpy(&rd_cc_, &rd_l, sizeof(RobotData));
 }
