@@ -5,6 +5,16 @@ using namespace TOCABI;
 AvatarController::AvatarController(RobotData &rd) : rd_(rd) //, wbc_(dc.wbc_)
 {
     ControlVal_.setZero();
+
+    nh_avatar_.setCallbackQueue(&queue_avatar_);
+    sub_1 = nh_avatar_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
+
+    std::cout<<"register AVATAR!"<<std::endl;
+}
+
+void AvatarController::avatar_callback(const std_msgs::StringConstPtr &msg)
+{
+    std::cout << "received : " << msg->data << std::endl;
 }
 
 Eigen::VectorQd AvatarController::getControl()
@@ -18,14 +28,17 @@ Eigen::VectorQd AvatarController::getControl()
 // }
 
 void AvatarController::computeSlow()
-{
+{   
+    queue_avatar_.callAvailable(ros::WallDuration());
+
     if (rd_.tc_.mode == 10)
     {
 
         if (rd_.tc_init)
         {
-            //Initialize settings for Task Control! 
+            //Initialize settings for Task Control!
 
+            std::cout<<"avatar mode 10 init !"<<std::endl;
             rd_.tc_init = false;
 
             //rd_.link_[COM_id].x_desired = rd_.link_[COM_id].x_init;
