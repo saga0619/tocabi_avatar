@@ -9,7 +9,6 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd) //, wbc_(dc.wbc_)
     nh_avatar_.setCallbackQueue(&queue_avatar_);
     sub_1 = nh_avatar_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
 
-    std::cout<<"register AVATAR!"<<std::endl;
 }
 
 void AvatarController::avatar_callback(const std_msgs::StringConstPtr &msg)
