@@ -1,2 +1,2 @@
-this package is basic custom controller for dyros tocabi. 
+this package is basic avatar controller for dyros tocabi. 
 
