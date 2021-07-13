@@ -72,6 +72,7 @@ public:
     CQuadraticProgram QP_qdot_upperbody_;
     CQuadraticProgram QP_qdot_wholebody;
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
+    CQuadraticProgram QP_motion_retargeting;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
