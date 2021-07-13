@@ -566,7 +566,8 @@ void AvatarController::computeSlow()
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
             walking_end_flag = 0;
-            cout << "mode = 10" << endl;
+            parameterSetting();
+            cout << "mode = 10 Fast thread" << endl;
 
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
@@ -590,6 +591,7 @@ void AvatarController::computeSlow()
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
+
         if (walking_enable_ == true)
         {
             if (walking_tick_mj == 0)
@@ -607,6 +609,7 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
+
             updateInitialState();
             getRobotState();
             floatToSupportFootstep();
@@ -707,8 +710,9 @@ void AvatarController::computeSlow()
             initial_flag = 1;
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
-            walking_end_flag = 1;
+            walking_end_flag = 0;
             joy_input_enable_ = true;
+            parameterSetting();
             cout << "mode = 12 : Pedal Init" << endl;
 
             WBC::SetContact(rd_, 1, 1);
@@ -734,7 +738,7 @@ void AvatarController::computeSlow()
         {
             if (walking_tick_mj == 0)
             {
-                parameterSetting();
+                // parameterSetting();
                 initial_flag = 0;
 
                 atb_grav_update_ = false;
@@ -744,13 +748,13 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
-                cout << "\n\n\n\n"
-                     << endl;
+                cout << "\n\n\n\n"<< endl;
                 cout << "___________________________ " << endl;
                 cout << "\n           Start " << endl;
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 13" << endl;
             }
+
             updateInitialStateJoy();
             getRobotState();
             floatToSupportFootstep();
@@ -806,10 +810,27 @@ void AvatarController::computeSlow()
         {
             if (walking_end_flag == 0)
             {
+                updateInitialStateJoy();
+                getRobotState();
+                floatToSupportFootstep();
+                getZmpTrajectory();
+                getComTrajectory();
+                getFootTrajectory();
                 cout << "walking finish" << endl;
+                initial_flag = 0;
                 walking_end_flag = 1;
             }
-            initial_flag = 0;
+
+            getPelvTrajectory();
+            supportToFloatPattern();
+            computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
+
+            Compliant_control(q_des);
+            for (int i = 0; i < 12; i++)
+            {
+                //ref_q_(i) = q_des(i);
+                ref_q_(i) = DOB_IK_output_(i);
+            }
 
             if (atb_grav_update_ == false)
             {
@@ -9140,7 +9161,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0)
     {
-        middle_total_step_number = 6; //
+        middle_total_step_number = 6; //total foot step number
         dlength = 0;
     }
 
@@ -10632,10 +10653,13 @@ void AvatarController::updateNextStepTime()
     }
     if (current_step_num_ == total_step_num_ - 1 && walking_tick_mj >= t_last_ + t_total_)
     {
-        walking_enable_ = false;
-        cout << "Last " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_mj_(2) * 180 / 3.141592 << endl;
+        // walking_enable_ = false;
+        // cout << "Last " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_mj_(2) * 180 / 3.141592 << endl;
     }
-    walking_tick_mj++;
+    else
+    {
+        walking_tick_mj++;
+    }
 }
 
 void AvatarController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
