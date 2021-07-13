@@ -1,6 +1,10 @@
 #include "avatar.h"
-
+#include <fstream>
 using namespace TOCABI;
+
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
+ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd) 
 {
@@ -567,7 +571,7 @@ void AvatarController::computeSlow()
             cout << "mode = 10" << endl;
 
             WBC::SetContact(rd_, 1, 1);
-            Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
+            Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             atb_grav_update_ = false;
         }
 
@@ -849,14 +853,16 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
-        WBC::SetContact(rd_, 1, 1);
-        
-        if (atb_grav_update_ == false)
+        if(initial_flag == 1)
         {
-            atb_grav_update_ = true;
-            Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
-            Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_MJ_, 0.9, 1, 0);
-            atb_grav_update_ = false;
+            WBC::SetContact(rd_, 1, 1);
+            
+            if (atb_grav_update_ == false)
+            {
+                atb_grav_update_ = true;
+                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                atb_grav_update_ = false;
+            }
         }
         // for(int i = 0; i < MODEL_DOF; i++)
         // { rd_.torque_desired (i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; }
@@ -8815,7 +8821,7 @@ void AvatarController::getRobotState()
 
     l_ft_ = rd_.LF_FT;
     r_ft_ = rd_.RF_FT;
-
+     
     Eigen::Vector2d left_zmp, right_zmp;
 
     left_zmp(0) = l_ft_(4) / l_ft_(2) + lfoot_support_current_.translation()(0);
@@ -10231,6 +10237,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
     //MJ_graph << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
+    //MJ_graph << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;
 }
 
 void AvatarController::SC_err_compen(double x_des, double y_des)
@@ -10607,7 +10614,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {
-    target_x_ = 0.65;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -10935,10 +10942,10 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     if (walking_tick_mj == 0)
         d_hat_b = d_hat;
 
-    d_hat = (2 * M_PI * 8.0 * del_t) / (1 + 2 * M_PI * 8.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 8.0 * del_t) * d_hat_b;
+    d_hat = (2 * M_PI * 10.0 * del_t) / (1 + 2 * M_PI * 10.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 10.0 * del_t) * d_hat_b;
 
     double default_gain = 0.0;
-    double compliant_gain = 0.0;
+    double compliant_gain = 0.3;
     double compliant_tick = 0.1 * hz_;
     double gain_temp = 0.0;
     for (int i = 0; i < 12; i++)
@@ -10999,6 +11006,9 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
     d_hat_b = d_hat;
     DOB_IK_output_b_ = DOB_IK_output_;
+    MJ_graph << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << "," << gain_temp << endl; 
+    //MJ_joint1 << DOB_IK_output_(1) << "," << desired_leg_q(1) << "," << DOB_IK_output_(2) << "," << desired_leg_q(2) << "," << DOB_IK_output_(3) << "," << desired_leg_q(3) << "," << DOB_IK_output_(4) << "," << desired_leg_q(4) << "," << DOB_IK_output_(5) << "," << desired_leg_q(5) <<endl;
+    //MJ_joint1 << DOB_IK_output_(7) << "," << desired_leg_q(7) << "," << DOB_IK_output_(8) << "," << desired_leg_q(8) << "," << DOB_IK_output_(9) << "," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
 }
 
 void AvatarController::CP_compen_MJ()
