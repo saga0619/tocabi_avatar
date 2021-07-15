@@ -15,7 +15,7 @@
 
 // pedal
 #include <ros/ros.h>
-#include <dyros_pedal/WalkingCommand.h>
+#include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
 const int FILE_CNT = 14;
@@ -1266,7 +1266,7 @@ public:
     //pedal_
     ros::NodeHandle nh;
     ros::Subscriber pedal_command;
-    void PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg);
+    void PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg);
     Eigen::Vector4d joystick_input;
     Eigen::Vector4d joystick_input_;
 
