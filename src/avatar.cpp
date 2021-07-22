@@ -10320,18 +10320,18 @@ void AvatarController::getPelvTrajectory()
         R_angle_input = 0;
     }
 
-    P_angle_input_dot = 2.0 * (0.0 - P_angle) - 0.01 * P_angle_input;
+    P_angle_input_dot = 1.5 * (0.0 - P_angle) - 0.01 * P_angle_input;
     // R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
 
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
     // R_angle_input = R_angle_input + R_angle_input_dot*del_t;
 
-    // if(R_angle_input > 0.0262)
+    // if(R_angle_input > 0.0262) //1.5 degree
     // { R_angle_input = 0.0262; }
     // else if(R_angle_input < -0.0262)
     // { R_angle_input = -0.0262; }
 
-    if (P_angle_input > 0.0785)
+    if (P_angle_input > 0.0785) //5 degree
     {
         P_angle_input = 0.0785;
         cout << "a" << endl;
@@ -10916,7 +10916,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     Eigen::Vector12d current_u;
     double del_t = 0.0, Kp = 0.0;
     del_t = 1 / hz_;
-    Kp = 30.0; // 실험
+    Kp = 100.0; // 실험
                //   Kp = 20.0; // 시뮬
 
     if (walking_tick_mj == 0)
@@ -10943,11 +10943,11 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     if (walking_tick_mj == 0)
         d_hat_b = d_hat;
 
-    d_hat = (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 3.0 * del_t) * d_hat_b;
+    d_hat = (2 * M_PI * 5.0 * del_t) / (1 + 2 * M_PI * 5.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 5.0 * del_t) * d_hat_b;
 
     double default_gain = 0.0;
-    double compliant_gain = 0.8;
-    double compliant_tick = 0.1 * hz_;
+    double compliant_gain = 1.0;
+    double compliant_tick = 0.2 * hz_;
     double gain_temp = 0.0;
     for (int i = 0; i < 12; i++)
     {
@@ -11007,10 +11007,15 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
     d_hat_b = d_hat;
     DOB_IK_output_b_ = DOB_IK_output_;
-    MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << endl;
-    MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl; 
+    MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << "," << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl;
+    //MJ_graph1 << << "," << desired_leg_q(6) << "," << desired_leg_q(7) << "," << desired_leg_q(8) << "," << desired_leg_q(9) << "," << desired_leg_q(10) << "," << desired_leg_q(11) << endl;
+    // // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl;
+    // MJ_graph1 << desired_leg_q(0) << "," << desired_leg_q(1) << "," << desired_leg_q(2) << "," << desired_leg_q(3) << "," << desired_leg_q(4) << "," << desired_leg_q(5) << "," << desired_leg_q(6) << "," << desired_leg_q(7) << "," << desired_leg_q(8) << "," << desired_leg_q(9) << "," << desired_leg_q(10) << "," << desired_leg_q(11) << endl;
+    // MJ_joint2 << rd_.q_(6) << "," << desired_leg_q(6) << "," << rd_.q_(7) << "," << desired_leg_q(7) << "," << rd_.q_(8) << "," << desired_leg_q(8) << "," << rd_.q_(9) << "," << desired_leg_q(9) << "," << rd_.q_(10) << "," << desired_leg_q(10) << "," << rd_.q_(11) << "," << desired_leg_q(11) <<endl; 
     MJ_joint1 << DOB_IK_output_(0) << "," << desired_leg_q(0) << "," << DOB_IK_output_(1) << "," << desired_leg_q(1) << "," << DOB_IK_output_(2) << "," << desired_leg_q(2) << "," << DOB_IK_output_(3) << "," << desired_leg_q(3) << "," << DOB_IK_output_(4) << "," << desired_leg_q(4) << "," << DOB_IK_output_(5) << "," << desired_leg_q(5) << endl;
     MJ_joint2 << DOB_IK_output_(6) << "," << desired_leg_q(6) << "," << DOB_IK_output_(7) << "," << desired_leg_q(7) << "," << DOB_IK_output_(8) << "," << desired_leg_q(8) << "," << DOB_IK_output_(9) << "," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
+    // MJ_joint1 << rd_.q_(0) << "," << desired_leg_q(0) << "," << rd_.q_(1) << "," << desired_leg_q(1) << "," << rd_.q_(2) << "," << desired_leg_q(2) << "," << rd_.q_(3) << "," << desired_leg_q(3) << "," << rd_.q_(4) << "," << desired_leg_q(4) << "," << rd_.q_(5) << "," << desired_leg_q(5) << endl;
+    //MJ_joint2 << rd_.q_(6) << "," << desired_leg_q(6) << "," << rd_.q_(7) << "," << desired_leg_q(7) << "," << rd_.q_(8) << "," << desired_leg_q(8) << "," << rd_.q_(9) << "," << desired_leg_q(9) << "," << rd_.q_(10) << "," << desired_leg_q(10) << "," << rd_.q_(11) << "," << desired_leg_q(11) <<endl;
 }
 
 void AvatarController::CP_compen_MJ()
