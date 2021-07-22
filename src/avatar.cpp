@@ -815,7 +815,7 @@ void AvatarController::computeSlow()
         }
         else
         {
-            double init_time;
+            // double init_time_;
             if (walking_end_flag == 0)
             {
                 // updateInitialStateJoy();
@@ -827,7 +827,7 @@ void AvatarController::computeSlow()
                 getFootTrajectory();
                 cout << "walking finish" << endl;
                 initial_flag = 0;
-                init_time = rd_.control_time_;        
+                init_leg_time_ = rd_.control_time_;        
                 walking_end_flag = 1;
             }
             getRobotState();
@@ -842,12 +842,13 @@ void AvatarController::computeSlow()
                 ref_q_(i) = DOB_IK_output_(i);
             }
 
-            if (rd_.control_time_ < init_time + 1.0)
+            if (rd_.control_time_ <= init_leg_time_ + 1.0)
             {
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = DyrosMath::cubic(rd_.control_time_, init_time, init_time + 1.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
+                    ref_q_(i) = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 1.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
                 }
+                
             }
 
             if (atb_grav_update_ == false)

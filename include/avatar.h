@@ -266,6 +266,7 @@ public:
     double pre_time_;
     double start_time_;
     double dt_;
+    double init_leg_time_;  //for first smothing of leg joint angle
 
     double walking_speed_;
     double walking_speed_side_;
