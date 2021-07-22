@@ -8571,7 +8571,7 @@ void AvatarController::printOutTextFile()
 }
 
 //////////////////////////////MJ's Functions////////////////////
-void AvatarController::PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg)
+void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg)
 {
 
     if (joy_input_enable_ == true)
