@@ -744,7 +744,7 @@ void AvatarController::computeSlow()
         {
             if (walking_tick_mj == 0)
             {
-                // parameterSetting();
+                parameterSetting();
                 initial_flag = 0;
 
                 atb_grav_update_ = false;
@@ -815,9 +815,11 @@ void AvatarController::computeSlow()
         }
         else
         {
+            double init_time;
             if (walking_end_flag == 0)
             {
-                updateInitialStateJoy();
+                // updateInitialStateJoy();
+                updateInitialState();
                 getRobotState();
                 floatToSupportFootstep();
                 getZmpTrajectory();
@@ -825,9 +827,10 @@ void AvatarController::computeSlow()
                 getFootTrajectory();
                 cout << "walking finish" << endl;
                 initial_flag = 0;
+                init_time = rd_.control_time_;        
                 walking_end_flag = 1;
             }
-
+            getRobotState();
             getPelvTrajectory();
             supportToFloatPattern();
             computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
@@ -837,6 +840,14 @@ void AvatarController::computeSlow()
             {
                 //ref_q_(i) = q_des(i);
                 ref_q_(i) = DOB_IK_output_(i);
+            }
+
+            if (rd_.control_time_ < init_time + 1.0)
+            {
+                for (int i = 0; i < 12; i++)
+                {
+                    ref_q_(i) = DyrosMath::cubic(rd_.control_time_, init_time, init_time + 1.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
+                }
             }
 
             if (atb_grav_update_ == false)
@@ -5013,192 +5024,192 @@ void AvatarController::rawMasterPoseProcessing()
 void AvatarController::hmdRawDataProcessing()
 {
     ///////////////////////////////////MAPPING///////////////////////////////
-    // Vector3d robot_still_pose_lhand, robot_t_pose_lhand, robot_forward_pose_lhand, robot_still_pose_rhand, robot_t_pose_rhand, robot_forward_pose_rhand;
-    // Vector4d lhand_mapping_vector, rhand_mapping_vector;
-    // MatrixXd lhand_master_ref_stack, lhand_robot_ref_stack, rhand_master_ref_stack, rhand_robot_ref_stack, lhand_master_ref_stack_pinverse, rhand_master_ref_stack_pinverse;
-    // lhand_master_ref_stack.setZero(3, 4);
-    // lhand_robot_ref_stack.setZero(3, 4);
-    // lhand_master_ref_stack_pinverse.setZero(4, 3);
-    // rhand_master_ref_stack.setZero(3, 4);
-    // rhand_robot_ref_stack.setZero(3, 4);
-    // rhand_master_ref_stack_pinverse.setZero(4, 3);
+    Vector3d robot_still_pose_lhand, robot_t_pose_lhand, robot_forward_pose_lhand, robot_still_pose_rhand, robot_t_pose_rhand, robot_forward_pose_rhand;
+    Vector4d lhand_mapping_vector, rhand_mapping_vector;
+    MatrixXd lhand_master_ref_stack, lhand_robot_ref_stack, rhand_master_ref_stack, rhand_robot_ref_stack, lhand_master_ref_stack_pinverse, rhand_master_ref_stack_pinverse;
+    lhand_master_ref_stack.setZero(3, 4);
+    lhand_robot_ref_stack.setZero(3, 4);
+    lhand_master_ref_stack_pinverse.setZero(4, 3);
+    rhand_master_ref_stack.setZero(3, 4);
+    rhand_robot_ref_stack.setZero(3, 4);
+    rhand_master_ref_stack_pinverse.setZero(4, 3);
 
-    // robot_still_pose_lhand.setZero();
-    // robot_t_pose_lhand.setZero();
-    // robot_forward_pose_lhand.setZero();
-    // robot_still_pose_rhand.setZero();
-    // robot_t_pose_rhand.setZero();
-    // robot_forward_pose_rhand.setZero();
+    robot_still_pose_lhand.setZero();
+    robot_t_pose_lhand.setZero();
+    robot_forward_pose_lhand.setZero();
+    robot_still_pose_rhand.setZero();
+    robot_t_pose_rhand.setZero();
+    robot_forward_pose_rhand.setZero();
 
-    // robot_still_pose_lhand(2) += -(robot_arm_max_l_);
-    // robot_t_pose_lhand(1) += (robot_arm_max_l_);
-    // robot_forward_pose_lhand(0) += (robot_arm_max_l_);
+    robot_still_pose_lhand(2) += -(robot_arm_max_l_);
+    robot_t_pose_lhand(1) += (robot_arm_max_l_);
+    robot_forward_pose_lhand(0) += (robot_arm_max_l_);
 
-    // robot_still_pose_rhand(2) += -(robot_arm_max_l_);
-    // robot_t_pose_rhand(1) += -(robot_arm_max_l_);
-    // robot_forward_pose_rhand(0) += (robot_arm_max_l_);
+    robot_still_pose_rhand(2) += -(robot_arm_max_l_);
+    robot_t_pose_rhand(1) += -(robot_arm_max_l_);
+    robot_forward_pose_rhand(0) += (robot_arm_max_l_);
 
-    // lhand_master_ref_stack.block(0, 0, 3, 1) = hmd_still_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-    // lhand_master_ref_stack.block(0, 1, 3, 1) = hmd_tpose_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-    // lhand_master_ref_stack.block(0, 2, 3, 1) = hmd_forward_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-    // lhand_master_ref_stack.block(0, 3, 3, 1) = hmd_rshoulder_center_pos_ - hmd_lshoulder_center_pos_;
+    lhand_master_ref_stack.block(0, 0, 3, 1) = hmd_still_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    lhand_master_ref_stack.block(0, 1, 3, 1) = hmd_tpose_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    lhand_master_ref_stack.block(0, 2, 3, 1) = hmd_forward_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    lhand_master_ref_stack.block(0, 3, 3, 1) = hmd_rshoulder_center_pos_ - hmd_lshoulder_center_pos_;
 
-    // lhand_robot_ref_stack.block(0, 0, 3, 1) = robot_still_pose_lhand;
-    // lhand_robot_ref_stack.block(0, 1, 3, 1) = robot_t_pose_lhand;
-    // lhand_robot_ref_stack.block(0, 2, 3, 1) = robot_forward_pose_lhand;
-    // lhand_robot_ref_stack(1, 3) = -robot_shoulder_width_;
+    lhand_robot_ref_stack.block(0, 0, 3, 1) = robot_still_pose_lhand;
+    lhand_robot_ref_stack.block(0, 1, 3, 1) = robot_t_pose_lhand;
+    lhand_robot_ref_stack.block(0, 2, 3, 1) = robot_forward_pose_lhand;
+    lhand_robot_ref_stack(1, 3) = -robot_shoulder_width_;
 
-    // lhand_master_ref_stack_pinverse = lhand_master_ref_stack.transpose() * (lhand_master_ref_stack * lhand_master_ref_stack.transpose() + 0.000001 * Eigen::Matrix3d::Identity()).inverse();
-    // lhand_mapping_vector = lhand_master_ref_stack_pinverse * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() *(hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    lhand_master_ref_stack_pinverse = lhand_master_ref_stack.transpose() * (lhand_master_ref_stack * lhand_master_ref_stack.transpose() + 0.000001 * Eigen::Matrix3d::Identity()).inverse();
+    lhand_mapping_vector = lhand_master_ref_stack_pinverse * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() *(hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
 
-    // hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack * lhand_mapping_vector;
+    hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack * lhand_mapping_vector;
 
-    // rhand_master_ref_stack.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-    // rhand_master_ref_stack.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-    // rhand_master_ref_stack.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-    // rhand_master_ref_stack.block(0, 3, 3, 1) = hmd_lshoulder_center_pos_ - hmd_rshoulder_center_pos_;
+    rhand_master_ref_stack.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    rhand_master_ref_stack.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    rhand_master_ref_stack.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    rhand_master_ref_stack.block(0, 3, 3, 1) = hmd_lshoulder_center_pos_ - hmd_rshoulder_center_pos_;
 
-    // rhand_robot_ref_stack.block(0, 0, 3, 1) = robot_still_pose_rhand;
-    // rhand_robot_ref_stack.block(0, 1, 3, 1) = robot_t_pose_rhand;
-    // rhand_robot_ref_stack.block(0, 2, 3, 1) = robot_forward_pose_rhand;
-    // rhand_robot_ref_stack(1, 3) = robot_shoulder_width_;
+    rhand_robot_ref_stack.block(0, 0, 3, 1) = robot_still_pose_rhand;
+    rhand_robot_ref_stack.block(0, 1, 3, 1) = robot_t_pose_rhand;
+    rhand_robot_ref_stack.block(0, 2, 3, 1) = robot_forward_pose_rhand;
+    rhand_robot_ref_stack(1, 3) = robot_shoulder_width_;
 
-    // rhand_master_ref_stack_pinverse = rhand_master_ref_stack.transpose() * (rhand_master_ref_stack * rhand_master_ref_stack.transpose() + 0.000001 * Eigen::Matrix3d::Identity()).inverse();
-    // rhand_mapping_vector = rhand_master_ref_stack_pinverse * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() *(hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    rhand_master_ref_stack_pinverse = rhand_master_ref_stack.transpose() * (rhand_master_ref_stack * rhand_master_ref_stack.transpose() + 0.000001 * Eigen::Matrix3d::Identity()).inverse();
+    rhand_mapping_vector = rhand_master_ref_stack_pinverse * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() *(hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
-    // hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack * rhand_mapping_vector;
+    hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack * rhand_mapping_vector;
     ///////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////////////////QP MOTION RETARGETING///////////////////////////////////
-    if (first_loop_qp_retargeting_)
-    {
-        QP_motion_retargeting_lhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
-        QP_motion_retargeting_rhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
+    // if (first_loop_qp_retargeting_)
+    // {
+    //     QP_motion_retargeting_lhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
+    //     QP_motion_retargeting_rhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
 
-        lhand_master_ref_stack_.setZero(3, 4);
-        lhand_robot_ref_stack_.setZero(3, 4);
-        lhand_master_ref_stack_pinverse_.setZero(4, 3);
-        rhand_master_ref_stack_.setZero(3, 4);
-        rhand_robot_ref_stack_.setZero(3, 4);
-        rhand_master_ref_stack_pinverse_.setZero(4, 3);
+    //     lhand_master_ref_stack_.setZero(3, 4);
+    //     lhand_robot_ref_stack_.setZero(3, 4);
+    //     lhand_master_ref_stack_pinverse_.setZero(4, 3);
+    //     rhand_master_ref_stack_.setZero(3, 4);
+    //     rhand_robot_ref_stack_.setZero(3, 4);
+    //     rhand_master_ref_stack_pinverse_.setZero(4, 3);
 
-        robot_still_pose_lhand_.setZero();
-        robot_t_pose_lhand_.setZero();
-        robot_forward_pose_lhand_.setZero();
-        robot_still_pose_rhand_.setZero();
-        robot_t_pose_rhand_.setZero();
-        robot_forward_pose_rhand_.setZero();
+    //     robot_still_pose_lhand_.setZero();
+    //     robot_t_pose_lhand_.setZero();
+    //     robot_forward_pose_lhand_.setZero();
+    //     robot_still_pose_rhand_.setZero();
+    //     robot_t_pose_rhand_.setZero();
+    //     robot_forward_pose_rhand_.setZero();
 
-        lhand_mapping_vector_.setZero();
-        rhand_mapping_vector_.setZero();
+    //     lhand_mapping_vector_.setZero();
+    //     rhand_mapping_vector_.setZero();
 
-        robot_still_pose_lhand_(2) += -(robot_arm_max_l_);
-        robot_t_pose_lhand_(1) += (robot_arm_max_l_);
-        robot_forward_pose_lhand_(0) += (robot_arm_max_l_);
+    //     robot_still_pose_lhand_(2) += -(robot_arm_max_l_);
+    //     robot_t_pose_lhand_(1) += (robot_arm_max_l_);
+    //     robot_forward_pose_lhand_(0) += (robot_arm_max_l_);
 
-        robot_still_pose_rhand_(2) += -(robot_arm_max_l_);
-        robot_t_pose_rhand_(1) += -(robot_arm_max_l_);
-        robot_forward_pose_rhand_(0) += (robot_arm_max_l_);
+    //     robot_still_pose_rhand_(2) += -(robot_arm_max_l_);
+    //     robot_t_pose_rhand_(1) += -(robot_arm_max_l_);
+    //     robot_forward_pose_rhand_(0) += (robot_arm_max_l_);
 
-        lhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-        lhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-        lhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
-        lhand_master_ref_stack_.block(0, 3, 3, 1) = hmd_rshoulder_center_pos_ - hmd_lshoulder_center_pos_;
+    //     lhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    //     lhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    //     lhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
+    //     lhand_master_ref_stack_.block(0, 3, 3, 1) = hmd_rshoulder_center_pos_ - hmd_lshoulder_center_pos_;
 
-        lhand_robot_ref_stack_.block(0, 0, 3, 1) = robot_still_pose_lhand_;
-        lhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_lhand_;
-        lhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_lhand_;
-        lhand_robot_ref_stack_(1, 3) = -robot_shoulder_width_;
+    //     lhand_robot_ref_stack_.block(0, 0, 3, 1) = robot_still_pose_lhand_;
+    //     lhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_lhand_;
+    //     lhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_lhand_;
+    //     lhand_robot_ref_stack_(1, 3) = -robot_shoulder_width_;
         
-        rhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-        rhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-        rhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
-        rhand_master_ref_stack_.block(0, 3, 3, 1) = hmd_lshoulder_center_pos_ - hmd_rshoulder_center_pos_;
+    //     rhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    //     rhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    //     rhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
+    //     rhand_master_ref_stack_.block(0, 3, 3, 1) = hmd_lshoulder_center_pos_ - hmd_rshoulder_center_pos_;
 
-        rhand_robot_ref_stack_.block(0, 0, 3, 1) = robot_still_pose_rhand_;
-        rhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_rhand_;
-        rhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_rhand_;
-        rhand_robot_ref_stack_(1, 3) = robot_shoulder_width_;
+    //     rhand_robot_ref_stack_.block(0, 0, 3, 1) = robot_still_pose_rhand_;
+    //     rhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_rhand_;
+    //     rhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_rhand_;
+    //     rhand_robot_ref_stack_(1, 3) = robot_shoulder_width_;
 
-        H_retargeting_lhand_.setZero(variable_size_retargeting_, variable_size_retargeting_);
-        H_retargeting_rhand_.setZero(variable_size_retargeting_, variable_size_retargeting_);
-        g_retargeting_lhand_.setZero(variable_size_retargeting_);
-        g_retargeting_rhand_.setZero(variable_size_retargeting_);
-        A_retargeting_lhand_.setZero(constraint_size2_retargeting_,variable_size_retargeting_);
-        A_retargeting_rhand_.setZero(constraint_size2_retargeting_,variable_size_retargeting_);
+    //     H_retargeting_lhand_.setZero(variable_size_retargeting_, variable_size_retargeting_);
+    //     H_retargeting_rhand_.setZero(variable_size_retargeting_, variable_size_retargeting_);
+    //     g_retargeting_lhand_.setZero(variable_size_retargeting_);
+    //     g_retargeting_rhand_.setZero(variable_size_retargeting_);
+    //     A_retargeting_lhand_.setZero(constraint_size2_retargeting_,variable_size_retargeting_);
+    //     A_retargeting_rhand_.setZero(constraint_size2_retargeting_,variable_size_retargeting_);
 
-        qpres_retargeting_.setZero(variable_size_retargeting_);
-        ub_retargeting_.setZero(constraint_size1_retargeting_);
-        lb_retargeting_.setZero(constraint_size1_retargeting_);
-        ubA_retargeting_.setZero(constraint_size2_retargeting_);
-        lbA_retargeting_.setZero(constraint_size2_retargeting_);
+    //     qpres_retargeting_.setZero(variable_size_retargeting_);
+    //     ub_retargeting_.setZero(constraint_size1_retargeting_);
+    //     lb_retargeting_.setZero(constraint_size1_retargeting_);
+    //     ubA_retargeting_.setZero(constraint_size2_retargeting_);
+    //     lbA_retargeting_.setZero(constraint_size2_retargeting_);
 
-        first_loop_qp_retargeting_ = false;
-    }
+    //     first_loop_qp_retargeting_ = false;
+    // }
 
-    lb_retargeting_(0) = -1;
-    lb_retargeting_(1) = 0;
-    lb_retargeting_(2) = -1;
-    lb_retargeting_(3) = 0;
+    // lb_retargeting_(0) = -1;
+    // lb_retargeting_(1) = 0;
+    // lb_retargeting_(2) = -1;
+    // lb_retargeting_(3) = 0;
 
-    ub_retargeting_(0) = 1;
-    ub_retargeting_(1) = 1;
-    ub_retargeting_(2) = 1;
-    ub_retargeting_(3) = 1;
+    // ub_retargeting_(0) = 1;
+    // ub_retargeting_(1) = 1;
+    // ub_retargeting_(2) = 1;
+    // ub_retargeting_(3) = 1;
 
-    lbA_retargeting_(0) = -100;
-    ubA_retargeting_(0) = 100;
-    //LEFT HAND
-    H_retargeting_lhand_ = lhand_master_ref_stack_.transpose()*lhand_master_ref_stack_;
-    H_retargeting_lhand_ += Eigen::MatrixXd::Identity(variable_size_retargeting_, variable_size_retargeting_)*1e-6;
-    g_retargeting_lhand_ = -lhand_master_ref_stack_.transpose() * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() *(hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    // lbA_retargeting_(0) = -100;
+    // ubA_retargeting_(0) = 100;
+    // //LEFT HAND
+    // H_retargeting_lhand_ = lhand_master_ref_stack_.transpose()*lhand_master_ref_stack_;
+    // H_retargeting_lhand_ += Eigen::MatrixXd::Identity(variable_size_retargeting_, variable_size_retargeting_)*1e-6;
+    // g_retargeting_lhand_ = -lhand_master_ref_stack_.transpose() * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() *(hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
 
-    QP_motion_retargeting_lhand_.EnableEqualityCondition(equality_condition_eps_);
-    QP_motion_retargeting_lhand_.UpdateMinProblem(H_retargeting_lhand_, g_retargeting_lhand_);
-    // QP_motion_retargeting_lhand_.UpdateSubjectToAx(A_retargeting_lhand_, lbA_retargeting_, ubA_retargeting_);
-    QP_motion_retargeting_lhand_.DeleteSubjectToAx();
-    QP_motion_retargeting_lhand_.UpdateSubjectToX(lb_retargeting_, ub_retargeting_);
+    // QP_motion_retargeting_lhand_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_motion_retargeting_lhand_.UpdateMinProblem(H_retargeting_lhand_, g_retargeting_lhand_);
+    // // QP_motion_retargeting_lhand_.UpdateSubjectToAx(A_retargeting_lhand_, lbA_retargeting_, ubA_retargeting_);
+    // QP_motion_retargeting_lhand_.DeleteSubjectToAx();
+    // QP_motion_retargeting_lhand_.UpdateSubjectToX(lb_retargeting_, ub_retargeting_);
 
-    if (QP_motion_retargeting_lhand_.SolveQPoases(200, qpres_retargeting_))
-    {
-        lhand_mapping_vector_ = qpres_retargeting_.segment(0, variable_size_retargeting_);
-    }
-    else
-    {
-        QP_motion_retargeting_lhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
-        // lhand_mapping_vector_.setZero(variable_size_retargeting_);
+    // if (QP_motion_retargeting_lhand_.SolveQPoases(200, qpres_retargeting_))
+    // {
+    //     lhand_mapping_vector_ = qpres_retargeting_.segment(0, variable_size_retargeting_);
+    // }
+    // else
+    // {
+    //     QP_motion_retargeting_lhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
+    //     // lhand_mapping_vector_.setZero(variable_size_retargeting_);
 
-        if (int(current_time_ * 10000) % 1000 == 0)
-            cout << "QP motion retargetng for left hand is not solved!!" << endl;
-    }
+    //     if (int(current_time_ * 10000) % 1000 == 0)
+    //         cout << "QP motion retargetng for left hand is not solved!!" << endl;
+    // }
 
-    hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
+    // hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
 
-    //RIGHT HAND
-    H_retargeting_rhand_ = rhand_master_ref_stack_.transpose()*rhand_master_ref_stack_;
-    H_retargeting_rhand_ += Eigen::MatrixXd::Identity(variable_size_retargeting_, variable_size_retargeting_)*1e-6;
-    g_retargeting_rhand_ = -rhand_master_ref_stack_.transpose() * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() *(hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    // //RIGHT HAND
+    // H_retargeting_rhand_ = rhand_master_ref_stack_.transpose()*rhand_master_ref_stack_;
+    // H_retargeting_rhand_ += Eigen::MatrixXd::Identity(variable_size_retargeting_, variable_size_retargeting_)*1e-6;
+    // g_retargeting_rhand_ = -rhand_master_ref_stack_.transpose() * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() *(hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
-    QP_motion_retargeting_rhand_.EnableEqualityCondition(equality_condition_eps_);
-    QP_motion_retargeting_rhand_.UpdateMinProblem(H_retargeting_rhand_, g_retargeting_rhand_);
-    // QP_motion_retargeting_rhand_.UpdateSubjectToAx(A_retargeting_lhand_, lbA_retargeting_, ubA_retargeting_);
-    QP_motion_retargeting_rhand_.DeleteSubjectToAx();
-    QP_motion_retargeting_rhand_.UpdateSubjectToX(lb_retargeting_, ub_retargeting_);
+    // QP_motion_retargeting_rhand_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_motion_retargeting_rhand_.UpdateMinProblem(H_retargeting_rhand_, g_retargeting_rhand_);
+    // // QP_motion_retargeting_rhand_.UpdateSubjectToAx(A_retargeting_lhand_, lbA_retargeting_, ubA_retargeting_);
+    // QP_motion_retargeting_rhand_.DeleteSubjectToAx();
+    // QP_motion_retargeting_rhand_.UpdateSubjectToX(lb_retargeting_, ub_retargeting_);
 
-    if (QP_motion_retargeting_rhand_.SolveQPoases(200, qpres_retargeting_))
-    {
-        rhand_mapping_vector_ = qpres_retargeting_.segment(0, variable_size_retargeting_);
-    }
-    else
-    {
-        QP_motion_retargeting_rhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
-        // lhand_mapping_vector_.setZero(variable_size_retargeting_);
+    // if (QP_motion_retargeting_rhand_.SolveQPoases(200, qpres_retargeting_))
+    // {
+    //     rhand_mapping_vector_ = qpres_retargeting_.segment(0, variable_size_retargeting_);
+    // }
+    // else
+    // {
+    //     QP_motion_retargeting_rhand_.InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_);
+    //     // lhand_mapping_vector_.setZero(variable_size_retargeting_);
 
-        if (int(current_time_ * 10000) % 1000 == 0)
-            cout << "QP motion retargetng for right hand is not solved!!" << endl;
-    }
+    //     if (int(current_time_ * 10000) % 1000 == 0)
+    //         cout << "QP motion retargetng for right hand is not solved!!" << endl;
+    // }
 
-    hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
+    // hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     if (hmd2robot_lhand_pos_mapping_.norm() > robot_arm_max_l_)
