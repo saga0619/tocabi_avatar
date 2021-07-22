@@ -15,7 +15,7 @@
 
 // pedal
 #include <ros/ros.h>
-#include <dyros_pedal/WalkingCommand.h>
+#include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
 const int FILE_CNT = 14;
@@ -70,9 +70,10 @@ public:
     CQuadraticProgram QP_qdot_larm;
     CQuadraticProgram QP_qdot_rarm;
     CQuadraticProgram QP_qdot_upperbody_;
-    CQuadraticProgram QP_qdot_wholebody;
+    CQuadraticProgram QP_qdot_wholebody_;
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
-    CQuadraticProgram QP_motion_retargeting;
+    CQuadraticProgram QP_motion_retargeting_lhand_;
+    CQuadraticProgram QP_motion_retargeting_rhand_;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -991,6 +992,20 @@ public:
     const double equality_condition_eps_ = 1e-8;
     const double damped_puedoinverse_eps_ = 1e-5;
     ///////////////////////////////////////////////////
+    
+    ////////////QP RETARGETING//////////////////////////////////
+    const int variable_size_retargeting_ = 4;
+	const int constraint_size1_retargeting_ = 4;	//[lb <=	x	<= 	ub] form constraints
+	const int constraint_size2_retargeting_ = 1;	//[lb <=	Ax 	<=	ub] from constraints
+   	// const int control_size_retargeting_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+
+    Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
+    Eigen::Vector4d lhand_mapping_vector_, rhand_mapping_vector_;
+    Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
+    
+    Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
+    Eigen::VectorXd qpres_retargeting_, g_retargeting_lhand_, g_retargeting_rhand_, ub_retargeting_, lb_retargeting_, ubA_retargeting_, lbA_retargeting_;
+    ////////////////////////////////////////////////////////////
 
     //fallDetection variables
     Eigen::VectorQd fall_init_q_;
@@ -1022,6 +1037,7 @@ private:
     bool first_loop_rarm_;
     bool first_loop_upperbody_;
     bool first_loop_hqpik_;
+    bool first_loop_qp_retargeting_;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
@@ -1267,7 +1283,7 @@ public:
     //pedal_
     ros::NodeHandle nh;
     ros::Subscriber pedal_command;
-    void PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg);
+    void PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg);
     Eigen::Vector4d joystick_input;
     Eigen::Vector4d joystick_input_;
 
