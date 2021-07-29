@@ -8933,6 +8933,7 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
     {
         walking_enable_ = true;
         walking_end_flag = 1;
+        cout<<"walking triggered!!"<<endl;
     }
 }
 
