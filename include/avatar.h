@@ -1012,7 +1012,7 @@ public:
 
     Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_;
     double w1_retargeting_, w2_retargeting_, w3_retargeting_, human_shoulder_width_; 
-    const double control_gain_retargeting_ = 500;
+    const double control_gain_retargeting_ = 100;
     const double human_vel_min_ = -2;
     const double human_vel_max_ = 2;
     const double w_dot_min_ = -3;
