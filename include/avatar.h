@@ -74,6 +74,7 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
+    CQuadraticProgram QP_motion_retargeting_;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -994,17 +995,29 @@ public:
     ///////////////////////////////////////////////////
     
     ////////////QP RETARGETING//////////////////////////////////
-    const int variable_size_retargeting_ = 4;
-	const int constraint_size1_retargeting_ = 4;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_retargeting_ = 1;	//[lb <=	Ax 	<=	ub] from constraints
-   	// const int control_size_retargeting_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+    const int variable_size_retargeting_ = 8;
+	const int constraint_size1_retargeting_ = 8;	//[lb <=	x	<= 	ub] form constraints
+	const int constraint_size2_retargeting_ = 6;	//[lb <=	Ax 	<=	ub] from constraints
+   	const int control_size_retargeting_[3] = {3, 3, 3};		//1: left hand, 2: right hand, 3: relative hand
 
     Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
-    Eigen::Vector4d lhand_mapping_vector_, rhand_mapping_vector_;
+    Eigen::Vector4d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
     Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
     
     Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
     Eigen::VectorXd qpres_retargeting_, g_retargeting_lhand_, g_retargeting_rhand_, ub_retargeting_, lb_retargeting_, ubA_retargeting_, lbA_retargeting_;
+    Eigen::MatrixXd E1_, E2_, E3_, H_retargeting_, A_retargeting_;
+    Eigen::VectorXd g_retargeting_, u1_, u2_, u3_;
+
+    Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_;
+    double w1_retargeting_, w2_retargeting_, w3_retargeting_, human_shoulder_width_; 
+    const double control_gain_retargeting_ = 500;
+    const double human_vel_min_ = -2;
+    const double human_vel_max_ = 2;
+    const double w_dot_min_ = -3;
+    const double w_dot_max_ = 3;
+
+
     ////////////////////////////////////////////////////////////
 
     //fallDetection variables
