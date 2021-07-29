@@ -754,6 +754,11 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
+                for (int i = 0; i < 12; i++)
+                {
+                    Initial_ref_q_(i) = ref_q_(i);
+                }
+                
                 cout << "\n\n\n\n"<< endl;
                 cout << "___________________________ " << endl;
                 cout << "\n           Start " << endl;
@@ -2513,7 +2518,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-            upper_body_mode_ = 1;
+            upper_body_mode_ = 3;
 
             motion_q_ = motion_q_pre_;
         }
@@ -2550,7 +2555,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-            upper_body_mode_ = 1;
+            upper_body_mode_ = 3;
 
             motion_q_ = motion_q_pre_;
         }
@@ -2665,7 +2670,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-            upper_body_mode_ = 1;
+            upper_body_mode_ = 3;
 
             motion_q_ = motion_q_pre_;
         }
@@ -4333,7 +4338,7 @@ void AvatarController::poseCalibration()
     Eigen::Matrix3d hmd_pelv_yaw_rot;
     Eigen::Isometry3d hmd_pelv_pose_yaw_only;
 
-    if (still_pose_cali_flag_ == true)
+    if (still_pose_cali_flag_ == false)
     {
         hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
     }
@@ -8741,7 +8746,7 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
         joystick_input(1) = -1.0;
     }
 
-    if (joystick_input(1) > 0)
+    if (joystick_input(1) > 0.0001)
     {
         walking_enable_ = true;
         walking_end_flag = 1;
@@ -11104,7 +11109,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     d_hat = (2 * M_PI * 5.0 * del_t) / (1 + 2 * M_PI * 5.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 5.0 * del_t) * d_hat_b;
 
     double default_gain = 0.0;
-    double compliant_gain = 0.0;
+    double compliant_gain = 1.0;
     double compliant_tick = 0.2 * hz_;
     double gain_temp = 0.0;
     for (int i = 0; i < 12; i++)
