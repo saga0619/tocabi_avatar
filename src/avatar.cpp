@@ -856,6 +856,8 @@ void AvatarController::computeSlow()
                 //ref_q_(i) = q_des(i);
                 ref_q_(i) = DOB_IK_output_(i);
             }
+            
+            hip_compensator();
 
             if (rd_.control_time_ <= init_leg_time_ + 2.0)
             {

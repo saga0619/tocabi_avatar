@@ -39,7 +39,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";
 
 class AvatarController
 {
