@@ -39,7 +39,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";
+// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";
 
 class AvatarController
 {
@@ -74,7 +75,7 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
-    CQuadraticProgram QP_motion_retargeting_;
+    CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -128,6 +129,9 @@ public:
     Eigen::Vector3d kinematicFilter(Eigen::Vector3d position_data, Eigen::Vector3d pre_position_data, Eigen::Vector3d reference_position, double boundary, bool &check_boundary);
     Eigen::Isometry3d velocityFilter(Eigen::Isometry3d data, Eigen::Isometry3d pre_data, Eigen::Vector6d &vel_data, double max_vel, int &cur_iter, int max_iter, bool &check_velocity);
     
+    void qpRetargeting_1();
+    void qpRetargeting_21();
+    void qpRetargeting_21Transition(double beta);
 
     void masterTrajectoryTest();
     
@@ -978,12 +982,12 @@ public:
 	const int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
 	const int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
 
-    double w1_hqpik_;
-    double w2_hqpik_;
-    double w3_hqpik_;
-    double w4_hqpik_;
-    double w5_hqpik_;
-    double w6_hqpik_;
+    double w1_hqpik_[4];
+    double w2_hqpik_[4];
+    double w3_hqpik_[4];
+    double w4_hqpik_[4];
+    double w5_hqpik_[4];
+    double w6_hqpik_[4];
     
     Eigen::MatrixXd H_hqpik_[4], A_hqpik_[4];
     Eigen::MatrixXd J_hqpik_[4], J_temp_;
@@ -998,7 +1002,7 @@ public:
     ////////////QP RETARGETING//////////////////////////////////
     const int variable_size_retargeting_ = 8;
 	const int constraint_size1_retargeting_ = 8;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_retargeting_ = 6;	//[lb <=	Ax 	<=	ub] from constraints
+	const int constraint_size2_retargeting_[3] = {6, 6, 9};	//[lb <=	Ax 	<=	ub] from constraints
    	const int control_size_retargeting_[3] = {3, 3, 3};		//1: left hand, 2: right hand, 3: relative hand
 
     Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
@@ -1006,8 +1010,8 @@ public:
     Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
     
     Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
-    Eigen::VectorXd qpres_retargeting_, g_retargeting_lhand_, g_retargeting_rhand_, ub_retargeting_, lb_retargeting_, ubA_retargeting_, lbA_retargeting_;
-    Eigen::MatrixXd E1_, E2_, E3_, H_retargeting_, A_retargeting_;
+    Eigen::VectorXd qpres_retargeting_[3], g_retargeting_lhand_, g_retargeting_rhand_, ub_retargeting_, lb_retargeting_, ubA_retargeting_[3], lbA_retargeting_[3];
+    Eigen::MatrixXd E1_, E2_, E3_, H_retargeting_, A_retargeting_[3];
     Eigen::VectorXd g_retargeting_, u1_, u2_, u3_;
 
     Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_;
@@ -1017,7 +1021,6 @@ public:
     const double human_vel_max_ = 2;
     const double w_dot_min_ = -3;
     const double w_dot_max_ = 3;
-
 
     ////////////////////////////////////////////////////////////
 
