@@ -1366,13 +1366,13 @@ void AvatarController::initWalkingParameter()
 
     hmd_pelv_pose_init_.setIdentity();
     tracker_status_changed_time_ = current_time_;
-    // hmd_tracker_status_ = false;
-    // hmd_tracker_status_raw_ = false;
-    // hmd_tracker_status_pre_ = false;
+    hmd_tracker_status_ = false;
+    hmd_tracker_status_raw_ = false;
+    hmd_tracker_status_pre_ = false;
     
-    hmd_tracker_status_ = true;
-    hmd_tracker_status_raw_ = true;
-    hmd_tracker_status_pre_ = true;   
+    // hmd_tracker_status_ = true;
+    // hmd_tracker_status_raw_ = true;
+    // hmd_tracker_status_pre_ = true;   
 
     hmd_head_abrupt_motion_count_ = 0;
     hmd_lupperarm_abrupt_motion_count_ = 0;
@@ -5370,6 +5370,7 @@ void AvatarController::hmdRawDataProcessing()
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
     double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
+    // double beta = 0;
 
 
     if (beta == 0)
