@@ -40,7 +40,7 @@ const std::string FILE_NAMES[FILE_CNT] =
 };
 
 // const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 
 class AvatarController
 {
