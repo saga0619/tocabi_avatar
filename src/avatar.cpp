@@ -442,10 +442,10 @@ void AvatarController::setGains()
     }
 
     //WAIST
-    joint_limit_l_(12) = -30 * DEG2RAD;
-    joint_limit_h_(12) = 30 * DEG2RAD;
-    joint_limit_l_(13) = -20 * DEG2RAD;
-    joint_limit_h_(13) = 20 * DEG2RAD;
+    joint_limit_l_(12) = -45 * DEG2RAD;
+    joint_limit_h_(12) = 45 * DEG2RAD;
+    joint_limit_l_(13) = -30 * DEG2RAD;
+    joint_limit_h_(13) = 30 * DEG2RAD;
     joint_limit_l_(14) = -30 * DEG2RAD;
     joint_limit_h_(14) = 30 * DEG2RAD;
     //LEFT ARM
@@ -514,6 +514,14 @@ void AvatarController::setGains()
     joint_vel_limit_h_(23) = 2*M_PI;
     joint_vel_limit_l_(24) = -2*M_PI;
     joint_vel_limit_h_(24) = 2*M_PI;
+
+    // forearm joint vel limit
+    joint_vel_limit_l_(20) = -2*M_PI;
+    joint_vel_limit_h_(20) = 2*M_PI;
+    joint_vel_limit_l_(30) = -2*M_PI;
+    joint_vel_limit_h_(30) = 2*M_PI;
+
+
 
 }
 
@@ -4377,7 +4385,8 @@ void AvatarController::poseCalibration()
     // hmd_pelv_pose_.linear().setIdentity();
 
     Eigen::Vector3d tracker_offset;
-    tracker_offset << -0.08, 0, 0;
+    // tracker_offset << -0.08, 0, 0;  //bebop
+    tracker_offset << -0.10, 0, -0.04;  //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -5378,35 +5387,30 @@ void AvatarController::hmdRawDataProcessing()
     double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
     // double beta = 0;
 
-    if((int(current_time_ * 1e4) % int(1e4) == 0))
-    {
-        cout<<"beta: "<<beta<<endl;
-    }
-
     if (beta == 0)
     {
         qpRetargeting_1(); //calc lhand_mapping_vector_, rhand_mapping_vector_
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta0: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta0: " << beta << endl;
+        // }
     }
     else if (beta == 1)
     {
         qpRetargeting_21();
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta1: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta1: " << beta << endl;
+        // }
     }
     else //transition
     {
         qpRetargeting_1();
         qpRetargeting_21Transition(beta);   // qpRetargeting_1() must be preceded
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta0~1: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta0~1: " << beta << endl;
+        // }
     }
     
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
