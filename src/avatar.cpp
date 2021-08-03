@@ -770,6 +770,7 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
+                pelv_trajectory_support_init_ =pelv_trajectory_support_;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
@@ -839,6 +840,7 @@ void AvatarController::computeSlow()
             // double init_time_;
             if (walking_end_flag == 0)
             {
+                parameterSetting();
                 // updateInitialStateJoy();
                 updateInitialState();
                 getRobotState();
@@ -852,6 +854,7 @@ void AvatarController::computeSlow()
                 {
                     Initial_ref_q_(i) = ref_q_(i);
                 }
+                pelv_trajectory_support_init_ =pelv_trajectory_support_;
 
                 initial_flag = 0;
                 init_leg_time_ = rd_.control_time_;        
@@ -9053,7 +9056,7 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
     {
         walking_enable_ = true;
         walking_end_flag = 1;
-        cout<<"walking triggered!!"<<endl;
+        // cout<<"walking triggered!!"<<endl;
     }
 }
 
@@ -9157,6 +9160,7 @@ void AvatarController::updateInitialState()
         }
 
         pelv_support_start_ = pelv_support_init_;
+        // cout<<"pelv_support_start_.translation()(2): "<<pelv_support_start_.translation()(2);
         total_step_num_ = foot_step_.col(1).size();
 
         xi_mj_ = com_support_init_(0); // preview parameter
@@ -10754,15 +10758,15 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.2;
-    double pelv_transition_time = 1.5;
+    double pelv_offset = -0.15;
+    double pelv_transition_time = 2.0;
     if(walking_enable_ == true)
     {
-        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_offset, 0.0, 0.0, 0.0);
+        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2)-com_desired_(2), 0.0, 0.0, 0.0);
     }
     else
     {
-        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + pelv_transition_time, 0.0, pelv_offset, 0.0, 0.0);
+        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + pelv_transition_time, pelv_support_init_.translation()(2)-com_desired_(2), pelv_offset, 0.0, 0.0);
     }
     
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
@@ -10868,7 +10872,8 @@ void AvatarController::getComTrajectory()
 
     com_desired_(0) = xd_mj_(0);
     com_desired_(1) = yd_mj_(0);
-    com_desired_(2) = pelv_support_start_.translation()(2);
+    // com_desired_(2) = pelv_support_start_.translation()(2);
+    com_desired_(2) = 0.77172;
 
     //SC_err_compen(com_desired_(0), com_desired_(1));
 
@@ -11864,6 +11869,7 @@ void AvatarController::updateNextStepTimeJoy()
         cout << "            end" << endl;
         cout << "___________________________" << endl;
         joy_input_enable_ = true;
+        walking_end_flag = 0;
     }
 }
 
