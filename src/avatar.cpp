@@ -521,8 +521,6 @@ void AvatarController::setGains()
     joint_vel_limit_l_(30) = -2*M_PI;
     joint_vel_limit_h_(30) = 2*M_PI;
 
-
-
 }
 
 Eigen::VectorQd AvatarController::getControl()
@@ -10756,11 +10754,22 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
+    double pelv_offset = -0.2;
+    double pelv_transition_time = 1.5;
+    if(walking_enable_ == true)
+    {
+        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_offset, 0.0, 0.0, 0.0);
+    }
+    else
+    {
+        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + pelv_transition_time, 0.0, pelv_offset, 0.0, 0.0);
+    }
+    
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
     pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0.6 * damping_y - com_support_current_(1));  //- 0.01 * zmp_err_(1) * 0;
-    pelv_trajectory_support_.translation()(2) = com_desired_(2);
+    pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_;
     // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
     Eigen::Vector3d Trunk_trajectory_euler;
     Trunk_trajectory_euler.setZero();
@@ -11110,6 +11119,7 @@ void AvatarController::parameterSetting()
 
     current_step_num_ = 0;
     foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    pelv_height_offset_ = 0.0;  // change pelvis height for manipulation when the robot stop walking
 }
 
 void AvatarController::updateNextStepTime()

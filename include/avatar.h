@@ -337,7 +337,8 @@ public:
     Eigen::Matrix3d pelv_rot_current_yaw_aline_;
     Eigen::Matrix3d pelv_yaw_rot_current_from_global_;
     Eigen::Isometry3d pelv_transform_current_from_global_;
-
+    double pelv_height_offset_;
+    
     Eigen::Vector3d pelv_pos_init_;
     Eigen::Vector6d pelv_vel_init_;
     Eigen::Matrix3d pelv_rot_init_;
