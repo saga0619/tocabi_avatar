@@ -442,10 +442,10 @@ void AvatarController::setGains()
     }
 
     //WAIST
-    joint_limit_l_(12) = -30 * DEG2RAD;
-    joint_limit_h_(12) = 30 * DEG2RAD;
-    joint_limit_l_(13) = -20 * DEG2RAD;
-    joint_limit_h_(13) = 20 * DEG2RAD;
+    joint_limit_l_(12) = -45 * DEG2RAD;
+    joint_limit_h_(12) = 45 * DEG2RAD;
+    joint_limit_l_(13) = -30 * DEG2RAD;
+    joint_limit_h_(13) = 30 * DEG2RAD;
     joint_limit_l_(14) = -30 * DEG2RAD;
     joint_limit_h_(14) = 30 * DEG2RAD;
     //LEFT ARM
@@ -514,6 +514,12 @@ void AvatarController::setGains()
     joint_vel_limit_h_(23) = 2*M_PI;
     joint_vel_limit_l_(24) = -2*M_PI;
     joint_vel_limit_h_(24) = 2*M_PI;
+
+    // forearm joint vel limit
+    joint_vel_limit_l_(20) = -2*M_PI;
+    joint_vel_limit_h_(20) = 2*M_PI;
+    joint_vel_limit_l_(30) = -2*M_PI;
+    joint_vel_limit_h_(30) = 2*M_PI;
 
 }
 
@@ -764,6 +770,7 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
+                pelv_trajectory_support_init_ =pelv_trajectory_support_;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
@@ -833,6 +840,7 @@ void AvatarController::computeSlow()
             // double init_time_;
             if (walking_end_flag == 0)
             {
+                parameterSetting(); //Don't delete this!!
                 // updateInitialStateJoy();
                 updateInitialState();
                 getRobotState();
@@ -846,6 +854,7 @@ void AvatarController::computeSlow()
                 {
                     Initial_ref_q_(i) = ref_q_(i);
                 }
+                pelv_trajectory_support_init_ =pelv_trajectory_support_;
 
                 initial_flag = 0;
                 init_leg_time_ = rd_.control_time_;        
@@ -1373,13 +1382,13 @@ void AvatarController::initWalkingParameter()
 
     hmd_pelv_pose_init_.setIdentity();
     tracker_status_changed_time_ = current_time_;
-    // hmd_tracker_status_ = false;
-    // hmd_tracker_status_raw_ = false;
-    // hmd_tracker_status_pre_ = false;
+    hmd_tracker_status_ = false;
+    hmd_tracker_status_raw_ = false;
+    hmd_tracker_status_pre_ = false;
     
-    hmd_tracker_status_ = true;
-    hmd_tracker_status_raw_ = true;
-    hmd_tracker_status_pre_ = true;   
+    // hmd_tracker_status_ = true;
+    // hmd_tracker_status_raw_ = true;
+    // hmd_tracker_status_pre_ = true;   
 
     hmd_head_abrupt_motion_count_ = 0;
     hmd_lupperarm_abrupt_motion_count_ = 0;
@@ -4377,7 +4386,8 @@ void AvatarController::poseCalibration()
     // hmd_pelv_pose_.linear().setIdentity();
 
     Eigen::Vector3d tracker_offset;
-    tracker_offset << -0.08, 0, 0;
+    // tracker_offset << -0.08, 0, 0;  //bebop
+    tracker_offset << -0.10, 0, -0.04;  //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -5376,36 +5386,32 @@ void AvatarController::hmdRawDataProcessing()
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
     double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
-
-    if((int(current_time_ * 1e4) % int(1e4) == 0))
-    {
-        cout<<"beta: "<<beta<<endl;
-    }
+    // double beta = 0;
 
     if (beta == 0)
     {
         qpRetargeting_1(); //calc lhand_mapping_vector_, rhand_mapping_vector_
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta0: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta0: " << beta << endl;
+        // }
     }
     else if (beta == 1)
     {
         qpRetargeting_21();
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta1: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta1: " << beta << endl;
+        // }
     }
     else //transition
     {
         qpRetargeting_1();
         qpRetargeting_21Transition(beta);   // qpRetargeting_1() must be preceded
-        if ((int(current_time_ * 1e4) % int(1e4) == 0))
-        {
-            cout << "beta0~1: " << beta << endl;
-        }
+        // if ((int(current_time_ * 1e4) % int(1e4) == 0))
+        // {
+        //     cout << "beta0~1: " << beta << endl;
+        // }
     }
     
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
@@ -9052,7 +9058,7 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
     {
         walking_enable_ = true;
         walking_end_flag = 1;
-        cout<<"walking triggered!!"<<endl;
+        // cout<<"walking triggered!!"<<endl;
     }
 }
 
@@ -9156,6 +9162,7 @@ void AvatarController::updateInitialState()
         }
 
         pelv_support_start_ = pelv_support_init_;
+        // cout<<"pelv_support_start_.translation()(2): "<<pelv_support_start_.translation()(2);
         total_step_num_ = foot_step_.col(1).size();
 
         xi_mj_ = com_support_init_(0); // preview parameter
@@ -10753,11 +10760,22 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
+    double pelv_offset = -0.2;
+    double pelv_transition_time = 3.0;
+    if(walking_enable_ == true)
+    {
+        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2)-com_desired_(2), 0.0, 0.0, 0.0);
+    }
+    else
+    {
+        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + pelv_transition_time, pelv_support_init_.translation()(2)-com_desired_(2), pelv_offset, 0.0, 0.0);
+    }
+    
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
     pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0.6 * damping_y - com_support_current_(1));  //- 0.01 * zmp_err_(1) * 0;
-    pelv_trajectory_support_.translation()(2) = com_desired_(2);
+    pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_;
     // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
     Eigen::Vector3d Trunk_trajectory_euler;
     Trunk_trajectory_euler.setZero();
@@ -10797,12 +10815,12 @@ void AvatarController::getPelvTrajectory()
     if (P_angle_input > 0.0785)
     {
         P_angle_input = 0.0785;
-        cout << "a" << endl;
+        // cout << "a" << endl;
     }
     else if (P_angle_input < -0.0785)
     {
         P_angle_input = -0.0785;
-        cout << "b" << endl;
+        // cout << "b" << endl;
     }
     //Trunk_trajectory_euler(0) = R_angle_input;
     Trunk_trajectory_euler(1) = P_angle_input;
@@ -10856,7 +10874,8 @@ void AvatarController::getComTrajectory()
 
     com_desired_(0) = xd_mj_(0);
     com_desired_(1) = yd_mj_(0);
-    com_desired_(2) = pelv_support_start_.translation()(2);
+    // com_desired_(2) = pelv_support_start_.translation()(2);
+    com_desired_(2) = 0.77172;
 
     //SC_err_compen(com_desired_(0), com_desired_(1));
 
@@ -11107,6 +11126,7 @@ void AvatarController::parameterSetting()
 
     current_step_num_ = 0;
     foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    pelv_height_offset_ = 0.0;  // change pelvis height for manipulation when the robot stop walking
 }
 
 void AvatarController::updateNextStepTime()
@@ -11851,6 +11871,7 @@ void AvatarController::updateNextStepTimeJoy()
         cout << "            end" << endl;
         cout << "___________________________" << endl;
         joy_input_enable_ = true;
+        walking_end_flag = 0;
     }
 }
 
