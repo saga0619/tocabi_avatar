@@ -5385,8 +5385,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
-    // double beta = 0;
+    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
+    double beta = 0;
 
     if (beta == 0)
     {
@@ -10758,8 +10758,8 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.15;
-    double pelv_transition_time = 2.0;
+    double pelv_offset = -0.20;
+    double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
         pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2)-com_desired_(2), 0.0, 0.0, 0.0);
@@ -10813,12 +10813,12 @@ void AvatarController::getPelvTrajectory()
     if (P_angle_input > 0.0785)
     {
         P_angle_input = 0.0785;
-        cout << "a" << endl;
+        // cout << "a" << endl;
     }
     else if (P_angle_input < -0.0785)
     {
         P_angle_input = -0.0785;
-        cout << "b" << endl;
+        // cout << "b" << endl;
     }
     //Trunk_trajectory_euler(0) = R_angle_input;
     Trunk_trajectory_euler(1) = P_angle_input;
