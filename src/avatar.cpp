@@ -10766,7 +10766,7 @@ void AvatarController::getPelvTrajectory()
     }
     else
     {
-        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + pelv_transition_time, pelv_support_init_.translation()(2)-com_desired_(2), pelv_offset, 0.0, 0.0);
+        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 5.0, pelv_support_init_.translation()(2)-com_desired_(2), pelv_offset, 0.0, 0.0);
     }
     
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
