@@ -5711,6 +5711,7 @@ void AvatarController::getCOMTrajectory_dg()
     double desired_step_position_in_y;
     double desired_step_velocity_in_y;
     double d_temp_y;
+
     com_pos_desired_.setZero();
     com_vel_desired_.setZero();
     com_acc_desired_.setZero();
@@ -6089,7 +6090,8 @@ Eigen::VectorQd AvatarController::comVelocityControlCompute()
     const int task_dof = 6;
 
     Vector3d alpha_unit;
-    Vector3d beta_unit;
+    Vector3d 
+    _unit;
 
     double f_star_mag_alpha;
     double f_star_mag_beta;
