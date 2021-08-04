@@ -468,8 +468,8 @@ void AvatarController::setGains()
     //HEAD
     joint_limit_l_(23) = -90 * DEG2RAD;
     joint_limit_h_(23) = 90 * DEG2RAD;
-    joint_limit_l_(24) = -60 * DEG2RAD;
-    joint_limit_h_(24) = 60 * DEG2RAD;
+    joint_limit_l_(24) = -40 * DEG2RAD;
+    joint_limit_h_(24) = 40 * DEG2RAD;
     //RIGHT ARM
     joint_limit_l_(25) = -30 * DEG2RAD;
     joint_limit_h_(25) = 30 * DEG2RAD;
