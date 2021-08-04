@@ -840,7 +840,7 @@ void AvatarController::computeSlow()
             // double init_time_;
             if (walking_end_flag == 0)
             {
-                parameterSetting();
+                parameterSetting(); //Don't delete this!!
                 // updateInitialStateJoy();
                 updateInitialState();
                 getRobotState();
