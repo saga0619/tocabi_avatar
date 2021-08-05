@@ -5382,6 +5382,8 @@ void AvatarController::hmdRawDataProcessing()
 
         h_pre_lhand_ = lhand_master_ref_stack_ * lhand_mapping_vector_pre_;
         h_pre_rhand_ = rhand_master_ref_stack_ * rhand_mapping_vector_pre_;
+        r_pre_lhand_ = lhand_robot_ref_stack_ * lhand_mapping_vector_pre_;
+        r_pre_rhand_ = rhand_robot_ref_stack_ * rhand_mapping_vector_pre_;
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
@@ -5590,7 +5592,7 @@ void AvatarController::qpRetargeting_21()
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
-    u3_ = control_gain_retargeting_ * robot_shoulder_width_ / human_shoulder_width_ * ((h_d_lhand_ - h_d_rhand_) - (h_pre_lhand_ - h_pre_rhand_));
+    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_) - (r_pre_lhand_ - r_pre_rhand_));
 
     H_retargeting_ = w3_retargeting_ * E3_.transpose() * E3_;
     g_retargeting_ = -w3_retargeting_ * E3_.transpose() * u3_;
