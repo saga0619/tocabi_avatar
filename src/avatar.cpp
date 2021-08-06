@@ -2,10 +2,10 @@
 #include <fstream>
 using namespace TOCABI;
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+// ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
+// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd) 
 {
@@ -10814,18 +10814,18 @@ void AvatarController::getPelvTrajectory()
         R_angle_input = 0;
     }
 
-    P_angle_input_dot = 2.0 * (0.0 - P_angle) - 0.01 * P_angle_input;
+    P_angle_input_dot = 1.5 * (0.0 - P_angle) - 0.01 * P_angle_input;
     // R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
 
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
     // R_angle_input = R_angle_input + R_angle_input_dot*del_t;
 
-    // if(R_angle_input > 0.0262)
+    // if(R_angle_input > 0.0262) //1.5 degree
     // { R_angle_input = 0.0262; }
     // else if(R_angle_input < -0.0262)
     // { R_angle_input = -0.0262; }
 
-    if (P_angle_input > 0.0785)
+    if (P_angle_input > 0.0785) //5 degree
     {
         P_angle_input = 0.0785;
         // cout << "a" << endl;
