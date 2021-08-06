@@ -9058,7 +9058,8 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
     if (joy_input_enable_ == true)
     {
         joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
-        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - sign(msg->theta), -0.5 + 0.5*sign(msg->theta), 0.5 + 0.5*sign(msg->theta));
+        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - DyrosMath::sign(msg->theta), -0.5 + 0.5*DyrosMath::sign(msg->theta), 0.5 + 0.5*DyrosMath::sign(msg->theta));
+        // joystick_input(2) = msg->theta;
         joystick_input(3) = DyrosMath::minmax_cut(2*(msg->z), 0.0, 2.0) -1.0; //BW
         joystick_input(1) = (joystick_input(0) + 1) / 2 + abs(joystick_input(2)) + (joystick_input(3) + 1) / 2;
     }
@@ -11721,8 +11722,8 @@ void AvatarController::updateInitialStateJoy()
 void AvatarController::calculateFootStepTotal_MJoy()
 {
     double width = 0.1225;
-    double length = 0.09;
-    double lengthb = 0.07;
+    double length = 0.07;
+    double lengthb = 0.05;
     double theta = 10 * DEG2RAD;
     double width_buffer = 0.0;
     double temp;
@@ -11812,9 +11813,6 @@ void AvatarController::calculateFootStepTotal_MJoy()
 void AvatarController::calculateFootStepTotal_MJoy_End()
 {
     double width = 0.1225;
-    double length = 0.10;
-    double theta = 10 * DEG2RAD;
-    double width_buffer = 0.0;
     double temp;
     int index = 1;
 
