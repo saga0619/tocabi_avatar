@@ -9054,11 +9054,11 @@ void AvatarController::printOutTextFile()
 //////////////////////////////MJ's Functions////////////////////
 void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg)
 {
-
     if (joy_input_enable_ == true)
     {
         joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
-        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - sign(msg->theta), -0.5 + 0.5*sign(msg->theta), 0.5 + 0.5*sign(msg->theta));
+        // joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - sign(msg->theta), -0.5 + 0.5*sign(msg->theta), 0.5 + 0.5*sign(msg->theta));
+        joystick_input(2) = msg->theta;
         joystick_input(3) = DyrosMath::minmax_cut(2*(msg->z), 0.0, 2.0) -1.0; //BW
         joystick_input(1) = (joystick_input(0) + 1) / 2 + abs(joystick_input(2)) + (joystick_input(3) + 1) / 2;
     }
