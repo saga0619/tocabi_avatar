@@ -9057,8 +9057,8 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
     if (joy_input_enable_ == true)
     {
         joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
-        // joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - sign(msg->theta), -0.5 + 0.5*sign(msg->theta), 0.5 + 0.5*sign(msg->theta));
-        joystick_input(2) = msg->theta;
+        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - DyrosMath::sign(msg->theta), -0.5 + 0.5*DyrosMath::sign(msg->theta), 0.5 + 0.5*DyrosMath::sign(msg->theta));
+        // joystick_input(2) = msg->theta;
         joystick_input(3) = DyrosMath::minmax_cut(2*(msg->z), 0.0, 2.0) -1.0; //BW
         joystick_input(1) = (joystick_input(0) + 1) / 2 + abs(joystick_input(2)) + (joystick_input(3) + 1) / 2;
     }
@@ -10773,7 +10773,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.20;
+    double pelv_offset = -0.00;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
@@ -10808,7 +10808,7 @@ void AvatarController::getPelvTrajectory()
 
     // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
     // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 1.5*P_angle_i;
-    if (aa == 0 && walking_tick_mj == 0)
+    if (aa == 0 && walking_tick_mj == 0 && (walking_enable_ == true) )
     {
         P_angle_input = 0;
         R_angle_input = 0;
@@ -11721,8 +11721,8 @@ void AvatarController::updateInitialStateJoy()
 void AvatarController::calculateFootStepTotal_MJoy()
 {
     double width = 0.1225;
-    double length = 0.09;
-    double lengthb = 0.07;
+    double length = 0.07;
+    double lengthb = 0.05;
     double theta = 10 * DEG2RAD;
     double width_buffer = 0.0;
     double temp;
@@ -11812,9 +11812,6 @@ void AvatarController::calculateFootStepTotal_MJoy()
 void AvatarController::calculateFootStepTotal_MJoy_End()
 {
     double width = 0.1225;
-    double length = 0.10;
-    double theta = 10 * DEG2RAD;
-    double width_buffer = 0.0;
     double temp;
     int index = 1;
 
