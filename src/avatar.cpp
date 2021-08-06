@@ -4387,7 +4387,7 @@ void AvatarController::poseCalibration()
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.10, 0, -0.04;  //senseglove
+    tracker_offset << -0.09, 0, -0.04;  //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -9057,9 +9057,9 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
 
     if (joy_input_enable_ == true)
     {
-        joystick_input(0) = msg->step_length_x; //FW
-        joystick_input(2) = msg->theta;
-        joystick_input(3) = msg->z; //BW
+        joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
+        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - sign(msg->theta), -0.5 + 0.5*sign(msg->theta), 0.5 + 0.5*sign(msg->theta));
+        joystick_input(3) = DyrosMath::minmax_cut(2*(msg->z), 0.0, 2.0) -1.0; //BW
         joystick_input(1) = (joystick_input(0) + 1) / 2 + abs(joystick_input(2)) + (joystick_input(3) + 1) / 2;
     }
     else
@@ -10773,7 +10773,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.0;
+    double pelv_offset = -0.20;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
@@ -10825,14 +10825,14 @@ void AvatarController::getPelvTrajectory()
     // else if(R_angle_input < -0.0262)
     // { R_angle_input = -0.0262; }
 
-    if (P_angle_input > 0.0785) //5 degree
+    if (P_angle_input > 5*DEG2RAD) //5 degree
     {
-        P_angle_input = 0.0785;
+        P_angle_input = 5*DEG2RAD;
         // cout << "a" << endl;
     }
-    else if (P_angle_input < -0.0785)
+    else if (P_angle_input < -5*DEG2RAD)
     {
-        P_angle_input = -0.0785;
+        P_angle_input = -5*DEG2RAD;
         // cout << "b" << endl;
     }
     //Trunk_trajectory_euler(0) = R_angle_input;
