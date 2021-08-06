@@ -1017,7 +1017,7 @@ public:
     Eigen::MatrixXd E1_, E2_, E3_, H_retargeting_, A_retargeting_[3];
     Eigen::VectorXd g_retargeting_, u1_, u2_, u3_;
 
-    Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_;
+    Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_, r_pre_lhand_, r_pre_rhand_;
     double w1_retargeting_, w2_retargeting_, w3_retargeting_, human_shoulder_width_; 
     const double control_gain_retargeting_ = 100;
     const double human_vel_min_ = -2;
