@@ -4785,7 +4785,7 @@ Eigen::Isometry3d AvatarController::velocityFilter(Eigen::Isometry3d data, Eigen
 void AvatarController::abruptMotionFilter()
 {
     int maximum_data_cut_num = 200;
-    bool verbose = 1;
+    bool verbose = 0;
     bool fast_head_move_flag = false;
     bool fast_lupperarm_move_flag = false;
     bool fast_lhand_move_flag = false;
