@@ -840,6 +840,7 @@ void AvatarController::computeSlow()
             // double init_time_;
             if (walking_end_flag == 0)
             {
+                cout<<"com_desired_1: "<<com_desired_<<endl;
                 parameterSetting(); //Don't delete this!!
                 // updateInitialStateJoy();
                 updateInitialState();
@@ -849,18 +850,19 @@ void AvatarController::computeSlow()
                 getComTrajectory();
                 getFootTrajectory();
                 cout << "walking finish" << endl;
-             
+                cout<<"com_desired_2: "<<com_desired_<<endl;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
                 }
                 pelv_trajectory_support_init_ =pelv_trajectory_support_;
-
+                com_desired_(0) = 0;
                 initial_flag = 0;
                 init_leg_time_ = rd_.control_time_;        
                 walking_end_flag = 1;
+                cout<<"com_desired_3: "<<com_desired_<<endl;
             }
-
+            
             getRobotState();
             getPelvTrajectory();
             supportToFloatPattern();
@@ -5416,16 +5418,16 @@ void AvatarController::hmdRawDataProcessing()
         // }
     }
     
-    VectorXd w;
-    w.setZero(8, 1);
-    w.segment(0, 4) = lhand_mapping_vector_;
-    w.segment(4, 4) = rhand_mapping_vector_;
+    // VectorXd w;
+    // w.setZero(8, 1);
+    // w.segment(0, 4) = lhand_mapping_vector_;
+    // w.segment(4, 4) = rhand_mapping_vector_;
 
-    if ((int(current_time_ * 1e5) % int(5e4) == 0))
-    {
-        cout<< "beta: "<< beta;
-        cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
-    }
+    // if ((int(current_time_ * 1e5) % int(5e4) == 0))
+    // {
+    //     cout<< "beta: "<< beta;
+    //     cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
+    // }
 
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
@@ -10774,7 +10776,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.20;
+    double pelv_offset = -0.00;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
