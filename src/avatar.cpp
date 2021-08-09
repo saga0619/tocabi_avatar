@@ -10775,7 +10775,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.00;
+    double pelv_offset = -0.20;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
