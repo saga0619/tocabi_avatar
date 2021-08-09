@@ -9056,7 +9056,6 @@ void AvatarController::printOutTextFile()
 //////////////////////////////MJ's Functions////////////////////
 void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg)
 {
-
     if (joy_input_enable_ == true)
     {
         joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
@@ -10811,7 +10810,7 @@ void AvatarController::getPelvTrajectory()
 
     // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
     // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 1.5*P_angle_i;
-    if (aa == 0 && walking_tick_mj == 0)
+    if (aa == 0 && walking_tick_mj == 0 && (walking_enable_ == true) )
     {
         P_angle_input = 0;
         R_angle_input = 0;
