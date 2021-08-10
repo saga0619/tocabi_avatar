@@ -449,8 +449,8 @@ void AvatarController::setGains()
     joint_limit_l_(14) = -30 * DEG2RAD;
     joint_limit_h_(14) = 30 * DEG2RAD;
     //LEFT ARM
-    joint_limit_l_(15) = -30 * DEG2RAD;
-    joint_limit_h_(15) = 30 * DEG2RAD;
+    joint_limit_l_(15) = -60 * DEG2RAD;
+    joint_limit_h_(15) = 60 * DEG2RAD;
     joint_limit_l_(16) = -170 * DEG2RAD;
     joint_limit_h_(16) = 90 * DEG2RAD;
     joint_limit_l_(17) = -95 * DEG2RAD;
@@ -466,13 +466,13 @@ void AvatarController::setGains()
     joint_limit_l_(22) = -60 * DEG2RAD;
     joint_limit_h_(22) = 60 * DEG2RAD;
     //HEAD
-    joint_limit_l_(23) = -90 * DEG2RAD;
-    joint_limit_h_(23) = 90 * DEG2RAD;
+    joint_limit_l_(23) = -80 * DEG2RAD;
+    joint_limit_h_(23) = 80 * DEG2RAD;
     joint_limit_l_(24) = -40 * DEG2RAD;
     joint_limit_h_(24) = 40 * DEG2RAD;
     //RIGHT ARM
-    joint_limit_l_(25) = -30 * DEG2RAD;
-    joint_limit_h_(25) = 30 * DEG2RAD;
+    joint_limit_l_(25) = -60 * DEG2RAD;
+    joint_limit_h_(25) = 60 * DEG2RAD;
     joint_limit_l_(26) = -90 * DEG2RAD;
     joint_limit_h_(26) = 170 * DEG2RAD;
     joint_limit_l_(27) = -95 * DEG2RAD;
@@ -1327,12 +1327,17 @@ void AvatarController::initWalkingParameter()
     foot_lift_count_ = 0;
     foot_landing_count_ = 0;
 
+    lhand_control_point_offset_.setZero();
+    rhand_control_point_offset_.setZero();
+    lhand_control_point_offset_(2) = - 0.13;
+    rhand_control_point_offset_(2) = - 0.13;
+
     robot_shoulder_width_ = 0.6;
 
     robot_upperarm_max_l_ = 0.3376 * 1.0;
     robot_lowerarm_max_l_ = 0.31967530867;
     // robot_arm_max_l_ = 0.98*sqrt(robot_upperarm_max_l_*robot_upperarm_max_l_ + robot_lowerarm_max_l_*robot_lowerarm_max_l_ + 2*robot_upperarm_max_l_*robot_lowerarm_max_l_*cos( -joint_limit_h_(19)) );
-    robot_arm_max_l_ = (robot_upperarm_max_l_ + robot_lowerarm_max_l_) * 0.95;
+    robot_arm_max_l_ = (robot_upperarm_max_l_ + robot_lowerarm_max_l_) * 0.95 + lhand_control_point_offset_.norm();
 
     hmd_check_pose_calibration_[0] = false;
     hmd_check_pose_calibration_[1] = false;
@@ -1574,7 +1579,7 @@ void AvatarController::getRobotData()
     lfoot_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, Eigen::Vector3d::Zero(), false);
     lfoot_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, false)).transpose();
 
-    lhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, Eigen::Vector3d::Zero(), false);
+    lhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, false);
     lhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, false)).transpose();
 
     lelbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 3].id, Eigen::Vector3d::Zero(), false);
@@ -1592,7 +1597,7 @@ void AvatarController::getRobotData()
     larmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 7].id, Eigen::Vector3d::Zero(), false);
     larmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 7].id, false).transpose();
 
-    rhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, Eigen::Vector3d::Zero(), false);
+    rhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, false);
     rhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, false)).transpose();
 
     relbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 3].id, Eigen::Vector3d::Zero(), false);
@@ -3166,7 +3171,7 @@ void AvatarController::motionRetargeting_QPIK_larm()
     Vector3d zero3;
     zero3.setZero();
     J_temp1.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, zero3, J_temp1, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp1, false);
     J_l_arm.block(0, 0, 3, 8) = J_temp1.block(3, 21, 3, 8); //position
     J_l_arm.block(3, 0, 3, 8) = J_temp1.block(0, 21, 3, 8); //orientation
     // J_l_arm.block(0, 0, 6, 1).setZero(); //penalize 1st joint for hand control
@@ -3456,7 +3461,7 @@ void AvatarController::motionRetargeting_QPIK_rarm()
     Vector3d zero3;
     zero3.setZero();
     J_temp1.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, zero3, J_temp1, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp1, false);
     J_r_arm.block(0, 0, 3, 8) = J_temp1.block(3, 31, 3, 8); //position
     J_r_arm.block(3, 0, 3, 8) = J_temp1.block(0, 31, 3, 8); //orientation
     // J_r_arm.block(0, 0, 6, 1).setZero(); //penalize 1st joint for hand control
@@ -3747,11 +3752,11 @@ void AvatarController::motionRetargeting_QPIK_upperbody()
     J_upperbody_[0].block(0, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); //orientation
 
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_upperbody_[1].block(0, 0, 3, variable_size_upperbody_) = J_temp_.block(3, 18, 3, variable_size_upperbody_); //position
     J_upperbody_[1].block(3, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); //orientation
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
     J_upperbody_[1].block(6, 0, 3, variable_size_upperbody_) = J_temp_.block(3, 18, 3, variable_size_upperbody_); //position
     J_upperbody_[1].block(9, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); //orientation
     J_temp_.setZero();
@@ -4002,11 +4007,11 @@ void AvatarController::motionRetargeting_HQPIK()
 
     ////2nd Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_hqpik_[1].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
     J_hqpik_[1].block(3, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
     J_hqpik_[1].block(6, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
     J_hqpik_[1].block(9, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
@@ -4089,6 +4094,8 @@ void AvatarController::motionRetargeting_HQPIK()
         H1 = J_hqpik_[i].transpose() * J_hqpik_[i];
         // H2 = Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_);
         H2 = A_mat_.block(18, 18, variable_size_hqpik_, variable_size_hqpik_) + Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_)*(2e-2);
+        H2(3, 3) += 10;         //left arm 1st joint
+        H2(13, 13) += 10;       //right arm 1st joint
         H3 = Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_) * (1 / dt_) * (1 / dt_);
 
         g1 = -J_hqpik_[i].transpose() * u_dot_hqpik_[i];
@@ -4389,7 +4396,7 @@ void AvatarController::poseCalibration()
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.09, 0, -0.04;  //senseglove
+    tracker_offset << -0.08, 0, -0.04;  //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -5389,8 +5396,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
-    // double beta = 0;
+    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
+    double beta = 0;
 
     if (beta == 0)
     {
@@ -5566,11 +5573,11 @@ void AvatarController::hmdRawDataProcessing()
 
 void AvatarController::qpRetargeting_1()
 {
-    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
-    u1_ = control_gain_retargeting_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (h_d_lhand_ - h_pre_lhand_);
-    u2_ = control_gain_retargeting_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (h_d_rhand_ - h_pre_rhand_);
+    u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
+    u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
 
     H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_ + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
     g_retargeting_ = -w1_retargeting_ * E1_.transpose() * u1_ - w2_retargeting_ * E2_.transpose() * u2_;
@@ -5600,8 +5607,8 @@ void AvatarController::qpRetargeting_1()
 }
 void AvatarController::qpRetargeting_21()
 {
-    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
@@ -5664,11 +5671,11 @@ void AvatarController::qpRetargeting_21()
 }
 void AvatarController::qpRetargeting_21Transition(double beta)
 {
-    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
-    u1_ = control_gain_retargeting_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (h_d_lhand_ - h_pre_lhand_);
-    u2_ = control_gain_retargeting_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (h_d_rhand_ - h_pre_rhand_);
+    u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
+    u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
     u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_) - (r_pre_lhand_ - r_pre_rhand_));
 
     H_retargeting_ = w3_retargeting_ * E3_.transpose() * E3_;

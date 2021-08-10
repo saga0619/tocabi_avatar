@@ -515,6 +515,8 @@ public:
     Eigen::Isometry3d larmbase_transform_pre_desired_from_; //1st axis of arm joint
     Eigen::Isometry3d rarmbase_transform_pre_desired_from_;
 
+    Eigen::Vector3d lhand_control_point_offset_, rhand_control_point_offset_;   //red_hand made by sy
+
     Eigen::Vector6d lfoot_vel_current_from_global_;
     Eigen::Vector6d rfoot_vel_current_from_global_;
     Eigen::Vector6d lhand_vel_current_from_global_;
