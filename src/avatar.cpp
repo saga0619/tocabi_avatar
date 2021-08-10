@@ -449,8 +449,8 @@ void AvatarController::setGains()
     joint_limit_l_(14) = -30 * DEG2RAD;
     joint_limit_h_(14) = 30 * DEG2RAD;
     //LEFT ARM
-    joint_limit_l_(15) = -60 * DEG2RAD;
-    joint_limit_h_(15) = 60 * DEG2RAD;
+    joint_limit_l_(15) = -30 * DEG2RAD;
+    joint_limit_h_(15) = 30 * DEG2RAD;
     joint_limit_l_(16) = -170 * DEG2RAD;
     joint_limit_h_(16) = 90 * DEG2RAD;
     joint_limit_l_(17) = -95 * DEG2RAD;
@@ -471,8 +471,8 @@ void AvatarController::setGains()
     joint_limit_l_(24) = -40 * DEG2RAD;
     joint_limit_h_(24) = 40 * DEG2RAD;
     //RIGHT ARM
-    joint_limit_l_(25) = -60 * DEG2RAD;
-    joint_limit_h_(25) = 60 * DEG2RAD;
+    joint_limit_l_(25) = -30 * DEG2RAD;
+    joint_limit_h_(25) = 30 * DEG2RAD;
     joint_limit_l_(26) = -90 * DEG2RAD;
     joint_limit_h_(26) = 170 * DEG2RAD;
     joint_limit_l_(27) = -95 * DEG2RAD;
@@ -2492,8 +2492,7 @@ void AvatarController::motionGenerator()
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
         motion_q_(15) = 0.3;
-        // motion_q_(16) = 0.12;
-        motion_q_(16) = -1.5 * desired_q_(8) - 0.5;
+        motion_q_(16) = 0.12;
         motion_q_(17) = 1.43;
         motion_q_(18) = -0.85;
         motion_q_(19) = -0.45; //elbow
@@ -2511,8 +2510,7 @@ void AvatarController::motionGenerator()
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
         motion_q_(25) = -0.3;
-        // motion_q_(26) = -0.12;
-        motion_q_(26) = 1.5 * desired_q_(2) + 0.5;
+        motion_q_(26) = -0.12;
         motion_q_(27) = -1.43;
         motion_q_(28) = 0.85;
         motion_q_(29) = 0.45; //elbow
@@ -2552,43 +2550,111 @@ void AvatarController::motionGenerator()
             pd_control_mask_(i) = 1;
         }
     }
-    else if (upper_body_mode_ == 4) // upperbody qpik
+    else if (upper_body_mode_ == 4) // Start pose
     {
-        if (hmd_check_pose_calibration_[3] == false)
+        if (upperbody_mode_recieved_ == true)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-            upper_body_mode_ = 3;
-            upperbody_mode_recieved_ = true;
-            motion_q_ = motion_q_pre_;
+            cout << "Upperbody Mode is Changed to #4" << endl;
+            upperbody_mode_recieved_ = false;
+            upperbody_command_time_ = current_time_;
+            upperbody_mode_q_init_ = motion_q_pre_;
         }
-        else
+        ///////////////////////WAIST/////////////////////////
+        motion_q_(12) = 0; //pitch
+        motion_q_(13) = 0; //pitch
+        motion_q_(14) = 0; //roll
+        pd_control_mask_(12) = 1;
+        pd_control_mask_(13) = 1;
+        pd_control_mask_(14) = 1;
+        /////////////////////////////////////////////////////
+
+        ///////////////////////HEAD/////////////////////////
+        motion_q_(23) = 0; //yaw
+        motion_q_(24) = 0; //pitch
+        pd_control_mask_(23) = 1;
+        pd_control_mask_(24) = 1;
+        /////////////////////////////////////////////////////
+
+        ///////////////////////ARM/////////////////////////
+        //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
+        motion_q_(15) = 0.3;
+        motion_q_(16) = -0.6;
+        motion_q_(17) = 1.2;
+        motion_q_(18) = -0.80;
+        motion_q_(19) = -2.3; //elbow
+        motion_q_(20) = 1.45;
+        motion_q_(21) = 0.0;
+        motion_q_(22) = 0.0;
+        pd_control_mask_(15) = 1;
+        pd_control_mask_(16) = 1;
+        pd_control_mask_(17) = 1;
+        pd_control_mask_(18) = 1;
+        pd_control_mask_(19) = 1;
+        pd_control_mask_(20) = 1;
+        pd_control_mask_(21) = 1;
+        pd_control_mask_(22) = 1;
+        //////////////////////
+        /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
+        motion_q_(25) = -0.3;
+        motion_q_(26) = 0.6;
+        motion_q_(27) = -1.2;
+        motion_q_(28) = 0.8;
+        motion_q_(29) = 2.3; //elbow
+        motion_q_(30) = -1.45;
+        motion_q_(31) = 0.0;
+        motion_q_(32) = 0.0;
+        pd_control_mask_(25) = 1;
+        pd_control_mask_(26) = 1;
+        pd_control_mask_(27) = 1;
+        pd_control_mask_(28) = 1;
+        pd_control_mask_(29) = 1;
+        pd_control_mask_(30) = 1;
+        pd_control_mask_(31) = 1;
+        pd_control_mask_(32) = 1;
+        /////////////////////////////////////////////////////
+
+        for (int i = 12; i < 32; i++)
         {
-
-            if (upperbody_mode_recieved_ == true)
-            {
-                cout << "Upperbody Mode is Changed to #4" << endl;
-                first_loop_upperbody_ = true;
-                first_loop_qp_retargeting_ = true;
-
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (Upperbody QPIK)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-            }
-
-            rawMasterPoseProcessing();
-            // masterTrajectoryTest();
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            motionRetargeting_QPIK_upperbody();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-            if (int(current_time_ * 10000) % 10000 == 0)
-            {
-                cout<<"qpik_ub_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            }
+            motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
     }
+    // else if (upper_body_mode_ == 4) // upperbody qpik
+    // {
+    //     if (hmd_check_pose_calibration_[3] == false)
+    //     {
+    //         cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+    //         upper_body_mode_ = 3;
+    //         upperbody_mode_recieved_ = true;
+    //         motion_q_ = motion_q_pre_;
+    //     }
+    //     else
+    //     {
+
+    //         if (upperbody_mode_recieved_ == true)
+    //         {
+    //             cout << "Upperbody Mode is Changed to #4" << endl;
+    //             first_loop_upperbody_ = true;
+    //             first_loop_qp_retargeting_ = true;
+
+    //             std_msgs::String msg;
+    //             std::stringstream upperbody_mode_ss;
+    //             upperbody_mode_ss << "Motion Tracking Contorol in On (Upperbody QPIK)";
+    //             msg.data = upperbody_mode_ss.str();
+    //             calibration_state_pub.publish(msg);
+    //         }
+
+    //         rawMasterPoseProcessing();
+    //         // masterTrajectoryTest();
+    //         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    //         motionRetargeting_QPIK_upperbody();
+    //         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+    //         if (int(current_time_ * 10000) % 10000 == 0)
+    //         {
+    //             cout<<"qpik_ub_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+    //         }
+    //     }
+    // }
     else if (upper_body_mode_ == 5) // human motion retargetting: joint pd control with CLIK
     {
         if (hmd_check_pose_calibration_[3] == false)
@@ -4379,11 +4445,12 @@ void AvatarController::poseCalibration()
     {
         hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_init_.translation();
     }
-    // hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
 
+    // hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
+
 
     //coordinate conversion
     hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
@@ -5396,7 +5463,7 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.1, human_shoulder_width_, 1, 0, 0, 0);
+    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_, 1, 0, 0, 0);
     double beta = 0;
 
     if (beta == 0)
@@ -5573,8 +5640,8 @@ void AvatarController::hmdRawDataProcessing()
 
 void AvatarController::qpRetargeting_1()
 {
-    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
@@ -5607,8 +5674,8 @@ void AvatarController::qpRetargeting_1()
 }
 void AvatarController::qpRetargeting_21()
 {
-    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
@@ -5671,8 +5738,8 @@ void AvatarController::qpRetargeting_21()
 }
 void AvatarController::qpRetargeting_21Transition(double beta)
 {
-    h_d_lhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-    h_d_rhand_ = hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+    h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+    h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
