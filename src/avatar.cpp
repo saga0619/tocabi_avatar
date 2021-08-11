@@ -4824,10 +4824,10 @@ Eigen::Isometry3d AvatarController::velocityFilter(Eigen::Isometry3d data, Eigen
     Eigen::Isometry3d result;
     result.setIdentity();
     // check_velocity = ( (vel_data).norm() > max_vel );
-    check_velocity = (data.translation() - pre_data.translation()).norm() > max_vel / 360;
+    check_velocity = (data.translation() - pre_data.translation()).norm() > max_vel / 130;
 
     Eigen::AngleAxisd angle_diff(data.linear() * pre_data.linear().transpose());
-    bool check_orienation = (angle_diff.angle() > 2 * M_PI / 360);
+    bool check_orienation = (angle_diff.angle() > 2 * M_PI / 130);
     double cutoff_f = 1;
 
     result = data;
@@ -4840,7 +4840,7 @@ Eigen::Isometry3d AvatarController::velocityFilter(Eigen::Isometry3d data, Eigen
         // diff_m = Eigen::AngleAxisd( DyrosMath::lpf(ang_diff.angle(), 0, 1/dt_, cutoff_f), ang_diff.axis() );
         // result.linear() = diff_m*pre_data.linear();
         // result = pre_data;
-        result.translation() = (data.translation() - pre_data.translation()).normalized() * max_vel / 360 + pre_data.translation();
+        result.translation() = (data.translation() - pre_data.translation()).normalized() * max_vel / 130 + pre_data.translation();
 
         cur_iter++;
         vel_data.setZero();
@@ -4850,7 +4850,7 @@ Eigen::Isometry3d AvatarController::velocityFilter(Eigen::Isometry3d data, Eigen
     if ((check_orienation))
     {
         Matrix3d rot;
-        rot = AngleAxisd(1.5*M_PI / 360, angle_diff.axis());
+        rot = AngleAxisd(1.5*M_PI / 130, angle_diff.axis());
         result.linear() = rot * pre_data.linear();
         check_velocity = true;
     }
@@ -5463,8 +5463,9 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_, 1, 0, 0, 0);
-    double beta = 0;
+    double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_+0.1, 1, 0, 0, 0);    // cubic transition
+    // double beta = 0;
+    // double beta = DyrosMath::minmax_cut( (hand_d - human_shoulder_width_) / (-0.2), 0.0, 1.0);  //linear transition
 
     if (beta == 0)
     {
@@ -5497,10 +5498,10 @@ void AvatarController::hmdRawDataProcessing()
     // w.segment(0, 4) = lhand_mapping_vector_;
     // w.segment(4, 4) = rhand_mapping_vector_;
 
-    // if ((int(current_time_ * 1e5) % int(5e4) == 0))
+    // if (true)
     // {
-    //     cout<< "beta: "<< beta;
-    //     cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
+        // cout<< "beta: "<< beta <<endl;
+        // cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
     // }
 
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
@@ -5677,9 +5678,13 @@ void AvatarController::qpRetargeting_21()
     h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
     h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
+    Vector3d r2l_robot_shoulder;
+    r2l_robot_shoulder.setZero();
+    r2l_robot_shoulder(1) = robot_shoulder_width_;
+
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
-    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_) - (r_pre_lhand_ - r_pre_rhand_));
+    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()) - (r_pre_lhand_ + r2l_robot_shoulder - r_pre_rhand_));
 
     H_retargeting_ = w3_retargeting_ * E3_.transpose() * E3_;
     g_retargeting_ = -w3_retargeting_ * E3_.transpose() * u3_;
@@ -5741,9 +5746,13 @@ void AvatarController::qpRetargeting_21Transition(double beta)
     h_d_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
     h_d_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
+    Vector3d r2l_robot_shoulder;
+    r2l_robot_shoulder.setZero();
+    r2l_robot_shoulder(1) = robot_shoulder_width_;
+
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
-    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_) - (r_pre_lhand_ - r_pre_rhand_));
+    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()) - (r_pre_lhand_ + r2l_robot_shoulder- r_pre_rhand_));
 
     H_retargeting_ = w3_retargeting_ * E3_.transpose() * E3_;
     g_retargeting_ = -w3_retargeting_ * E3_.transpose() * u3_;
@@ -8269,6 +8278,8 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(0) = msg.firstRow[3];
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
+
+    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear()*DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
