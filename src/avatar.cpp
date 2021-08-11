@@ -7,6 +7,11 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
+// ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
+// ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
+// ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
+
 AvatarController::AvatarController(RobotData &rd) : rd_(rd) 
 {
     nh_avatar_.setCallbackQueue(&queue_avatar_);
@@ -842,8 +847,8 @@ void AvatarController::computeSlow()
             {
                 cout<<"com_desired_1: "<<com_desired_<<endl;
                 parameterSetting(); //Don't delete this!!
-                // updateInitialStateJoy();
-                updateInitialState();
+                updateInitialStateJoy();
+                //updateInitialState();
                 getRobotState();
                 floatToSupportFootstep();
                 getZmpTrajectory();
@@ -1041,7 +1046,6 @@ void AvatarController::computeFast()
         else
         {
             WBC::SetContact(rd_, 1, 1);
-
             int support_foot;
             if(foot_step_(current_step_num_, 6) == 1)
             {
@@ -1055,9 +1059,11 @@ void AvatarController::computeFast()
             if (atb_grav_update_ == false)
             {
                 atb_grav_update_ = true;
-                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
                 atb_grav_update_ = false;
             }
+            MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
+
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -11671,7 +11677,10 @@ void AvatarController::updateInitialStateJoy()
             lfoot_float_init_.translation()(1) = 0.1025;
             rfoot_float_init_.translation()(1) = -0.1025;
             // t_temp_ = 4.0*hz_
-            aa = 1;
+            if( walking_enable_ == true)
+            {
+                aa = 1;
+            }
         }
         cout << "First " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_mj_(2) * 180 / 3.141592 << endl;
 
