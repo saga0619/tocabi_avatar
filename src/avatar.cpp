@@ -2,10 +2,10 @@
 #include <fstream>
 using namespace TOCABI;
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
+ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd) 
 {
@@ -10860,7 +10860,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.20;
+    double pelv_offset = -0.00;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
@@ -11532,7 +11532,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     d_hat = (2 * M_PI * 5.0 * del_t) / (1 + 2 * M_PI * 5.0 * del_t) * d_hat + 1 / (1 + 2 * M_PI * 5.0 * del_t) * d_hat_b;
 
     double default_gain = 0.0;
-    double compliant_gain = 1.0;
+    double compliant_gain = 0.0;
     double compliant_tick = 0.2 * hz_;
     double gain_temp = 0.0;
     for (int i = 0; i < 12; i++)
@@ -11595,8 +11595,8 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     DOB_IK_output_b_ = DOB_IK_output_;
     // MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << endl;
     // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl; 
-    // MJ_joint1 << DOB_IK_output_(0) << "," << desired_leg_q(0) << "," << DOB_IK_output_(1) << "," << desired_leg_q(1) << "," << DOB_IK_output_(2) << "," << desired_leg_q(2) << "," << DOB_IK_output_(3) << "," << desired_leg_q(3) << "," << DOB_IK_output_(4) << "," << desired_leg_q(4) << "," << DOB_IK_output_(5) << "," << desired_leg_q(5) << endl;
-    // MJ_joint2 << DOB_IK_output_(6) << "," << desired_leg_q(6) << "," << DOB_IK_output_(7) << "," << desired_leg_q(7) << "," << DOB_IK_output_(8) << "," << desired_leg_q(8) << "," << DOB_IK_output_(9) << "," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
+    MJ_joint1 << desired_leg_q(1) << "," << desired_leg_q(2) << "," << desired_leg_q(3) << "," << desired_leg_q(4) << "," << desired_leg_q(5) << "," << desired_leg_q(6) << endl;
+    MJ_joint2 << rd_.q_(1) << "," <<  rd_.q_(2) << "," <<  rd_.q_(3) << "," <<  rd_.q_(4) << "," <<  rd_.q_(5) << "," <<  rd_.q_(6) << endl;//"," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
 }
 
 void AvatarController::CP_compen_MJ()
