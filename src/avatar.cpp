@@ -1062,8 +1062,7 @@ void AvatarController::computeFast()
                 Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
                 atb_grav_update_ = false;
             }
-            MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
-
+            // MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -5469,8 +5468,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_+0.1, 1, 0, 0, 0);    // cubic transition
-    // double beta = 0;
+    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_+0.1, 1, 0, 0, 0);    // cubic transition
+    double beta = 0;
     // double beta = DyrosMath::minmax_cut( (hand_d - human_shoulder_width_) / (-0.2), 0.0, 1.0);  //linear transition
 
     if (beta == 0)
@@ -10175,28 +10174,28 @@ void AvatarController::Joint_gain_set_MJ()
     Kp(0) = 2000.0;
     Kd(0) = 20.0; // Left Hip yaw
     Kp(1) = 5000.0;
-    Kd(1) = 55.0; // Left Hip roll
+    Kd(1) = 55.0; // Left Hip roll //55
     Kp(2) = 4000.0;
     Kd(2) = 45.0; // Left Hip pitch
     Kp(3) = 3700.0;
     Kd(3) = 40.0; // Left Knee pitch
     Kp(4) = 5000.0;
-    Kd(4) = 55.0; // Left Ankle pitch /5000 / 30
+    Kd(4) = 65.0; // Left Ankle pitch /5000 / 30  //55
     Kp(5) = 5000.0;
-    Kd(5) = 55.0; // Left Ankle roll /5000 / 30
+    Kd(5) = 65.0; // Left Ankle roll /5000 / 30 //55
 
     Kp(6) = 2000.0;
     Kd(6) = 20.0; // Right Hip yaw
     Kp(7) = 5000.0;
-    Kd(7) = 55.0; // Right Hip roll
+    Kd(7) = 55.0; // Right Hip roll  //55
     Kp(8) = 4000.0;
     Kd(8) = 45.0; // Right Hip pitch
     Kp(9) = 3700.0;
     Kd(9) = 40.0; // Right Knee pitch
     Kp(10) = 5000.0;
-    Kd(10) = 55.0; // Right Ankle pitch
+    Kd(10) = 65.0; // Right Ankle pitch //55
     Kp(11) = 5000.0;
-    Kd(11) = 55.0; // Right Ankle roll
+    Kd(11) = 65.0; // Right Ankle roll //55
 
     Kp(12) = 6000.0;
     Kd(12) = 200.0; // Waist yaw
@@ -10866,7 +10865,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.00;
+    double pelv_offset = -0.20;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
@@ -11399,7 +11398,7 @@ void AvatarController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void AvatarController::hip_compensator()
 {
-    double left_hip_roll = -0.3 * DEG2RAD, right_hip_roll = -0.3 * DEG2RAD, left_hip_roll_first = -0.50 * DEG2RAD, right_hip_roll_first = -0.50 * DEG2RAD, //실험, 제자리 0.6, 0.4
+    double left_hip_roll = -0.2 * DEG2RAD, right_hip_roll = -0.2 * DEG2RAD, left_hip_roll_first = -0.30 * DEG2RAD, right_hip_roll_first = -0.30 * DEG2RAD, //실험, 제자리 0.6, 0.4
         left_hip_pitch = 0.4 * DEG2RAD, right_hip_pitch = 0.4 * DEG2RAD, left_hip_pitch_first = 0.40 * DEG2RAD, right_hip_pitch_first = 0.40 * DEG2RAD,    // 실험 , 제자리 0.75deg
         left_ank_pitch = 0.0 * DEG2RAD, right_ank_pitch = 0.0 * DEG2RAD, left_ank_pitch_first = 0.0 * DEG2RAD, right_ank_pitch_first = 0.0 * DEG2RAD,
            left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05 * hz_;
