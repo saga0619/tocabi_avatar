@@ -2545,8 +2545,13 @@ void AvatarController::motionGenerator()
             cout << "----------Robot is Freezed---------" << endl;
 
             upperbody_mode_recieved_ = false;
-            upperbody_command_time_ = current_time_;
             upperbody_mode_q_init_ = motion_q_pre_;
+
+            std_msgs::String msg;
+            std::stringstream upperbody_mode_ss;
+            upperbody_mode_ss << "Robot is Freezed!";
+            msg.data = upperbody_mode_ss.str();
+            calibration_state_pub.publish(msg);
         }
 
         for (int i = 12; i < MODEL_DOF; i++)
@@ -2555,14 +2560,20 @@ void AvatarController::motionGenerator()
             pd_control_mask_(i) = 1;
         }
     }
-    else if (upper_body_mode_ == 4) // Start pose
+    else if (upper_body_mode_ == 4) // READY pose
     {
         if (upperbody_mode_recieved_ == true)
         {
-            cout << "Upperbody Mode is Changed to #4" << endl;
+            cout << "Upperbody Mode is Changed to #4 (READY POSE)" << endl;
             upperbody_mode_recieved_ = false;
             upperbody_command_time_ = current_time_;
             upperbody_mode_q_init_ = motion_q_pre_;
+
+            std_msgs::String msg;
+            std::stringstream upperbody_mode_ss;
+            upperbody_mode_ss << "Ready Pose is On!";
+            msg.data = upperbody_mode_ss.str();
+            calibration_state_pub.publish(msg);
         }
         ///////////////////////WAIST/////////////////////////
         motion_q_(12) = 0; //pitch
@@ -2660,79 +2671,163 @@ void AvatarController::motionGenerator()
     //         }
     //     }
     // }
-    else if (upper_body_mode_ == 5) // human motion retargetting: joint pd control with CLIK
+    // else if (upper_body_mode_ == 5) // human motion retargetting: joint pd control with CLIK
+    // {
+    //     if (hmd_check_pose_calibration_[3] == false)
+    //     {
+    //         cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+    //         upper_body_mode_ = 3;
+    //         upperbody_mode_recieved_ = true;
+    //         motion_q_ = motion_q_pre_;
+    //     }
+    //     else
+    //     {
+    //         if (upperbody_mode_recieved_ == true)
+    //         {
+    //             cout << "Upperbody Mode is Changed to #5" << endl;
+    //             first_loop_larm_ = true;
+    //             first_loop_rarm_ = true;
+    //             first_loop_qp_retargeting_ = true;
+
+    //             std_msgs::String msg;
+    //             std::stringstream upperbody_mode_ss;
+    //             upperbody_mode_ss << "Motion Tracking Contorol in On";
+    //             msg.data = upperbody_mode_ss.str();
+    //             calibration_state_pub.publish(msg);
+    //         }
+
+    //         rawMasterPoseProcessing();
+    //         // motionRetargeting2();
+    //         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    //         motionRetargeting_QPIK_larm();
+    //         motionRetargeting_QPIK_rarm();
+    //         ///////////////////////WAIST/////////////////////////
+    //         Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
+    //         Vector3d u_dot_upperbody = master_upperbody_vel_.segment(3, 3) + 100 * error_w_upperbody;
+    //         // VectorQVQd q_desired_pre;
+    //         // q_desired_pre.setZero();
+    //         // q_desired_pre(39) = 1;
+    //         // q_desired_pre.segment(6, MODEL_DOF) = pre_desired_q_;
+    //         MatrixXd J_temp, J_waist, J_head, J_inv_waist, J_inv_head, I3;
+    //         J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    //         J_waist.setZero(3, 3);
+    //         I3.setIdentity(3, 3);
+
+    //         RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, Eigen::Vector3d::Zero(), J_temp, false);
+    //         J_waist.block(0, 0, 3, 3) = J_temp.block(0, 18, 3, 3); //orientation
+    //         J_inv_waist = J_waist.transpose() * (J_waist * J_waist.transpose() + I3 * 0.000001).inverse();
+
+    //         for (int i = 1; i < 3; i++)
+    //         {
+    //             u_dot_upperbody(i) = DyrosMath::minmax_cut(u_dot_upperbody(i), -1.0, 1.0);
+    //         }
+
+    //         motion_q_dot_.segment(12, 3) = J_inv_waist * u_dot_upperbody;
+    //         motion_q_.segment(12, 3) = motion_q_pre_.segment(12, 3) + motion_q_dot_.segment(12, 3) * dt_;
+    //         motion_q_(12) = DyrosMath::minmax_cut(motion_q_(12), -30 * DEG2RAD, 30 * DEG2RAD);
+    //         motion_q_(13) = DyrosMath::minmax_cut(motion_q_(13), -20 * DEG2RAD, 20 * DEG2RAD);
+    //         motion_q_(14) = DyrosMath::minmax_cut(motion_q_(14), -30 * DEG2RAD, 30 * DEG2RAD);
+    //         motion_q_dot_.segment(12, 3).setZero();
+    //         // motion_q_(12) = (1-turning_phase_)*init_q_(12) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1; //yaw
+    //         // motion_q_(12) = 0;
+    //         // motion_q_(13) = 0; //pitch
+    //         // motion_q_(14) = 0; //roll
+    //         pd_control_mask_(12) = 1;
+    //         pd_control_mask_(13) = 1;
+    //         pd_control_mask_(14) = 1;
+    //         /////////////////////////////////////////////////////
+
+    //         ///////////////////////HEAD/////////////////////////
+    //         Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
+    //         error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
+    //         error_w_head(0) = 0;
+    //         error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
+
+    //         Vector3d u_dot_head = master_head_vel_.segment(3, 3) + 100 * error_w_head;
+    //         J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    //         J_head.setZero(3, 2);
+    //         I3.setIdentity(3, 3);
+
+    //         RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, Eigen::Vector3d::Zero(), J_temp, false);
+    //         J_head.block(0, 0, 3, 2) = J_temp.block(0, 29, 3, 2); //orientation
+    //         J_inv_head = J_head.transpose() * (J_head * J_head.transpose() + I3 * 0.000001).inverse();
+
+    //         for (int i = 1; i < 3; i++)
+    //         {
+    //             u_dot_head(i) = DyrosMath::minmax_cut(u_dot_head(i), -1.0, 1.0);
+    //         }
+
+    //         motion_q_dot_.segment(23, 2) = J_inv_head * u_dot_head;
+    //         motion_q_.segment(23, 2) = motion_q_pre_.segment(23, 2) + motion_q_dot_.segment(23, 2) * dt_;
+    //         motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), -30 * DEG2RAD, 30 * DEG2RAD);
+    //         motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), -60 * DEG2RAD, 60 * DEG2RAD);
+    //         motion_q_dot_.segment(23, 2).setZero();
+    //         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+    //         if (int(current_time_ * 10000) % 10000 == 0)
+    //         {
+    //             // cout<< "head_transform_pre_desired_from_: \n" << head_transform_pre_desired_from_.linear() <<endl;
+    //             // cout<< "master_head_pose_: \n" << master_head_pose_.linear() <<endl;
+    //             // cout<< "master_head_pose_raw_: \n" << master_head_pose_raw_.linear() <<endl;
+    //             // cout<< "error_w_head: " << error_w_head <<endl;
+    //             // cout<< "u_dot_head: " << u_dot_head <<endl;
+    //             // cout<< "J_head: \n" << J_head <<endl;
+    //             // cout<<"motion_q_(23): "<<motion_q_(23)<<endl;
+    //             // cout<<"motion_q_(24): "<<motion_q_(24)<<endl;
+    //             // cout<<"qpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+    //             // cout<<"qpik_rarm_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
+    //         }
+
+    //         // motion_q_(23) = (1-turning_phase_)*init_q_(23) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1.2; //yaw
+    //         // motion_q_(23) = 0; //yaw
+    //         // motion_q_(24) = 0; //pitch
+    //         pd_control_mask_(23) = 1;
+    //         pd_control_mask_(24) = 1;
+    //         /////////////////////////////////////////////////////
+    //     }
+    // }
+    else if (upper_body_mode_ == 5) //HEAD ONLY
     {
-        if (hmd_check_pose_calibration_[3] == false)
+        if (still_pose_cali_flag_ == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << " WARNING: Calibration[STILL POSE] is not completed! Upperbody returns to the init pose" << endl;
             upper_body_mode_ = 3;
             upperbody_mode_recieved_ = true;
+            upperbody_command_time_ = current_time_;
             motion_q_ = motion_q_pre_;
         }
         else
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #5" << endl;
-                first_loop_larm_ = true;
-                first_loop_rarm_ = true;
+                cout << "Upperbody Mode is Changed to #5 (HEAD ONLY MODE)" << endl;
+
+                upperbody_mode_q_init_ = motion_q_pre_;
                 first_loop_qp_retargeting_ = true;
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On";
+                upperbody_mode_ss << "HEAD Tracking Contorol in On";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
             }
 
-            rawMasterPoseProcessing();
-            // motionRetargeting2();
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            motionRetargeting_QPIK_larm();
-            motionRetargeting_QPIK_rarm();
-            ///////////////////////WAIST/////////////////////////
-            Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
-            Vector3d u_dot_upperbody = master_upperbody_vel_.segment(3, 3) + 100 * error_w_upperbody;
-            // VectorQVQd q_desired_pre;
-            // q_desired_pre.setZero();
-            // q_desired_pre(39) = 1;
-            // q_desired_pre.segment(6, MODEL_DOF) = pre_desired_q_;
-            MatrixXd J_temp, J_waist, J_head, J_inv_waist, J_inv_head, I3;
-            J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-            J_waist.setZero(3, 3);
-            I3.setIdentity(3, 3);
-
-            RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, Eigen::Vector3d::Zero(), J_temp, false);
-            J_waist.block(0, 0, 3, 3) = J_temp.block(0, 18, 3, 3); //orientation
-            J_inv_waist = J_waist.transpose() * (J_waist * J_waist.transpose() + I3 * 0.000001).inverse();
-
-            for (int i = 1; i < 3; i++)
+            for (int i = 12; i < MODEL_DOF; i++)
             {
-                u_dot_upperbody(i) = DyrosMath::minmax_cut(u_dot_upperbody(i), -1.0, 1.0);
+                motion_q_(i) = upperbody_mode_q_init_(i);
+                pd_control_mask_(i) = 1;
             }
 
-            motion_q_dot_.segment(12, 3) = J_inv_waist * u_dot_upperbody;
-            motion_q_.segment(12, 3) = motion_q_pre_.segment(12, 3) + motion_q_dot_.segment(12, 3) * dt_;
-            motion_q_(12) = DyrosMath::minmax_cut(motion_q_(12), -30 * DEG2RAD, 30 * DEG2RAD);
-            motion_q_(13) = DyrosMath::minmax_cut(motion_q_(13), -20 * DEG2RAD, 20 * DEG2RAD);
-            motion_q_(14) = DyrosMath::minmax_cut(motion_q_(14), -30 * DEG2RAD, 30 * DEG2RAD);
-            motion_q_dot_.segment(12, 3).setZero();
-            // motion_q_(12) = (1-turning_phase_)*init_q_(12) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1; //yaw
-            // motion_q_(12) = 0;
-            // motion_q_(13) = 0; //pitch
-            // motion_q_(14) = 0; //roll
-            pd_control_mask_(12) = 1;
-            pd_control_mask_(13) = 1;
-            pd_control_mask_(14) = 1;
-            /////////////////////////////////////////////////////
-
+            rawMasterPoseProcessing();
             ///////////////////////HEAD/////////////////////////
             Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
             error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
             error_w_head(0) = 0;
             error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
+            
+            MatrixXd J_temp, J_head, I3, J_inv_head;
 
-            Vector3d u_dot_head = master_head_vel_.segment(3, 3) + 100 * error_w_head;
+            Vector3d u_dot_head = 100 * error_w_head;
             J_temp.setZero(6, MODEL_DOF_VIRTUAL);
             J_head.setZero(3, 2);
             I3.setIdentity(3, 3);
@@ -2741,38 +2836,18 @@ void AvatarController::motionGenerator()
             J_head.block(0, 0, 3, 2) = J_temp.block(0, 29, 3, 2); //orientation
             J_inv_head = J_head.transpose() * (J_head * J_head.transpose() + I3 * 0.000001).inverse();
 
-            for (int i = 1; i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
-                u_dot_head(i) = DyrosMath::minmax_cut(u_dot_head(i), -1.0, 1.0);
+                u_dot_head(i) = DyrosMath::minmax_cut(u_dot_head(i), -2.0, 2.0);
             }
 
             motion_q_dot_.segment(23, 2) = J_inv_head * u_dot_head;
             motion_q_.segment(23, 2) = motion_q_pre_.segment(23, 2) + motion_q_dot_.segment(23, 2) * dt_;
-            motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), -30 * DEG2RAD, 30 * DEG2RAD);
-            motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), -60 * DEG2RAD, 60 * DEG2RAD);
-            motion_q_dot_.segment(23, 2).setZero();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-            if (int(current_time_ * 10000) % 10000 == 0)
-            {
-                // cout<< "head_transform_pre_desired_from_: \n" << head_transform_pre_desired_from_.linear() <<endl;
-                // cout<< "master_head_pose_: \n" << master_head_pose_.linear() <<endl;
-                // cout<< "master_head_pose_raw_: \n" << master_head_pose_raw_.linear() <<endl;
-                // cout<< "error_w_head: " << error_w_head <<endl;
-                // cout<< "u_dot_head: " << u_dot_head <<endl;
-                // cout<< "J_head: \n" << J_head <<endl;
-                // cout<<"motion_q_(23): "<<motion_q_(23)<<endl;
-                // cout<<"motion_q_(24): "<<motion_q_(24)<<endl;
-                // cout<<"qpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-                // cout<<"qpik_rarm_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
-            }
-
-            // motion_q_(23) = (1-turning_phase_)*init_q_(23) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1.2; //yaw
-            // motion_q_(23) = 0; //yaw
-            // motion_q_(24) = 0; //pitch
-            pd_control_mask_(23) = 1;
-            pd_control_mask_(24) = 1;
-            /////////////////////////////////////////////////////
+            motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), joint_limit_l_(23), joint_limit_h_(23));
+            motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), joint_limit_l_(24), joint_limit_h_(24));
+            
+            // cout<<"master_head_pose_: \n"<<master_head_pose_.linear()<<endl;
+            // motion_q_dot_.setZero();
         }
     }
     else if (upper_body_mode_ == 6) //HQPIK
@@ -2782,14 +2857,15 @@ void AvatarController::motionGenerator()
             cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
             upper_body_mode_ = 3;
             upperbody_mode_recieved_ = true;
+            upperbody_command_time_ = current_time_;
             motion_q_ = motion_q_pre_;
         }
         else
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #6" << endl;
-
+                cout << "Upperbody Mode is Changed to #6 (HQPIK)" << endl;
+                
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
@@ -10865,7 +10941,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.20;
+    double pelv_offset = -0.00;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
