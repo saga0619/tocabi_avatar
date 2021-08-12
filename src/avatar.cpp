@@ -2827,7 +2827,7 @@ void AvatarController::motionGenerator()
             
             MatrixXd J_temp, J_head, I3, J_inv_head;
 
-            Vector3d u_dot_head = 100 * error_w_head;
+            Vector3d u_dot_head = 200 * error_w_head;
             J_temp.setZero(6, MODEL_DOF_VIRTUAL);
             J_head.setZero(3, 2);
             I3.setIdentity(3, 3);
@@ -3860,6 +3860,7 @@ void AvatarController::motionRetargeting_QPIK_upperbody()
     Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
     error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
     error_w_head(0) = 0;
+    error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
 
     //Upperarm error
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
@@ -4175,6 +4176,7 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
     error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
     error_w_head(0) = 0;
+    error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
 
     u_dot_hqpik_[1].segment(0, 3) = 200 * error_v_lhand;
     u_dot_hqpik_[1].segment(3, 3) = 100 * error_w_lhand;
@@ -4195,10 +4197,12 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
     error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
     error_w_lupperarm(0) = 0;
+    error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear() * error_w_lupperarm;
 
     Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
     error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
     error_w_rupperarm(0) = 0;
+    error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear() * error_w_rupperarm;
 
     u_dot_hqpik_[2].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
     u_dot_hqpik_[2].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
@@ -4215,9 +4219,13 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
     error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
     error_w_lshoulder(0) = 0;
+    error_w_lshoulder = lacromion_transform_pre_desired_from_.linear() * error_w_lshoulder;
+
     Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
     error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
     error_w_rshoulder(0) = 0;
+    error_w_rshoulder = racromion_transform_pre_desired_from_.linear() * error_w_rshoulder;
+
     u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
 
