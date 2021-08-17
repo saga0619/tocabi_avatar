@@ -1342,7 +1342,7 @@ void AvatarController::initWalkingParameter()
     robot_upperarm_max_l_ = 0.3376 * 1.0;
     robot_lowerarm_max_l_ = 0.31967530867;
     // robot_arm_max_l_ = 0.98*sqrt(robot_upperarm_max_l_*robot_upperarm_max_l_ + robot_lowerarm_max_l_*robot_lowerarm_max_l_ + 2*robot_upperarm_max_l_*robot_lowerarm_max_l_*cos( -joint_limit_h_(19)) );
-    robot_arm_max_l_ = (robot_upperarm_max_l_ + robot_lowerarm_max_l_) * 0.95 + lhand_control_point_offset_.norm();
+    robot_arm_max_l_ = (robot_upperarm_max_l_ + robot_lowerarm_max_l_) * 0.98 + lhand_control_point_offset_.norm();
 
     hmd_check_pose_calibration_[0] = false;
     hmd_check_pose_calibration_[1] = false;
@@ -2842,6 +2842,9 @@ void AvatarController::motionGenerator()
             }
 
             motion_q_dot_.segment(23, 2) = J_inv_head * u_dot_head;
+            motion_q_dot_(23) = DyrosMath::minmax_cut(motion_q_dot_(23), joint_vel_limit_l_(23), joint_vel_limit_h_(23));
+            motion_q_dot_(24) = DyrosMath::minmax_cut(motion_q_dot_(24), joint_vel_limit_l_(24), joint_vel_limit_h_(24));
+
             motion_q_.segment(23, 2) = motion_q_pre_.segment(23, 2) + motion_q_dot_.segment(23, 2) * dt_;
             motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), joint_limit_l_(23), joint_limit_h_(23));
             motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), joint_limit_l_(24), joint_limit_h_(24));
@@ -4176,7 +4179,7 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
     error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
     error_w_head(0) = 0;
-    error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
+    // error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
 
     u_dot_hqpik_[1].segment(0, 3) = 200 * error_v_lhand;
     u_dot_hqpik_[1].segment(3, 3) = 100 * error_w_lhand;
@@ -4197,12 +4200,10 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
     error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
     error_w_lupperarm(0) = 0;
-    error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear() * error_w_lupperarm;
 
     Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
     error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
     error_w_rupperarm(0) = 0;
-    error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear() * error_w_rupperarm;
 
     u_dot_hqpik_[2].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
     u_dot_hqpik_[2].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
@@ -4219,12 +4220,10 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
     error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
     error_w_lshoulder(0) = 0;
-    error_w_lshoulder = lacromion_transform_pre_desired_from_.linear() * error_w_lshoulder;
 
     Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
     error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
     error_w_rshoulder(0) = 0;
-    error_w_rshoulder = racromion_transform_pre_desired_from_.linear() * error_w_rshoulder;
 
     u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
@@ -10949,7 +10948,7 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.00;
+    double pelv_offset = -0.20;
     double pelv_transition_time = 3.0;
     if(walking_enable_ == true)
     {
