@@ -77,6 +77,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     first_loop_rarm_ = true;
     first_loop_upperbody_ = true;
     first_loop_hqpik_ = true;
+    first_loop_hqpik2_ = true;
     first_loop_qp_retargeting_ = true;
 }
 
@@ -788,18 +789,27 @@ void AvatarController::computeSlow()
                 cout << "mode = 13" << endl;
             }
 
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             updateInitialStateJoy();
             getRobotState();
             floatToSupportFootstep();
+            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
+                std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
                 getZmpTrajectory();
+                std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
                 getComTrajectory();
+                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
                 getFootTrajectory();
+                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getPelvTrajectory();
+                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
                 supportToFloatPattern();
+                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
+                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
 
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
@@ -838,6 +848,17 @@ void AvatarController::computeSlow()
                 updateNextStepTimeJoy();
 
                 q_prev_MJ_ = rd_.q_;
+
+                if (int(current_time_ * 10000) % 10000 == 0)
+                {
+                    cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                    cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
+                    cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
+                    cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
+                    cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
+                    cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
+                }
             }
         }
         else
@@ -1031,6 +1052,8 @@ void AvatarController::computeFast()
     }
     else if (rd_.tc_.mode == 13)
     {
+        // std::chrono::steady_clock::time_point tt1 = std::chrono::steady_clock::now();
+        
         if (walking_enable_ == true)
         {
             if (current_step_num_ < total_step_num_)
@@ -1038,7 +1061,7 @@ void AvatarController::computeFast()
                 if (atb_grav_update_ == false)
                 {
                     atb_grav_update_ = true;
-                    GravityCalculate_MJ();
+                    GravityCalculate_MJ(); // 90~160us
                     atb_grav_update_ = false;
                 }
             }
@@ -1064,7 +1087,7 @@ void AvatarController::computeFast()
             }
             // MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
         }
-
+        // std::chrono::steady_clock::time_point tt2 = std::chrono::steady_clock::now();
         /////////////////////////////////////////////////////////////////////////////////////////
 
         if (rd_.tc_init == true)
@@ -1074,13 +1097,15 @@ void AvatarController::computeFast()
         }
 
         //data process//
-        getRobotData();
-        walkingStateManager(); //avatar
-        getProcessedRobotData();
-
+        getRobotData();// 47~64us
+        // std::chrono::steady_clock::time_point tt3 = std::chrono::steady_clock::now();
+        walkingStateManager(); //avatar // <<1us
+        // std::chrono::steady_clock::time_point tt4 = std::chrono::steady_clock::now();
+        getProcessedRobotData();// <<1us
+        // std::chrono::steady_clock::time_point tt5 = std::chrono::steady_clock::now();
         //motion planing and control//
-        motionGenerator();
-
+        motionGenerator();// 140~240us(HQPIK)
+        // std::chrono::steady_clock::time_point tt6 = std::chrono::steady_clock::now();
         for (int i = 12; i < MODEL_DOF; i++)
         {
             desired_q_(i) = motion_q_(i);
@@ -1101,7 +1126,15 @@ void AvatarController::computeFast()
         }
 
         savePreData();
-
+        
+        // if (int(current_time_ * 10000) % 10000 == 0)
+        // {
+        //     cout<<"gravity compensation torque time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt2 - tt1).count() <<endl;
+        //     cout<<"getRobotData time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt3 - tt2).count() <<endl;
+        //     cout<<"walkingStateManager time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt4 - tt3).count() <<endl;
+        //     cout<<"getProcessedRobotData time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt5 - tt4).count() <<endl;
+        //     cout<<"motionGenerator time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt6 - tt5).count() <<endl;
+        // }
         // printOutTextFile();
     }
     else if (rd_.tc_.mode == 14)
@@ -2850,7 +2883,7 @@ void AvatarController::motionGenerator()
             // motion_q_dot_.setZero();
         }
     }
-    else if (upper_body_mode_ == 6) //HQPIK
+    else if (upper_body_mode_ == 6) //HQPIK ver1
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
@@ -2877,9 +2910,42 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             motionRetargeting_HQPIK();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+            if (int(current_time_ * 10000) % 10000 == 0)
+            {
+                // cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+            }
+        }
+    }
+    else if (upper_body_mode_ == 7) //HQPIK ver2
+    {
+        if (hmd_check_pose_calibration_[3] == false)
+        {
+            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+            upperbody_command_time_ = current_time_;
+            motion_q_ = motion_q_pre_;
+        }
+        else
+        {
+            if (upperbody_mode_recieved_ == true)
+            {
+                cout << "Upperbody Mode is Changed to #7 (HQPIK ver2)" << endl;
+                
+                first_loop_hqpik2_ = true;
+                first_loop_qp_retargeting_ = true;
+
+                std_msgs::String msg;
+                std::stringstream upperbody_mode_ss;
+                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK ver2)";
+                msg.data = upperbody_mode_ss.str();
+                calibration_state_pub.publish(msg);
+            }
+
+            rawMasterPoseProcessing();
+            motionRetargeting_HQPIK2();
 
             if (int(current_time_ * 10000) % 10000 == 0)
             {
@@ -4147,7 +4213,7 @@ void AvatarController::motionRetargeting_HQPIK()
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
     ////1st Task
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
     J_hqpik_[0].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
 
     Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
@@ -4176,7 +4242,6 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
     error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
     error_w_head(0) = 0;
-    error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
 
     u_dot_hqpik_[1].segment(0, 3) = 200 * error_v_lhand;
     u_dot_hqpik_[1].segment(3, 3) = 100 * error_w_lhand;
@@ -4197,12 +4262,10 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
     error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
     error_w_lupperarm(0) = 0;
-    error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear() * error_w_lupperarm;
 
     Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
     error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
     error_w_rupperarm(0) = 0;
-    error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear() * error_w_rupperarm;
 
     u_dot_hqpik_[2].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
     u_dot_hqpik_[2].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
@@ -4219,12 +4282,10 @@ void AvatarController::motionRetargeting_HQPIK()
     Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
     error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
     error_w_lshoulder(0) = 0;
-    error_w_lshoulder = lacromion_transform_pre_desired_from_.linear() * error_w_lshoulder;
 
     Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
     error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
     error_w_rshoulder(0) = 0;
-    error_w_rshoulder = racromion_transform_pre_desired_from_.linear() * error_w_rshoulder;
 
     u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
@@ -4373,6 +4434,299 @@ void AvatarController::motionRetargeting_HQPIK()
     rhand_vel_error_ = J_hqpik_[1].block(6, 0, 6, variable_size_hqpik_) * q_dot_hqpik_[last_solved_hierarchy_num_] - u_dot_hqpik_[1].segment(6, 6);
     relbow_vel_error_.segment(1, 2) = J_hqpik_[2].block(2, 0, 2, variable_size_hqpik_) * q_dot_hqpik_[last_solved_hierarchy_num_] - u_dot_hqpik_[2].segment(2, 2);
     racromion_vel_error_.segment(1, 2) = J_hqpik_[3].block(2, 0, 2, variable_size_hqpik_) * q_dot_hqpik_[last_solved_hierarchy_num_] - u_dot_hqpik_[3].segment(2, 2);
+
+    lhand_pos_error_ = master_lhand_pose_pre_.translation() - lhand_transform_pre_desired_from_.translation();
+    rhand_pos_error_ = master_rhand_pose_pre_.translation() - rhand_transform_pre_desired_from_.translation();
+
+    Eigen::AngleAxisd lhand_pos_error_aa(master_lhand_pose_pre_.linear() * lhand_transform_pre_desired_from_.linear().transpose());
+    lhand_ori_error_ = lhand_pos_error_aa.axis() * lhand_pos_error_aa.angle();
+    Eigen::AngleAxisd rhand_pos_error_aa(master_rhand_pose_pre_.linear() * rhand_transform_pre_desired_from_.linear().transpose());
+    rhand_ori_error_ = rhand_pos_error_aa.axis() * rhand_pos_error_aa.angle();
+
+    Eigen::AngleAxisd lelbow_ori_error_aa(master_lelbow_pose_pre_.linear() * lupperarm_transform_pre_desired_from_.linear().transpose());
+    lelbow_ori_error_ = lelbow_ori_error_aa.axis() * lelbow_ori_error_aa.angle();
+    Eigen::AngleAxisd relbow_ori_error_aa(master_relbow_pose_pre_.linear() * rupperarm_transform_pre_desired_from_.linear().transpose());
+    relbow_ori_error_ = relbow_ori_error_aa.axis() * relbow_ori_error_aa.angle();
+
+    Eigen::AngleAxisd lshoulder_ori_error_aa(master_lshoulder_pose_pre_.linear() * lacromion_transform_pre_desired_from_.linear().transpose());
+    lshoulder_ori_error_ = lshoulder_ori_error_aa.axis() * lshoulder_ori_error_aa.angle();
+
+    Eigen::AngleAxisd rshoulder_ori_error_aa(master_rshoulder_pose_pre_.linear() * racromion_transform_pre_desired_from_.linear().transpose());
+    rshoulder_ori_error_ = rshoulder_ori_error_aa.axis() * rshoulder_ori_error_aa.angle();
+}
+
+void AvatarController::motionRetargeting_HQPIK2()
+{
+    // const int hierarchy_num_hqpik2_ = 5;
+    // const int variable_size_hqpik2_ = 21;
+	// const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
+	// const int constraint_size2_hqpik2_[5] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	// const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: upper body ori, 3: hand, 4: upper arm ori(2) 4: shoulder ori(2)
+
+    if (first_loop_hqpik2_)
+    {
+        for (int i = 0; i < hierarchy_num_hqpik2_; i++)
+        {
+            QP_qdot_hqpik2_.resize(hierarchy_num_hqpik2_);
+            QP_qdot_hqpik2_[i].InitializeProblemSize(variable_size_hqpik2_, constraint_size2_hqpik2_[i]);
+            J_hqpik2_[i].setZero(control_size_hqpik2_[i], variable_size_hqpik2_);
+            u_dot_hqpik2_[i].setZero(control_size_hqpik2_[i]);
+
+            ubA_hqpik2_[i].setZero(constraint_size2_hqpik2_[i]);
+            lbA_hqpik2_[i].setZero(constraint_size2_hqpik2_[i]);
+
+            H_hqpik2_[i].setZero(variable_size_hqpik2_, variable_size_hqpik2_);
+            g_hqpik2_[i].setZero(variable_size_hqpik2_);
+
+            ub_hqpik2_[i].setZero(constraint_size1_hqpik2_);
+            lb_hqpik2_[i].setZero(constraint_size1_hqpik2_);
+
+            q_dot_hqpik2_[i].setZero(variable_size_hqpik2_);
+
+            w1_hqpik2_[i] = 2500;  //upperbody tracking (2500)
+            w2_hqpik2_[i] = 50;    //kinematic energy (50)
+            w3_hqpik2_[i] = 0.000; //acceleration ()
+        }
+
+        // upper arm orientation control gain
+        w1_hqpik2_[2] = 250;  //upperbody tracking (2500)
+        w2_hqpik2_[2] = 50;    //kinematic energy (50)
+        w3_hqpik2_[2] = 0.002; //acceleration ()
+
+        // shoulder orientation control gain
+        w1_hqpik2_[3] = 250;  //upperbody tracking (2500)
+        w2_hqpik2_[3] = 50;    //kinematic energy (50)
+        w3_hqpik2_[3] = 0.002; //acceleration ()  
+
+        last_solved_hierarchy_num_ = -1;
+
+        first_loop_hqpik2_ = false;
+    }
+
+    // VectorQVQd q_desired_pre;
+    // q_desired_pre.setZero();
+    // q_desired_pre(39) = 1;
+    // q_desired_pre.segment(6, MODEL_DOF) = pre_desired_q_;
+    Vector3d zero3;
+    zero3.setZero();
+    
+    ////1st Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
+    J_hqpik2_[0].block(0, 0, 2, variable_size_hqpik2_) = J_temp_.block(3, 18, 2, variable_size_hqpik2_); //x, y position
+    J_hqpik2_[0].block(2, 0, 2, variable_size_hqpik2_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //y, z orientation
+    //Head error
+    Vector3d error_v_head = master_head_pose_.translation() - head_transform_pre_desired_from_.translation();
+    Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
+    error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
+    error_w_head(0) = 0;
+    u_dot_hqpik_[0].segment(0, 2) = 100 * error_v_head.segment(0, 2);
+    u_dot_hqpik_[0].segment(2, 2) = 200 * error_w_head.segment(1, 2);
+
+
+    ////2nd Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
+    J_hqpik2_[1].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); //orientation
+    //upper body error
+    Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
+    u_dot_hqpik2_[1] = 100 * error_w_upperbody;
+
+    ///3rd Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
+    J_hqpik2_[2].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(3, 18, 3, variable_size_hqpik2_); //position
+    J_hqpik2_[2].block(3, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); //orientation
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
+    J_hqpik2_[2].block(6, 0, 3, variable_size_hqpik2_) = J_temp_.block(3, 18, 3, variable_size_hqpik2_); //position
+    J_hqpik2_[2].block(9, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); //orientation
+    //Hand error
+    Vector3d error_v_lhand = master_lhand_pose_.translation() - lhand_transform_pre_desired_from_.translation();
+    Vector3d error_w_lhand = -DyrosMath::getPhi(lhand_transform_pre_desired_from_.linear(), master_lhand_pose_.linear());
+    Vector3d error_v_rhand = master_rhand_pose_.translation() - rhand_transform_pre_desired_from_.translation();
+    Vector3d error_w_rhand = -DyrosMath::getPhi(rhand_transform_pre_desired_from_.linear(), master_rhand_pose_.linear());
+    u_dot_hqpik2_[2].segment(0, 3) = 200 * error_v_lhand;
+    u_dot_hqpik2_[2].segment(3, 3) = 100 * error_w_lhand;
+    u_dot_hqpik2_[2].segment(6, 3) = 200 * error_v_rhand;
+    u_dot_hqpik2_[2].segment(9, 3) = 100 * error_w_rhand;
+
+    ////4th Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+    J_hqpik2_[3].block(0, 0, 2, variable_size_hqpik2_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //orientation
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+    J_hqpik2_[3].block(2, 0, 2, variable_size_hqpik2_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //orientation
+    //Upperarm error
+    Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
+    error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
+    error_w_lupperarm(0) = 0;
+    Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
+    error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
+    error_w_rupperarm(0) = 0;
+    u_dot_hqpik2_[3].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
+    u_dot_hqpik2_[3].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
+
+    ////5th Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
+    J_hqpik2_[4].block(0, 0, 2, variable_size_hqpik2_) = (lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //orientation
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
+    J_hqpik2_[4].block(2, 0, 2, variable_size_hqpik2_) = (racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //orientation
+    //Shoulder error
+    Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
+    error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
+    error_w_lshoulder(0) = 0;
+    Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
+    error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
+    error_w_rshoulder(0) = 0;
+    u_dot_hqpik_[4].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
+    u_dot_hqpik_[4].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
+
+
+    for (int i = 0; i < hierarchy_num_hqpik2_; i++)
+    {
+        if (i>last_solved_hierarchy_num_)
+        {
+            QP_qdot_hqpik2_[i].InitializeProblemSize(variable_size_hqpik2_, constraint_size2_hqpik2_[i]);
+        }
+    }
+    
+    last_solved_hierarchy_num_ = -1;
+
+    for (int i = 0; i < hierarchy_num_hqpik2_; i++)
+    {
+
+        MatrixXd H1, H2, H3;
+        VectorXd g1, g2, g3;
+
+        H1 = J_hqpik2_[i].transpose() * J_hqpik2_[i];
+        // H2 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_);
+        H2 = A_mat_.block(18, 18, variable_size_hqpik2_, variable_size_hqpik2_) + Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_)*(2e-2);
+        H2(3, 3) += 10;         //left arm 1st joint
+        H2(13, 13) += 10;       //right arm 1st joint
+        H3 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (1 / dt_) * (1 / dt_);
+
+        g1 = -J_hqpik2_[i].transpose() * u_dot_hqpik2_[i];
+        g2.setZero(variable_size_hqpik2_);
+        g3 = -motion_q_dot_pre_.segment(12, variable_size_hqpik2_) * (1 / dt_) * (1 / dt_);
+
+        if( i>= 2)
+        {
+
+        }
+
+        H_hqpik2_[i] = w1_hqpik2_[i]*H1 + w2_hqpik2_[i]*H2 + w3_hqpik2_[i]*H3;
+        g_hqpik2_[i] = w1_hqpik2_[i]*g1 + w2_hqpik2_[i]*g2 + w3_hqpik2_[i]*g3;
+
+        double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
+
+        for (int j = 0; j < constraint_size1_hqpik2_; j++)
+        {
+            lb_hqpik2_[i](j) = max(speed_reduce_rate * (joint_limit_l_(j + 12) - current_q_(j + 12)), joint_vel_limit_l_(j + 12));
+            ub_hqpik2_[i](j) = min(speed_reduce_rate * (joint_limit_h_(j + 12) - current_q_(j + 12)), joint_vel_limit_h_(j + 12));
+        }
+
+        A_hqpik2_[i].setZero(constraint_size2_hqpik2_[i], variable_size_hqpik2_);
+
+        int higher_task_equality_num = 0;
+        for (int h = 0; h < i; h++)
+        {
+            A_hqpik2_[i].block(higher_task_equality_num, 0, control_size_hqpik2_[h], variable_size_hqpik2_) = J_hqpik2_[h];
+            // ubA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[h];
+            // lbA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[h];
+            ubA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i-1];
+            lbA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i-1];
+            higher_task_equality_num += control_size_hqpik2_[h];
+        }
+
+        // hand velocity constraints
+        if (i < 3)
+        {
+            A_hqpik2_[i].block(higher_task_equality_num, 0, 12, variable_size_hqpik2_) = J_hqpik2_[2].block(0, 0, 12, variable_size_hqpik2_);
+
+            for (int j = 0; j < 3; j++)
+            {
+                //linear velocity limit
+                lbA_hqpik2_[i](higher_task_equality_num + j) = -1;
+                ubA_hqpik2_[i](higher_task_equality_num + j) = 1;
+                lbA_hqpik2_[i](higher_task_equality_num + j + 6) = -1;
+                ubA_hqpik2_[i](higher_task_equality_num + j + 6) = 1;
+
+                //angular velocity limit
+                lbA_hqpik2_[i](higher_task_equality_num + j + 3) = -3;
+                ubA_hqpik2_[i](higher_task_equality_num + j + 3) = 3;
+                lbA_hqpik2_[i](higher_task_equality_num + j + 9) = -3;
+                ubA_hqpik2_[i](higher_task_equality_num + j + 9) = 3;
+            }
+        }
+
+        QP_qdot_hqpik2_[i].EnableEqualityCondition(equality_condition_eps_);
+        QP_qdot_hqpik2_[i].UpdateMinProblem(H_hqpik2_[i], g_hqpik2_[i]);
+        QP_qdot_hqpik2_[i].UpdateSubjectToAx(A_hqpik2_[i], lbA_hqpik2_[i], ubA_hqpik2_[i]);
+        QP_qdot_hqpik2_[i].UpdateSubjectToX(lb_hqpik2_[i], ub_hqpik2_[i]);
+
+        if (QP_qdot_hqpik2_[i].SolveQPoases(200, qpres_hqpik2_))
+        {
+            q_dot_hqpik2_[i] = qpres_hqpik2_.segment(0, variable_size_hqpik2_);
+
+            last_solved_hierarchy_num_ = i;
+
+            // if(i == 3)
+            // {
+            //     if (int(current_time_ * 10000) % 1000 == 0)
+            //         std::cout << "4th HQPIK(shoulder) is solved" << std::endl;
+            // }
+        }
+        else
+        {
+            q_dot_hqpik2_[i].setZero();
+
+            // last_solved_hierarchy_num_ = max(i-1, 0);
+            if (i < 5)
+            {
+                if (int(current_time_ * 10000) % 1000 == 0)
+                    std::cout << "Error hierarchy: " << i << std::endl;
+            }
+            // cout<<"Error qpres_: \n"<< qpres_ << endl;
+            break;
+        }
+        // cout<<"ubA_[0]: " << ubA_[0]<<endl;
+    }
+
+    if (int(current_time_ * 10000) % 2000 == 0)
+    {
+        // cout<<"u_dot_[0]- J_hqpik2_[0]*q_dot_hqpik2_[0]: \n" << u_dot_hqpik2_[0] - J_hqpik2_[0]*q_dot_hqpik2_[0] << endl;
+        // cout<<"u_dot_[0]- J_hqpik2_[0]*q_dot_hqpik2_[1]: \n" << u_dot_hqpik2_[0] - J_hqpik2_[0]*q_dot_hqpik2_[1] << endl;
+        // cout<<"u_dot_[0]- J_hqpik2_[0]*q_dot_hqpik2_[2]: \n" << u_dot_hqpik2_[0] - J_hqpik2_[0]*q_dot_hqpik2_[2] << endl;
+        // cout<<"u_dot_[0]- J_hqpik2_[0]*q_dot_hqpik2_[3]: \n" << u_dot_hqpik2_[0] - J_hqpik2_[0]*q_dot_hqpik2_[3] << endl;
+
+        // cout<<"u_dot_[1]- J_hqpik2_[1]*q_dot_hqpik2_[1]: \n" << u_dot_hqpik2_[1] - J_hqpik2_[1]*q_dot_hqpik2_[1] << endl;
+        // cout<<"u_dot_[2]- J_hqpik2_[2]*q_dot_hqpik2_[2]: \n" << u_dot_hqpik2_[2] - J_hqpik2_[2]*q_dot_hqpik2_[2] << endl;
+
+        // cout<<"J_hqpik2_[1]: \n" << J_hqpik2_[1]<<endl;
+        // cout<<"u_dot_[0]: \n" << u_dot_[0]<<endl;
+        // cout<<"u_dot_[1]: \n" << u_dot_[1]<<endl;
+        // cout<<"u_dot_[2]: \n" << u_dot_[2]<<endl;
+    }
+
+    // cout<<"J_hqpik2_[0]: \n"<< J_hqpik2_[0]<<endl;
+    for (int i = 0; i < variable_size_hqpik2_; i++)
+    {
+        motion_q_dot_(12 + i) = q_dot_hqpik2_[last_solved_hierarchy_num_](i);
+        motion_q_(12 + i) = motion_q_pre_(12 + i) + motion_q_dot_(12 + i) * dt_;
+        pd_control_mask_(12 + i) = 1;
+    }
+
+    lhand_vel_error_ = J_hqpik2_[1].block(0, 0, 6, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[1].segment(0, 6);
+    lelbow_vel_error_.segment(1, 2) = J_hqpik2_[2].block(0, 0, 2, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[2].segment(0, 2);
+    lacromion_vel_error_.segment(1, 2) = J_hqpik2_[3].block(0, 0, 2, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[3].segment(0, 2);
+
+    rhand_vel_error_ = J_hqpik2_[1].block(6, 0, 6, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[1].segment(6, 6);
+    relbow_vel_error_.segment(1, 2) = J_hqpik2_[2].block(2, 0, 2, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[2].segment(2, 2);
+    racromion_vel_error_.segment(1, 2) = J_hqpik2_[3].block(2, 0, 2, variable_size_hqpik2_) * q_dot_hqpik2_[last_solved_hierarchy_num_] - u_dot_hqpik2_[3].segment(2, 2);
 
     lhand_pos_error_ = master_lhand_pose_pre_.translation() - lhand_transform_pre_desired_from_.translation();
     rhand_pos_error_ = master_rhand_pose_pre_.translation() - rhand_transform_pre_desired_from_.translation();
@@ -5552,8 +5906,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_-0.2, human_shoulder_width_+0.1, 1, 0, 0, 0);    // cubic transition
-    double beta = 0;
+    double beta = DyrosMath::cubic(hand_d, 0.5, 0.4, 1, 0, 0, 0);    // cubic transition
+    // double beta = 0;
     // double beta = DyrosMath::minmax_cut( (hand_d - human_shoulder_width_) / (-0.2), 0.0, 1.0);  //linear transition
 
     if (beta == 0)
