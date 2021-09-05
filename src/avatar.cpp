@@ -4522,14 +4522,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     u_dot_hqpik2_[0].segment(0, 2) = 100 * error_v_head.segment(0, 2);
     u_dot_hqpik2_[0].segment(2, 2) = 200 * error_w_head.segment(1, 2);
 
-    ////2nd Task
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
-    J_hqpik2_[1].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); //orientation
-    //upper body error
-    Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
-    u_dot_hqpik2_[1] = 100 * error_w_upperbody;
-    ///3rd Task
+    ///2nd Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_hqpik2_[2].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(3, 18, 3, variable_size_hqpik2_); //position
@@ -4547,6 +4540,15 @@ void AvatarController::motionRetargeting_HQPIK2()
     u_dot_hqpik2_[2].segment(3, 3) = 100 * error_w_lhand;
     u_dot_hqpik2_[2].segment(6, 3) = 200 * error_v_rhand;
     u_dot_hqpik2_[2].segment(9, 3) = 100 * error_w_rhand;
+
+    ////3rd Task
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
+    J_hqpik2_[1].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); //orientation
+    //upper body error
+    Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
+    u_dot_hqpik2_[1] = 100 * error_w_upperbody;
+
     ////4th Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
@@ -4554,7 +4556,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
     J_hqpik2_[3].block(2, 0, 2, variable_size_hqpik2_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //orientation
-    //Upperarm error
+    //Upper arm error
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
     error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
     error_w_lupperarm(0) = 0;
@@ -4563,6 +4565,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     error_w_rupperarm(0) = 0;
     u_dot_hqpik2_[3].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
     u_dot_hqpik2_[3].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
+    
     ////5th Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
@@ -5987,6 +5990,14 @@ void AvatarController::hmdRawDataProcessing()
     // hmd2robot_lhand_pos_mapping_ = robot_init_hand_pos + delta_hmd2robot_lhand_pos_maping;
     // hmd2robot_rhand_pos_mapping_ = robot_init_hand_pos + delta_hmd2robot_rhand_pos_maping;
 
+
+    master_upperbody_pose_raw_.translation().setZero();
+    Eigen::AngleAxisd chest_ang_diff(hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose());
+    Eigen::Matrix3d chest_diff_m, shoulder_diff_m;
+    chest_diff_m = Eigen::AngleAxisd(chest_ang_diff.angle() * 1.0, chest_ang_diff.axis());
+    master_upperbody_pose_raw_.linear() = chest_diff_m * robot_upperbody_ori_init;
+    // master_upperbody_pose_raw_.linear() = hmd_chest_pose_.linear()*hmd_chest_pose_init_.linear().transpose()*robot_upperbody_ori_init;
+
     master_lhand_pose_raw_.translation() = larmbase_transform_pre_desired_from_.translation() + upperbody_transform_pre_desired_from_.linear() * (robot_init_lshoulder_pos + hmd2robot_lhand_pos_mapping_);
     // master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear()*hmd_lhand_pose_init_.linear().transpose()*robot_lhand_ori_init;	//relative orientation
     master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear() * DyrosMath::rotateWithZ(M_PI / 2); //absolute orientation
@@ -6009,17 +6020,17 @@ void AvatarController::hmdRawDataProcessing()
     master_rshoulder_pose_raw_.translation().setZero();
     master_rshoulder_pose_raw_.linear() = hmd_rshoulder_pose_.linear() * hmd_rshoulder_pose_init_.linear().transpose() * robot_rshoulder_ori_init;
 
-    master_head_pose_raw_.translation().setZero();
+    Vector3d hmd_head_displacement = hmd_head_pose_.translation() - hmd_head_pose_init_.translation();
+    hmd_head_displacement(0) = DyrosMath::minmax_cut(hmd_head_displacement(0), -0.10, +0.10);
+    hmd_head_displacement(1) = DyrosMath::minmax_cut(hmd_head_displacement(1), -0.15, +0.15);
+
+    master_head_pose_raw_.translation() = hmd_head_displacement;
+    master_head_pose_raw_.translation()(0) += 0.10;
     master_head_pose_raw_.linear() = hmd_head_pose_.linear() * hmd_head_pose_init_.linear().transpose() * robot_head_ori_init;
+
     // master_head_pose_raw_.linear() = hmd_head_pose_.linear();
 
-    master_upperbody_pose_raw_.translation().setZero();
-    Eigen::AngleAxisd chest_ang_diff(hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose());
-    Eigen::Matrix3d chest_diff_m, shoulder_diff_m;
-    chest_diff_m = Eigen::AngleAxisd(chest_ang_diff.angle() * 1.0, chest_ang_diff.axis());
-    master_upperbody_pose_raw_.linear() = chest_diff_m * robot_upperbody_ori_init;
-    // master_upperbody_pose_raw_.linear() = hmd_chest_pose_.linear()*hmd_chest_pose_init_.linear().transpose()*robot_upperbody_ori_init;
-
+ 
     shoulder_diff_m = Eigen::AngleAxisd(chest_ang_diff.angle() * 1.0, chest_ang_diff.axis());
     master_lshoulder_pose_raw_.linear() = shoulder_diff_m * robot_upperbody_ori_init;
     master_rshoulder_pose_raw_.linear() = shoulder_diff_m * robot_upperbody_ori_init;

@@ -40,7 +40,8 @@ const std::string FILE_NAMES[FILE_CNT] =
 };
 
 // const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/seungbum";    //avatar ubuntu pc
 
 class AvatarController
 {
@@ -1012,7 +1013,7 @@ public:
     const int variable_size_hqpik2_ = 21;
 	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: upper body ori, 3: hand, 4: upper arm ori(2) 5: shoulder ori(2)
+	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
 
     double w1_hqpik2_[5];
     double w2_hqpik2_[5];
