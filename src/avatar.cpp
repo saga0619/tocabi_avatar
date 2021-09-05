@@ -5870,8 +5870,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    double beta = DyrosMath::cubic(hand_d, 0.6, 0.2, 1, 0, 0, 0);    // cubic transition
-    // double beta = 0;
+    // double beta = DyrosMath::cubic(hand_d, 0.6, 0.2, 1, 0, 0, 0);    // cubic transition
+    double beta = 0;
     // double beta = DyrosMath::minmax_cut( (hand_d - human_shoulder_width_) / (-0.2), 0.0, 1.0);  //linear transition
 
     if (beta == 0)
@@ -6054,7 +6054,7 @@ void AvatarController::qpRetargeting_1()
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
 
-    H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_;// + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
+    H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_ + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
     g_retargeting_ = -w1_retargeting_ * E1_.transpose() * u1_ - w2_retargeting_ * E2_.transpose() * u2_;
 
     QP_motion_retargeting_[0].EnableEqualityCondition(equality_condition_eps_);
@@ -6104,7 +6104,7 @@ void AvatarController::qpRetargeting_21()
 
     if (QP_motion_retargeting_[1].SolveQPoases(200, qpres_retargeting_[1]))
     {
-        H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_;// + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
+        H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_ + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
         g_retargeting_ = -w1_retargeting_ * E1_.transpose() * u1_ - w2_retargeting_ * E2_.transpose() * u2_;
 
         A_retargeting_[2].block(6, 0, 3, 8) = E3_;
@@ -6172,7 +6172,7 @@ void AvatarController::qpRetargeting_21Transition(double beta)
 
     if (QP_motion_retargeting_[1].SolveQPoases(200, qpres_retargeting_[1]))
     {
-        H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_;// + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
+        H_retargeting_ = w1_retargeting_ * E1_.transpose() * E1_ + w2_retargeting_ * E2_.transpose() * E2_ + Eigen::MatrixXd::Identity(8, 8) * damped_puedoinverse_eps_;
         g_retargeting_ = -w1_retargeting_ * E1_.transpose() * u1_ - w2_retargeting_ * E2_.transpose() * u2_;
 
         A_retargeting_[2].block(6, 0, 3, 8) = E3_;
@@ -8686,7 +8686,7 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
 
-    // hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear()*DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
+    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear()*DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
