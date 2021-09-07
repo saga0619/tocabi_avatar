@@ -1105,6 +1105,40 @@ void AvatarController::computeFast()
         getProcessedRobotData();// <<1us
         // std::chrono::steady_clock::time_point tt5 = std::chrono::steady_clock::now();
         //motion planing and control//
+
+        if( current_q_(24) > 8*DEG2RAD)
+        {
+            if( abs(current_q_(23)) > 22*DEG2RAD)
+            {
+                joint_limit_h_(24) = 13*DEG2RAD;
+                joint_limit_h_(23) = 80*DEG2RAD;
+                joint_limit_l_(23) = -80*DEG2RAD;
+            }
+            else
+            {
+                joint_limit_h_(24) = 30*DEG2RAD;
+                joint_limit_h_(23) = 17*DEG2RAD;
+                joint_limit_l_(23) = -17*DEG2RAD;
+            }
+        }
+        else
+        {
+            joint_limit_h_(24) = 13*DEG2RAD;
+            joint_limit_h_(23) = 80*DEG2RAD;
+            joint_limit_l_(23) = -80*DEG2RAD;
+        }
+
+        // if( abs(current_q_(23)) < 20*DEG2RAD)
+        // {
+        //     joint_limit_h_(24) = 35*DEG2RAD;
+        //     joint_limit_l_(24) = -40*DEG2RAD;
+        // }
+        // else
+        // {
+        //     joint_limit_h_(24) = 10*DEG2RAD;
+        //     joint_limit_l_(24) = -40*DEG2RAD;
+        // }
+
         motionGenerator();// 140~240us(HQPIK)
         // std::chrono::steady_clock::time_point tt6 = std::chrono::steady_clock::now();
         for (int i = 12; i < MODEL_DOF; i++)
