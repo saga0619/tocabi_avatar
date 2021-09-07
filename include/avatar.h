@@ -72,7 +72,9 @@ public:
     CQuadraticProgram QP_qdot_rarm;
     CQuadraticProgram QP_qdot_upperbody_;
     CQuadraticProgram QP_qdot_wholebody_;
-    std::vector<CQuadraticProgram> QP_qdot_hqpik_;
+    std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
+    std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
+
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
@@ -120,6 +122,7 @@ public:
     void motionRetargeting_QPIK_upperbody();
     void motionRetargeting_QPIK_wholebody();
     void motionRetargeting_HQPIK();
+    void motionRetargeting_HQPIK2();
     void rawMasterPoseProcessing();
     void exoSuitRawDataProcessing();
     void azureKinectRawDataProcessing();
@@ -1004,6 +1007,26 @@ public:
     const double damped_puedoinverse_eps_ = 1e-5;
     ///////////////////////////////////////////////////
     
+    /////////////HQPIK2//////////////////////////
+    const int hierarchy_num_hqpik2_ = 5;
+    const int variable_size_hqpik2_ = 21;
+	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
+	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
+
+    double w1_hqpik2_[5];
+    double w2_hqpik2_[5];
+    double w3_hqpik2_[5];
+    double w4_hqpik2_[5];
+    double w5_hqpik2_[5];
+    double w6_hqpik2_[5];
+    
+    Eigen::MatrixXd H_hqpik2_[5], A_hqpik2_[5];
+    Eigen::MatrixXd J_hqpik2_[5];
+    Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
+    Eigen::VectorXd q_dot_hqpik2_[5];
+    /////////////////////////////////////////////////////
+
     ////////////QP RETARGETING//////////////////////////////////
     const int variable_size_retargeting_ = 8;
 	const int constraint_size1_retargeting_ = 8;	//[lb <=	x	<= 	ub] form constraints
@@ -1059,6 +1082,7 @@ private:
     bool first_loop_rarm_;
     bool first_loop_upperbody_;
     bool first_loop_hqpik_;
+    bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
