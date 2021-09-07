@@ -48,6 +48,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
 
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
+    calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); //MJ
 
@@ -2585,6 +2586,7 @@ void AvatarController::motionGenerator()
             upperbody_mode_ss << "Robot is Freezed!";
             msg.data = upperbody_mode_ss.str();
             calibration_state_pub.publish(msg);
+            calibration_state_gui_log_pub.publish(msg);
         }
 
         for (int i = 12; i < MODEL_DOF; i++)
@@ -2607,6 +2609,7 @@ void AvatarController::motionGenerator()
             upperbody_mode_ss << "Ready Pose is On!";
             msg.data = upperbody_mode_ss.str();
             calibration_state_pub.publish(msg);
+            calibration_state_gui_log_pub.publish(msg);
         }
         ///////////////////////WAIST/////////////////////////
         motion_q_(12) = 0; //pitch
@@ -2840,9 +2843,10 @@ void AvatarController::motionGenerator()
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "HEAD Tracking Contorol in On";
+                upperbody_mode_ss << "HEAD Only Tracking Contorol in On";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
+                calibration_state_gui_log_pub.publish(msg);
             }
 
             for (int i = 12; i < MODEL_DOF; i++)
@@ -2904,9 +2908,10 @@ void AvatarController::motionGenerator()
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK)";
+                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
+                calibration_state_gui_log_pub.publish(msg);
             }
 
             rawMasterPoseProcessing();
@@ -2942,6 +2947,7 @@ void AvatarController::motionGenerator()
                 upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK ver2)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
+                calibration_state_gui_log_pub.publish(msg);
             }
 
             rawMasterPoseProcessing();
@@ -4895,9 +4901,10 @@ void AvatarController::poseCalibration()
                         << (hmd_still_cali_lhand_pos_(2)) << std::endl
                         << "still_R : " << (hmd_still_cali_rhand_pos_(0)) << ", "
                         << (hmd_still_cali_rhand_pos_(1)) << ", "
-                        << (hmd_still_cali_rhand_pos_(2));
+                        << (hmd_still_cali_rhand_pos_(2)) << std::endl;
         msg.data = still_cali_data.str();
         calibration_state_pub.publish(msg);
+        calibration_state_gui_log_pub.publish(msg);
 
         cout << "hmd_still_cali_lhand_pos_: " << hmd_still_cali_lhand_pos_ << endl;
         cout << "hmd_still_cali_rhand_pos_: " << hmd_still_cali_rhand_pos_ << endl;
@@ -4976,6 +4983,7 @@ void AvatarController::poseCalibration()
                         << (hmd_tpose_cali_rhand_pos_(2));
         msg.data = tpose_cali_data.str();
         calibration_state_pub.publish(msg);
+        calibration_state_gui_log_pub.publish(msg);
 
         cout << "hmd_tpose_cali_lhand_pos_: " << hmd_tpose_cali_lhand_pos_ << endl;
         cout << "hmd_tpose_cali_rhand_pos_: " << hmd_tpose_cali_rhand_pos_ << endl;
@@ -5016,6 +5024,7 @@ void AvatarController::poseCalibration()
                           << (hmd_forward_cali_rhand_pos_(2));
         msg.data = forward_cali_data.str();
         calibration_state_pub.publish(msg);
+        calibration_state_gui_log_pub.publish(msg);
 
         cout << "hmd_forward_cali_lhand_pos_: " << hmd_forward_cali_lhand_pos_ << endl;
         cout << "hmd_forward_cali_rhand_pos_: " << hmd_forward_cali_rhand_pos_ << endl;
@@ -5156,6 +5165,7 @@ void AvatarController::poseCalibration()
 
         msg.data = arm_length_data.str();
         calibration_state_pub.publish(msg);
+        calibration_state_gui_log_pub.publish(msg);
 
         cout << "hmd_lshoulder_center_pos_: " << hmd_lshoulder_center_pos_.transpose() << endl;
         cout << "hmd_rshoulder_center_pos_: " << hmd_rshoulder_center_pos_.transpose() << endl;
@@ -8565,6 +8575,7 @@ void AvatarController::PoseCalibrationCallback(const std_msgs::Int8 &msg)
         reset << "RESET POSE CALIBRATION";
         msg.data = reset.str();
         calibration_state_pub.publish(msg);
+        calibration_state_gui_log_pub.publish(msg);
     }
     else if (msg.data == 5)
     {

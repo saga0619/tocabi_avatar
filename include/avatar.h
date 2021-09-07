@@ -192,6 +192,7 @@ public:
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
     ros::Publisher calibration_state_pub;
+    ros::Publisher calibration_state_gui_log_pub;
 
     void WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg);
 
