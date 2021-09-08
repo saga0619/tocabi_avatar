@@ -39,9 +39,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
-const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/seungbum";    //avatar ubuntu pc
 
 class AvatarController
 {
@@ -241,6 +240,7 @@ public:
     unsigned int upper_body_mode_;                          // 1: init pose,  2: zero pose, 3: swing arm 4: motion retarggeting
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
+    bool chair_mode_;                                       // For chair sitting mode
 
     int foot_contact_;                                      // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -1325,6 +1325,7 @@ public:
     //
     Eigen::VectorQd contact_torque_MJ;
     Eigen::VectorQd Initial_ref_q_;
+    Eigen::VectorQd Initial_current_q_;
     Eigen::VectorQd Initial_ref_q_walk_;
     bool walking_enable_ ;
 
