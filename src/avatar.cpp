@@ -2,10 +2,10 @@
 #include <fstream>
 using namespace TOCABI;
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+// ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
+// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
 // ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
@@ -449,9 +449,9 @@ void AvatarController::setGains()
     }
 
     //WAIST
-    joint_limit_l_(12) = -45 * DEG2RAD;
-    joint_limit_h_(12) = 45 * DEG2RAD;
-    joint_limit_l_(13) = -30 * DEG2RAD;
+    joint_limit_l_(12) = -30 * DEG2RAD;
+    joint_limit_h_(12) = 30 * DEG2RAD;
+    joint_limit_l_(13) = -15 * DEG2RAD;
     joint_limit_h_(13) = 30 * DEG2RAD;
     joint_limit_l_(14) = -30 * DEG2RAD;
     joint_limit_h_(14) = 30 * DEG2RAD;
@@ -476,7 +476,7 @@ void AvatarController::setGains()
     joint_limit_l_(23) = -80 * DEG2RAD;
     joint_limit_h_(23) = 80 * DEG2RAD;
     joint_limit_l_(24) = -40 * DEG2RAD;
-    joint_limit_h_(24) = 40 * DEG2RAD;
+    joint_limit_h_(24) = 30 * DEG2RAD;
     //RIGHT ARM
     joint_limit_l_(25) = -30 * DEG2RAD;
     joint_limit_h_(25) = 30 * DEG2RAD;
@@ -1106,24 +1106,24 @@ void AvatarController::computeFast()
         // std::chrono::steady_clock::time_point tt5 = std::chrono::steady_clock::now();
         //motion planing and control//
 
-        if( current_q_(24) > 8*DEG2RAD)
+        if( current_q_(24) > 5*DEG2RAD)
         {
-            if( abs(current_q_(23)) > 22*DEG2RAD)
+            if( abs(current_q_(23)) > 18*DEG2RAD)
             {
-                joint_limit_h_(24) = 13*DEG2RAD;
+                joint_limit_h_(24) = 10*DEG2RAD;
                 joint_limit_h_(23) = 80*DEG2RAD;
                 joint_limit_l_(23) = -80*DEG2RAD;
             }
             else
             {
                 joint_limit_h_(24) = 30*DEG2RAD;
-                joint_limit_h_(23) = 17*DEG2RAD;
-                joint_limit_l_(23) = -17*DEG2RAD;
+                joint_limit_h_(23) = 13*DEG2RAD;
+                joint_limit_l_(23) = -13*DEG2RAD;
             }
         }
         else
         {
-            joint_limit_h_(24) = 13*DEG2RAD;
+            joint_limit_h_(24) = 10*DEG2RAD;
             joint_limit_h_(23) = 80*DEG2RAD;
             joint_limit_l_(23) = -80*DEG2RAD;
         }
@@ -1160,9 +1160,9 @@ void AvatarController::computeFast()
             atb_upper_update_ = false;
         }
 
-        MJ_joint1 << current_time_ << "," << desired_q_(15) << "," << desired_q_(16) << "," << desired_q_(17) << "," << desired_q_(18) << "," << desired_q_(19) << "," << desired_q_(20) << "," << desired_q_(21) << "," << desired_q_(22) <<endl;
-        MJ_joint2 << current_time_ << "," << current_q_(15) << "," << current_q_(16) << "," << current_q_(17) << "," << current_q_(18) << "," << current_q_(19) << "," << current_q_(20) << "," << current_q_(21) << "," << current_q_(22) <<endl;
-        MJ_graph << current_time_ << "," << hmd_lhand_pose_.translation()(0) << "," << hmd_lhand_pose_.translation()(1) << "," << hmd_lhand_pose_.translation()(2) << endl;
+        // MJ_joint1 << current_time_ << "," << desired_q_(15) << "," << desired_q_(16) << "," << desired_q_(17) << "," << desired_q_(18) << "," << desired_q_(19) << "," << desired_q_(20) << "," << desired_q_(21) << "," << desired_q_(22) <<endl;
+        // MJ_joint2 << current_time_ << "," << current_q_(15) << "," << current_q_(16) << "," << current_q_(17) << "," << current_q_(18) << "," << current_q_(19) << "," << current_q_(20) << "," << current_q_(21) << "," << current_q_(22) <<endl;
+        // MJ_graph << current_time_ << "," << hmd_lhand_pose_.translation()(0) << "," << hmd_lhand_pose_.translation()(1) << "," << hmd_lhand_pose_.translation()(2) << endl;
         savePreData();
         
         // if (int(current_time_ * 10000) % 10000 == 0)
