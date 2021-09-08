@@ -735,6 +735,7 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
+            init_leg_time_ = rd_.control_time_;        
 
             initial_flag = 1;
             q_prev_MJ_ = rd_.q_;
@@ -760,6 +761,16 @@ void AvatarController::computeSlow()
         {
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i);
         }
+        
+        // for chair mode
+        if(chair_mode_)
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                rd_.torque_desired(i) = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_+3.0, - Kd(i) * rd_.q_dot_(i), 0, 0, 0);
+            }
+        }
+        
     }
     else if (rd_.tc_.mode == 13)
     {
@@ -790,27 +801,27 @@ void AvatarController::computeSlow()
                 cout << "mode = 13" << endl;
             }
 
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             updateInitialStateJoy();
             getRobotState();
             floatToSupportFootstep();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
-                std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
                 getZmpTrajectory();
-                std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
                 getComTrajectory();
-                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
                 getFootTrajectory();
-                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getPelvTrajectory();
-                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
                 supportToFloatPattern();
-                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
-                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
+                // std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
 
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
@@ -850,16 +861,16 @@ void AvatarController::computeSlow()
 
                 q_prev_MJ_ = rd_.q_;
 
-                if (int(current_time_ * 10000) % 10000 == 0)
-                {
-                    cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-                    cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
-                    cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
-                    cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
-                    cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
-                    cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
-                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
-                }
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                //     cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
+                //     cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
+                //     cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
+                //     cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
+                //     cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
+                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
+                // }
             }
         }
         else
@@ -1106,24 +1117,24 @@ void AvatarController::computeFast()
         // std::chrono::steady_clock::time_point tt5 = std::chrono::steady_clock::now();
         //motion planing and control//
 
-        if( current_q_(24) > 8*DEG2RAD)
+        if( current_q_(24) > 5*DEG2RAD)
         {
             if( abs(current_q_(23)) > 22*DEG2RAD)
             {
-                joint_limit_h_(24) = 13*DEG2RAD;
+                joint_limit_h_(24) = 7*DEG2RAD;
                 joint_limit_h_(23) = 80*DEG2RAD;
                 joint_limit_l_(23) = -80*DEG2RAD;
             }
             else
             {
                 joint_limit_h_(24) = 30*DEG2RAD;
-                joint_limit_h_(23) = 17*DEG2RAD;
-                joint_limit_l_(23) = -17*DEG2RAD;
+                joint_limit_h_(23) = 20*DEG2RAD;
+                joint_limit_l_(23) = -20*DEG2RAD;
             }
         }
         else
         {
-            joint_limit_h_(24) = 13*DEG2RAD;
+            joint_limit_h_(24) = 7*DEG2RAD;
             joint_limit_h_(23) = 80*DEG2RAD;
             joint_limit_l_(23) = -80*DEG2RAD;
         }
@@ -1310,6 +1321,8 @@ void AvatarController::initWalkingParameter()
     // knee_target_angle_ = 18*DEG2RAD;
     knee_target_angle_ = 0.6; //4.5degree
     com_target_height_ = 0.71;
+
+    // chair_mode_ = true;
 
     swingfoot_highest_time_ = (1 - dsp_ratio_) / 2 + dsp_ratio_;
     ankle2footcenter_offset_ = 0.02;
