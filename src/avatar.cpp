@@ -453,8 +453,8 @@ void AvatarController::setGains()
     joint_limit_h_(12) = 30 * DEG2RAD;
     joint_limit_l_(13) = -15 * DEG2RAD;
     joint_limit_h_(13) = 30 * DEG2RAD;
-    joint_limit_l_(14) = -30 * DEG2RAD;
-    joint_limit_h_(14) = 30 * DEG2RAD;
+    joint_limit_l_(14) = -20* DEG2RAD;
+    joint_limit_h_(14) = 20 * DEG2RAD;
     //LEFT ARM
     joint_limit_l_(15) = -30 * DEG2RAD;
     joint_limit_h_(15) = 30 * DEG2RAD;
@@ -747,7 +747,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             cout << "mode = 12 : Pedal Init" << endl;
-
+            cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
             atb_grav_update_ = false;
