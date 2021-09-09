@@ -453,8 +453,8 @@ void AvatarController::setGains()
     joint_limit_h_(12) = 30 * DEG2RAD;
     joint_limit_l_(13) = -15 * DEG2RAD;
     joint_limit_h_(13) = 30 * DEG2RAD;
-    joint_limit_l_(14) = -30 * DEG2RAD;
-    joint_limit_h_(14) = 30 * DEG2RAD;
+    joint_limit_l_(14) = -15 * DEG2RAD;
+    joint_limit_h_(14) = 15 * DEG2RAD;
     //LEFT ARM
     joint_limit_l_(15) = -30 * DEG2RAD;
     joint_limit_h_(15) = 30 * DEG2RAD;
@@ -1333,7 +1333,7 @@ void AvatarController::initWalkingParameter()
     walking_mode_on_ = true;
     program_ready_duration_ = 0;
     walking_control_transition_duration_ = 0.1;
-    upper_body_mode_ = 1;
+    upper_body_mode_ = 3;
     stop_vel_threshold_ = 0.20;
     walking_duration_cmd_ = 1.3;
     dsp_duration_ = 0.6;
@@ -2643,7 +2643,7 @@ void AvatarController::motionGenerator()
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
     }
-    else if (upper_body_mode_ == 3)
+    else if (upper_body_mode_ == 3) // Freezing
     {
         if (upperbody_mode_recieved_ == true)
         {
@@ -4231,11 +4231,11 @@ void AvatarController::motionRetargeting_QPIK_upperbody()
     // }
 }
 
-void AvatarController::motionRetargeting_QPIK_wholebody()
-{
-    const int variable_size = 33;
-    const int constraint_size1 = 33;
-}
+// void AvatarController::motionRetargeting_QPIK_wholebody()
+// {
+//     const int variable_size = 33;
+//     const int constraint_size1 = 33;
+// }
 
 void AvatarController::motionRetargeting_HQPIK()
 {
@@ -4473,11 +4473,11 @@ void AvatarController::motionRetargeting_HQPIK()
             q_dot_hqpik_[i].setZero();
 
             // last_solved_hierarchy_num_ = max(i-1, 0);
-            if (i < 4)
-            {
+            // if (i < 4)
+            // {
                 if (int(current_time_ * 10000) % 1000 == 0)
                     std::cout << "Error hierarchy: " << i << std::endl;
-            }
+            // }
             // cout<<"Error qpres_: \n"<< qpres_ << endl;
             break;
         }
@@ -4806,6 +4806,14 @@ void AvatarController::poseCalibration()
         {
             tracker_status_changed_time_ = current_time_;
             cout << "tracker is attatched" << endl;
+            
+            std_msgs::String msg;
+            std::stringstream upperbody_mode_ss;
+            upperbody_mode_ss << "tracker is attatched";
+            msg.data = upperbody_mode_ss.str();
+            calibration_state_pub.publish(msg);
+            calibration_state_gui_log_pub.publish(msg);
+
         }
 
         hmd_head_pose_ = hmd_head_pose_raw_;
@@ -4822,7 +4830,7 @@ void AvatarController::poseCalibration()
         {
             // double w = DyrosMath::cubic(current_time_, tracker_status_changed_time_, tracker_status_changed_time_+5, 0, 1, 0, 0);
             double w = (current_time_ - tracker_status_changed_time_) / 5;
-            // w = DyrosMath::minmax_cut(w, 0.0, 1.0);
+            w = DyrosMath::minmax_cut(w, 0.0, 1.0);
 
             hmd_head_pose_.translation() = w * hmd_head_pose_raw_.translation() + (1 - w) * hmd_head_pose_raw_last_.translation();
             hmd_lupperarm_pose_.translation() = w * hmd_lupperarm_pose_raw_.translation() + (1 - w) * hmd_lupperarm_pose_raw_last_.translation();
@@ -4870,6 +4878,13 @@ void AvatarController::poseCalibration()
         {
             tracker_status_changed_time_ = current_time_;
             cout << "tracker is detatched" << endl;
+
+            std_msgs::String msg;
+            std::stringstream upperbody_mode_ss;
+            upperbody_mode_ss << "tracker is detatched";
+            msg.data = upperbody_mode_ss.str();
+            calibration_state_pub.publish(msg);
+            calibration_state_gui_log_pub.publish(msg);
 
             hmd_head_pose_raw_last_ = hmd_head_pose_raw_;
             hmd_lupperarm_pose_raw_last_ = hmd_lupperarm_pose_raw_;
