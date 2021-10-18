@@ -12,7 +12,7 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-AvatarController::AvatarController(RobotData &rd) : rd_(rd) 
+AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
     nh_avatar_.setCallbackQueue(&queue_avatar_);
     // sub_1 = nh_avatar_.subscribe("/tocabi/avatar_test", 1, &AvatarController::avatar_callback, this);
@@ -55,7 +55,6 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
     ros::param::get("/tocabi_controller/urdf_path", desc_package_path);
-    
 
     // if (urdfmode)
     // {
@@ -68,9 +67,9 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_d_, true, false);
 
-    for(int i = 0; i<FILE_CNT; i++)
+    for (int i = 0; i < FILE_CNT; i++)
     {
-        file[i].open(FILE_NAMES[i]); 
+        file[i].open(FILE_NAMES[i]);
     }
 
     setGains();
@@ -453,7 +452,7 @@ void AvatarController::setGains()
     joint_limit_h_(12) = 30 * DEG2RAD;
     joint_limit_l_(13) = -15 * DEG2RAD;
     joint_limit_h_(13) = 30 * DEG2RAD;
-    joint_limit_l_(14) = -20* DEG2RAD;
+    joint_limit_l_(14) = -20 * DEG2RAD;
     joint_limit_h_(14) = 20 * DEG2RAD;
     //LEFT ARM
     joint_limit_l_(15) = -30 * DEG2RAD;
@@ -517,22 +516,21 @@ void AvatarController::setGains()
     joint_vel_limit_h_(25) = M_PI / 3;
 
     // Head joint vel limit
-    joint_vel_limit_l_(23) = -2*M_PI;
-    joint_vel_limit_h_(23) = 2*M_PI;
-    joint_vel_limit_l_(24) = -2*M_PI;
-    joint_vel_limit_h_(24) = 2*M_PI;
+    joint_vel_limit_l_(23) = -2 * M_PI;
+    joint_vel_limit_h_(23) = 2 * M_PI;
+    joint_vel_limit_l_(24) = -2 * M_PI;
+    joint_vel_limit_h_(24) = 2 * M_PI;
 
     // forearm joint vel limit
-    joint_vel_limit_l_(20) = -2*M_PI;
-    joint_vel_limit_h_(20) = 2*M_PI;
-    joint_vel_limit_l_(30) = -2*M_PI;
-    joint_vel_limit_h_(30) = 2*M_PI;
-
+    joint_vel_limit_l_(20) = -2 * M_PI;
+    joint_vel_limit_h_(20) = 2 * M_PI;
+    joint_vel_limit_l_(30) = -2 * M_PI;
+    joint_vel_limit_h_(30) = 2 * M_PI;
 }
 
 Eigen::VectorQd AvatarController::getControl()
 {
-    return rd_.torque_desired ;
+    return rd_.torque_desired;
 }
 
 void AvatarController::computeSlow()
@@ -735,14 +733,14 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-            init_leg_time_ = rd_.control_time_;        
+            init_leg_time_ = rd_.control_time_;
 
             initial_flag = 1;
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
             walking_end_flag = 0;
             joy_input_enable_ = true;
-            
+
             chair_mode_ = true; ///avatar semifinals
 
             parameterSetting();
@@ -764,9 +762,9 @@ void AvatarController::computeSlow()
         {
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i);
         }
-        
+
         // for chair mode
-        if(chair_mode_)
+        if (chair_mode_)
         {
             for (int i = 0; i < 12; i++)
             {
@@ -774,7 +772,6 @@ void AvatarController::computeSlow()
                 rd_.torque_desired(i) = 0;
             }
         }
-        
     }
     else if (rd_.tc_.mode == 13)
     {
@@ -792,13 +789,14 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
-                pelv_trajectory_support_init_ =pelv_trajectory_support_;
+                pelv_trajectory_support_init_ = pelv_trajectory_support_;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
                 }
-                
-                cout << "\n\n\n\n"<< endl;
+
+                cout << "\n\n\n\n"
+                     << endl;
                 cout << "___________________________ " << endl;
                 cout << "\n           Start " << endl;
                 cout << "parameter setting OK" << endl;
@@ -842,7 +840,7 @@ void AvatarController::computeSlow()
                     atb_grav_update_ = false;
                 }
 
-                if(chair_mode_)
+                if (chair_mode_)
                 {
                     ref_q_ = Initial_ref_q_;
                 }
@@ -855,11 +853,10 @@ void AvatarController::computeSlow()
                     }
                 }
 
-                if(!chair_mode_)
+                if (!chair_mode_)
                 {
                     CP_compen_MJ();
                 }
-                
 
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
@@ -891,7 +888,7 @@ void AvatarController::computeSlow()
             // double init_time_;
             if (walking_end_flag == 0)
             {
-                cout<<"com_desired_1: "<<com_desired_<<endl;
+                cout << "com_desired_1: " << com_desired_ << endl;
                 parameterSetting(); //Don't delete this!!
                 updateInitialStateJoy();
                 //updateInitialState();
@@ -901,20 +898,20 @@ void AvatarController::computeSlow()
                 getComTrajectory();
                 getFootTrajectory();
                 cout << "walking finish" << endl;
-                cout<<"com_desired_2: "<<com_desired_<<endl;
+                cout << "com_desired_2: " << com_desired_ << endl;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
                     Initial_current_q_(i) = rd_.q_(i);
                 }
-                pelv_trajectory_support_init_ =pelv_trajectory_support_;
+                pelv_trajectory_support_init_ = pelv_trajectory_support_;
                 com_desired_(0) = 0;
                 initial_flag = 0;
-                init_leg_time_ = rd_.control_time_;        
+                init_leg_time_ = rd_.control_time_;
                 walking_end_flag = 1;
-                cout<<"com_desired_3: "<<com_desired_<<endl;
+                cout << "com_desired_3: " << com_desired_ << endl;
             }
-            
+
             getRobotState();
             getPelvTrajectory();
             supportToFloatPattern();
@@ -926,7 +923,7 @@ void AvatarController::computeSlow()
                 //ref_q_(i) = q_des(i);
                 ref_q_(i) = DOB_IK_output_(i);
             }
-            
+
             hip_compensator();
 
             if (atb_grav_update_ == false)
@@ -936,7 +933,6 @@ void AvatarController::computeSlow()
                 atb_grav_update_ = false;
             }
 
-
             if (rd_.control_time_ <= init_leg_time_ + 2.0)
             {
                 for (int i = 0; i < 12; i++)
@@ -945,7 +941,7 @@ void AvatarController::computeSlow()
                 }
             }
 
-            if(chair_mode_)
+            if (chair_mode_)
             {
                 for (int i = 0; i < 12; i++)
                 {
@@ -977,7 +973,6 @@ void AvatarController::computeSlow()
     }
     else if (rd_.tc_.mode == 14)
     {
-
     }
 }
 
@@ -985,14 +980,16 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
-        if(initial_flag == 1)
+        if (initial_flag == 1)
         {
             WBC::SetContact(rd_, 1, 1);
-            
+
             if (atb_grav_update_ == false)
             {
+                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                
                 atb_grav_update_ = true;
-                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
         }
@@ -1006,19 +1003,14 @@ void AvatarController::computeFast()
         {
             if (current_step_num_ < total_step_num_)
             {
-                if (atb_grav_update_ == false)
-                {
-                    atb_grav_update_ = true;
-                    GravityCalculate_MJ();
-                    atb_grav_update_ = false;
-                }
+                GravityCalculate_MJ();
             }
         }
         else
         {
             WBC::SetContact(rd_, 1, 1);
             int support_foot;
-            if(foot_step_(current_step_num_, 6) == 1)
+            if (foot_step_(current_step_num_, 6) == 1)
             {
                 support_foot = 1;
             }
@@ -1029,8 +1021,10 @@ void AvatarController::computeFast()
 
             if (atb_grav_update_ == false)
             {
+                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
+
                 atb_grav_update_ = true;
-                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
+                Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
         }
@@ -1080,8 +1074,10 @@ void AvatarController::computeFast()
             WBC::SetContact(rd_, 1, 1);
             if (atb_grav_update_ == false)
             {
+                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                
                 atb_grav_update_ = true;
-                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+                Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
         }
@@ -1089,24 +1085,19 @@ void AvatarController::computeFast()
     else if (rd_.tc_.mode == 13)
     {
         // std::chrono::steady_clock::time_point tt1 = std::chrono::steady_clock::now();
-        
+
         if (walking_enable_ == true)
         {
             if (current_step_num_ < total_step_num_)
             {
-                if (atb_grav_update_ == false)
-                {
-                    atb_grav_update_ = true;
-                    GravityCalculate_MJ(); // 90~160us
-                    atb_grav_update_ = false;
-                }
+                GravityCalculate_MJ(); // 90~160us
             }
         }
         else
         {
             WBC::SetContact(rd_, 1, 1);
             int support_foot;
-            if(foot_step_(current_step_num_, 6) == 1)
+            if (foot_step_(current_step_num_, 6) == 1)
             {
                 support_foot = 1;
             }
@@ -1117,8 +1108,10 @@ void AvatarController::computeFast()
 
             if (atb_grav_update_ == false)
             {
+                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
+                
                 atb_grav_update_ = true;
-                Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
+                Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
             // MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
@@ -1133,34 +1126,34 @@ void AvatarController::computeFast()
         }
 
         //data process//
-        getRobotData();// 47~64us
+        getRobotData(); // 47~64us
         // std::chrono::steady_clock::time_point tt3 = std::chrono::steady_clock::now();
         walkingStateManager(); //avatar // <<1us
         // std::chrono::steady_clock::time_point tt4 = std::chrono::steady_clock::now();
-        getProcessedRobotData();// <<1us
+        getProcessedRobotData(); // <<1us
         // std::chrono::steady_clock::time_point tt5 = std::chrono::steady_clock::now();
         //motion planing and control//
 
-        if( current_q_(24) > 5*DEG2RAD)
+        if (current_q_(24) > 5 * DEG2RAD)
         {
-            if( abs(current_q_(23)) > 18*DEG2RAD)
+            if (abs(current_q_(23)) > 18 * DEG2RAD)
             {
-                joint_limit_h_(24) = 10*DEG2RAD;
-                joint_limit_h_(23) = 80*DEG2RAD;
-                joint_limit_l_(23) = -80*DEG2RAD;
+                joint_limit_h_(24) = 10 * DEG2RAD;
+                joint_limit_h_(23) = 80 * DEG2RAD;
+                joint_limit_l_(23) = -80 * DEG2RAD;
             }
             else
             {
-                joint_limit_h_(24) = 30*DEG2RAD;
-                joint_limit_h_(23) = 13*DEG2RAD;
-                joint_limit_l_(23) = -13*DEG2RAD;
+                joint_limit_h_(24) = 30 * DEG2RAD;
+                joint_limit_h_(23) = 13 * DEG2RAD;
+                joint_limit_l_(23) = -13 * DEG2RAD;
             }
         }
         else
         {
-            joint_limit_h_(24) = 10*DEG2RAD;
-            joint_limit_h_(23) = 80*DEG2RAD;
-            joint_limit_l_(23) = -80*DEG2RAD;
+            joint_limit_h_(24) = 10 * DEG2RAD;
+            joint_limit_h_(23) = 80 * DEG2RAD;
+            joint_limit_l_(23) = -80 * DEG2RAD;
         }
 
         // if( abs(current_q_(23)) < 20*DEG2RAD)
@@ -1174,7 +1167,7 @@ void AvatarController::computeFast()
         //     joint_limit_l_(24) = -40*DEG2RAD;
         // }
 
-        motionGenerator();// 140~240us(HQPIK)
+        motionGenerator(); // 140~240us(HQPIK)
         // std::chrono::steady_clock::time_point tt6 = std::chrono::steady_clock::now();
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -1199,7 +1192,7 @@ void AvatarController::computeFast()
         // MJ_joint2 << current_time_ << "," << current_q_(15) << "," << current_q_(16) << "," << current_q_(17) << "," << current_q_(18) << "," << current_q_(19) << "," << current_q_(20) << "," << current_q_(21) << "," << current_q_(22) <<endl;
         // MJ_graph << current_time_ << "," << hmd_lhand_pose_.translation()(0) << "," << hmd_lhand_pose_.translation()(1) << "," << hmd_lhand_pose_.translation()(2) << endl;
         savePreData();
-        
+
         // if (int(current_time_ * 10000) % 10000 == 0)
         // {
         //     cout<<"gravity compensation torque time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt2 - tt1).count() <<endl;
@@ -1440,8 +1433,8 @@ void AvatarController::initWalkingParameter()
 
     lhand_control_point_offset_.setZero();
     rhand_control_point_offset_.setZero();
-    lhand_control_point_offset_(2) = - 0.13;
-    rhand_control_point_offset_(2) = - 0.13;
+    lhand_control_point_offset_(2) = -0.13;
+    rhand_control_point_offset_(2) = -0.13;
 
     robot_shoulder_width_ = 0.6;
 
@@ -1503,10 +1496,10 @@ void AvatarController::initWalkingParameter()
     hmd_tracker_status_ = false;
     hmd_tracker_status_raw_ = false;
     hmd_tracker_status_pre_ = false;
-    
+
     // hmd_tracker_status_ = true;
     // hmd_tracker_status_raw_ = true;
-    // hmd_tracker_status_pre_ = true;   
+    // hmd_tracker_status_pre_ = true;
 
     hmd_head_abrupt_motion_count_ = 0;
     hmd_lupperarm_abrupt_motion_count_ = 0;
@@ -1523,11 +1516,10 @@ void AvatarController::getRobotData()
 {
     current_time_ = rd_.control_time_;
 
-    if( current_time_ != pre_time_)
+    if (current_time_ != pre_time_)
     {
         dt_ = current_time_ - pre_time_;
     }
-        
 
     current_q_ = rd_.q_;
     current_q_dot_ = rd_.q_dot_;
@@ -1548,7 +1540,7 @@ void AvatarController::getRobotData()
     pelv_transform_current_from_global_.linear() = pelv_rot_current_yaw_aline_;
 
     pelv_angvel_current_ = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Pelvis].w;
-    
+
     com_pos_current_ = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[COM_id].xpos - pelv_pos_current_);
     // com_vel_current_ = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[COM_id].v;
     com_vel_current_ = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[COM_id].v;
@@ -2164,8 +2156,8 @@ void AvatarController::getProcessedRobotData()
     /////////////////////////////////////////////////////////////////////////////////////
 
     com_vel_current_lpf_from_support_ = DyrosMath::secondOrderLowPassFilter<3>(
-    com_vel_current_from_support_, com_vel_pre_from_support_, com_vel_ppre_from_support_, com_vel_pre_lpf_from_support_, com_vel_ppre_lpf_from_support_,
-    com_vel_cutoff_freq_, 1/sqrt(2), 1/dt_);
+        com_vel_current_from_support_, com_vel_pre_from_support_, com_vel_ppre_from_support_, com_vel_pre_lpf_from_support_, com_vel_ppre_lpf_from_support_,
+        com_vel_cutoff_freq_, 1 / sqrt(2), 1 / dt_);
     // com_vel_current_lpf_from_support_ = DyrosMath::lpf<3>(com_vel_current_from_support_, com_vel_pre_lpf_from_support_, 1 / dt_, com_vel_cutoff_freq_);
 
     zc_ = com_pos_current_from_support_(2);
@@ -2933,7 +2925,7 @@ void AvatarController::motionGenerator()
             error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
             error_w_head(0) = 0;
             error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
-            
+
             MatrixXd J_temp, J_head, I3, J_inv_head;
 
             Vector3d u_dot_head = 200 * error_w_head;
@@ -2957,7 +2949,7 @@ void AvatarController::motionGenerator()
             motion_q_.segment(23, 2) = motion_q_pre_.segment(23, 2) + motion_q_dot_.segment(23, 2) * dt_;
             motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), joint_limit_l_(23), joint_limit_h_(23));
             motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), joint_limit_l_(24), joint_limit_h_(24));
-            
+
             // cout<<"master_head_pose_: \n"<<master_head_pose_.linear()<<endl;
             // motion_q_dot_.setZero();
         }
@@ -2977,7 +2969,7 @@ void AvatarController::motionGenerator()
             if (upperbody_mode_recieved_ == true)
             {
                 cout << "Upperbody Mode is Changed to #6 (HQPIK)" << endl;
-                
+
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
@@ -3013,7 +3005,7 @@ void AvatarController::motionGenerator()
             if (upperbody_mode_recieved_ == true)
             {
                 cout << "Upperbody Mode is Changed to #7 (HQPIK ver2)" << endl;
-                
+
                 first_loop_hqpik2_ = true;
                 first_loop_qp_retargeting_ = true;
 
@@ -4271,14 +4263,14 @@ void AvatarController::motionRetargeting_HQPIK()
         }
 
         // upper arm orientation control gain
-        w1_hqpik_[2] = 250;  //upperbody tracking (2500)
+        w1_hqpik_[2] = 250;   //upperbody tracking (2500)
         w2_hqpik_[2] = 50;    //kinematic energy (50)
         w3_hqpik_[2] = 0.002; //acceleration ()
 
         // shoulder orientation control gain
-        w1_hqpik_[3] = 250;  //upperbody tracking (2500)
+        w1_hqpik_[3] = 250;   //upperbody tracking (2500)
         w2_hqpik_[3] = 50;    //kinematic energy (50)
-        w3_hqpik_[3] = 0.002; //acceleration ()  
+        w3_hqpik_[3] = 0.002; //acceleration ()
 
         last_solved_hierarchy_num_ = -1;
 
@@ -4371,15 +4363,14 @@ void AvatarController::motionRetargeting_HQPIK()
     u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
 
-
     for (int i = 0; i < hierarchy_num_hqpik_; i++)
     {
-        if (i>last_solved_hierarchy_num_)
+        if (i > last_solved_hierarchy_num_)
         {
             QP_qdot_hqpik_[i].InitializeProblemSize(variable_size_hqpik_, constraint_size2_hqpik_[i]);
         }
     }
-    
+
     last_solved_hierarchy_num_ = -1;
 
     for (int i = 0; i < hierarchy_num_hqpik_; i++)
@@ -4390,22 +4381,21 @@ void AvatarController::motionRetargeting_HQPIK()
 
         H1 = J_hqpik_[i].transpose() * J_hqpik_[i];
         // H2 = Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_);
-        H2 = A_mat_.block(18, 18, variable_size_hqpik_, variable_size_hqpik_) + Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_)*(2e-2);
-        H2(3, 3) += 10;         //left arm 1st joint
-        H2(13, 13) += 10;       //right arm 1st joint
+        H2 = A_mat_.block(18, 18, variable_size_hqpik_, variable_size_hqpik_) + Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_) * (2e-2);
+        H2(3, 3) += 10;   //left arm 1st joint
+        H2(13, 13) += 10; //right arm 1st joint
         H3 = Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_) * (1 / dt_) * (1 / dt_);
 
         g1 = -J_hqpik_[i].transpose() * u_dot_hqpik_[i];
         g2.setZero(variable_size_hqpik_);
         g3 = -motion_q_dot_pre_.segment(12, variable_size_hqpik_) * (1 / dt_) * (1 / dt_);
 
-        if( i>= 2)
+        if (i >= 2)
         {
-
         }
 
-        H_hqpik_[i] = w1_hqpik_[i]*H1 + w2_hqpik_[i]*H2 + w3_hqpik_[i]*H3;
-        g_hqpik_[i] = w1_hqpik_[i]*g1 + w2_hqpik_[i]*g2 + w3_hqpik_[i]*g3;
+        H_hqpik_[i] = w1_hqpik_[i] * H1 + w2_hqpik_[i] * H2 + w3_hqpik_[i] * H3;
+        g_hqpik_[i] = w1_hqpik_[i] * g1 + w2_hqpik_[i] * g2 + w3_hqpik_[i] * g3;
 
         double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
 
@@ -4423,8 +4413,8 @@ void AvatarController::motionRetargeting_HQPIK()
             A_hqpik_[i].block(higher_task_equality_num, 0, control_size_hqpik_[h], variable_size_hqpik_) = J_hqpik_[h];
             // ubA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[h];
             // lbA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[h];
-            ubA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[i-1];
-            lbA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[i-1];
+            ubA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[i - 1];
+            lbA_hqpik_[i].segment(higher_task_equality_num, control_size_hqpik_[h]) = J_hqpik_[h] * q_dot_hqpik_[i - 1];
             higher_task_equality_num += control_size_hqpik_[h];
         }
 
@@ -4540,9 +4530,9 @@ void AvatarController::motionRetargeting_HQPIK2()
 {
     // const int hierarchy_num_hqpik2_ = 5;
     // const int variable_size_hqpik2_ = 21;
-	// const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	// const int constraint_size2_hqpik2_[5] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	// const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: upper body ori, 3: hand, 4: upper arm ori(2) 4: shoulder ori(2)
+    // const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
+    // const int constraint_size2_hqpik2_[5] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+    // const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: upper body ori, 3: hand, 4: upper arm ori(2) 4: shoulder ori(2)
 
     if (first_loop_hqpik2_)
     {
@@ -4570,14 +4560,14 @@ void AvatarController::motionRetargeting_HQPIK2()
         }
 
         // upper arm orientation control gain
-        w1_hqpik2_[3] = 250;  //upperbody tracking (2500)
+        w1_hqpik2_[3] = 250;   //upperbody tracking (2500)
         w2_hqpik2_[3] = 50;    //kinematic energy (50)
         w3_hqpik2_[3] = 0.002; //acceleration ()
 
         // shoulder orientation control gain
-        w1_hqpik2_[4] = 250;  //upperbody tracking (2500)
+        w1_hqpik2_[4] = 250;   //upperbody tracking (2500)
         w2_hqpik2_[4] = 50;    //kinematic energy (50)
-        w3_hqpik2_[4] = 0.002; //acceleration ()  
+        w3_hqpik2_[4] = 0.002; //acceleration ()
 
         last_solved_hierarchy_num_ = -1;
 
@@ -4589,11 +4579,11 @@ void AvatarController::motionRetargeting_HQPIK2()
     // q_desired_pre.segment(6, MODEL_DOF) = pre_desired_q_;
     Vector3d zero3;
     zero3.setZero();
-    
+
     ////1st Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
-    J_hqpik2_[0].block(0, 0, 2, variable_size_hqpik2_) = J_temp_.block(3, 18, 2, variable_size_hqpik2_); //x, y position
+    J_hqpik2_[0].block(0, 0, 2, variable_size_hqpik2_) = J_temp_.block(3, 18, 2, variable_size_hqpik2_);                                                                                                 //x, y position
     J_hqpik2_[0].block(2, 0, 2, variable_size_hqpik2_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); //y, z orientation
     //Head error
     Vector3d error_v_head = master_head_pose_.translation() - head_transform_pre_desired_from_.translation();
@@ -4646,7 +4636,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     error_w_rupperarm(0) = 0;
     u_dot_hqpik2_[3].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
     u_dot_hqpik2_[3].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
-    
+
     ////5th Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
@@ -4664,15 +4654,14 @@ void AvatarController::motionRetargeting_HQPIK2()
     u_dot_hqpik2_[4].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik2_[4].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
 
-
     for (int i = 0; i < hierarchy_num_hqpik2_; i++)
     {
-        if (i>last_solved_hierarchy_num_)
+        if (i > last_solved_hierarchy_num_)
         {
             QP_qdot_hqpik2_[i].InitializeProblemSize(variable_size_hqpik2_, constraint_size2_hqpik2_[i]);
         }
     }
-    
+
     last_solved_hierarchy_num_ = -1;
     for (int i = 0; i < hierarchy_num_hqpik2_; i++)
     {
@@ -4682,21 +4671,20 @@ void AvatarController::motionRetargeting_HQPIK2()
 
         H1 = J_hqpik2_[i].transpose() * J_hqpik2_[i];
         // H2 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_);
-        H2 = A_mat_.block(18, 18, variable_size_hqpik2_, variable_size_hqpik2_) + Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_)*(2e-2);
-        H2(3, 3) += 10;         //left arm 1st joint
-        H2(13, 13) += 10;       //right arm 1st joint
+        H2 = A_mat_.block(18, 18, variable_size_hqpik2_, variable_size_hqpik2_) + Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (2e-2);
+        H2(3, 3) += 10;   //left arm 1st joint
+        H2(13, 13) += 10; //right arm 1st joint
         H3 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (1 / dt_) * (1 / dt_);
 
         g1 = -J_hqpik2_[i].transpose() * u_dot_hqpik2_[i];
         g2.setZero(variable_size_hqpik2_);
         g3 = -motion_q_dot_pre_.segment(12, variable_size_hqpik2_) * (1 / dt_) * (1 / dt_);
 
-        if( i>= 2)
+        if (i >= 2)
         {
-
         }
-        H_hqpik2_[i] = w1_hqpik2_[i]*H1 + w2_hqpik2_[i]*H2 + w3_hqpik2_[i]*H3;
-        g_hqpik2_[i] = w1_hqpik2_[i]*g1 + w2_hqpik2_[i]*g2 + w3_hqpik2_[i]*g3;
+        H_hqpik2_[i] = w1_hqpik2_[i] * H1 + w2_hqpik2_[i] * H2 + w3_hqpik2_[i] * H3;
+        g_hqpik2_[i] = w1_hqpik2_[i] * g1 + w2_hqpik2_[i] * g2 + w3_hqpik2_[i] * g3;
 
         double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
 
@@ -4714,8 +4702,8 @@ void AvatarController::motionRetargeting_HQPIK2()
             A_hqpik2_[i].block(higher_task_equality_num, 0, control_size_hqpik2_[h], variable_size_hqpik2_) = J_hqpik2_[h];
             // ubA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[h];
             // lbA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[h];
-            ubA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i-1];
-            lbA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i-1];
+            ubA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i - 1];
+            lbA_hqpik2_[i].segment(higher_task_equality_num, control_size_hqpik2_[h]) = J_hqpik2_[h] * q_dot_hqpik2_[i - 1];
             higher_task_equality_num += control_size_hqpik2_[h];
         }
         // hand velocity constraints
@@ -4763,8 +4751,8 @@ void AvatarController::motionRetargeting_HQPIK2()
             // last_solved_hierarchy_num_ = max(i-1, 0);
             // if (i < 5)
             // {
-                if (int(current_time_ * 10000) % 1000 == 0)
-                    std::cout << "Error hierarchy: " << i << std::endl;
+            if (int(current_time_ * 10000) % 1000 == 0)
+                std::cout << "Error hierarchy: " << i << std::endl;
             // }
             // cout<<"Error qpres_: \n"<< qpres_ << endl;
             break;
@@ -4942,7 +4930,6 @@ void AvatarController::poseCalibration()
     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
 
-
     //coordinate conversion
     hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
     hmd_lupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lupperarm_pose_;
@@ -4954,7 +4941,7 @@ void AvatarController::poseCalibration()
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.08, 0, -0.04;  //senseglove
+    tracker_offset << -0.08, 0, -0.04; //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -5345,7 +5332,7 @@ Eigen::Isometry3d AvatarController::velocityFilter(Eigen::Isometry3d data, Eigen
     if ((check_orienation))
     {
         Matrix3d rot;
-        rot = AngleAxisd(1.5*M_PI / 130, angle_diff.axis());
+        rot = AngleAxisd(1.5 * M_PI / 130, angle_diff.axis());
         result.linear() = rot * pre_data.linear();
         check_velocity = true;
     }
@@ -5530,14 +5517,14 @@ void AvatarController::rawMasterPoseProcessing()
     // master_head_pose_.translation() = DyrosMath::lpf<3>(master_head_pose_raw_.translation(), master_head_pose_pre_.translation(), 1 / dt_, fc_filter);
     // master_upperbody_pose_.translation() = DyrosMath::lpf<3>(master_upperbody_pose_raw_.translation(), master_upperbody_pose_pre_.translation(), 1 / dt_, fc_filter);
 
-    master_lhand_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lhand_pose_raw_.translation(), master_lhand_pose_raw_pre_.translation(), master_lhand_pose_raw_ppre_.translation(), master_lhand_pose_pre_.translation(), master_lhand_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_rhand_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_rhand_pose_raw_.translation(), master_rhand_pose_raw_pre_.translation(), master_rhand_pose_raw_ppre_.translation(), master_rhand_pose_pre_.translation(), master_rhand_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_lelbow_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lelbow_pose_raw_.translation(), master_lelbow_pose_raw_pre_.translation(), master_lelbow_pose_raw_ppre_.translation(), master_lelbow_pose_pre_.translation(), master_lelbow_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_relbow_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_relbow_pose_raw_.translation(), master_relbow_pose_raw_pre_.translation(), master_relbow_pose_raw_ppre_.translation(), master_relbow_pose_pre_.translation(), master_relbow_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_lshoulder_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lshoulder_pose_raw_.translation(), master_lshoulder_pose_raw_pre_.translation(), master_lshoulder_pose_raw_ppre_.translation(), master_lshoulder_pose_pre_.translation(), master_lshoulder_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_rshoulder_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_rshoulder_pose_raw_.translation(), master_rshoulder_pose_raw_pre_.translation(), master_rshoulder_pose_raw_ppre_.translation(), master_rshoulder_pose_pre_.translation(), master_rshoulder_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_head_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_head_pose_raw_.translation(), master_head_pose_raw_pre_.translation(), master_head_pose_raw_ppre_.translation(), master_head_pose_pre_.translation(), master_head_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
-    master_upperbody_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_upperbody_pose_raw_.translation(), master_upperbody_pose_raw_pre_.translation(), master_upperbody_pose_raw_ppre_.translation(), master_upperbody_pose_pre_.translation(), master_upperbody_pose_ppre_.translation(), fc_filter, 1, 1/dt_);
+    master_lhand_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lhand_pose_raw_.translation(), master_lhand_pose_raw_pre_.translation(), master_lhand_pose_raw_ppre_.translation(), master_lhand_pose_pre_.translation(), master_lhand_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_rhand_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_rhand_pose_raw_.translation(), master_rhand_pose_raw_pre_.translation(), master_rhand_pose_raw_ppre_.translation(), master_rhand_pose_pre_.translation(), master_rhand_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_lelbow_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lelbow_pose_raw_.translation(), master_lelbow_pose_raw_pre_.translation(), master_lelbow_pose_raw_ppre_.translation(), master_lelbow_pose_pre_.translation(), master_lelbow_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_relbow_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_relbow_pose_raw_.translation(), master_relbow_pose_raw_pre_.translation(), master_relbow_pose_raw_ppre_.translation(), master_relbow_pose_pre_.translation(), master_relbow_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_lshoulder_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lshoulder_pose_raw_.translation(), master_lshoulder_pose_raw_pre_.translation(), master_lshoulder_pose_raw_ppre_.translation(), master_lshoulder_pose_pre_.translation(), master_lshoulder_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_rshoulder_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_rshoulder_pose_raw_.translation(), master_rshoulder_pose_raw_pre_.translation(), master_rshoulder_pose_raw_ppre_.translation(), master_rshoulder_pose_pre_.translation(), master_rshoulder_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_head_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_head_pose_raw_.translation(), master_head_pose_raw_pre_.translation(), master_head_pose_raw_ppre_.translation(), master_head_pose_pre_.translation(), master_head_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_upperbody_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_upperbody_pose_raw_.translation(), master_upperbody_pose_raw_pre_.translation(), master_upperbody_pose_raw_ppre_.translation(), master_upperbody_pose_pre_.translation(), master_upperbody_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
 
     master_relative_lhand_pos_ = DyrosMath::lpf<3>(master_relative_lhand_pos_raw_, master_relative_lhand_pos_pre_, 1 / dt_, fc_filter);
     master_relative_rhand_pos_ = DyrosMath::lpf<3>(master_relative_rhand_pos_raw_, master_relative_rhand_pos_pre_, 1 / dt_, fc_filter);
@@ -5723,7 +5710,7 @@ void AvatarController::hmdRawDataProcessing()
     //     lhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_lhand_;
     //     lhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_lhand_;
     //     lhand_robot_ref_stack_(1, 3) = -robot_shoulder_width_;
-        
+
     //     rhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
     //     rhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
     //     rhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
@@ -5814,18 +5801,17 @@ void AvatarController::hmdRawDataProcessing()
 
     // hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
 
-
     // if (int(current_time_ * 10000) % 1000 == 0)
     // {
     //     cout << "lhand_mapping_vector_:" << lhand_mapping_vector_ << endl;
     //     cout << "rhand_mapping_vector_:" << rhand_mapping_vector_ << endl;
     // }
-        
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////HQP MOTION RETARGETING////////////////////////////////////////////
     if (first_loop_qp_retargeting_)
-    {      
+    {
         lhand_master_ref_stack_.setZero(3, 4);
         lhand_robot_ref_stack_.setZero(3, 4);
         rhand_master_ref_stack_.setZero(3, 4);
@@ -5858,7 +5844,7 @@ void AvatarController::hmdRawDataProcessing()
         lhand_robot_ref_stack_.block(0, 1, 3, 1) = robot_t_pose_lhand_;
         lhand_robot_ref_stack_.block(0, 2, 3, 1) = robot_forward_pose_lhand_;
         lhand_robot_ref_stack_(1, 3) = -robot_shoulder_width_;
-        
+
         rhand_master_ref_stack_.block(0, 0, 3, 1) = hmd_still_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
         rhand_master_ref_stack_.block(0, 1, 3, 1) = hmd_tpose_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
         rhand_master_ref_stack_.block(0, 2, 3, 1) = hmd_forward_cali_rhand_pos_ - hmd_rshoulder_center_pos_;
@@ -5873,7 +5859,7 @@ void AvatarController::hmdRawDataProcessing()
         E2_.setZero(control_size_retargeting_[1], variable_size_retargeting_);
         E3_.setZero(control_size_retargeting_[2], variable_size_retargeting_);
         H_retargeting_.setZero(variable_size_retargeting_, variable_size_retargeting_);
-        g_retargeting_.setZero(variable_size_retargeting_);    
+        g_retargeting_.setZero(variable_size_retargeting_);
         u1_.setZero(control_size_retargeting_[0]);
         u2_.setZero(control_size_retargeting_[1]);
         u3_.setZero(control_size_retargeting_[2]);
@@ -5885,28 +5871,28 @@ void AvatarController::hmdRawDataProcessing()
         E2_.block(0, 4, 3, 4) = rhand_master_ref_stack_;
         E3_.block(0, 0, 3, 4) = lhand_robot_ref_stack_;
         E3_.block(0, 4, 3, 4) = -rhand_robot_ref_stack_;
-        
-        for (int i  = 0; i < constraint_size1_retargeting_; i++)
+
+        for (int i = 0; i < constraint_size1_retargeting_; i++)
         {
             ub_retargeting_(i) = w_dot_max_;
             lb_retargeting_(i) = w_dot_min_;
         }
 
-        w1_retargeting_ = 1;    
+        w1_retargeting_ = 1;
         w2_retargeting_ = 1;
         w3_retargeting_ = 1;
         human_shoulder_width_ = (hmd_rshoulder_center_pos_ - hmd_lshoulder_center_pos_).norm();
 
         Eigen::MatrixXd lhand_master_ref_stack_pinverse_ = lhand_master_ref_stack_.transpose() * (lhand_master_ref_stack_ * lhand_master_ref_stack_.transpose() + damped_puedoinverse_eps_ * Eigen::Matrix3d::Identity()).inverse();
-        lhand_mapping_vector_pre_ = lhand_master_ref_stack_pinverse_ * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() *(hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
+        lhand_mapping_vector_pre_ = lhand_master_ref_stack_pinverse_ * hmd_lshoulder_pose_init_.linear() * hmd_lshoulder_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
 
         Eigen::MatrixXd rhand_master_ref_stack_pinverse_ = rhand_master_ref_stack_.transpose() * (rhand_master_ref_stack_ * rhand_master_ref_stack_.transpose() + damped_puedoinverse_eps_ * Eigen::Matrix3d::Identity()).inverse();
-        rhand_mapping_vector_pre_ = rhand_master_ref_stack_pinverse_ * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() *(hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
+        rhand_mapping_vector_pre_ = rhand_master_ref_stack_pinverse_ * hmd_rshoulder_pose_init_.linear() * hmd_rshoulder_pose_.linear().transpose() * (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
         h_pre_lhand_ = (hmd_lhand_pose_.translation() - hmd_lshoulder_pose_.translation());
-        h_pre_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation()); 
+        h_pre_rhand_ = (hmd_rhand_pose_.translation() - hmd_rshoulder_pose_.translation());
 
-        for( int i = 0; i<3; i++ )
+        for (int i = 0; i < 3; i++)
         {
             QP_motion_retargeting_[i].InitializeProblemSize(variable_size_retargeting_, constraint_size2_retargeting_[i]);
 
@@ -5932,31 +5918,30 @@ void AvatarController::hmdRawDataProcessing()
     {
         double speed_reduce_rate = 20;
 
-        ub_retargeting_(0) = min( speed_reduce_rate*(1.0 - lhand_mapping_vector_pre_(0)), w_dot_max_);
-        ub_retargeting_(1) = min( speed_reduce_rate*(1.0 - lhand_mapping_vector_pre_(1)), w_dot_max_);
-        ub_retargeting_(2) = min( speed_reduce_rate*(1.0 - lhand_mapping_vector_pre_(2)), w_dot_max_);
-        ub_retargeting_(3) = min( speed_reduce_rate*(1.0 - lhand_mapping_vector_pre_(3)), w_dot_max_);
-        ub_retargeting_(4) = min( speed_reduce_rate*(1.0 - rhand_mapping_vector_pre_(0)), w_dot_max_);
-        ub_retargeting_(5) = min( speed_reduce_rate*(1.0 - rhand_mapping_vector_pre_(1)), w_dot_max_);
-        ub_retargeting_(6) = min( speed_reduce_rate*(1.0 - rhand_mapping_vector_pre_(2)), w_dot_max_);
-        ub_retargeting_(7) = min( speed_reduce_rate*(1.0 - rhand_mapping_vector_pre_(3)), w_dot_max_);
+        ub_retargeting_(0) = min(speed_reduce_rate * (1.0 - lhand_mapping_vector_pre_(0)), w_dot_max_);
+        ub_retargeting_(1) = min(speed_reduce_rate * (1.0 - lhand_mapping_vector_pre_(1)), w_dot_max_);
+        ub_retargeting_(2) = min(speed_reduce_rate * (1.0 - lhand_mapping_vector_pre_(2)), w_dot_max_);
+        ub_retargeting_(3) = min(speed_reduce_rate * (1.0 - lhand_mapping_vector_pre_(3)), w_dot_max_);
+        ub_retargeting_(4) = min(speed_reduce_rate * (1.0 - rhand_mapping_vector_pre_(0)), w_dot_max_);
+        ub_retargeting_(5) = min(speed_reduce_rate * (1.0 - rhand_mapping_vector_pre_(1)), w_dot_max_);
+        ub_retargeting_(6) = min(speed_reduce_rate * (1.0 - rhand_mapping_vector_pre_(2)), w_dot_max_);
+        ub_retargeting_(7) = min(speed_reduce_rate * (1.0 - rhand_mapping_vector_pre_(3)), w_dot_max_);
 
-
-        lb_retargeting_(0) = max( speed_reduce_rate*(-1.0 - lhand_mapping_vector_pre_(0)), w_dot_min_);
-        lb_retargeting_(1) = max( speed_reduce_rate*(0.0  - lhand_mapping_vector_pre_(1)), w_dot_min_);
-        lb_retargeting_(2) = max( speed_reduce_rate*(-1.0 - lhand_mapping_vector_pre_(2)), w_dot_min_);
-        lb_retargeting_(3) = max( speed_reduce_rate*(0.0  - lhand_mapping_vector_pre_(3)), w_dot_min_);
-        lb_retargeting_(4) = max( speed_reduce_rate*(-1.0 - rhand_mapping_vector_pre_(0)), w_dot_min_);
-        lb_retargeting_(5) = max( speed_reduce_rate*(0.0  - rhand_mapping_vector_pre_(1)), w_dot_min_);
-        lb_retargeting_(6) = max( speed_reduce_rate*(-1.0 - rhand_mapping_vector_pre_(2)), w_dot_min_);
-        lb_retargeting_(7) = max( speed_reduce_rate*(0.0  - rhand_mapping_vector_pre_(3)), w_dot_min_);
+        lb_retargeting_(0) = max(speed_reduce_rate * (-1.0 - lhand_mapping_vector_pre_(0)), w_dot_min_);
+        lb_retargeting_(1) = max(speed_reduce_rate * (0.0 - lhand_mapping_vector_pre_(1)), w_dot_min_);
+        lb_retargeting_(2) = max(speed_reduce_rate * (-1.0 - lhand_mapping_vector_pre_(2)), w_dot_min_);
+        lb_retargeting_(3) = max(speed_reduce_rate * (0.0 - lhand_mapping_vector_pre_(3)), w_dot_min_);
+        lb_retargeting_(4) = max(speed_reduce_rate * (-1.0 - rhand_mapping_vector_pre_(0)), w_dot_min_);
+        lb_retargeting_(5) = max(speed_reduce_rate * (0.0 - rhand_mapping_vector_pre_(1)), w_dot_min_);
+        lb_retargeting_(6) = max(speed_reduce_rate * (-1.0 - rhand_mapping_vector_pre_(2)), w_dot_min_);
+        lb_retargeting_(7) = max(speed_reduce_rate * (0.0 - rhand_mapping_vector_pre_(3)), w_dot_min_);
 
         h_pre_lhand_ = lhand_master_ref_stack_ * lhand_mapping_vector_pre_;
         h_pre_rhand_ = rhand_master_ref_stack_ * rhand_mapping_vector_pre_;
         r_pre_lhand_ = lhand_robot_ref_stack_ * lhand_mapping_vector_pre_;
         r_pre_rhand_ = rhand_robot_ref_stack_ * rhand_mapping_vector_pre_;
     }
-    
+
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
     // double beta = DyrosMath::cubic(hand_d, 0.6, 0.2, 1, 0, 0, 0);    // cubic transition
     double beta = 0;
@@ -5981,13 +5966,13 @@ void AvatarController::hmdRawDataProcessing()
     else //transition
     {
         qpRetargeting_1();
-        qpRetargeting_21Transition(beta);   // qpRetargeting_1() must be preceded
+        qpRetargeting_21Transition(beta); // qpRetargeting_1() must be preceded
         // if ((int(current_time_ * 1e4) % int(1e4) == 0))
         // {
         //     cout << "beta0~1: " << beta << endl;
         // }
     }
-    
+
     // VectorXd w;
     // w.setZero(8, 1);
     // w.segment(0, 4) = lhand_mapping_vector_;
@@ -5995,14 +5980,13 @@ void AvatarController::hmdRawDataProcessing()
 
     // if (true)
     // {
-        // cout<< "beta: "<< beta <<endl;
-        // cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
+    // cout<< "beta: "<< beta <<endl;
+    // cout<<" // E3*w - u3"<< (E3_*w - robot_shoulder_width_ / human_shoulder_width_ * (h_d_lhand_ - h_d_rhand_)).norm() << endl;
     // }
 
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
     if (hmd2robot_lhand_pos_mapping_.norm() > robot_arm_max_l_)
     {
@@ -6075,7 +6059,6 @@ void AvatarController::hmdRawDataProcessing()
     // hmd2robot_lhand_pos_mapping_ = robot_init_hand_pos + delta_hmd2robot_lhand_pos_maping;
     // hmd2robot_rhand_pos_mapping_ = robot_init_hand_pos + delta_hmd2robot_rhand_pos_maping;
 
-
     master_upperbody_pose_raw_.translation().setZero();
     Eigen::AngleAxisd chest_ang_diff(hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose());
     Eigen::Matrix3d chest_diff_m, shoulder_diff_m;
@@ -6115,15 +6098,14 @@ void AvatarController::hmdRawDataProcessing()
 
     // master_head_pose_raw_.linear() = hmd_head_pose_.linear();
 
- 
     shoulder_diff_m = Eigen::AngleAxisd(chest_ang_diff.angle() * 1.0, chest_ang_diff.axis());
     master_lshoulder_pose_raw_.linear() = shoulder_diff_m * robot_upperbody_ori_init;
     master_rshoulder_pose_raw_.linear() = shoulder_diff_m * robot_upperbody_ori_init;
 
     master_relative_lhand_pos_raw_ = hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation();
     master_relative_rhand_pos_raw_ = hmd_rhand_pose_.translation() - hmd_lhand_pose_.translation();
-    master_relative_lhand_pos_raw_ = master_relative_lhand_pos_raw_*(robot_shoulder_width_) / (hmd_shoulder_width_);
-    master_relative_rhand_pos_raw_ = master_relative_lhand_pos_raw_*(robot_shoulder_width_) / (hmd_shoulder_width_);
+    master_relative_lhand_pos_raw_ = master_relative_lhand_pos_raw_ * (robot_shoulder_width_) / (hmd_shoulder_width_);
+    master_relative_rhand_pos_raw_ = master_relative_lhand_pos_raw_ * (robot_shoulder_width_) / (hmd_shoulder_width_);
 
     if (int(current_time_ * 1e4) % int(2e4) == 0)
     {
@@ -6255,7 +6237,7 @@ void AvatarController::qpRetargeting_21Transition(double beta)
 
     u1_ = control_gain_retargeting_ * (h_d_lhand_ - h_pre_lhand_);
     u2_ = control_gain_retargeting_ * (h_d_rhand_ - h_pre_rhand_);
-    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()) - (r_pre_lhand_ + r2l_robot_shoulder- r_pre_rhand_));
+    u3_ = control_gain_retargeting_ * (robot_shoulder_width_ / human_shoulder_width_ * hmd_chest_pose_init_.linear() * hmd_chest_pose_.linear().transpose() * (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()) - (r_pre_lhand_ + r2l_robot_shoulder - r_pre_rhand_));
 
     H_retargeting_ = w3_retargeting_ * E3_.transpose() * E3_;
     g_retargeting_ = -w3_retargeting_ * E3_.transpose() * u3_;
@@ -6272,8 +6254,8 @@ void AvatarController::qpRetargeting_21Transition(double beta)
         g_retargeting_ = -w1_retargeting_ * E1_.transpose() * u1_ - w2_retargeting_ * E2_.transpose() * u2_;
 
         A_retargeting_[2].block(6, 0, 3, 8) = E3_;
-        lbA_retargeting_[2].segment(6, 3) = beta*(E3_ * qpres_retargeting_[1]) + (1-beta)*(E3_ * qpres_retargeting_[0]);
-        ubA_retargeting_[2].segment(6, 3) = beta*(E3_ * qpres_retargeting_[1]) + (1-beta)*(E3_ * qpres_retargeting_[0]);
+        lbA_retargeting_[2].segment(6, 3) = beta * (E3_ * qpres_retargeting_[1]) + (1 - beta) * (E3_ * qpres_retargeting_[0]);
+        ubA_retargeting_[2].segment(6, 3) = beta * (E3_ * qpres_retargeting_[1]) + (1 - beta) * (E3_ * qpres_retargeting_[0]);
 
         QP_motion_retargeting_[2].EnableEqualityCondition(equality_condition_eps_);
         QP_motion_retargeting_[2].UpdateMinProblem(H_retargeting_, g_retargeting_);
@@ -6697,8 +6679,8 @@ Eigen::VectorQd AvatarController::comVelocityControlCompute()
     const int task_dof = 6;
 
     Vector3d alpha_unit;
-    Vector3d 
-    _unit;
+    Vector3d
+        _unit;
 
     double f_star_mag_alpha;
     double f_star_mag_beta;
@@ -8390,7 +8372,6 @@ void AvatarController::savePreData()
 
     lhand_mapping_vector_pre_ = lhand_mapping_vector_;
     rhand_mapping_vector_pre_ = rhand_mapping_vector_;
-
 }
 
 void AvatarController::WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg)
@@ -8783,7 +8764,7 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
 
-    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear()*DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
+    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
@@ -9600,33 +9581,33 @@ void AvatarController::printOutTextFile()
     // <<lacromion_vel_current_from_global_(0)<<"\t"<<lacromion_vel_current_from_global_(1)<<"\t"<<lacromion_vel_current_from_global_(2)<<"\t"<<racromion_vel_current_from_global_(0)<<"\t"<<racromion_vel_current_from_global_(1)<<"\t"<<racromion_vel_current_from_global_(2)<<endl;
 
     file[11]
-    <<hmd_lhand_pose_.translation()(0)<<"\t"<<hmd_lhand_pose_.translation()(1)<<"\t"<<hmd_lhand_pose_.translation()(2)<<"\t"<<hmd_rhand_pose_.translation()(0)<<"\t"<<hmd_rhand_pose_.translation()(1)<<"\t"<<hmd_rhand_pose_.translation()(2)<<"\t"
-    <<master_lhand_pose_raw_.translation()(0)<<"\t"<<master_lhand_pose_raw_.translation()(1)<<"\t"<<master_lhand_pose_raw_.translation()(2)<<"\t"<<master_rhand_pose_raw_.translation()(0)<<"\t"<<master_rhand_pose_raw_.translation()(1)<<"\t"<<master_rhand_pose_raw_.translation()(2)<<"\t"
-    <<master_lhand_pose_.translation()(0)<<"\t"<<master_lhand_pose_.translation()(1)<<"\t"<<master_lhand_pose_.translation()(2)<<"\t"<<master_rhand_pose_.translation()(0)<<"\t"<<master_rhand_pose_.translation()(1)<<"\t"<<master_rhand_pose_.translation()(2)<<"\t"
-    <<master_lhand_rqy_(0)<<"\t"<<master_lhand_rqy_(1)<<"\t"<<master_lhand_rqy_(2)<<"\t"<<master_rhand_rqy_(0)<<"\t"<<master_rhand_rqy_(1)<<"\t"<<master_rhand_rqy_(2)<<"\t"
-    <<hmd_lupperarm_pose_.translation()(0)<<"\t"<<hmd_lupperarm_pose_.translation()(1)<<"\t"<<hmd_lupperarm_pose_.translation()(2)<<"\t"<<hmd_rupperarm_pose_.translation()(0)<<"\t"<<hmd_rupperarm_pose_.translation()(1)<<"\t"<<hmd_rupperarm_pose_.translation()(2)<<"\t"
-    <<master_lelbow_pose_raw_.translation()(0)<<"\t"<<master_lelbow_pose_raw_.translation()(1)<<"\t"<<master_lelbow_pose_raw_.translation()(2)<<"\t"<<master_relbow_pose_raw_.translation()(0)<<"\t"<<master_relbow_pose_raw_.translation()(1)<<"\t"<<master_relbow_pose_raw_.translation()(2)<<"\t"
-    <<master_lelbow_pose_.translation()(0)<<"\t"<<master_lelbow_pose_.translation()(1)<<"\t"<<master_lelbow_pose_.translation()(2)<<"\t"<<master_relbow_pose_.translation()(0)<<"\t"<<master_relbow_pose_.translation()(1)<<"\t"<<master_relbow_pose_.translation()(2)<<"\t"
-    <<master_lelbow_rqy_(0)<<"\t"<<master_lelbow_rqy_(1)<<"\t"<<master_lelbow_rqy_(2)<<"\t"<<master_relbow_rqy_(0)<<"\t"<<master_relbow_rqy_(1)<<"\t"<<master_relbow_rqy_(2)<<"\t"
-    <<hmd_lshoulder_pose_.translation()(0)<<"\t"<<hmd_lshoulder_pose_.translation()(1)<<"\t"<<hmd_lshoulder_pose_.translation()(2)<<"\t"<<hmd_rshoulder_pose_.translation()(0)<<"\t"<<hmd_rshoulder_pose_.translation()(1)<<"\t"<<hmd_rshoulder_pose_.translation()(2)<<"\t"
-    <<master_lshoulder_pose_raw_.translation()(0)<<"\t"<<master_lshoulder_pose_raw_.translation()(1)<<"\t"<<master_lshoulder_pose_raw_.translation()(2)<<"\t"<<master_rshoulder_pose_raw_.translation()(0)<<"\t"<<master_rshoulder_pose_raw_.translation()(1)<<"\t"<<master_rshoulder_pose_raw_.translation()(2)<<"\t"
-    <<master_lshoulder_pose_.translation()(0)<<"\t"<<master_lshoulder_pose_.translation()(1)<<"\t"<<master_lshoulder_pose_.translation()(2)<<"\t"<<master_rshoulder_pose_.translation()(0)<<"\t"<<master_rshoulder_pose_.translation()(1)<<"\t"<<master_rshoulder_pose_.translation()(2)<<"\t"
-    <<master_lshoulder_rqy_(0)<<"\t"<<master_lshoulder_rqy_(1)<<"\t"<<master_lshoulder_rqy_(2)<<"\t"<<master_rshoulder_rqy_(0)<<"\t"<<master_rshoulder_rqy_(1)<<"\t"<<master_rshoulder_rqy_(2)<<"\t"
-    <<hmd_head_pose_.translation()(0)<<"\t"<<hmd_head_pose_.translation()(1)<<"\t"<<hmd_head_pose_.translation()(2)<<"\t"
-    <<master_head_pose_raw_.translation()(0)<<"\t"<<master_head_pose_raw_.translation()(1)<<"\t"<<master_head_pose_raw_.translation()(2)<<"\t"
-    <<master_head_pose_.translation()(0)<<"\t"<<master_head_pose_.translation()(1)<<"\t"<<master_head_pose_.translation()(2)<<"\t"
-    <<master_head_rqy_(0)<<"\t"<<master_head_rqy_(1)<<"\t"<<master_head_rqy_(2)<<"\t"
-    <<hmd_pelv_pose_.translation()(0)<<"\t"<<hmd_pelv_pose_.translation()(1)<<"\t"<<hmd_pelv_pose_.translation()(2)<<endl;
+        << hmd_lhand_pose_.translation()(0) << "\t" << hmd_lhand_pose_.translation()(1) << "\t" << hmd_lhand_pose_.translation()(2) << "\t" << hmd_rhand_pose_.translation()(0) << "\t" << hmd_rhand_pose_.translation()(1) << "\t" << hmd_rhand_pose_.translation()(2) << "\t"
+        << master_lhand_pose_raw_.translation()(0) << "\t" << master_lhand_pose_raw_.translation()(1) << "\t" << master_lhand_pose_raw_.translation()(2) << "\t" << master_rhand_pose_raw_.translation()(0) << "\t" << master_rhand_pose_raw_.translation()(1) << "\t" << master_rhand_pose_raw_.translation()(2) << "\t"
+        << master_lhand_pose_.translation()(0) << "\t" << master_lhand_pose_.translation()(1) << "\t" << master_lhand_pose_.translation()(2) << "\t" << master_rhand_pose_.translation()(0) << "\t" << master_rhand_pose_.translation()(1) << "\t" << master_rhand_pose_.translation()(2) << "\t"
+        << master_lhand_rqy_(0) << "\t" << master_lhand_rqy_(1) << "\t" << master_lhand_rqy_(2) << "\t" << master_rhand_rqy_(0) << "\t" << master_rhand_rqy_(1) << "\t" << master_rhand_rqy_(2) << "\t"
+        << hmd_lupperarm_pose_.translation()(0) << "\t" << hmd_lupperarm_pose_.translation()(1) << "\t" << hmd_lupperarm_pose_.translation()(2) << "\t" << hmd_rupperarm_pose_.translation()(0) << "\t" << hmd_rupperarm_pose_.translation()(1) << "\t" << hmd_rupperarm_pose_.translation()(2) << "\t"
+        << master_lelbow_pose_raw_.translation()(0) << "\t" << master_lelbow_pose_raw_.translation()(1) << "\t" << master_lelbow_pose_raw_.translation()(2) << "\t" << master_relbow_pose_raw_.translation()(0) << "\t" << master_relbow_pose_raw_.translation()(1) << "\t" << master_relbow_pose_raw_.translation()(2) << "\t"
+        << master_lelbow_pose_.translation()(0) << "\t" << master_lelbow_pose_.translation()(1) << "\t" << master_lelbow_pose_.translation()(2) << "\t" << master_relbow_pose_.translation()(0) << "\t" << master_relbow_pose_.translation()(1) << "\t" << master_relbow_pose_.translation()(2) << "\t"
+        << master_lelbow_rqy_(0) << "\t" << master_lelbow_rqy_(1) << "\t" << master_lelbow_rqy_(2) << "\t" << master_relbow_rqy_(0) << "\t" << master_relbow_rqy_(1) << "\t" << master_relbow_rqy_(2) << "\t"
+        << hmd_lshoulder_pose_.translation()(0) << "\t" << hmd_lshoulder_pose_.translation()(1) << "\t" << hmd_lshoulder_pose_.translation()(2) << "\t" << hmd_rshoulder_pose_.translation()(0) << "\t" << hmd_rshoulder_pose_.translation()(1) << "\t" << hmd_rshoulder_pose_.translation()(2) << "\t"
+        << master_lshoulder_pose_raw_.translation()(0) << "\t" << master_lshoulder_pose_raw_.translation()(1) << "\t" << master_lshoulder_pose_raw_.translation()(2) << "\t" << master_rshoulder_pose_raw_.translation()(0) << "\t" << master_rshoulder_pose_raw_.translation()(1) << "\t" << master_rshoulder_pose_raw_.translation()(2) << "\t"
+        << master_lshoulder_pose_.translation()(0) << "\t" << master_lshoulder_pose_.translation()(1) << "\t" << master_lshoulder_pose_.translation()(2) << "\t" << master_rshoulder_pose_.translation()(0) << "\t" << master_rshoulder_pose_.translation()(1) << "\t" << master_rshoulder_pose_.translation()(2) << "\t"
+        << master_lshoulder_rqy_(0) << "\t" << master_lshoulder_rqy_(1) << "\t" << master_lshoulder_rqy_(2) << "\t" << master_rshoulder_rqy_(0) << "\t" << master_rshoulder_rqy_(1) << "\t" << master_rshoulder_rqy_(2) << "\t"
+        << hmd_head_pose_.translation()(0) << "\t" << hmd_head_pose_.translation()(1) << "\t" << hmd_head_pose_.translation()(2) << "\t"
+        << master_head_pose_raw_.translation()(0) << "\t" << master_head_pose_raw_.translation()(1) << "\t" << master_head_pose_raw_.translation()(2) << "\t"
+        << master_head_pose_.translation()(0) << "\t" << master_head_pose_.translation()(1) << "\t" << master_head_pose_.translation()(2) << "\t"
+        << master_head_rqy_(0) << "\t" << master_head_rqy_(1) << "\t" << master_head_rqy_(2) << "\t"
+        << hmd_pelv_pose_.translation()(0) << "\t" << hmd_pelv_pose_.translation()(1) << "\t" << hmd_pelv_pose_.translation()(2) << endl;
 
     file[12]
-    <<lhand_pos_error_(0)<<"\t"<<lhand_pos_error_(1)<<"\t"<<lhand_pos_error_(2)<<"\t"<<rhand_pos_error_(0)<<"\t"<<rhand_pos_error_(1)<<"\t"<<rhand_pos_error_(2)<<"\t"
-    <<lhand_ori_error_(0)<<"\t"<<lhand_ori_error_(1)<<"\t"<<lhand_ori_error_(2)<<"\t"<<rhand_ori_error_(0)<<"\t"<<rhand_ori_error_(1)<<"\t"<<rhand_ori_error_(2)<<"\t"
-    <<lelbow_ori_error_(0)<<"\t"<<lelbow_ori_error_(1)<<"\t"<<lelbow_ori_error_(2)<<"\t"<<relbow_ori_error_(0)<<"\t"<<relbow_ori_error_(1)<<"\t"<<relbow_ori_error_(2)<<"\t"
-    <<lshoulder_ori_error_(0)<<"\t"<<lshoulder_ori_error_(1)<<"\t"<<lshoulder_ori_error_(2)<<"\t"<<rshoulder_ori_error_(0)<<"\t"<<rshoulder_ori_error_(1)<<"\t"<<rshoulder_ori_error_(2)<<"\t"
-    <<lhand_vel_error_(0)<<"\t"<<lhand_vel_error_(1)<<"\t"<<lhand_vel_error_(2)<<"\t"<<lhand_vel_error_(3)<<"\t"<<lhand_vel_error_(4)<<"\t"<<lhand_vel_error_(5)<<"\t"
-    <<rhand_vel_error_(0)<<"\t"<<rhand_vel_error_(1)<<"\t"<<rhand_vel_error_(2)<<"\t"<<rhand_vel_error_(3)<<"\t"<<rhand_vel_error_(4)<<"\t"<<rhand_vel_error_(5)<<"\t"
-    <<lelbow_vel_error_(0)<<"\t"<<lelbow_vel_error_(1)<<"\t"<<lelbow_vel_error_(2)<<"\t"<<relbow_vel_error_(0)<<"\t"<<relbow_vel_error_(1)<<"\t"<<relbow_vel_error_(2)<<"\t"
-    <<lacromion_vel_error_(0)<<"\t"<<lacromion_vel_error_(1)<<"\t"<<lacromion_vel_error_(2)<<"\t"<<racromion_vel_error_(0)<<"\t"<<racromion_vel_error_(1)<<"\t"<<racromion_vel_error_(2)<<endl;
+        << lhand_pos_error_(0) << "\t" << lhand_pos_error_(1) << "\t" << lhand_pos_error_(2) << "\t" << rhand_pos_error_(0) << "\t" << rhand_pos_error_(1) << "\t" << rhand_pos_error_(2) << "\t"
+        << lhand_ori_error_(0) << "\t" << lhand_ori_error_(1) << "\t" << lhand_ori_error_(2) << "\t" << rhand_ori_error_(0) << "\t" << rhand_ori_error_(1) << "\t" << rhand_ori_error_(2) << "\t"
+        << lelbow_ori_error_(0) << "\t" << lelbow_ori_error_(1) << "\t" << lelbow_ori_error_(2) << "\t" << relbow_ori_error_(0) << "\t" << relbow_ori_error_(1) << "\t" << relbow_ori_error_(2) << "\t"
+        << lshoulder_ori_error_(0) << "\t" << lshoulder_ori_error_(1) << "\t" << lshoulder_ori_error_(2) << "\t" << rshoulder_ori_error_(0) << "\t" << rshoulder_ori_error_(1) << "\t" << rshoulder_ori_error_(2) << "\t"
+        << lhand_vel_error_(0) << "\t" << lhand_vel_error_(1) << "\t" << lhand_vel_error_(2) << "\t" << lhand_vel_error_(3) << "\t" << lhand_vel_error_(4) << "\t" << lhand_vel_error_(5) << "\t"
+        << rhand_vel_error_(0) << "\t" << rhand_vel_error_(1) << "\t" << rhand_vel_error_(2) << "\t" << rhand_vel_error_(3) << "\t" << rhand_vel_error_(4) << "\t" << rhand_vel_error_(5) << "\t"
+        << lelbow_vel_error_(0) << "\t" << lelbow_vel_error_(1) << "\t" << lelbow_vel_error_(2) << "\t" << relbow_vel_error_(0) << "\t" << relbow_vel_error_(1) << "\t" << relbow_vel_error_(2) << "\t"
+        << lacromion_vel_error_(0) << "\t" << lacromion_vel_error_(1) << "\t" << lacromion_vel_error_(2) << "\t" << racromion_vel_error_(0) << "\t" << racromion_vel_error_(1) << "\t" << racromion_vel_error_(2) << endl;
 
     // file[13]
     // <<hmd_head_vel_(0)<<"\t"<<hmd_head_vel_(1)<<"\t"<<hmd_head_vel_(2)<<"\t"<<hmd_head_vel_(3)<<"\t"<<hmd_head_vel_(4)<<"\t"<<hmd_head_vel_(5)<<"\t"
@@ -9647,10 +9628,10 @@ void AvatarController::PedalCommandCallback(const tocabi_msgs::WalkingCommandCon
 {
     if (joy_input_enable_ == true)
     {
-        joystick_input(0) = DyrosMath::minmax_cut(2*(msg->step_length_x), 0.0, 2.0) -1.0; //FW
-        joystick_input(2) = DyrosMath::minmax_cut(2*(msg->theta) - DyrosMath::sign(msg->theta), -0.5 + 0.5*DyrosMath::sign(msg->theta), 0.5 + 0.5*DyrosMath::sign(msg->theta));
+        joystick_input(0) = DyrosMath::minmax_cut(2 * (msg->step_length_x), 0.0, 2.0) - 1.0; //FW
+        joystick_input(2) = DyrosMath::minmax_cut(2 * (msg->theta) - DyrosMath::sign(msg->theta), -0.5 + 0.5 * DyrosMath::sign(msg->theta), 0.5 + 0.5 * DyrosMath::sign(msg->theta));
         // joystick_input(2) = msg->theta;
-        joystick_input(3) = DyrosMath::minmax_cut(2*(msg->z), 0.0, 2.0) -1.0; //BW
+        joystick_input(3) = DyrosMath::minmax_cut(2 * (msg->z), 0.0, 2.0) - 1.0; //BW
         joystick_input(1) = (joystick_input(0) + 1) / 2 + abs(joystick_input(2)) + (joystick_input(3) + 1) / 2;
     }
     else
@@ -9896,7 +9877,7 @@ void AvatarController::getRobotState()
 
     l_ft_ = rd_.LF_FT;
     r_ft_ = rd_.RF_FT;
-     
+
     Eigen::Vector2d left_zmp, right_zmp;
 
     left_zmp(0) = l_ft_(4) / l_ft_(2) + lfoot_support_current_.translation()(0);
@@ -11366,15 +11347,15 @@ void AvatarController::getPelvTrajectory()
 {
     double pelv_offset = -0.00;
     double pelv_transition_time = 3.0;
-    if(walking_enable_ == true)
+    if (walking_enable_ == true)
     {
-        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2)-com_desired_(2), 0.0, 0.0, 0.0);
+        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2) - com_desired_(2), 0.0, 0.0, 0.0);
     }
     else
     {
-        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 5.0, pelv_support_init_.translation()(2)-com_desired_(2), pelv_offset, 0.0, 0.0);
+        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 5.0, pelv_support_init_.translation()(2) - com_desired_(2), pelv_offset, 0.0, 0.0);
     }
-    
+
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
@@ -11399,7 +11380,7 @@ void AvatarController::getPelvTrajectory()
 
     // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
     // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 1.5*P_angle_i;
-    if (aa == 0 && walking_tick_mj == 0 && (walking_enable_ == true) )
+    if (aa == 0 && walking_tick_mj == 0 && (walking_enable_ == true))
     {
         P_angle_input = 0;
         R_angle_input = 0;
@@ -11416,14 +11397,14 @@ void AvatarController::getPelvTrajectory()
     // else if(R_angle_input < -0.0262)
     // { R_angle_input = -0.0262; }
 
-    if (P_angle_input > 5*DEG2RAD) //5 degree
+    if (P_angle_input > 5 * DEG2RAD) //5 degree
     {
-        P_angle_input = 5*DEG2RAD;
+        P_angle_input = 5 * DEG2RAD;
         // cout << "a" << endl;
     }
-    else if (P_angle_input < -5*DEG2RAD)
+    else if (P_angle_input < -5 * DEG2RAD)
     {
-        P_angle_input = -5*DEG2RAD;
+        P_angle_input = -5 * DEG2RAD;
         // cout << "b" << endl;
     }
     //Trunk_trajectory_euler(0) = R_angle_input;
@@ -11608,6 +11589,7 @@ void AvatarController::GravityCalculate_MJ()
 {
     double contact_gain = 0.0;
     double eta = 0.9;
+    VectorQd grav_;
 
     if (walking_tick_mj < t_start_ + t_rest_init_)
     {
@@ -11617,7 +11599,7 @@ void AvatarController::GravityCalculate_MJ()
         contact_gain = 1.0;
         if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
         {
-            Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1 );
+            Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
         }
         else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
         {
@@ -11696,7 +11678,13 @@ void AvatarController::GravityCalculate_MJ()
         }
     }
 
-    Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_;// + contact_torque_MJ;
+    if (atb_grav_update_ == false)
+    {
+        atb_grav_update_ = true;
+        Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_; // + contact_torque_MJ;
+        atb_grav_update_ = false;
+    }
+    //return grav_;
 }
 
 void AvatarController::parameterSetting()
@@ -11729,8 +11717,8 @@ void AvatarController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
-    pelv_height_offset_ = 0.0;  // change pelvis height for manipulation when the robot stop walking
+    foot_height_ = 0.055;      // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    pelv_height_offset_ = 0.0; // change pelvis height for manipulation when the robot stop walking
 }
 
 void AvatarController::updateNextStepTime()
@@ -12007,7 +11995,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     double del_t = 0.0, Kp = 0.0;
     del_t = 1 / hz_;
     Kp = 100.0; // 실험
-               //   Kp = 20.0; // 시뮬
+                //   Kp = 20.0; // 시뮬
 
     if (walking_tick_mj == 0)
     {
@@ -12098,7 +12086,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
     d_hat_b = d_hat;
     DOB_IK_output_b_ = DOB_IK_output_;
     // MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << endl;
-    // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl; 
+    // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl;
     // MJ_joint1 << desired_leg_q(1) << "," << desired_leg_q(2) << "," << desired_leg_q(3) << "," << desired_leg_q(4) << "," << desired_leg_q(5) << "," << desired_leg_q(6) << endl;
     // MJ_joint2 << rd_.q_(1) << "," <<  rd_.q_(2) << "," <<  rd_.q_(3) << "," <<  rd_.q_(4) << "," <<  rd_.q_(5) << "," <<  rd_.q_(6) << endl;//"," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
 }
@@ -12175,7 +12163,7 @@ void AvatarController::updateInitialStateJoy()
             lfoot_float_init_.translation()(1) = 0.1025;
             rfoot_float_init_.translation()(1) = -0.1025;
             // t_temp_ = 4.0*hz_
-            if( walking_enable_ == true)
+            if (walking_enable_ == true)
             {
                 aa = 1;
             }
