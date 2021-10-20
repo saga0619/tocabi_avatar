@@ -5870,8 +5870,8 @@ void AvatarController::hmdRawDataProcessing()
     }
     
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
-    double beta = DyrosMath::cubic(hand_d, 0.6, 0.2, 1, 0, 0, 0);    // cubic transition
-    // double beta = 0;
+    // double beta = DyrosMath::cubic(hand_d, 0.6, 0.2, 1, 0, 0, 0);    // cubic transition
+    double beta = 1;
     // double beta = DyrosMath::minmax_cut( (hand_d - human_shoulder_width_) / (-0.2), 0.0, 1.0);  //linear transition
 
     if (beta == 0)
