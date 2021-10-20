@@ -39,8 +39,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 
 class AvatarController
 {
@@ -191,6 +191,7 @@ public:
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
     ros::Publisher calibration_state_pub;
+    ros::Publisher calibration_state_gui_log_pub;
 
     void WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg);
 
@@ -239,6 +240,7 @@ public:
     unsigned int upper_body_mode_;                          // 1: init pose,  2: zero pose, 3: swing arm 4: motion retarggeting
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
+    bool chair_mode_;                                       // For chair sitting mode
 
     int foot_contact_;                                      // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -1012,7 +1014,7 @@ public:
     const int variable_size_hqpik2_ = 21;
 	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: upper body ori, 3: hand, 4: upper arm ori(2) 5: shoulder ori(2)
+	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
 
     double w1_hqpik2_[5];
     double w2_hqpik2_[5];
@@ -1323,6 +1325,7 @@ public:
     //
     Eigen::VectorQd contact_torque_MJ;
     Eigen::VectorQd Initial_ref_q_;
+    Eigen::VectorQd Initial_current_q_;
     Eigen::VectorQd Initial_ref_q_walk_;
     bool walking_enable_ ;
 
