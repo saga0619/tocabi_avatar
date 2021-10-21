@@ -4801,7 +4801,6 @@ void AvatarController::poseCalibration()
             msg.data = upperbody_mode_ss.str();
             calibration_state_pub.publish(msg);
             calibration_state_gui_log_pub.publish(msg);
-
         }
 
         hmd_head_pose_ = hmd_head_pose_raw_;
@@ -5494,6 +5493,14 @@ void AvatarController::rawMasterPoseProcessing()
 
     // abruptMotionFilter();
     hmdRawDataProcessing();
+    
+    /////Absolute hand position mapping //////
+    Vector3d hand_offset;
+    hand_offset << 0.0, 0, 0.15;
+    master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
+    master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
+    ///////////////////////////////////////////
+    
     double fc_filter = 3.0; //hz
 
     if (current_time_ <= upperbody_command_time_ + 5)
