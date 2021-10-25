@@ -743,7 +743,7 @@ void AvatarController::computeSlow()
             walking_end_flag = 0;
             joy_input_enable_ = true;
             
-            chair_mode_ = true; ///avatar semifinals
+            chair_mode_ = false; ///avatar semifinals
 
             parameterSetting();
             cout << "mode = 12 : Pedal Init" << endl;
@@ -4969,7 +4969,7 @@ void AvatarController::poseCalibration()
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.08, 0, -0.04;  //senseglove
+    tracker_offset << -0.085, 0, -0.04;  //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
