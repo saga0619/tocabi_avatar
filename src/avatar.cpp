@@ -633,20 +633,28 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
-
-            updateInitialState();
-            getRobotState();
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            updateInitialState();   //0
+            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            getRobotState();        
+            std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
             floatToSupportFootstep();
+            std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
-                getZmpTrajectory();
-                getComTrajectory();
-                getFootTrajectory();
-                getPelvTrajectory();
-                supportToFloatPattern();
-                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
-
+                getZmpTrajectory(); //4700
+                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
+                getComTrajectory(); //4483
+                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
+                getFootTrajectory();    //51
+                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
+                getPelvTrajectory();    //10
+                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
+                supportToFloatPattern();    //115
+                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
+                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);   //390
+                std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
                 {
@@ -654,6 +662,7 @@ void AvatarController::computeSlow()
                     // ref_q_(i) = DOB_IK_output_(i);
                 }
                 hip_compensator();
+                std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
                 // GravityCalculate_MJ();
 
                 if (atb_grav_update_ == false)
@@ -662,7 +671,7 @@ void AvatarController::computeSlow()
                     Gravity_MJ_fast_ = Gravity_MJ_;
                     atb_grav_update_ = false;
                 }
-
+                std::chrono::steady_clock::time_point t12 = std::chrono::steady_clock::now();
                 if (walking_tick_mj < 1.0 * hz_)
                 {
                     for (int i = 0; i < 12; i++)
@@ -681,19 +690,38 @@ void AvatarController::computeSlow()
                 // cout<<"com_desired_(1): "<<com_desired_(1)<<endl;
 
                 CP_compen_MJ();
-
+                std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
-
+                
                 desired_q_not_compensated_ = ref_q_;
 
                 updateNextStepTime();
 
                 q_prev_MJ_ = rd_.q_;
+                std::chrono::steady_clock::time_point t14 = std::chrono::steady_clock::now();
+
+                if (int(walking_tick_mj) % 50 == 0)
+                {
+                    cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                    cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
+                    cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
+                    cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
+                    cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
+                    cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
+                    cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t10 - t9).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t11 - t10).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t12 - t11).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t13 - t12).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t13).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t1).count() <<endl;
+                }
             }
         }
         else
@@ -730,6 +758,9 @@ void AvatarController::computeSlow()
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_fast_;
         ///////////////////////////////////////////////////////////////////////////////
+                       
+
+        
     }
     else if (rd_.tc_.mode == 12)
     {
@@ -813,27 +844,27 @@ void AvatarController::computeSlow()
                 cout << "mode = 13" << endl;
             }
 
-            // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             updateInitialStateJoy();
             getRobotState();
             floatToSupportFootstep();
-            // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
-                // std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
                 getZmpTrajectory();
-                // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
                 getComTrajectory();
-                // std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
                 getFootTrajectory();
-                // std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getPelvTrajectory();
-                // std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
                 supportToFloatPattern();
-                // std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
-                // std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
+                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
 
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
@@ -881,16 +912,17 @@ void AvatarController::computeSlow()
 
                 q_prev_MJ_ = rd_.q_;
 
-                // if (int(current_time_ * 10000) % 10000 == 0)
-                // {
-                //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-                //     cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
-                //     cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
-                //     cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
-                //     cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
-                //     cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
-                // }
+                if (int(walking_tick_mj) % 50 == 0)
+                {
+                    cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                    cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
+                    cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
+                    cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
+                    cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
+                    cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
+                    cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
+                    cout<<"total time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t1).count() <<endl;
+                }
             }
         }
         else
