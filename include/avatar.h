@@ -23,24 +23,24 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/tacabi_cc/0_flag_.txt",
-    "/home/dg/data/tocabi_cc/1_com_.txt",
-    "/home/dg/data/tocabi_cc/2_zmp_.txt",
-    "/home/dg/data/tocabi_cc/3_foot_.txt",
-    "/home/dg/data/tocabi_cc/4_torque_.txt",
-    "/home/dg/data/tocabi_cc/5_joint_.txt",
-    "/home/dg/data/tocabi_cc/6_hand_.txt",
-    "/home/dg/data/tocabi_cc/7_elbow_.txt",
-    "/home/dg/data/tocabi_cc/8_shoulder_.txt",
-    "/home/dg/data/tocabi_cc/9_acromion_.txt",
-    "/home/dg/data/tocabi_cc/10_hmd_.txt",
-    "/home/dg/data/tocabi_cc/11_tracker_.txt",
-    "/home/dg/data/tocabi_cc/12_qpik_.txt",
-    "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
+    "/home/dyros/data/tacabi_cc/0_flag_.txt",
+    "/home/dyros/data/tocabi_cc/1_com_.txt",
+    "/home/dyros/data/tocabi_cc/2_zmp_.txt",
+    "/home/dyros/data/tocabi_cc/3_foot_.txt",
+    "/home/dyros/data/tocabi_cc/4_torque_.txt",
+    "/home/dyros/data/tocabi_cc/5_joint_.txt",
+    "/home/dyros/data/tocabi_cc/6_hand_.txt",
+    "/home/dyros/data/tocabi_cc/7_elbow_.txt",
+    "/home/dyros/data/tocabi_cc/8_shoulder_.txt",
+    "/home/dyros/data/tocabi_cc/9_acromion_.txt",
+    "/home/dyros/data/tocabi_cc/10_hmd_.txt",
+    "/home/dyros/data/tocabi_cc/11_tracker_.txt",
+    "/home/dyros/data/tocabi_cc/12_qpik_.txt",
+    "/home/dyros/data/tocabi_cc/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
 
 class AvatarController
 {
@@ -82,7 +82,10 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
 
-    RigidBodyDynamics::Model model_d_;
+    RigidBodyDynamics::Model model_d_;  //updated by desired q
+    // RigidBodyDynamics::Model model_c_;  //updated by current q
+
+    // RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
 
     //////////dg custom controller functions////////
     void setGains();
@@ -106,6 +109,10 @@ public:
     Eigen::VectorQd dampingControlCompute();
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
+
+    //estimator
+    Eigen::VectorQd momentumObserver();
+    MatrixXd getCMatrix(VectorQVQd q, VectorVQd qdot);
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -388,6 +395,10 @@ public:
 
     Eigen::MatrixVVd motor_inertia_mat_;
     Eigen::MatrixVVd motor_inertia_inv_mat_;
+
+    Eigen::MatrixVVd C_mat_;
+    Eigen::MatrixVVd C_T_mat_;
+    Eigen::VectorVQd nonlinear_torque_;
 
     Eigen::VectorQd kp_joint_;
 	Eigen::VectorQd kv_joint_;

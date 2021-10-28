@@ -66,6 +66,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     // }
 
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_d_, true, false);
+    // RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_C_, true, false);
 
     for (int i = 0; i < FILE_CNT; i++)
     {
@@ -649,8 +650,8 @@ void AvatarController::computeSlow()
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
                 {
-                    // ref_q_(i) = q_des(i);
-                    ref_q_(i) = DOB_IK_output_(i);
+                    ref_q_(i) = q_des(i);
+                    // ref_q_(i) = DOB_IK_output_(i);
                 }
                 hip_compensator();
                 // GravityCalculate_MJ();
@@ -669,6 +670,15 @@ void AvatarController::computeSlow()
                         ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
                     }
                 }
+                
+                // if( walking_tick_mj%10 == 0)
+                // {
+                //     cout<<"walking_tick_mj: "<<walking_tick_mj<<endl;
+                // }
+                
+                // cout<<"current_step_num: "<<current_step_num_<<endl;
+                // cout<<"com_desired_(0): "<<com_desired_(0)<<endl;
+                // cout<<"com_desired_(1): "<<com_desired_(1)<<endl;
 
                 CP_compen_MJ();
 
@@ -1065,7 +1075,8 @@ void AvatarController::computeFast()
 
         savePreData();
 
-        printOutTextFile();
+        // cout<<"current_time_: "<<current_time_ << endl;
+        // printOutTextFile();
     }
     else if (rd_.tc_.mode == 12)
     {
@@ -1760,6 +1771,27 @@ void AvatarController::getRobotData()
     rfoot_to_com_jac_from_global_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = (adjoint_pelv_to_ankle * jac_rfoot_).block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
     A_mat_ = rd_.A_;
+    // Eigen::MatrixXd C_mat_temp;
+    // C_mat_temp = getCMatrix(rd_.q_virtual_, rd_.q_dot_virtual_);
+    // C_mat_ = C_mat_temp.block(0, 0, MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
+    // C_T_mat_ = C_mat_.transpose();
+    
+    // Eigen::VectorXd nonlinear_torque_temp;
+    
+    // VectorXd q_ddot_virtual_c, q_dot_virtual_c, q_virtual_c;
+    // q_ddot_virtual_c = rd_.q_ddot_virtual_;
+    // q_dot_virtual_c = rd_.q_dot_virtual_;
+    // q_virtual_c = rd_.q_virtual_;
+
+    // RigidBodyDynamics::UpdateKinematicsCustom(model_c_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c);
+    // RigidBodyDynamics::NonlinearEffects(model_c_, q_virtual_c.segment(6, MODEL_DOF), q_dot_virtual_c.segment(0, MODEL_DOF), nonlinear_torque_temp);
+    // nonlinear_torque_.segment(6, MODEL_DOF) = nonlinear_torque_temp.segment(0, MODEL_DOF);
+
+    if( int( (current_time_-program_start_time_)*10000)%1000 == 0)
+    {
+        // cout<<"nonlinear_torque:" << nonlinear_torque_temp.transpose() <<endl;
+        // cout<<"getCmatrix error: "<< (C_mat_*rd_.q_dot_virtual_ - nonlinear_torque_).transpose()<<endl;
+    }
     // A_inv_mat_ = rd_.A_matrix_inverse;
     // motor_inertia_mat_ = rd_.Motor_inertia;
     // motor_inertia_inv_mat_ = rd_.Motor_inertia_inverse;
@@ -5443,6 +5475,7 @@ void AvatarController::getMatrix3dDataFromText(std::ifstream &text_file, Eigen::
         }
     }
 }
+
 void AvatarController::getIsometry3dDataFromText(std::ifstream &text_file, Eigen::Isometry3d &isom)
 {
     Vector3d trans;
@@ -5495,10 +5528,11 @@ void AvatarController::rawMasterPoseProcessing()
     hmdRawDataProcessing();
     
     /////Absolute hand position mapping //////
-    Vector3d hand_offset;
-    hand_offset << 0.0, 0, 0.15;
-    master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
-    master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
+    // Vector3d hand_offset;
+    // hand_offset << 0.0, 0, 0.15;    // chair
+    // hand_offset << 0.15, 0, 0.15;    // chair
+    // master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
+    // master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
     ///////////////////////////////////////////
     
     double fc_filter = 3.0; //hz
@@ -8277,6 +8311,58 @@ Eigen::VectorQd AvatarController::jointLimit()
     return joint_limit_torque;
 }
 
+Eigen::VectorQd AvatarController::momentumObserver()
+{
+
+}
+
+// MatrixXd AvatarController::getCMatrix(VectorQVQd q, VectorVQd qdot)
+// {
+//     double h = 2e-12;
+//     const int dof = 39;
+
+//     Eigen::VectorXd q_new = q;
+//     Eigen::MatrixXd C(dof, dof);
+//     Eigen::MatrixXd C1(dof, dof);
+//     C1.setZero();
+//     Eigen::MatrixXd C2(dof, dof);
+//     C2.setZero();
+//     Eigen::MatrixXd H_origin(dof, dof), H_new(dof, dof);
+//     Eigen::MatrixXd m[dof];
+//     double b[dof][dof][dof];
+//     H_origin = A_mat_; 
+
+//     for (int i = 0; i < dof; i++)
+//     {
+//         q_new = q;
+//         q_new(i) += h;
+//         RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_C_, q_new, H_new, true);
+//         m[i].resize(dof, dof);
+//         m[i] = (H_new - H_origin) / h;
+//     }
+
+//     for (int i = 0; i < dof; i++)
+//         for (int j = 0; j < dof; j++)
+//             for (int k = 0; k < dof; k++)
+//                 b[i][j][k] = 0.5 * (m[k](i, j) + m[j](i, k) - m[i](j, k));
+
+//     C.setZero();
+
+//     for (int i = 0; i < dof; i++)
+//         for (int j = 0; j < dof; j++)
+//             C1(i, j) = b[i][j][j] * qdot(j);
+
+//     for (int k = 0; k < dof; k++)
+//         for (int j = 0; j < dof; j++)
+//             for (int i = 1 + j; i < dof; i++)
+//                 C2(k, j) += 2.0 * b[k][j][i] * qdot(i);
+
+//     C = C1 + C2;
+
+//     return C;
+// }
+
+
 void AvatarController::savePreData()
 {
     pre_time_ = current_time_;
@@ -10242,7 +10328,7 @@ void AvatarController::calculateFootStepTotal_MJ()
     step_width_init = 0.01;
     step_width = 0.02;
 
-    if (length_to_target == 0)
+    if (length_to_target == 0.0)
     {
         middle_total_step_number = 6; //total foot step number
         dlength = 0;
@@ -10987,7 +11073,6 @@ void AvatarController::getFootTrajectory()
         lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
         rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
     }
-
     else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
     {
         double t_rest_temp = 0.00 * hz_;
@@ -11314,6 +11399,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01 * (cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
+    // cout  << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
     //MJ_graph << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
     //MJ_graph << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;
 }
