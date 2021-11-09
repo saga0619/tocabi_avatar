@@ -23,20 +23,20 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/tacabi_cc/0_flag_.txt",
-    "/home/dg/data/tocabi_cc/1_com_.txt",
-    "/home/dg/data/tocabi_cc/2_zmp_.txt",
-    "/home/dg/data/tocabi_cc/3_foot_.txt",
-    "/home/dg/data/tocabi_cc/4_torque_.txt",
-    "/home/dg/data/tocabi_cc/5_joint_.txt",
-    "/home/dg/data/tocabi_cc/6_hand_.txt",
-    "/home/dg/data/tocabi_cc/7_elbow_.txt",
-    "/home/dg/data/tocabi_cc/8_shoulder_.txt",
-    "/home/dg/data/tocabi_cc/9_acromion_.txt",
-    "/home/dg/data/tocabi_cc/10_hmd_.txt",
-    "/home/dg/data/tocabi_cc/11_tracker_.txt",
-    "/home/dg/data/tocabi_cc/12_qpik_.txt",
-    "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
+    "/home/dyros/data/dg/0_flag_.txt",
+    "/home/dyros/data/dg/1_com_.txt",
+    "/home/dyros/data/dg/2_zmp_.txt",
+    "/home/dyros/data/dg/3_foot_.txt",
+    "/home/dyros/data/dg/4_torque_.txt",
+    "/home/dyros/data/dg/5_joint_.txt",
+    "/home/dyros/data/dg/6_hand_.txt",
+    "/home/dyros/data/dg/7_elbow_.txt",
+    "/home/dyros/data/dg/8_shoulder_.txt",
+    "/home/dyros/data/dg/9_acromion_.txt",
+    "/home/dyros/data/dg/10_hmd_.txt",
+    "/home/dyros/data/dg/11_tracker_.txt",
+    "/home/dyros/data/dg/12_qpik_.txt",
+    "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
 const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 

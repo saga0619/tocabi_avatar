@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(tocabi_avatar)
 
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++17 -O1)
 
 find_package(catkin REQUIRED
 roscpp
