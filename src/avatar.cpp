@@ -5233,13 +5233,52 @@ void AvatarController::poseCalibration()
         // hmd_shoulder_width_ = 0.521045;
 
         // hmd_rarm_max_l_ = 0.54;
+        Eigen::Vector3d l_still_basis = hmd_still_cali_lhand_pos_- hmd_lshoulder_center_pos_;
+        Eigen::Vector3d l_tpose_basis = hmd_tpose_cali_lhand_pos_- hmd_lshoulder_center_pos_;
+        Eigen::Vector3d l_forward_basis = hmd_forward_cali_lhand_pos_- hmd_lshoulder_center_pos_;
+        Eigen::Vector3d l_angle_btw_bases;
+        l_angle_btw_bases(0) = (l_still_basis.dot(l_tpose_basis))/(l_still_basis.norm()*l_tpose_basis.norm());
+        l_angle_btw_bases(0) = DyrosMath::minmax_cut(l_angle_btw_bases(0), -1.0, 1.0);
+        l_angle_btw_bases(0) = acos(l_angle_btw_bases(0))*RAD2DEG;
+
+        l_angle_btw_bases(1) = (l_tpose_basis.dot(l_forward_basis))/(l_tpose_basis.norm()*l_forward_basis.norm());
+        l_angle_btw_bases(1) = DyrosMath::minmax_cut(l_angle_btw_bases(1), -1.0, 1.0);
+        l_angle_btw_bases(1) = acos(l_angle_btw_bases(1))*RAD2DEG;
+
+        l_angle_btw_bases(2) = (l_forward_basis.dot(l_still_basis))/(l_forward_basis.norm()*l_still_basis.norm());
+        l_angle_btw_bases(2) = DyrosMath::minmax_cut(l_angle_btw_bases(2), -1.0, 1.0);
+        l_angle_btw_bases(2) = acos(l_angle_btw_bases(2))*RAD2DEG;
+
+        Eigen::Vector3d r_still_basis = hmd_still_cali_rhand_pos_- hmd_rshoulder_center_pos_;
+        Eigen::Vector3d r_tpose_basis = hmd_tpose_cali_rhand_pos_- hmd_rshoulder_center_pos_;
+        Eigen::Vector3d r_forward_basis = hmd_forward_cali_rhand_pos_- hmd_rshoulder_center_pos_;
+        Eigen::Vector3d r_angle_btw_bases;
+        r_angle_btw_bases(0) = (r_still_basis.dot(r_tpose_basis))/(r_still_basis.norm()*r_tpose_basis.norm());
+        r_angle_btw_bases(0) = DyrosMath::minmax_cut(r_angle_btw_bases(0), -1.0, 1.0);
+        r_angle_btw_bases(0) = acos(r_angle_btw_bases(0))*RAD2DEG;
+
+        r_angle_btw_bases(1) = (r_tpose_basis.dot(r_forward_basis))/(r_tpose_basis.norm()*r_forward_basis.norm());
+        r_angle_btw_bases(1) = DyrosMath::minmax_cut(r_angle_btw_bases(1), -1.0, 1.0);
+        r_angle_btw_bases(1) = acos(r_angle_btw_bases(1))*RAD2DEG;
+
+        r_angle_btw_bases(2) = (r_forward_basis.dot(r_still_basis))/(r_forward_basis.norm()*r_still_basis.norm());
+        r_angle_btw_bases(2) = DyrosMath::minmax_cut(r_angle_btw_bases(2), -1.0, 1.0);
+        r_angle_btw_bases(2) = acos(r_angle_btw_bases(2))*RAD2DEG;
 
         std_msgs::String msg;
         std::stringstream arm_length_data;
         arm_length_data << "Left Arm Length : " << hmd_larm_max_l_ << ", "
                         << "Left Arm Length : " << hmd_rarm_max_l_ << "\n"
                         << "hmd_lshoulder_center_pos_: " << hmd_lshoulder_center_pos_.transpose() << "\n"
-                        << "hmd_rshoulder_center_pos_: " << hmd_rshoulder_center_pos_.transpose() << endl;
+                        << "hmd_rshoulder_center_pos_: " << hmd_rshoulder_center_pos_.transpose() << "\n"
+                        << "l_still_basis: " << l_still_basis.transpose() << "\n"
+                        << "l_tpose_basis: " << l_tpose_basis.transpose() << "\n"
+                        << "l_forward_basis: " << l_forward_basis.transpose() << "\n"
+                        << "r_still_basis: " << r_still_basis.transpose() << "\n"
+                        << "r_tpose_basis: " << r_tpose_basis.transpose() << "\n"
+                        << "r_forward_basis: " << r_forward_basis.transpose() << "\n"
+                        << "l_angle_btw_bases: " << l_angle_btw_bases.transpose() << "\n"
+                        << "r_angle_btw_bases: " << r_angle_btw_bases.transpose() << endl;
 
         msg.data = arm_length_data.str();
         calibration_state_pub.publish(msg);
@@ -5255,13 +5294,27 @@ void AvatarController::poseCalibration()
         hmd_chest_2_lshoulder_center_pos_ = hmd_lshoulder_center_pos_ - hmd_chest_pose_init_.translation();
         hmd_chest_2_rshoulder_center_pos_ = hmd_rshoulder_center_pos_ - hmd_chest_pose_init_.translation();
 
-        cout << "hmd_chest_2_lshoulder_center_pos_: " << hmd_chest_2_lshoulder_center_pos_ << endl;
-        cout << "hmd_chest_2_rshoulder_center_pos_: " << hmd_chest_2_rshoulder_center_pos_ << endl;
+        cout << "hmd_chest_2_lshoulder_center_pos_: " << hmd_chest_2_lshoulder_center_pos_.transpose() << endl;
+        cout << "hmd_chest_2_rshoulder_center_pos_: " << hmd_chest_2_rshoulder_center_pos_.transpose() << endl;
+
+        cout << "l_still_basis: " << l_still_basis.transpose() <<", norm: "<<l_still_basis.norm()<<endl;
+        cout << "l_tpose_basis: " << l_tpose_basis.transpose() <<", norm: "<<l_tpose_basis.norm()<<endl;
+        cout << "l_forward_basis: " << l_forward_basis.transpose() <<", norm: "<<l_forward_basis.norm()<<endl;
+
+        cout << "r_still_basis: " << r_still_basis.transpose() <<", norm: "<<r_still_basis.norm()<< endl;
+        cout << "r_tpose_basis: " << r_tpose_basis.transpose() <<", norm: "<<r_tpose_basis.norm()<< endl;
+        cout << "r_forward_basis: " << r_forward_basis.transpose() <<", norm: "<<r_forward_basis.norm()<< endl;
+        
+        cout << "l_angles_btw_bases(degree); should be near 90degrees: " << l_angle_btw_bases.transpose() << endl;
+        cout << "r_angles_btw_bases(degree); should be near 90degrees: " << r_angle_btw_bases.transpose() << endl;
 
         hmd_lshoulder_pose_init_.translation() = hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose() * hmd_chest_2_lshoulder_center_pos_ + hmd_chest_pose_init_.translation();
         hmd_lshoulder_pose_init_.linear() = hmd_chest_pose_init_.linear();
         hmd_rshoulder_pose_init_.translation() = hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose() * hmd_chest_2_rshoulder_center_pos_ + hmd_chest_pose_init_.translation();
         hmd_rshoulder_pose_init_.linear() = hmd_chest_pose_init_.linear();
+
+
+
     }
 
     //Shoulder Data
@@ -5497,10 +5550,10 @@ void AvatarController::rawMasterPoseProcessing()
     hmdRawDataProcessing();
     
     /////Absolute hand position mapping //////
-    // Vector3d hand_offset;
-    // hand_offset << 0.0, 0, 0.15;
-    // master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
-    // master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
+    Vector3d hand_offset;
+    hand_offset << 0.03, 0, 0.15;
+    master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
+    master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
     ///////////////////////////////////////////
     
     //////////////1025////////////////////////
