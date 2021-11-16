@@ -13,6 +13,14 @@
 #include <sstream>
 #include <fstream>
 
+//lexls
+#include <lexls/lexlsi.h>
+#include <lexls/tools.h>
+// #include <lexls>
+
+#include <iomanip>
+#include <iostream>
+
 // pedal
 #include <ros/ros.h>
 #include "tocabi_msgs/WalkingCommand.h"
@@ -79,13 +87,23 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
+    //lQR-HQP (Lexls)
+    LexLS::tools::HierarchyType type_of_hierarchy;
+    LexLS::Index number_of_variables;
+    LexLS::Index number_of_objectives;
+    std::vector<LexLS::Index> number_of_constraints;
+    std::vector<LexLS::ObjectiveType> types_of_objectives;
+    std::vector<Eigen::MatrixXd> objectives;
+    LexLS::ParametersLexLSI parameters;
+
+    LexLS::internal::LexLSI lsi_;
+
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
-    // RigidBodyDynamics::Model model_c_;  //updated by current q
-
-    // RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_c_;  //updated by current q
+    RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
 
     //////////dg custom controller functions////////
     void setGains();
@@ -111,8 +129,8 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     //estimator
-    Eigen::VectorQd momentumObserver();
-    MatrixXd getCMatrix(VectorQVQd q, VectorVQd qdot);
+    Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -130,6 +148,7 @@ public:
     void motionRetargeting_QPIK_wholebody();
     void motionRetargeting_HQPIK();
     void motionRetargeting_HQPIK2();
+    void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
     void exoSuitRawDataProcessing();
     void azureKinectRawDataProcessing();
@@ -382,6 +401,11 @@ public:
     Eigen::VectorVQd pre_desired_q_dot_vqd_;
     Eigen::VectorVQd pre_desired_q_ddot_vqd_;
 
+    Eigen::VectorQd desired_q_fast_;
+    Eigen::VectorQd desired_q_dot_fast_;
+    Eigen::VectorQd desired_q_slow_;
+    Eigen::VectorQd desired_q_dot_slow_;
+
     Eigen::VectorQd motion_q_;
     Eigen::VectorQd motion_q_dot_;
     Eigen::VectorQd motion_q_pre_;
@@ -391,7 +415,9 @@ public:
     Eigen::VectorQVQd init_q_virtual_;
 
     Eigen::MatrixVVd A_mat_;
+    Eigen::MatrixVVd A_mat_pre_;
     Eigen::MatrixVVd A_inv_mat_;
+    Eigen::MatrixVVd A_dot_mat_;
 
     Eigen::MatrixVVd motor_inertia_mat_;
     Eigen::MatrixVVd motor_inertia_inv_mat_;
@@ -997,11 +1023,11 @@ public:
     /////////////////////////////////////////////
 
     /////////////HQPIK//////////////////////////
-    const int hierarchy_num_hqpik_ = 4;
-    const int variable_size_hqpik_ = 21;
-	const int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+    const unsigned int hierarchy_num_hqpik_ = 4;
+    const unsigned int variable_size_hqpik_ = 21;
+	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
+	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const unsigned int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
 
     double w1_hqpik_[4];
     double w2_hqpik_[4];
@@ -1060,10 +1086,16 @@ public:
     const double control_gain_retargeting_ = 100;
     const double human_vel_min_ = -2;
     const double human_vel_max_ = 2;
-    const double w_dot_min_ = -3;
-    const double w_dot_max_ = 3;
+    const double w_dot_min_ = -30;
+    const double w_dot_max_ = 30;
 
     ////////////////////////////////////////////////////////////
+
+    
+    /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
+    Eigen::VectorVQd mob_integral_;
+    Eigen::VectorVQd mob_residual_;
+    ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
     Eigen::VectorQd fall_init_q_;

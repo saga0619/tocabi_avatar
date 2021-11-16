@@ -10,6 +10,8 @@ tocabi_msgs
 eigen_conversions
 )
 
+find_package(lexls REQUIRED)
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
@@ -34,6 +36,8 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(${PROJECT_NAME} PUBLIC lexls::lexls)
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
