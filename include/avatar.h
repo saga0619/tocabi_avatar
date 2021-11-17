@@ -31,20 +31,20 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/tacabi_cc/0_flag_.txt",
-    "/home/dyros/data/tocabi_cc/1_com_.txt",
-    "/home/dyros/data/tocabi_cc/2_zmp_.txt",
-    "/home/dyros/data/tocabi_cc/3_foot_.txt",
-    "/home/dyros/data/tocabi_cc/4_torque_.txt",
-    "/home/dyros/data/tocabi_cc/5_joint_.txt",
-    "/home/dyros/data/tocabi_cc/6_hand_.txt",
-    "/home/dyros/data/tocabi_cc/7_elbow_.txt",
-    "/home/dyros/data/tocabi_cc/8_shoulder_.txt",
-    "/home/dyros/data/tocabi_cc/9_acromion_.txt",
-    "/home/dyros/data/tocabi_cc/10_hmd_.txt",
-    "/home/dyros/data/tocabi_cc/11_tracker_.txt",
-    "/home/dyros/data/tocabi_cc/12_qpik_.txt",
-    "/home/dyros/data/tocabi_cc/13_tracker_vel_.txt"
+    "/home/dyros/data/dg/0_flag_.txt",
+    "/home/dyros/data/dg/1_com_.txt",
+    "/home/dyros/data/dg/2_zmp_.txt",
+    "/home/dyros/data/dg/3_foot_.txt",
+    "/home/dyros/data/dg/4_torque_.txt",
+    "/home/dyros/data/dg/5_joint_.txt",
+    "/home/dyros/data/dg/6_hand_.txt",
+    "/home/dyros/data/dg/7_elbow_.txt",
+    "/home/dyros/data/dg/8_shoulder_.txt",
+    "/home/dyros/data/dg/9_acromion_.txt",
+    "/home/dyros/data/dg/10_hmd_.txt",
+    "/home/dyros/data/dg/11_tracker_.txt",
+    "/home/dyros/data/dg/12_qpik_.txt",
+    "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
 // const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
@@ -1067,13 +1067,13 @@ public:
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////
-    const int variable_size_retargeting_ = 8;
-	const int constraint_size1_retargeting_ = 8;	//[lb <=	x	<= 	ub] form constraints
+    const int variable_size_retargeting_ = 6;
+	const int constraint_size1_retargeting_ = 6;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_retargeting_[3] = {6, 6, 9};	//[lb <=	Ax 	<=	ub] from constraints
    	const int control_size_retargeting_[3] = {3, 3, 3};		//1: left hand, 2: right hand, 3: relative hand
 
     Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
-    Eigen::Vector4d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
+    Eigen::Vector3d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
     Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
     
     Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
@@ -1216,7 +1216,7 @@ public:
     Eigen::Vector3d com_float_init_;
     Eigen::Vector3d com_float_current_;
     Eigen::Vector3d com_support_current_;
-    Eigen::Vector3d com_support_current_dot;
+    Eigen::Vector3d com_support_current_dot_;
     Eigen::Vector3d com_support_current_LPF;
     Eigen::Vector3d com_float_current_LPF;
     Eigen::Vector3d com_support_current_prev;
@@ -1225,6 +1225,7 @@ public:
     Eigen::Vector3d com_float_current_dot;
     Eigen::Vector3d com_float_current_dot_prev;
     Eigen::Vector3d com_float_current_dot_LPF;
+    Eigen::Vector3d com_support_current_dot_LPF;
 
     Eigen::Vector3d pelv_rpy_current_mj_;
     Eigen::Vector3d rfoot_rpy_current_;
