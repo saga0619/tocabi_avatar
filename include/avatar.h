@@ -13,6 +13,14 @@
 #include <sstream>
 #include <fstream>
 
+//lexls
+// #include <lexls/lexlsi.h>
+// #include <lexls/tools.h>
+// #include <lexls>
+
+#include <iomanip>
+#include <iostream>
+
 // pedal
 #include <ros/ros.h>
 #include "tocabi_msgs/WalkingCommand.h"
@@ -23,20 +31,20 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/tacabi_cc/0_flag_.txt",
-    "/home/dg/data/tocabi_cc/1_com_.txt",
-    "/home/dg/data/tocabi_cc/2_zmp_.txt",
-    "/home/dg/data/tocabi_cc/3_foot_.txt",
-    "/home/dg/data/tocabi_cc/4_torque_.txt",
-    "/home/dg/data/tocabi_cc/5_joint_.txt",
-    "/home/dg/data/tocabi_cc/6_hand_.txt",
-    "/home/dg/data/tocabi_cc/7_elbow_.txt",
-    "/home/dg/data/tocabi_cc/8_shoulder_.txt",
-    "/home/dg/data/tocabi_cc/9_acromion_.txt",
-    "/home/dg/data/tocabi_cc/10_hmd_.txt",
-    "/home/dg/data/tocabi_cc/11_tracker_.txt",
-    "/home/dg/data/tocabi_cc/12_qpik_.txt",
-    "/home/dg/data/tocabi_cc/13_tracker_vel_.txt"
+    "/home/dyros/data/dg/0_flag_.txt",
+    "/home/dyros/data/dg/1_com_.txt",
+    "/home/dyros/data/dg/2_zmp_.txt",
+    "/home/dyros/data/dg/3_foot_.txt",
+    "/home/dyros/data/dg/4_torque_.txt",
+    "/home/dyros/data/dg/5_joint_.txt",
+    "/home/dyros/data/dg/6_hand_.txt",
+    "/home/dyros/data/dg/7_elbow_.txt",
+    "/home/dyros/data/dg/8_shoulder_.txt",
+    "/home/dyros/data/dg/9_acromion_.txt",
+    "/home/dyros/data/dg/10_hmd_.txt",
+    "/home/dyros/data/dg/11_tracker_.txt",
+    "/home/dyros/data/dg/12_qpik_.txt",
+    "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
 // const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
@@ -80,10 +88,23 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
+    //lQR-HQP (Lexls)
+    // LexLS::tools::HierarchyType type_of_hierarchy;
+    // LexLS::Index number_of_variables;
+    // LexLS::Index number_of_objectives;
+    // std::vector<LexLS::Index> number_of_constraints;
+    // std::vector<LexLS::ObjectiveType> types_of_objectives;
+    // std::vector<Eigen::MatrixXd> objectives;
+    // LexLS::ParametersLexLSI parameters;
+
+    // LexLS::internal::LexLSI lsi_;
+
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
 
-    RigidBodyDynamics::Model model_d_;
+    RigidBodyDynamics::Model model_d_;  //updated by desired q
+    RigidBodyDynamics::Model model_c_;  //updated by current q
+    RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
 
     //////////dg custom controller functions////////
     void setGains();
@@ -108,6 +129,10 @@ public:
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
 
+    //estimator
+    Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
+
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
     Eigen::VectorQd tuneTorqueForZMPSafety(Eigen::VectorQd task_torque); // check where the zmp is
@@ -124,6 +149,7 @@ public:
     void motionRetargeting_QPIK_wholebody();
     void motionRetargeting_HQPIK();
     void motionRetargeting_HQPIK2();
+    // void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
     void exoSuitRawDataProcessing();
     void azureKinectRawDataProcessing();
@@ -376,6 +402,11 @@ public:
     Eigen::VectorVQd pre_desired_q_dot_vqd_;
     Eigen::VectorVQd pre_desired_q_ddot_vqd_;
 
+    Eigen::VectorQd desired_q_fast_;
+    Eigen::VectorQd desired_q_dot_fast_;
+    Eigen::VectorQd desired_q_slow_;
+    Eigen::VectorQd desired_q_dot_slow_;
+
     Eigen::VectorQd motion_q_;
     Eigen::VectorQd motion_q_dot_;
     Eigen::VectorQd motion_q_pre_;
@@ -385,10 +416,16 @@ public:
     Eigen::VectorQVQd init_q_virtual_;
 
     Eigen::MatrixVVd A_mat_;
+    Eigen::MatrixVVd A_mat_pre_;
     Eigen::MatrixVVd A_inv_mat_;
+    Eigen::MatrixVVd A_dot_mat_;
 
     Eigen::MatrixVVd motor_inertia_mat_;
     Eigen::MatrixVVd motor_inertia_inv_mat_;
+
+    Eigen::MatrixVVd C_mat_;
+    Eigen::MatrixVVd C_T_mat_;
+    Eigen::VectorVQd nonlinear_torque_;
 
     Eigen::VectorQd kp_joint_;
 	Eigen::VectorQd kv_joint_;
@@ -987,11 +1024,11 @@ public:
     /////////////////////////////////////////////
 
     /////////////HQPIK//////////////////////////
-    const int hierarchy_num_hqpik_ = 4;
-    const int variable_size_hqpik_ = 21;
-	const int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+    const unsigned int hierarchy_num_hqpik_ = 4;
+    const unsigned int variable_size_hqpik_ = 21;
+	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
+	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const unsigned int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
 
     double w1_hqpik_[4];
     double w2_hqpik_[4];
@@ -1031,13 +1068,13 @@ public:
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////
-    const int variable_size_retargeting_ = 8;
-	const int constraint_size1_retargeting_ = 8;	//[lb <=	x	<= 	ub] form constraints
+    const int variable_size_retargeting_ = 6;
+	const int constraint_size1_retargeting_ = 6;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_retargeting_[3] = {6, 6, 9};	//[lb <=	Ax 	<=	ub] from constraints
    	const int control_size_retargeting_[3] = {3, 3, 3};		//1: left hand, 2: right hand, 3: relative hand
 
     Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
-    Eigen::Vector4d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
+    Eigen::Vector3d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
     Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
     
     Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
@@ -1050,10 +1087,16 @@ public:
     const double control_gain_retargeting_ = 100;
     const double human_vel_min_ = -2;
     const double human_vel_max_ = 2;
-    const double w_dot_min_ = -3;
-    const double w_dot_max_ = 3;
+    const double w_dot_min_ = -30;
+    const double w_dot_max_ = 30;
 
     ////////////////////////////////////////////////////////////
+
+    
+    /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
+    Eigen::VectorVQd mob_integral_;
+    Eigen::VectorVQd mob_residual_;
+    ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
     Eigen::VectorQd fall_init_q_;
@@ -1174,7 +1217,7 @@ public:
     Eigen::Vector3d com_float_init_;
     Eigen::Vector3d com_float_current_;
     Eigen::Vector3d com_support_current_;
-    Eigen::Vector3d com_support_current_dot;
+    Eigen::Vector3d com_support_current_dot_;
     Eigen::Vector3d com_support_current_LPF;
     Eigen::Vector3d com_float_current_LPF;
     Eigen::Vector3d com_support_current_prev;
@@ -1183,6 +1226,7 @@ public:
     Eigen::Vector3d com_float_current_dot;
     Eigen::Vector3d com_float_current_dot_prev;
     Eigen::Vector3d com_float_current_dot_LPF;
+    Eigen::Vector3d com_support_current_dot_LPF;
 
     Eigen::Vector3d pelv_rpy_current_mj_;
     Eigen::Vector3d rfoot_rpy_current_;
