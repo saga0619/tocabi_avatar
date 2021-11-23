@@ -581,7 +581,7 @@ void AvatarController::computeSlow()
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
 
-        if (walking_enable_ == true)
+        if (walking_enable_ == true) //31~180us
         {
             if (walking_tick_mj == 0)
             {
@@ -599,18 +599,18 @@ void AvatarController::computeSlow()
                 cout << "mode = 11" << endl;
             }
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            updateInitialState();   
+            updateInitialState();   //0us
             std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-            getRobotState();        
+            getRobotState();        //1us
             std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
-            floatToSupportFootstep();
+            floatToSupportFootstep();   //0us
             std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
-                getZmpTrajectory(); 
+                getZmpTrajectory(); //29~97us
                 std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
-                getComTrajectory(); 
+                getComTrajectory(); //10~108us
                 std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getFootTrajectory();    
                 std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
@@ -670,7 +670,7 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 std::chrono::steady_clock::time_point t14 = std::chrono::steady_clock::now();
 
-                // if (int(walking_tick_mj) % 50 == 0)
+                // if (int(walking_tick_mj) % 500 == 0)
                 // {
                 //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
                 //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
@@ -883,7 +883,7 @@ void AvatarController::computeSlow()
 
                 q_prev_MJ_ = rd_.q_;
 
-                // if (int(walking_tick_mj) % 50 == 0)
+                // if (int(walking_tick_mj) % 1000 == 0)
                 // {
                 //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
                 //     cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
@@ -1925,7 +1925,10 @@ void AvatarController::getRobotData()
     base_velocity.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose()*base_velocity.segment(3, 3);
 
     mob_residual_pre_external = mob_residual_external_;
+    std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
     mob_residual_external_ = momentumObserverFbExternal(base_velocity, nonlinear_torque_, mob_residual_pre_external, dt_, 100);
+    std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
+
     // cout<<"test2" << endl;
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CalcPointJacobian6D(model_c_, q_virtual_c, rd_.link_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp_, false);
@@ -1977,6 +1980,7 @@ void AvatarController::getRobotData()
 
         // cout<<"getAdotMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count() <<endl;
         // cout<<"momentumObserverFbInternal time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(t8 - t7).count() <<endl;
+        // cout<<"momentumObserverFbExternal time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(t10 - t9).count() <<endl;
         // cout<<"jac_lfoot_: \n"<< jac_lfoot_ <<endl;
         // cout<<"jac_rfoot_: \n"<< jac_rfoot_ <<endl;
         // cout<<"A_mat_: \n"<< A_mat_ <<endl;
@@ -9030,6 +9034,7 @@ Eigen::VectorXd AvatarController::momentumObserverFbInternal(VectorXd current_to
     /*
     reference: Fabrizio Flacco, Residual-based contacts estimation for humanoid robots (Humanoids 2016)
     URL: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7803308&tag=1
+    Computation Time: 13~30 us (i7-8700k)
     */
 
     Eigen::MatrixXd H_j, H_j_dot, H_b, H_b_dot, F, F_dot, FT_H_b_inv;
@@ -9066,6 +9071,7 @@ Eigen::VectorXd AvatarController::momentumObserverFbExternal(Vector6d base_veloc
     /*
     reference: Fabrizio Flacco, Residual-based contacts estimation for humanoid robots (Humanoids 2016)
     URL: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7803308&tag=1
+    Computation Time: 1~2 us (i7-8700k)
     */
 
     Eigen::MatrixXd H_b, H_b_dot, F, F_dot, FT_H_b_inv;
