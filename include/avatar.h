@@ -31,20 +31,20 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/0_flag_.txt",
-    "/home/dyros/data/dg/1_com_.txt",
-    "/home/dyros/data/dg/2_zmp_.txt",
-    "/home/dyros/data/dg/3_foot_.txt",
-    "/home/dyros/data/dg/4_torque_.txt",
-    "/home/dyros/data/dg/5_joint_.txt",
-    "/home/dyros/data/dg/6_hand_.txt",
-    "/home/dyros/data/dg/7_elbow_.txt",
-    "/home/dyros/data/dg/8_shoulder_.txt",
-    "/home/dyros/data/dg/9_acromion_.txt",
-    "/home/dyros/data/dg/10_hmd_.txt",
-    "/home/dyros/data/dg/11_tracker_.txt",
-    "/home/dyros/data/dg/12_qpik_.txt",
-    "/home/dyros/data/dg/13_tracker_vel_.txt"
+    "/home/dg/data/mob/0_flag_.txt",
+    "/home/dg/data/mob/1_com_.txt",
+    "/home/dg/data/mob/2_zmp_.txt",
+    "/home/dg/data/mob/3_foot_.txt",
+    "/home/dg/data/mob/4_torque_.txt",
+    "/home/dg/data/mob/5_joint_.txt",
+    "/home/dg/data/mob/6_hand_.txt",
+    "/home/dg/data/mob/7_elbow_.txt",
+    "/home/dg/data/mob/8_shoulder_.txt",
+    "/home/dg/data/mob/9_acromion_.txt",
+    "/home/dg/data/mob/10_hmd_.txt",
+    "/home/dg/data/mob/11_tracker_.txt",
+    "/home/dg/data/mob/12_qpik_.txt",
+    "/home/dg/data/mob/13_tracker_vel_.txt"
 };
 
 // const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
@@ -129,8 +129,12 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     //estimator
-    Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
+    Eigen::VectorXd momentumObserverFbInternal(VectorXd current_torque, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbExternal(Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
+    Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -157,7 +161,8 @@ public:
     void abruptMotionFilter();
     Eigen::Vector3d kinematicFilter(Eigen::Vector3d position_data, Eigen::Vector3d pre_position_data, Eigen::Vector3d reference_position, double boundary, bool &check_boundary);
     Eigen::Isometry3d velocityFilter(Eigen::Isometry3d data, Eigen::Isometry3d pre_data, Eigen::Vector6d &vel_data, double max_vel, int &cur_iter, int max_iter, bool &check_velocity);
-    
+    void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
+
     void qpRetargeting_1();
     void qpRetargeting_21();
     void qpRetargeting_21Transition(double beta);
@@ -558,6 +563,7 @@ public:
     Eigen::Isometry3d rarmbase_transform_pre_desired_from_;
 
     Eigen::Vector3d lhand_control_point_offset_, rhand_control_point_offset_;   //red_hand made by sy
+    Eigen::Vector3d lfoot_ft_sensor_offset_, rfoot_ft_sensor_offset_;   //
 
     Eigen::Vector6d lfoot_vel_current_from_global_;
     Eigen::Vector6d rfoot_vel_current_from_global_;
@@ -1093,8 +1099,12 @@ public:
 
     
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
-    Eigen::VectorVQd mob_integral_;
-    Eigen::VectorVQd mob_residual_;
+    Eigen::VectorXd mob_integral_internal_;
+    Eigen::VectorQd mob_residual_internal_;
+    Eigen::VectorXd mob_integral_external_;
+    Eigen::Vector6d mob_residual_external_;
+
+    Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
