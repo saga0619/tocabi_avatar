@@ -669,6 +669,22 @@ public:
     Eigen::Vector6d l_ft_;
     Eigen::Vector6d r_ft_;
 
+    Eigen::Vector6d l_ft_LPF;
+    Eigen::Vector6d r_ft_LPF;
+
+    double F_F_input_dot = 0;
+    double F_F_input = 0;
+
+    double F_T_L_x_input = 0;
+    double F_T_L_x_input_dot = 0;
+    double F_T_R_x_input = 0;
+    double F_T_R_x_input_dot = 0;  
+
+    double F_T_L_y_input = 0;
+    double F_T_L_y_input_dot = 0;
+    double F_T_R_y_input = 0;
+    double F_T_R_y_input_dot = 0;
+
     Eigen::Vector2d f_star_xy_;
     Eigen::Vector2d f_star_xy_pre_;
     Eigen::Vector6d f_star_6d_;
@@ -1165,6 +1181,7 @@ public:
     void SC_err_compen(double x_des, double y_des);
 
     void CP_compen_MJ();
+    void CP_compen_MJ_FT();
     void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
     double U_ZMP_y_ssp = 0;
     double U_ZMP_y_ssp_LPF = 0;
@@ -1314,6 +1331,9 @@ public:
     double xi_mj_;
     double yi_mj_;
     double zc_mj_;
+
+    double ZMP_X_REF;
+    double ZMP_Y_REF;
 
     double t_last_;
     double t_start_;
