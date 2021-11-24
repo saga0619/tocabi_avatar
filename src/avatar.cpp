@@ -8884,10 +8884,9 @@ Eigen::VectorXd AvatarController::momentumObserver(VectorXd current_momentum, Ve
     mob_residual = k*(current_momentum - mob_integral_);
 
     return mob_residual;
-}
-
+} 
 MatrixXd AvatarController::getCMatrix(VectorXd q, VectorXd qdot)
-{
+{ 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     double h = 1e-16;
