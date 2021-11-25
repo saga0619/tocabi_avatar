@@ -31,20 +31,20 @@ const int FILE_CNT = 14;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/0_flag_.txt",
-    "/home/dyros/data/dg/1_com_.txt",
-    "/home/dyros/data/dg/2_zmp_.txt",
-    "/home/dyros/data/dg/3_foot_.txt",
-    "/home/dyros/data/dg/4_torque_.txt",
-    "/home/dyros/data/dg/5_joint_.txt",
-    "/home/dyros/data/dg/6_hand_.txt",
-    "/home/dyros/data/dg/7_elbow_.txt",
-    "/home/dyros/data/dg/8_shoulder_.txt",
-    "/home/dyros/data/dg/9_acromion_.txt",
-    "/home/dyros/data/dg/10_hmd_.txt",
-    "/home/dyros/data/dg/11_tracker_.txt",
-    "/home/dyros/data/dg/12_qpik_.txt",
-    "/home/dyros/data/dg/13_tracker_vel_.txt"
+    "/home/dh-sung/data/dg/0_flag_.txt",
+    "/home/dh-sung/data/dg/1_com_.txt",
+    "/home/dh-sung/data/dg/2_zmp_.txt",
+    "/home/dh-sung/data/dg/3_foot_.txt",
+    "/home/dh-sung/data/dg/4_torque_.txt",
+    "/home/dh-sung/data/dg/5_joint_.txt",
+    "/home/dh-sung/data/dg/6_hand_.txt",
+    "/home/dh-sung/data/dg/7_elbow_.txt",
+    "/home/dh-sung/data/dg/8_shoulder_.txt",
+    "/home/dh-sung/data/dg/9_acromion_.txt",
+    "/home/dh-sung/data/dg/10_hmd_.txt",
+    "/home/dh-sung/data/dg/11_tracker_.txt",
+    "/home/dh-sung/data/dg/12_qpik_.txt",
+    "/home/dh-sung/data/dg/13_tracker_vel_.txt"
 };
 
 const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
@@ -155,6 +155,7 @@ public:
     void azureKinectRawDataProcessing();
     void hmdRawDataProcessing();
     void poseCalibration();
+    void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
     void abruptMotionFilter();
     Eigen::Vector3d kinematicFilter(Eigen::Vector3d position_data, Eigen::Vector3d pre_position_data, Eigen::Vector3d reference_position, double boundary, bool &check_boundary);
     Eigen::Isometry3d velocityFilter(Eigen::Isometry3d data, Eigen::Isometry3d pre_data, Eigen::Vector6d &vel_data, double max_vel, int &cur_iter, int max_iter, bool &check_velocity);
