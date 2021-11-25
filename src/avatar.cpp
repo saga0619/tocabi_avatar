@@ -875,6 +875,7 @@ void AvatarController::computeSlow()
                 if (!chair_mode_)
                 {
                     CP_compen_MJ();
+                    CP_compen_MJ_FT();
                 }
 
                 torque_lower_.setZero();
@@ -10986,18 +10987,18 @@ void AvatarController::calculateFootStepTotal_MJ()
     initial_rot = atan2(target_y_, target_x_);
 
     if (initial_rot > 0.0)
-        initial_drot = 15 * DEG2RAD;
+        initial_drot = 20 * DEG2RAD;
     else
-        initial_drot = -15 * DEG2RAD;
+        initial_drot = -20 * DEG2RAD;
 
     unsigned int initial_total_step_number = initial_rot / initial_drot;
     double initial_residual_angle = initial_rot - initial_total_step_number * initial_drot;
 
     final_rot = target_theta_ - initial_rot;
     if (final_rot > 0.0)
-        final_drot = 15 * DEG2RAD;
+        final_drot = 20 * DEG2RAD;
     else
-        final_drot = -15 * DEG2RAD;
+        final_drot = -20 * DEG2RAD;
 
     unsigned int final_total_step_number = final_rot / final_drot;
     double final_residual_angle = final_rot - final_total_step_number * final_drot;
@@ -11014,7 +11015,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 4; //total foot step number
+        middle_total_step_number = 50; //total foot step number
         dlength = 0;
     }
 
@@ -11520,8 +11521,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.01;
-    rfoot_zmp_offset_ = 0.01;
+    lfoot_zmp_offset_ = -0.025; // 0.9 초
+    rfoot_zmp_offset_ = 0.025;
+
+    // lfoot_zmp_offset_ = -0.02; // 1.1 초
+    // rfoot_zmp_offset_ = 0.02;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -12091,8 +12095,8 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
 
-    del_zmp(0) = 1.1 * (cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.2 * (cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
     // cout  << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
@@ -12436,15 +12440,15 @@ void AvatarController::GravityCalculate_MJ()
         {
             WBC::SetContact(rd_, 1, 0);
             Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
-            Gravity_SSP_(1) = 1.3 * Gravity_SSP_(1);
-            Gravity_SSP_(5) = 1.1 * Gravity_SSP_(5);
+            Gravity_SSP_(1) = 1.0 * Gravity_SSP_(1);
+            Gravity_SSP_(5) = 1.0 * Gravity_SSP_(5);
         }
         else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
         {
             WBC::SetContact(rd_, 0, 1);
             Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
-            Gravity_SSP_(7) = 1.5 * Gravity_SSP_(7);
-            Gravity_SSP_(11) = 1.15 * Gravity_SSP_(11);
+            Gravity_SSP_(7) = 1.0 * Gravity_SSP_(7);
+            Gravity_SSP_(11) = 1.0 * Gravity_SSP_(11);
         }
         Gravity_DSP_.setZero();
         contact_torque_MJ.setZero();
@@ -12501,16 +12505,27 @@ void AvatarController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.08;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
+    
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
 
-    // 1.4 Hz 실험
-    t_rest_init_ = 0.20 * hz_;
-    t_rest_last_ = 0.20 * hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
-    t_total_ = 1.0 * hz_;
+    t_total_ = 0.9 * hz_;
+
+    // t_rest_init_ = 0.2 * hz_; // slack
+    // t_rest_last_ = 0.2 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 1.1 * hz_;
 
     // t_rest_init_ = 0.24*hz_;
     // t_rest_last_ = 0.24*hz_;
@@ -12518,13 +12533,13 @@ void AvatarController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.1*hz_;
 
-    t_temp_ = 4.0 * hz_;
+    t_temp_ = 2.0 * hz_;
     t_last_ = t_total_ + t_temp_;
     t_start_ = t_temp_ + 1;
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.055;      // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.05;      // 0.9 sec 0.05
     pelv_height_offset_ = 0.0; // change pelvis height for manipulation when the robot stop walking
 }
 
@@ -12937,8 +12952,8 @@ void AvatarController::CP_compen_MJ_FT()
   double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
   double alpha_new = 0;
 
-  zmp_offset = 0.01; // zmp_offset 함수 참고
-
+  zmp_offset = 0.025; // 0.9초
+//   zmp_offset = 0.02; // 1.1초 
   // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
   // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
   if(walking_tick_mj > t_temp_)
@@ -13016,21 +13031,28 @@ void AvatarController::CP_compen_MJ_FT()
 
   if(walking_tick_mj == 0)
   { F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
+  
   //////////// Force
-  F_F_input_dot = 0.00025*((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 3.0*F_F_input; // 1.3 sec stable gain F_R + 15 / F_L - 15 P gain 올려도 대칭 // 장애물 넣을때는 1이 좋을듯.
-  //F_F_input_dot = 0.00010*((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 0.00001*F_F_input; // 1.3 sec stable gain F_R + 15 / F_L - 15 P gain 올려도 대칭 
-  //F_F_input_dot = 0.00025*((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 0.000001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.00025/0.000001 이 게인은 장애물 넣었을때 적당
+  F_F_input_dot = 0.0001*((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 3.0*F_F_input; // 0.9초 0.0001/ 3.0
+
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  if(F_F_input >= 0.02)
+//   if(F_F_input >= 0.02) // 1.1초 0.02
+//   {
+//     F_F_input = 0.02;
+//   }
+//   else if(F_F_input <= -0.02)
+//   {
+//     F_F_input = -0.02;
+//   }
+  if(F_F_input >= 0.01) // 0.9초 0.01
   {
-    F_F_input = 0.02;
+    F_F_input = 0.01;
   }
-  else if(F_F_input <= -0.02)
+  else if(F_F_input <= -0.01)
   {
-    F_F_input = -0.02;
+    F_F_input = -0.01;
   }
-  
   //MJ_graph << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
   
   //////////// Torque
@@ -13059,37 +13081,37 @@ void AvatarController::CP_compen_MJ_FT()
 
   if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
   {
-    Kr_roll = 10.0;
-    Kl_roll = 10.0;
-    Kr_pitch = 10.0;
-    Kl_pitch = 10.0;    
+    Kr_roll = 20.0;
+    Kl_roll = 20.0;
+    Kr_pitch = 20.0;
+    Kl_pitch = 20.0;    
   }
   else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
   {
     if(alpha == 1) // 왼발 지지
     {
-      Kl_roll = 10.0;
+      Kl_roll = 20.0;
       Kr_roll = 50.0;
-      Kl_pitch = 10.0;
+      Kl_pitch = 20.0;
       Kr_pitch = 50.0;
     }    
     if(alpha == 0) // 오른발 지지
     {
       Kl_roll = 50.0;
-      Kr_roll = 10.0;
+      Kr_roll = 20.0;
       Kl_pitch = 50.0;
-      Kr_pitch = 10.0;
+      Kr_pitch = 20.0;
     }
   }
   else
   {
-    Kr_roll = 10.0;
-    Kl_roll = 10.0;
-    Kr_pitch = 10.0;
-    Kl_pitch = 10.0;
+    Kr_roll = 20.0;
+    Kl_roll = 20.0;
+    Kr_pitch = 20.0;
+    Kl_pitch = 20.0;
   }
   
-  //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
+  //Roll 방향 (-0.02/-30 0.9초)
   F_T_L_x_input_dot = -0.02*(Tau_L_x - l_ft_LPF(3)) - 30*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
 //   F_T_L_x_input = 0;   
@@ -13097,14 +13119,14 @@ void AvatarController::CP_compen_MJ_FT()
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
 //   F_T_R_x_input = 0;
   
-  //Pitch 방향 
+  //Pitch 방향  (0.005/-30 0.9초)
   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - 30*F_T_L_y_input; 
   F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t; 
 //   F_T_L_y_input = 0;
   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - 30*F_T_R_y_input; 
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
 //   F_T_R_y_input = 0; 
-  MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl; 
+  //MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl; 
   //MJ_graph << F_T_L_x_input << "," << F_T_R_x_input << "," <<  F_T_L_y_input << "," <<  F_T_R_y_input << "," << F_F_input << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
   if(F_T_L_x_input >= 0.1) // 5 deg limit
   { F_T_L_x_input = 0.1; }
@@ -13129,7 +13151,7 @@ void AvatarController::CP_compen_MJ_FT()
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << alpha << "," << alpha_new << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(4) << "," << F_F_input << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_LPF(3) << "," << r_ft_LPF(3) << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_F_input << endl;
   //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }
@@ -13317,8 +13339,8 @@ void AvatarController::updateInitialStateJoy()
 void AvatarController::calculateFootStepTotal_MJoy()
 {
     double width = 0.1225;
-    double length = 0.07;
-    double lengthb = 0.05;
+    double length = 0.00;
+    double lengthb = 0.00;
     double theta = 10 * DEG2RAD;
     double width_buffer = 0.0;
     double temp;
