@@ -671,6 +671,7 @@ void AvatarController::computeSlow()
                 }
                 
                 desired_q_not_compensated_ = ref_q_;
+                printOutTextFile();
 
                 updateNextStepTime();
 
@@ -10636,12 +10637,45 @@ void AvatarController::printOutTextFile()
     //         << rfoot_transform_current_from_support_.translation()(0) << "\t" << rfoot_transform_current_from_support_.translation()(1) << "\t" << rfoot_transform_current_from_support_.translation()(2) << "\t" //7
     //         << swing_foot_pos_trajectory_from_support_(0) << "\t" << swing_foot_pos_trajectory_from_support_(1) << "\t" << swing_foot_pos_trajectory_from_support_(2) << endl;                                    //28
 
-    file[4]<<current_time_ - program_start_time_<<"\t";
+    file[4]<<walking_tick_mj<<"\t"<<foot_step_(current_step_num_, 6)<<"\t";
     // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
     // file[4] << torque_grav_(0) << "\t" << torque_grav_(1) << "\t" << torque_grav_(2) << "\t" << torque_grav_(3) << "\t" << torque_grav_(4) << "\t" << torque_grav_(5) << "\t" << torque_grav_(6) << "\t" << torque_grav_(7) << "\t" << torque_grav_(8) << "\t" << torque_grav_(9) << "\t" << torque_grav_(10) << "\t" << torque_grav_(11) << endl;
+    file[4]<< rd_.q_virtual_(39) << "\t";       //w of quaternion
+    for(int i = 0; i <18 ; i++) 
+    {
+        file[4]<< rd_.q_virtual_(i) << "\t";
+    }
+    for(int i = 0; i <18 ; i++) 
+    {
+        file[4]<< rd_.q_dot_virtual_(i) << "\t";
+    }
+    for(int i = 0; i <3 ; i++) 
+    {
+        file[4]<< rd_.q_ddot_virtual_(i) << "\t" ;
+    }  
     for(int i = 0; i <12 ; i++) 
     {
-        file[4]<< torque_sim_jts_(i) << "\t" << mob_residual_internal_(i) << "\t";
+        file[4]<< ref_q_(i) << "\t";
+    }  
+    for(int i = 0; i <12 ; i++) 
+    {
+        file[4]<< rd_.torque_desired(i) << "\t";
+    }
+    for(int i = 0; i <12 ; i++) 
+    {
+        file[4]<< mob_residual_internal_(i) << "\t";
+    }
+    for(int i = 0; i <12 ; i++) 
+    {
+        file[4]<< torque_sim_jts_(i) << "\t";
+    }
+    for(int i = 0; i <6 ; i++) 
+    {
+        file[4]<< l_ft_(i) << "\t";
+    }
+    for(int i = 0; i <6 ; i++) 
+    {
+        file[4]<< r_ft_(i) << "\t";
     }
     file[4]<<endl;
 
@@ -12870,11 +12904,11 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
+    target_theta_ = 0.1;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
