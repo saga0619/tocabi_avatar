@@ -14,8 +14,8 @@
 #include <fstream>
 
 //lexls
-#include <lexls/lexlsi.h>
-#include <lexls/tools.h>
+// #include <lexls/lexlsi.h>
+// #include <lexls/tools.h>
 // #include <lexls>
 
 #include <iomanip>
@@ -47,8 +47,9 @@ const std::string FILE_NAMES[FILE_CNT] =
     "/home/dg/data/mob/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+//const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
 {
@@ -88,15 +89,15 @@ public:
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
     //lQR-HQP (Lexls)
-    LexLS::tools::HierarchyType type_of_hierarchy;
-    LexLS::Index number_of_variables;
-    LexLS::Index number_of_objectives;
-    std::vector<LexLS::Index> number_of_constraints;
-    std::vector<LexLS::ObjectiveType> types_of_objectives;
-    std::vector<Eigen::MatrixXd> objectives;
-    LexLS::ParametersLexLSI parameters;
+    // LexLS::tools::HierarchyType type_of_hierarchy;
+    // LexLS::Index number_of_variables;
+    // LexLS::Index number_of_objectives;
+    // std::vector<LexLS::Index> number_of_constraints;
+    // std::vector<LexLS::ObjectiveType> types_of_objectives;
+    // std::vector<Eigen::MatrixXd> objectives;
+    // LexLS::ParametersLexLSI parameters;
 
-    LexLS::internal::LexLSI lsi_;
+    // LexLS::internal::LexLSI lsi_;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -152,16 +153,16 @@ public:
     void motionRetargeting_QPIK_wholebody();
     void motionRetargeting_HQPIK();
     void motionRetargeting_HQPIK2();
-    void motionRetargeting_HQPIK_lexls();
+    // void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
     void exoSuitRawDataProcessing();
     void azureKinectRawDataProcessing();
     void hmdRawDataProcessing();
     void poseCalibration();
+    void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
     void abruptMotionFilter();
     Eigen::Vector3d kinematicFilter(Eigen::Vector3d position_data, Eigen::Vector3d pre_position_data, Eigen::Vector3d reference_position, double boundary, bool &check_boundary);
     Eigen::Isometry3d velocityFilter(Eigen::Isometry3d data, Eigen::Isometry3d pre_data, Eigen::Vector6d &vel_data, double max_vel, int &cur_iter, int max_iter, bool &check_velocity);
-    void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
 
     void qpRetargeting_1();
     void qpRetargeting_21();
@@ -674,6 +675,22 @@ public:
     Eigen::Vector6d l_ft_;
     Eigen::Vector6d r_ft_;
 
+    Eigen::Vector6d l_ft_LPF;
+    Eigen::Vector6d r_ft_LPF;
+
+    double F_F_input_dot = 0;
+    double F_F_input = 0;
+
+    double F_T_L_x_input = 0;
+    double F_T_L_x_input_dot = 0;
+    double F_T_R_x_input = 0;
+    double F_T_R_x_input_dot = 0;  
+
+    double F_T_L_y_input = 0;
+    double F_T_L_y_input_dot = 0;
+    double F_T_R_y_input = 0;
+    double F_T_R_y_input_dot = 0;
+
     Eigen::Vector2d f_star_xy_;
     Eigen::Vector2d f_star_xy_pre_;
     Eigen::Vector6d f_star_6d_;
@@ -1174,6 +1191,7 @@ public:
     void SC_err_compen(double x_des, double y_des);
 
     void CP_compen_MJ();
+    void CP_compen_MJ_FT();
     void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
     double U_ZMP_y_ssp = 0;
     double U_ZMP_y_ssp_LPF = 0;
@@ -1323,6 +1341,9 @@ public:
     double xi_mj_;
     double yi_mj_;
     double zc_mj_;
+
+    double ZMP_X_REF;
+    double ZMP_Y_REF;
 
     double t_last_;
     double t_start_;

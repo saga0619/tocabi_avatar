@@ -2,7 +2,7 @@
 #include <fstream>
 using namespace TOCABI;
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
 // ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
@@ -574,6 +574,12 @@ void AvatarController::computeSlow()
         {
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
         }
+
+        // l_ft_ = rd_.LF_FT;
+        // r_ft_ = rd_.RF_FT;       
+        // cout << l_ft_(2) << "," << r_ft_(2) << endl;
+        // MJ_graph << l_ft_(2) << "," << r_ft_(2) << endl;
+
     }
     else if (rd_.tc_.mode == 11)
     {
@@ -628,7 +634,7 @@ void AvatarController::computeSlow()
                 }
                 hip_compensator();
                 std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
-                // GravityCalculate_MJ();
+                // GravityCalculate_MJ(); 
 
                 if (atb_grav_update_ == false)
                 {
@@ -655,6 +661,7 @@ void AvatarController::computeSlow()
                 // cout<<"com_desired_(1): "<<com_desired_(1)<<endl;
 
                 CP_compen_MJ();
+                CP_compen_MJ_FT();
                 std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
@@ -868,6 +875,7 @@ void AvatarController::computeSlow()
                 if (!chair_mode_)
                 {
                     CP_compen_MJ();
+                    CP_compen_MJ_FT();
                 }
 
                 torque_lower_.setZero();
@@ -5093,287 +5101,287 @@ void AvatarController::motionRetargeting_HQPIK2()
     }
 }
 
-void AvatarController::motionRetargeting_HQPIK_lexls()
-{
+// void AvatarController::motionRetargeting_HQPIK_lexls()
+// {
 
 
-    // std::vector<std::vector<LexLS::ConstraintActivationType>> active_set_guess;
-    // Eigen::VectorXd solution_guess;
-    // Eigen::VectorXd solution;
+//     // std::vector<std::vector<LexLS::ConstraintActivationType>> active_set_guess;
+//     // Eigen::VectorXd solution_guess;
+//     // Eigen::VectorXd solution;
     
 
 
-    if (first_loop_hqpik_)
-    {
-        //set variables and objectives
-        type_of_hierarchy = LexLS::tools::HIERARCHY_TYPE_EQUALITY;
-        number_of_variables = 21;
-        number_of_objectives = 5;
-        number_of_constraints.resize(number_of_objectives);
-        types_of_objectives.resize(number_of_objectives);
-        objectives.resize(number_of_objectives);
-        number_of_constraints[0] = 33;
-        number_of_constraints[1] = 3;
-        number_of_constraints[2] = 14;
-        number_of_constraints[3] = 4;
-        number_of_constraints[4] = 4;
+//     if (first_loop_hqpik_)
+//     {
+//         //set variables and objectives
+//         type_of_hierarchy = LexLS::tools::HIERARCHY_TYPE_EQUALITY;
+//         number_of_variables = 21;
+//         number_of_objectives = 5;
+//         number_of_constraints.resize(number_of_objectives);
+//         types_of_objectives.resize(number_of_objectives);
+//         objectives.resize(number_of_objectives);
+//         number_of_constraints[0] = 33;
+//         number_of_constraints[1] = 3;
+//         number_of_constraints[2] = 14;
+//         number_of_constraints[3] = 4;
+//         number_of_constraints[4] = 4;
         
-        //// without inequality constraints /////
-        // number_of_constraints[0] = 3;
-        // number_of_constraints[1] = 14;
-        // number_of_constraints[2] = 4;
-        // number_of_constraints[3] = 4;
+//         //// without inequality constraints /////
+//         // number_of_constraints[0] = 3;
+//         // number_of_constraints[1] = 14;
+//         // number_of_constraints[2] = 4;
+//         // number_of_constraints[3] = 4;
 
-        objectives[0].resize(number_of_constraints[0], number_of_variables + 2);
-        objectives[1].resize(number_of_constraints[1], number_of_variables + 2);
-        objectives[2].resize(number_of_constraints[2], number_of_variables + 2);
-        objectives[3].resize(number_of_constraints[3], number_of_variables + 2);
-        objectives[4].resize(number_of_constraints[4], number_of_variables + 2);
+//         objectives[0].resize(number_of_constraints[0], number_of_variables + 2);
+//         objectives[1].resize(number_of_constraints[1], number_of_variables + 2);
+//         objectives[2].resize(number_of_constraints[2], number_of_variables + 2);
+//         objectives[3].resize(number_of_constraints[3], number_of_variables + 2);
+//         objectives[4].resize(number_of_constraints[4], number_of_variables + 2);
 
-        for(unsigned int i = 0; i < number_of_objectives; i++)
-        {
-            types_of_objectives[i] = LexLS::ObjectiveType::GENERAL_OBJECTIVE;
-        }
+//         for(unsigned int i = 0; i < number_of_objectives; i++)
+//         {
+//             types_of_objectives[i] = LexLS::ObjectiveType::GENERAL_OBJECTIVE;
+//         }
             
 
-        // parameters.setDefaults();
-        // parameters.max_number_of_factorizations = 100;        
-        // parameters.variable_regularization_factor = 0.0;
-        // lsi_.setParameters(parameters);
+//         // parameters.setDefaults();
+//         // parameters.max_number_of_factorizations = 100;        
+//         // parameters.variable_regularization_factor = 0.0;
+//         // lsi_.setParameters(parameters);
 
         
         
 
 
-        for (int i = 0; i < hierarchy_num_hqpik_; i++)
-        {
-            J_hqpik_[i].setZero(control_size_hqpik_[i], variable_size_hqpik_);
-            u_dot_hqpik_[i].setZero(control_size_hqpik_[i]);
+//         for (int i = 0; i < hierarchy_num_hqpik_; i++)
+//         {
+//             J_hqpik_[i].setZero(control_size_hqpik_[i], variable_size_hqpik_);
+//             u_dot_hqpik_[i].setZero(control_size_hqpik_[i]);
 
-            ubA_hqpik_[i].setZero(constraint_size2_hqpik_[i]);
-            lbA_hqpik_[i].setZero(constraint_size2_hqpik_[i]);
+//             ubA_hqpik_[i].setZero(constraint_size2_hqpik_[i]);
+//             lbA_hqpik_[i].setZero(constraint_size2_hqpik_[i]);
 
-            H_hqpik_[i].setZero(variable_size_hqpik_, variable_size_hqpik_);
-            g_hqpik_[i].setZero(variable_size_hqpik_);
+//             H_hqpik_[i].setZero(variable_size_hqpik_, variable_size_hqpik_);
+//             g_hqpik_[i].setZero(variable_size_hqpik_);
 
-            ub_hqpik_[i].setZero(constraint_size1_hqpik_);
-            lb_hqpik_[i].setZero(constraint_size1_hqpik_);
+//             ub_hqpik_[i].setZero(constraint_size1_hqpik_);
+//             lb_hqpik_[i].setZero(constraint_size1_hqpik_);
 
-            q_dot_hqpik_[i].setZero(variable_size_hqpik_);
-        }
+//             q_dot_hqpik_[i].setZero(variable_size_hqpik_);
+//         }
 
-        first_loop_hqpik_ = false;
-    }
+//         first_loop_hqpik_ = false;
+//     }
 
-    LexLS::internal::LexLSI lsi_(number_of_variables, number_of_objectives, &number_of_constraints[0], &types_of_objectives[0]);
+//     LexLS::internal::LexLSI lsi_(number_of_variables, number_of_objectives, &number_of_constraints[0], &types_of_objectives[0]);
 
-    parameters.setDefaults();
-    parameters.max_number_of_factorizations = 100;        
-    parameters.regularization_type = LexLS::RegularizationType::REGULARIZATION_R;
-    parameters.variable_regularization_factor = 0.02;
+//     parameters.setDefaults();
+//     parameters.max_number_of_factorizations = 100;        
+//     parameters.regularization_type = LexLS::RegularizationType::REGULARIZATION_R;
+//     parameters.variable_regularization_factor = 0.02;
 
-    lsi_.setParameters(parameters);
-    // lsi_.resize(number_of_variables, number_of_objectives, &number_of_constraints[0], &types_of_objectives[0]);
-    lsi_.set_x0(motion_q_dot_.segment(12, 21));
-    // cout<<"test1"<<endl;
+//     lsi_.setParameters(parameters);
+//     // lsi_.resize(number_of_variables, number_of_objectives, &number_of_constraints[0], &types_of_objectives[0]);
+//     lsi_.set_x0(motion_q_dot_.segment(12, 21));
+//     // cout<<"test1"<<endl;
 
 
-    Vector3d zero3;
-    zero3.setZero();
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     Vector3d zero3;
+//     zero3.setZero();
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
-    ////1st Task
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
-    J_hqpik_[0].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
+//     ////1st Task
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
+//     J_hqpik_[0].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
 
-    Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
-    u_dot_hqpik_[0] = 100 * error_w_upperbody;
+//     Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
+//     u_dot_hqpik_[0] = 100 * error_w_upperbody;
 
-    ////2nd Task
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
-    J_hqpik_[1].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
-    J_hqpik_[1].block(3, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
-    J_hqpik_[1].block(6, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
-    J_hqpik_[1].block(9, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
-    J_hqpik_[1].block(12, 0, 2, variable_size_hqpik_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
+//     ////2nd Task
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
+//     J_hqpik_[1].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
+//     J_hqpik_[1].block(3, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
+//     J_hqpik_[1].block(6, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); //position
+//     J_hqpik_[1].block(9, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); //orientation
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
+//     J_hqpik_[1].block(12, 0, 2, variable_size_hqpik_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
 
-    //Hand error
-    Vector3d error_v_lhand = master_lhand_pose_.translation() - lhand_transform_pre_desired_from_.translation();
-    Vector3d error_w_lhand = -DyrosMath::getPhi(lhand_transform_pre_desired_from_.linear(), master_lhand_pose_.linear());
-    Vector3d error_v_rhand = master_rhand_pose_.translation() - rhand_transform_pre_desired_from_.translation();
-    Vector3d error_w_rhand = -DyrosMath::getPhi(rhand_transform_pre_desired_from_.linear(), master_rhand_pose_.linear());
+//     //Hand error
+//     Vector3d error_v_lhand = master_lhand_pose_.translation() - lhand_transform_pre_desired_from_.translation();
+//     Vector3d error_w_lhand = -DyrosMath::getPhi(lhand_transform_pre_desired_from_.linear(), master_lhand_pose_.linear());
+//     Vector3d error_v_rhand = master_rhand_pose_.translation() - rhand_transform_pre_desired_from_.translation();
+//     Vector3d error_w_rhand = -DyrosMath::getPhi(rhand_transform_pre_desired_from_.linear(), master_rhand_pose_.linear());
 
-    //Head error
-    Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
-    error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
-    error_w_head(0) = 0;
+//     //Head error
+//     Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
+//     error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
+//     error_w_head(0) = 0;
 
-    u_dot_hqpik_[1].segment(0, 3) = 200 * error_v_lhand;
-    u_dot_hqpik_[1].segment(3, 3) = 100 * error_w_lhand;
-    u_dot_hqpik_[1].segment(6, 3) = 200 * error_v_rhand;
-    u_dot_hqpik_[1].segment(9, 3) = 100 * error_w_rhand;
-    u_dot_hqpik_[1].segment(12, 2) = 200 * error_w_head.segment(1, 2);
+//     u_dot_hqpik_[1].segment(0, 3) = 200 * error_v_lhand;
+//     u_dot_hqpik_[1].segment(3, 3) = 100 * error_w_lhand;
+//     u_dot_hqpik_[1].segment(6, 3) = 200 * error_v_rhand;
+//     u_dot_hqpik_[1].segment(9, 3) = 100 * error_w_rhand;
+//     u_dot_hqpik_[1].segment(12, 2) = 200 * error_w_head.segment(1, 2);
 
-    ////3rd Task
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
-    J_hqpik_[2].block(0, 0, 2, variable_size_hqpik_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     ////3rd Task
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+//     J_hqpik_[2].block(0, 0, 2, variable_size_hqpik_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
-    J_hqpik_[2].block(2, 0, 2, variable_size_hqpik_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+//     J_hqpik_[2].block(2, 0, 2, variable_size_hqpik_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
 
-    //Upperarm error
-    Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
-    error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
-    error_w_lupperarm(0) = 0;
+//     //Upperarm error
+//     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
+//     error_w_lupperarm = lupperarm_transform_pre_desired_from_.linear().transpose() * error_w_lupperarm;
+//     error_w_lupperarm(0) = 0;
 
-    Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
-    error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
-    error_w_rupperarm(0) = 0;
+//     Vector3d error_w_rupperarm = -DyrosMath::getPhi(rupperarm_transform_pre_desired_from_.linear(), master_relbow_pose_.linear());
+//     error_w_rupperarm = rupperarm_transform_pre_desired_from_.linear().transpose() * error_w_rupperarm;
+//     error_w_rupperarm(0) = 0;
 
-    u_dot_hqpik_[2].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
-    u_dot_hqpik_[2].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
+//     u_dot_hqpik_[2].segment(0, 2) = 100 * error_w_lupperarm.segment(1, 2);
+//     u_dot_hqpik_[2].segment(2, 2) = 100 * error_w_rupperarm.segment(1, 2);
 
-    ////4th Task
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
-    J_hqpik_[3].block(0, 0, 2, variable_size_hqpik_) = (lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
-    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
-    J_hqpik_[3].block(2, 0, 2, variable_size_hqpik_) = (racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
+//     ////4th Task
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
+//     J_hqpik_[3].block(0, 0, 2, variable_size_hqpik_) = (lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
+//     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+//     RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
+//     J_hqpik_[3].block(2, 0, 2, variable_size_hqpik_) = (racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); //orientation
 
-    //Shoulder error
-    Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
-    error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
-    error_w_lshoulder(0) = 0;
+//     //Shoulder error
+//     Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
+//     error_w_lshoulder = lacromion_transform_pre_desired_from_.linear().transpose() * error_w_lshoulder;
+//     error_w_lshoulder(0) = 0;
 
-    Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
-    error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
-    error_w_rshoulder(0) = 0;
+//     Vector3d error_w_rshoulder = -DyrosMath::getPhi(racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_.linear());
+//     error_w_rshoulder = racromion_transform_pre_desired_from_.linear().transpose() * error_w_rshoulder;
+//     error_w_rshoulder(0) = 0;
 
-    u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
-    u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
+//     u_dot_hqpik_[3].segment(0, 2) = 100 * error_w_lshoulder.segment(1, 2);
+//     u_dot_hqpik_[3].segment(2, 2) = 100 * error_w_rshoulder.segment(1, 2);
 
-    double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
+//     double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
 
-    for (int j = 0; j < constraint_size1_hqpik_; j++)
-    {
-        lb_hqpik_[0](j) = min( max(speed_reduce_rate * (joint_limit_l_(j + 12) - current_q_(j + 12)), joint_vel_limit_l_(j + 12)), joint_vel_limit_h_(j + 12));
-        ub_hqpik_[0](j) = max( min(speed_reduce_rate * (joint_limit_h_(j + 12) - current_q_(j + 12)), joint_vel_limit_h_(j + 12)), joint_vel_limit_l_(j + 12));
-    }
+//     for (int j = 0; j < constraint_size1_hqpik_; j++)
+//     {
+//         lb_hqpik_[0](j) = min( max(speed_reduce_rate * (joint_limit_l_(j + 12) - current_q_(j + 12)), joint_vel_limit_l_(j + 12)), joint_vel_limit_h_(j + 12));
+//         ub_hqpik_[0](j) = max( min(speed_reduce_rate * (joint_limit_h_(j + 12) - current_q_(j + 12)), joint_vel_limit_h_(j + 12)), joint_vel_limit_l_(j + 12));
+//     }
 
-    A_hqpik_[0].setZero(constraint_size2_hqpik_[0], variable_size_hqpik_);
-    A_hqpik_[0].block(0, 0, 12, variable_size_hqpik_) = J_hqpik_[1].block(0, 0, 12, variable_size_hqpik_);
+//     A_hqpik_[0].setZero(constraint_size2_hqpik_[0], variable_size_hqpik_);
+//     A_hqpik_[0].block(0, 0, 12, variable_size_hqpik_) = J_hqpik_[1].block(0, 0, 12, variable_size_hqpik_);
 
-    for (int j = 0; j < 3; j++)
-    {
-        //linear velocity limit
-        lbA_hqpik_[0](0 + j) = -2;
-        ubA_hqpik_[0](0 + j) = 2;
-        lbA_hqpik_[0](0 + j + 6) = -2;
-        ubA_hqpik_[0](0 + j + 6) = 2;
+//     for (int j = 0; j < 3; j++)
+//     {
+//         //linear velocity limit
+//         lbA_hqpik_[0](0 + j) = -2;
+//         ubA_hqpik_[0](0 + j) = 2;
+//         lbA_hqpik_[0](0 + j + 6) = -2;
+//         ubA_hqpik_[0](0 + j + 6) = 2;
 
-        //angular velocity limit
-        lbA_hqpik_[0](0 + j + 3) = -6;
-        ubA_hqpik_[0](0 + j + 3) = 6;
-        lbA_hqpik_[0](0 + j + 9) = -6;
-        ubA_hqpik_[0](0 + j + 9) = 6;
-    }
-    // cout<<"test2"<<endl;
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    for(unsigned int i = 0; i < number_of_objectives; ++i)
-    {
-        if( i == 0)
-        {
-            objectives[i].block(0, 0, 12, number_of_variables) = A_hqpik_[0];
-            objectives[i].block(0, number_of_variables, 12, 1) = lbA_hqpik_[0];
-            objectives[i].block(0, number_of_variables+1, 12, 1) = ubA_hqpik_[0];
+//         //angular velocity limit
+//         lbA_hqpik_[0](0 + j + 3) = -6;
+//         ubA_hqpik_[0](0 + j + 3) = 6;
+//         lbA_hqpik_[0](0 + j + 9) = -6;
+//         ubA_hqpik_[0](0 + j + 9) = 6;
+//     }
+//     // cout<<"test2"<<endl;
+//     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+//     for(unsigned int i = 0; i < number_of_objectives; ++i)
+//     {
+//         if( i == 0)
+//         {
+//             objectives[i].block(0, 0, 12, number_of_variables) = A_hqpik_[0];
+//             objectives[i].block(0, number_of_variables, 12, 1) = lbA_hqpik_[0];
+//             objectives[i].block(0, number_of_variables+1, 12, 1) = ubA_hqpik_[0];
             
-            objectives[i].block(12, 0, number_of_variables, number_of_variables) = Eigen::MatrixXd::Identity(number_of_variables, number_of_variables);
-            objectives[i].block(12, number_of_variables, number_of_variables, 1) = lb_hqpik_[0];
-            objectives[i].block(12, number_of_variables+1, number_of_variables, 1) = ub_hqpik_[0];
-        }
-        else
-        {
-            objectives[i].block(0, 0, number_of_constraints[i], number_of_variables) = J_hqpik_[i-1];
-            objectives[i].block(0, number_of_variables, number_of_constraints[i], 1) = u_dot_hqpik_[i-1];
-            objectives[i].block(0, number_of_variables+1, number_of_constraints[i], 1) = u_dot_hqpik_[i-1];
-        }
+//             objectives[i].block(12, 0, number_of_variables, number_of_variables) = Eigen::MatrixXd::Identity(number_of_variables, number_of_variables);
+//             objectives[i].block(12, number_of_variables, number_of_variables, 1) = lb_hqpik_[0];
+//             objectives[i].block(12, number_of_variables+1, number_of_variables, 1) = ub_hqpik_[0];
+//         }
+//         else
+//         {
+//             objectives[i].block(0, 0, number_of_constraints[i], number_of_variables) = J_hqpik_[i-1];
+//             objectives[i].block(0, number_of_variables, number_of_constraints[i], 1) = u_dot_hqpik_[i-1];
+//             objectives[i].block(0, number_of_variables+1, number_of_constraints[i], 1) = u_dot_hqpik_[i-1];
+//         }
     
-        // objectives[i].block(0, 0, number_of_constraints[i], number_of_variables) = J_hqpik_[i];
-        // objectives[i].block(0, number_of_variables, number_of_constraints[i], 1) = u_dot_hqpik_[i];
-        // objectives[i].block(0, number_of_variables+1, number_of_constraints[i], 1) = u_dot_hqpik_[i];
+//         // objectives[i].block(0, 0, number_of_constraints[i], number_of_variables) = J_hqpik_[i];
+//         // objectives[i].block(0, number_of_variables, number_of_constraints[i], 1) = u_dot_hqpik_[i];
+//         // objectives[i].block(0, number_of_variables+1, number_of_constraints[i], 1) = u_dot_hqpik_[i];
     
 
-        // for(int j=0; j<objectives[i].rows(); j++)
-        // {
-        //     if( objectives[i](j, 21) > objectives[i](j, 22))
-        //     {
-        //         cout<<"lower bound is greater than the upperbodyn at ("<<i<<", "<<j<<"): "<< objectives[i](j, 21)<<", "<<objectives[i](j, 22)<<endl;
-        //     }
-        // }
-    }
+//         // for(int j=0; j<objectives[i].rows(); j++)
+//         // {
+//         //     if( objectives[i](j, 21) > objectives[i](j, 22))
+//         //     {
+//         //         cout<<"lower bound is greater than the upperbodyn at ("<<i<<", "<<j<<"): "<< objectives[i](j, 21)<<", "<<objectives[i](j, 22)<<endl;
+//         //     }
+//         // }
+//     }
 
 
 
-    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // cout<<"test3"<<endl;
-    for (unsigned int i = 0; i < number_of_objectives; ++i)
-    {
-        lsi_.setData(i, objectives[i]);
-    }
-    std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
-    // cout<<"test4"<<endl;
-    LexLS::TerminationStatus solve_flag;
-    solve_flag = lsi_.solve();
-    if(solve_flag == LexLS::TerminationStatus::PROBLEM_SOLVED_CYCLING_HANDLING)
-    {
-        if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
-            cout<<"lexls output is PROBLEM_SOLVED_CYCLING_HANDLING "<<lsi_.getFactorizationsCount()<<endl;
-    }
-    else if(solve_flag == LexLS::TerminationStatus::MAX_NUMBER_OF_FACTORIZATIONS_EXCEEDED)
-    {
-        if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
-            cout<<"lexls output is MAX_NUMBER_OF_FACTORIZATIONS_EXCEEDED "<<lsi_.getFactorizationsCount()<<endl;
-    }
-    else if(solve_flag == LexLS::TerminationStatus::PROBLEM_SOLVED)
-    {
-        if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
-            cout<<"lexls output is PROBLEM_SOLVED "<<lsi_.getFactorizationsCount()<<endl;
-    }
+//     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+//     // cout<<"test3"<<endl;
+//     for (unsigned int i = 0; i < number_of_objectives; ++i)
+//     {
+//         lsi_.setData(i, objectives[i]);
+//     }
+//     std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+//     // cout<<"test4"<<endl;
+//     LexLS::TerminationStatus solve_flag;
+//     solve_flag = lsi_.solve();
+//     if(solve_flag == LexLS::TerminationStatus::PROBLEM_SOLVED_CYCLING_HANDLING)
+//     {
+//         if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
+//             cout<<"lexls output is PROBLEM_SOLVED_CYCLING_HANDLING "<<lsi_.getFactorizationsCount()<<endl;
+//     }
+//     else if(solve_flag == LexLS::TerminationStatus::MAX_NUMBER_OF_FACTORIZATIONS_EXCEEDED)
+//     {
+//         if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
+//             cout<<"lexls output is MAX_NUMBER_OF_FACTORIZATIONS_EXCEEDED "<<lsi_.getFactorizationsCount()<<endl;
+//     }
+//     else if(solve_flag == LexLS::TerminationStatus::PROBLEM_SOLVED)
+//     {
+//         if( int(rd_.control_time_ * 2000) % int(1000) == 0 )
+//             cout<<"lexls output is PROBLEM_SOLVED "<<lsi_.getFactorizationsCount()<<endl;
+//     }
 
-    Eigen::VectorXd X(number_of_variables);
-    // X = lsi_.get_xStar();
-    X = lsi_.get_x();
+//     Eigen::VectorXd X(number_of_variables);
+//     // X = lsi_.get_xStar();
+//     X = lsi_.get_x();
     
-    std::vector<LexLS::ConstraintIdentifier> ctr;
-    lsi_.getActiveCtr_order(ctr);
-    std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
-    if(  int(rd_.control_time_ * 2000) % int(1000) == 0  )
-    {
-        cout<<"HQPIK_lexls time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t1).count() <<endl;
-        // cout<<"lexls setting time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
-        // cout<<"lsi_ solve time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
-        ctr[0].print();
-        cout<<"Lexls output: "<<X.transpose()<<endl;
-    }
+//     std::vector<LexLS::ConstraintIdentifier> ctr;
+//     lsi_.getActiveCtr_order(ctr);
+//     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+//     if(  int(rd_.control_time_ * 2000) % int(1000) == 0  )
+//     {
+//         cout<<"HQPIK_lexls time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t1).count() <<endl;
+//         // cout<<"lexls setting time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
+//         // cout<<"lsi_ solve time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
+//         ctr[0].print();
+//         cout<<"Lexls output: "<<X.transpose()<<endl;
+//     }
 
-    // cout<<"HQPIK output: "<<motion_q_dot_.segment(12, 21).transpose()<<endl;
-    // cout<<"X - motion_q_ : "<< (X - motion_q_dot_.segment(12, 21)).transpose()<<endl;
+//     // cout<<"HQPIK output: "<<motion_q_dot_.segment(12, 21).transpose()<<endl;
+//     // cout<<"X - motion_q_ : "<< (X - motion_q_dot_.segment(12, 21)).transpose()<<endl;
 
-    for (int i = 0; i < variable_size_hqpik_; i++)
-    {
-        motion_q_dot_(12 + i) = X(i);
-        motion_q_(12 + i) = motion_q_pre_(12 + i) + motion_q_dot_(12 + i) * dt_;
-        pd_control_mask_(12 + i) = 1;
-    }
-}
+//     for (int i = 0; i < variable_size_hqpik_; i++)
+//     {
+//         motion_q_dot_(12 + i) = X(i);
+//         motion_q_(12 + i) = motion_q_pre_(12 + i) + motion_q_dot_(12 + i) * dt_;
+//         pd_control_mask_(12 + i) = 1;
+//     }
+// }
 
 void AvatarController::poseCalibration()
 {
@@ -6756,6 +6764,14 @@ void AvatarController::hmdRawDataProcessing()
 
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
+
+    // if( int(current_time_ *100000)%1000 == 0)
+    // {
+    //     cout<<" lhand_mapping_vector_"<< lhand_mapping_vector_.transpose() << endl;
+    //     cout<<" Rhand_mapping_vector_"<< rhand_mapping_vector_.transpose() << endl;
+    // }
+    
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (hmd2robot_lhand_pos_mapping_.norm() > robot_arm_max_l_)
@@ -10612,24 +10628,25 @@ void AvatarController::printOutTextFile()
     // <<lacromion_rpy_current_from_global_(0)<<"\t"<<lacromion_rpy_current_from_global_(1)<<"\t"<<lacromion_rpy_current_from_global_(2)<<"\t"<<racromion_rpy_current_from_global_(0)<<"\t"<<racromion_rpy_current_from_global_(1)<<"\t"<<racromion_rpy_current_from_global_(2)<<"\t"
     // <<lacromion_vel_current_from_global_(0)<<"\t"<<lacromion_vel_current_from_global_(1)<<"\t"<<lacromion_vel_current_from_global_(2)<<"\t"<<racromion_vel_current_from_global_(0)<<"\t"<<racromion_vel_current_from_global_(1)<<"\t"<<racromion_vel_current_from_global_(2)<<endl;
 
+
     // file[11]
     //     << hmd_lhand_pose_.translation()(0) << "\t" << hmd_lhand_pose_.translation()(1) << "\t" << hmd_lhand_pose_.translation()(2) << "\t" << hmd_rhand_pose_.translation()(0) << "\t" << hmd_rhand_pose_.translation()(1) << "\t" << hmd_rhand_pose_.translation()(2) << "\t"
-    //     << master_lhand_pose_raw_.translation()(0) << "\t" << master_lhand_pose_raw_.translation()(1) << "\t" << master_lhand_pose_raw_.translation()(2) << "\t" << master_rhand_pose_raw_.translation()(0) << "\t" << master_rhand_pose_raw_.translation()(1) << "\t" << master_rhand_pose_raw_.translation()(2) << "\t"
-    //     << master_lhand_pose_.translation()(0) << "\t" << master_lhand_pose_.translation()(1) << "\t" << master_lhand_pose_.translation()(2) << "\t" << master_rhand_pose_.translation()(0) << "\t" << master_rhand_pose_.translation()(1) << "\t" << master_rhand_pose_.translation()(2) << "\t"
-    //     << master_lhand_rqy_(0) << "\t" << master_lhand_rqy_(1) << "\t" << master_lhand_rqy_(2) << "\t" << master_rhand_rqy_(0) << "\t" << master_rhand_rqy_(1) << "\t" << master_rhand_rqy_(2) << "\t"
-    //     << hmd_lupperarm_pose_.translation()(0) << "\t" << hmd_lupperarm_pose_.translation()(1) << "\t" << hmd_lupperarm_pose_.translation()(2) << "\t" << hmd_rupperarm_pose_.translation()(0) << "\t" << hmd_rupperarm_pose_.translation()(1) << "\t" << hmd_rupperarm_pose_.translation()(2) << "\t"
-    //     << master_lelbow_pose_raw_.translation()(0) << "\t" << master_lelbow_pose_raw_.translation()(1) << "\t" << master_lelbow_pose_raw_.translation()(2) << "\t" << master_relbow_pose_raw_.translation()(0) << "\t" << master_relbow_pose_raw_.translation()(1) << "\t" << master_relbow_pose_raw_.translation()(2) << "\t"
-    //     << master_lelbow_pose_.translation()(0) << "\t" << master_lelbow_pose_.translation()(1) << "\t" << master_lelbow_pose_.translation()(2) << "\t" << master_relbow_pose_.translation()(0) << "\t" << master_relbow_pose_.translation()(1) << "\t" << master_relbow_pose_.translation()(2) << "\t"
-    //     << master_lelbow_rqy_(0) << "\t" << master_lelbow_rqy_(1) << "\t" << master_lelbow_rqy_(2) << "\t" << master_relbow_rqy_(0) << "\t" << master_relbow_rqy_(1) << "\t" << master_relbow_rqy_(2) << "\t"
-    //     << hmd_lshoulder_pose_.translation()(0) << "\t" << hmd_lshoulder_pose_.translation()(1) << "\t" << hmd_lshoulder_pose_.translation()(2) << "\t" << hmd_rshoulder_pose_.translation()(0) << "\t" << hmd_rshoulder_pose_.translation()(1) << "\t" << hmd_rshoulder_pose_.translation()(2) << "\t"
-    //     << master_lshoulder_pose_raw_.translation()(0) << "\t" << master_lshoulder_pose_raw_.translation()(1) << "\t" << master_lshoulder_pose_raw_.translation()(2) << "\t" << master_rshoulder_pose_raw_.translation()(0) << "\t" << master_rshoulder_pose_raw_.translation()(1) << "\t" << master_rshoulder_pose_raw_.translation()(2) << "\t"
-    //     << master_lshoulder_pose_.translation()(0) << "\t" << master_lshoulder_pose_.translation()(1) << "\t" << master_lshoulder_pose_.translation()(2) << "\t" << master_rshoulder_pose_.translation()(0) << "\t" << master_rshoulder_pose_.translation()(1) << "\t" << master_rshoulder_pose_.translation()(2) << "\t"
-    //     << master_lshoulder_rqy_(0) << "\t" << master_lshoulder_rqy_(1) << "\t" << master_lshoulder_rqy_(2) << "\t" << master_rshoulder_rqy_(0) << "\t" << master_rshoulder_rqy_(1) << "\t" << master_rshoulder_rqy_(2) << "\t"
-    //     << hmd_head_pose_.translation()(0) << "\t" << hmd_head_pose_.translation()(1) << "\t" << hmd_head_pose_.translation()(2) << "\t"
-    //     << master_head_pose_raw_.translation()(0) << "\t" << master_head_pose_raw_.translation()(1) << "\t" << master_head_pose_raw_.translation()(2) << "\t"
-    //     << master_head_pose_.translation()(0) << "\t" << master_head_pose_.translation()(1) << "\t" << master_head_pose_.translation()(2) << "\t"
-    //     << master_head_rqy_(0) << "\t" << master_head_rqy_(1) << "\t" << master_head_rqy_(2) << "\t"
-    //     << hmd_pelv_pose_.translation()(0) << "\t" << hmd_pelv_pose_.translation()(1) << "\t" << hmd_pelv_pose_.translation()(2) << endl;
+    //     << master_lhand_pose_raw_.translation()(0) << "\t" << master_lhand_pose_raw_.translation()(1) << "\t" << master_lhand_pose_raw_.translation()(2) << "\t" << master_rhand_pose_raw_.translation()(0) << "\t" << master_rhand_pose_raw_.translation()(1) << "\t" << master_rhand_pose_raw_.translation()(2) << endl;
+        // << master_lhand_pose_.translation()(0) << "\t" << master_lhand_pose_.translation()(1) << "\t" << master_lhand_pose_.translation()(2) << "\t" << master_rhand_pose_.translation()(0) << "\t" << master_rhand_pose_.translation()(1) << "\t" << master_rhand_pose_.translation()(2) << endl;
+        // << master_lhand_rqy_(0) << "\t" << master_lhand_rqy_(1) << "\t" << master_lhand_rqy_(2) << "\t" << master_rhand_rqy_(0) << "\t" << master_rhand_rqy_(1) << "\t" << master_rhand_rqy_(2) << "\t"
+        // << hmd_lupperarm_pose_.translation()(0) << "\t" << hmd_lupperarm_pose_.translation()(1) << "\t" << hmd_lupperarm_pose_.translation()(2) << "\t" << hmd_rupperarm_pose_.translation()(0) << "\t" << hmd_rupperarm_pose_.translation()(1) << "\t" << hmd_rupperarm_pose_.translation()(2) << "\t"
+        // << master_lelbow_pose_raw_.translation()(0) << "\t" << master_lelbow_pose_raw_.translation()(1) << "\t" << master_lelbow_pose_raw_.translation()(2) << "\t" << master_relbow_pose_raw_.translation()(0) << "\t" << master_relbow_pose_raw_.translation()(1) << "\t" << master_relbow_pose_raw_.translation()(2) << "\t"
+        // << master_lelbow_pose_.translation()(0) << "\t" << master_lelbow_pose_.translation()(1) << "\t" << master_lelbow_pose_.translation()(2) << "\t" << master_relbow_pose_.translation()(0) << "\t" << master_relbow_pose_.translation()(1) << "\t" << master_relbow_pose_.translation()(2) << "\t"
+        // << master_lelbow_rqy_(0) << "\t" << master_lelbow_rqy_(1) << "\t" << master_lelbow_rqy_(2) << "\t" << master_relbow_rqy_(0) << "\t" << master_relbow_rqy_(1) << "\t" << master_relbow_rqy_(2) << "\t"
+        // << hmd_lshoulder_pose_.translation()(0) << "\t" << hmd_lshoulder_pose_.translation()(1) << "\t" << hmd_lshoulder_pose_.translation()(2) << "\t" << hmd_rshoulder_pose_.translation()(0) << "\t" << hmd_rshoulder_pose_.translation()(1) << "\t" << hmd_rshoulder_pose_.translation()(2) << "\t"
+        // << master_lshoulder_pose_raw_.translation()(0) << "\t" << master_lshoulder_pose_raw_.translation()(1) << "\t" << master_lshoulder_pose_raw_.translation()(2) << "\t" << master_rshoulder_pose_raw_.translation()(0) << "\t" << master_rshoulder_pose_raw_.translation()(1) << "\t" << master_rshoulder_pose_raw_.translation()(2) << "\t"
+        // << master_lshoulder_pose_.translation()(0) << "\t" << master_lshoulder_pose_.translation()(1) << "\t" << master_lshoulder_pose_.translation()(2) << "\t" << master_rshoulder_pose_.translation()(0) << "\t" << master_rshoulder_pose_.translation()(1) << "\t" << master_rshoulder_pose_.translation()(2) << "\t"
+        // << master_lshoulder_rqy_(0) << "\t" << master_lshoulder_rqy_(1) << "\t" << master_lshoulder_rqy_(2) << "\t" << master_rshoulder_rqy_(0) << "\t" << master_rshoulder_rqy_(1) << "\t" << master_rshoulder_rqy_(2) << "\t"
+        // << hmd_head_pose_.translation()(0) << "\t" << hmd_head_pose_.translation()(1) << "\t" << hmd_head_pose_.translation()(2) << "\t"
+        // << master_head_pose_raw_.translation()(0) << "\t" << master_head_pose_raw_.translation()(1) << "\t" << master_head_pose_raw_.translation()(2) << "\t"
+        // << master_head_pose_.translation()(0) << "\t" << master_head_pose_.translation()(1) << "\t" << master_head_pose_.translation()(2) << "\t"
+        // << master_head_rqy_(0) << "\t" << master_head_rqy_(1) << "\t" << master_head_rqy_(2) << "\t"
+        // << hmd_pelv_pose_.translation()(0) << "\t" << hmd_pelv_pose_.translation()(1) << "\t" << hmd_pelv_pose_.translation()(2) << endl;
 
     // file[12]
     //     << lhand_pos_error_(0) << "\t" << lhand_pos_error_(1) << "\t" << lhand_pos_error_(2) << "\t" << rhand_pos_error_(0) << "\t" << rhand_pos_error_(1) << "\t" << rhand_pos_error_(2) << "\t"
@@ -10937,11 +10954,29 @@ void AvatarController::getRobotState()
     com_support_current_dot_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot);
     com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
 
-    // l_ft_: external wrench
-    // rd_.LF_FT: generated wrench by the robot
-    l_ft_ = -rd_.LF_FT;
-    r_ft_ = -rd_.RF_FT;
 
+    //FOR REAL ROBOT
+    // l_ft : generated force by robot
+    // l_ft_ = -rd_.LF_FT; 
+    // r_ft_ = -rd_.RF_FT;
+
+    //FOR SIMULATION
+    l_ft_ = rd_.LF_FT; 
+    r_ft_ = rd_.RF_FT;
+    
+     if(walking_tick_mj == 0)
+    { l_ft_LPF = l_ft_; r_ft_LPF = r_ft_; }
+    
+    l_ft_LPF = 1/(1+2*M_PI*6.0*del_t)*l_ft_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*l_ft_;
+    r_ft_LPF = 1/(1+2*M_PI*6.0*del_t)*r_ft_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*r_ft_; 
+
+    // if( walking_tick_mj % 1000 == 0 )
+    // {
+    //     cout<<"l_ft_: "<<l_ft_.transpose()<<endl;
+    //     cout<<"r_ft_: "<<r_ft_.transpose()<<endl;
+    // }
+
+    //MJ_graph << l_ft_LPF(2) << "," << l_ft_LPF(3) << "," << l_ft_LPF(4) << "," << r_ft_LPF(2) << "," << r_ft_LPF(3) << "," << r_ft_LPF(4) << endl;
     Eigen::Vector2d left_zmp, right_zmp;
 
     left_zmp(0) = l_ft_(4) / l_ft_(2) + lfoot_support_current_.translation()(0);
@@ -11258,18 +11293,18 @@ void AvatarController::calculateFootStepTotal_MJ()
     initial_rot = atan2(target_y_, target_x_);
 
     if (initial_rot > 0.0)
-        initial_drot = 10 * DEG2RAD;
+        initial_drot = 20 * DEG2RAD;
     else
-        initial_drot = -10 * DEG2RAD;
+        initial_drot = -20 * DEG2RAD;
 
     unsigned int initial_total_step_number = initial_rot / initial_drot;
     double initial_residual_angle = initial_rot - initial_total_step_number * initial_drot;
 
     final_rot = target_theta_ - initial_rot;
     if (final_rot > 0.0)
-        final_drot = 10 * DEG2RAD;
+        final_drot = 20 * DEG2RAD;
     else
-        final_drot = -10 * DEG2RAD;
+        final_drot = -20 * DEG2RAD;
 
     unsigned int final_total_step_number = final_rot / final_drot;
     double final_residual_angle = final_rot - final_total_step_number * final_drot;
@@ -11286,7 +11321,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 6; //total foot step number
+        middle_total_step_number = 50; //total foot step number
         dlength = 0;
     }
 
@@ -11792,8 +11827,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.02;
-    rfoot_zmp_offset_ = 0.02;
+    lfoot_zmp_offset_ = -0.025; // 0.9 초
+    rfoot_zmp_offset_ = 0.025;
+
+    // lfoot_zmp_offset_ = -0.02; // 1.1 초
+    // rfoot_zmp_offset_ = 0.02;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -12026,8 +12064,8 @@ void AvatarController::getFootTrajectory()
             lfoot_trajectory_euler_support_ = lfoot_support_euler_init_;
         }
 
-        lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
-        rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+        lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
+        rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);        
     }
     else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
     {
@@ -12037,8 +12075,9 @@ void AvatarController::getFootTrajectory()
         {
             lfoot_trajectory_support_.translation() = lfoot_support_init_.translation();
             lfoot_trajectory_euler_support_.setZero();
-
-            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+            
+            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
 
             if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + (t_total_ - t_rest_init_ - t_rest_last_ - t_double1_ - t_double2_) / 2.0)
             {
@@ -12057,15 +12096,15 @@ void AvatarController::getFootTrajectory()
             rfoot_trajectory_euler_support_(0) = 0;
             rfoot_trajectory_euler_support_(1) = 0;
             rfoot_trajectory_euler_support_(2) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_total_ - t_rest_last_ - t_double2_, rfoot_support_euler_init_(2), target_swing_foot(5), 0.0, 0.0);
-            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);
         }
         else if (foot_step_(current_step_num_, 6) == 0)
         {
             rfoot_trajectory_support_.translation() = rfoot_support_init_.translation();
             rfoot_trajectory_euler_support_.setZero();
 
-            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
-
+            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);
+ 
             if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + (t_total_ - t_rest_init_ - t_rest_last_ - t_double1_ - t_double2_) / 2.0)
             {
                 lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_mj, t_start_real_ + t_double1_ + t_rest_temp, t_start_real_ + t_double1_ + (t_total_ - t_rest_init_ - t_rest_last_ - t_double1_ - t_double2_) / 2.0, 0, foot_height_, 0.0, 0.0);
@@ -12083,7 +12122,8 @@ void AvatarController::getFootTrajectory()
             lfoot_trajectory_euler_support_(0) = 0;
             lfoot_trajectory_euler_support_(1) = 0;
             lfoot_trajectory_euler_support_(2) = DyrosMath::cubic(walking_tick_mj, t_start_real_ + t_double1_, t_start_ + t_total_ - t_rest_last_ - t_double2_, lfoot_support_euler_init_(2), target_swing_foot(5), 0.0, 0.0);
-            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
         }
     }
     else
@@ -12091,26 +12131,33 @@ void AvatarController::getFootTrajectory()
         if (foot_step_(current_step_num_, 6) == 1)
         {
             lfoot_trajectory_euler_support_.setZero();
-            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
-
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
+     
             for (int i = 0; i < 3; i++)
             {
                 rfoot_trajectory_support_.translation()(i) = target_swing_foot(i);
                 rfoot_trajectory_euler_support_(i) = target_swing_foot(i + 3);
             }
-            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+            
+            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);
+            //rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
         }
         else if (foot_step_(current_step_num_, 6) == 0)
         {
             rfoot_trajectory_euler_support_.setZero();
-            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);
+
+            //rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
 
             for (int i = 0; i < 3; i++)
             {
                 lfoot_trajectory_support_.translation()(i) = target_swing_foot(i);
                 lfoot_trajectory_euler_support_(i) = target_swing_foot(i + 3);
             }
-            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
+
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
         }
     }
 }
@@ -12265,6 +12312,9 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
         py_ref(i) = ref_zmp_mj_(i, 1);
     }
 
+    ZMP_X_REF = px_ref(tick);
+    ZMP_Y_REF = py_ref(tick);
+
     Eigen::VectorXd px, py;
     px.resize(1);
     py.resize(1);
@@ -12348,11 +12398,11 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
 
     SC_err_compen(com_support_current_(0), com_support_current_(1));
 
-    cp_measured_(0) = com_support_cp_(0) + com_support_current_dot_LPF(0) / wn;
-    cp_measured_(1) = com_support_current_(1) + com_support_current_dot_LPF(1) / wn;
+    cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
+    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
 
-    del_zmp(0) = 1.01 * (cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.1 * (cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
     // cout  << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
@@ -12451,15 +12501,15 @@ void AvatarController::getPelvTrajectory()
     }
 
     P_angle_input_dot = 1.5 * (0.0 - P_angle) - 0.01 * P_angle_input;
-    // R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
+    R_angle_input_dot = 2.0 * (0.0 - R_angle) - 0.01*R_angle_input;
 
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
-    // R_angle_input = R_angle_input + R_angle_input_dot*del_t;
+    R_angle_input = R_angle_input + R_angle_input_dot*del_t;
 
-    // if(R_angle_input > 0.0262) //1.5 degree
-    // { R_angle_input = 0.0262; }
-    // else if(R_angle_input < -0.0262)
-    // { R_angle_input = -0.0262; }
+    if(R_angle_input > 3 * DEG2RAD) //1.5 degree
+    { R_angle_input = 3 * DEG2RAD; }
+    else if(R_angle_input < -3 * DEG2RAD)
+    { R_angle_input = -3 * DEG2RAD; }
 
     if (P_angle_input > 5 * DEG2RAD) //5 degree
     {
@@ -12486,6 +12536,9 @@ void AvatarController::supportToFloatPattern()
     pelv_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * pelv_trajectory_support_;
     lfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * lfoot_trajectory_support_;
     rfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * rfoot_trajectory_support_;
+
+    rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
+    lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
 }
 
 void AvatarController::getComTrajectory()
@@ -12758,30 +12811,41 @@ void AvatarController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.08;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
+    
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
 
-    // 1.4 Hz 실험
-    t_rest_init_ = 0.27 * hz_;
-    t_rest_last_ = 0.27 * hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
-    t_total_ = 1.3 * hz_;
+    t_total_ = 0.9 * hz_;
 
-    // t_rest_init_ = 0.23*hz_;
-    // t_rest_last_ = 0.23*hz_;
-    // t_double1_ = 0.02*hz_;
-    // t_double2_ = 0.02*hz_;
-    // t_total_= 1.2*hz_;
+    // t_rest_init_ = 0.2 * hz_; // slack
+    // t_rest_last_ = 0.2 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 1.1 * hz_;
 
-    t_temp_ = 4.0 * hz_;
+    // t_rest_init_ = 0.24*hz_;
+    // t_rest_last_ = 0.24*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.1*hz_;
+
+    t_temp_ = 2.0 * hz_;
     t_last_ = t_total_ + t_temp_;
     t_start_ = t_temp_ + 1;
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.055;      // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.05;      // 0.9 sec 0.05
     pelv_height_offset_ = 0.0; // change pelvis height for manipulation when the robot stop walking
 }
 
@@ -12949,8 +13013,8 @@ void AvatarController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void AvatarController::hip_compensator()
 {
-    double left_hip_roll = -0.0 * DEG2RAD, right_hip_roll = -0.0 * DEG2RAD, left_hip_roll_first = -0.00 * DEG2RAD, right_hip_roll_first = -0.00 * DEG2RAD, //실험, 제자리 0.6, 0.4
-        left_hip_pitch = 0.0 * DEG2RAD, right_hip_pitch = 0.0 * DEG2RAD, left_hip_pitch_first = 0.00 * DEG2RAD, right_hip_pitch_first = 0.00 * DEG2RAD,    // 실험 , 제자리 0.75deg
+    double left_hip_roll = -0.2 * DEG2RAD, right_hip_roll = -0.2 * DEG2RAD, left_hip_roll_first = -0.20 * DEG2RAD, right_hip_roll_first = -0.20 * DEG2RAD, //실험, 제자리 0.6, 0.4
+        left_hip_pitch = 0.4 * DEG2RAD, right_hip_pitch = 0.4 * DEG2RAD, left_hip_pitch_first = 0.40 * DEG2RAD, right_hip_pitch_first = 0.40 * DEG2RAD,    // 실험 , 제자리 0.75deg
         left_ank_pitch = 0.0 * DEG2RAD, right_ank_pitch = 0.0 * DEG2RAD, left_ank_pitch_first = 0.0 * DEG2RAD, right_ank_pitch_first = 0.0 * DEG2RAD,
            left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05 * hz_;
 
@@ -13184,6 +13248,220 @@ void AvatarController::CP_compen_MJ()
     Tau_CP(5) = -F_L * del_zmp(1);  // L roll
     Tau_CP(11) = -F_R * del_zmp(1); // R roll
 }
+
+void AvatarController::CP_compen_MJ_FT()
+{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
+  double alpha = 0;
+  double F_R = 0, F_L = 0;
+  double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
+  double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0 ;
+  double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
+  double alpha_new = 0;
+
+  zmp_offset = 0.025; // 0.9초
+//   zmp_offset = 0.02; // 1.1초 
+  // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
+  // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
+  if(walking_tick_mj > t_temp_)
+  {
+    if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset*(walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_)/(t_rest_init_ + t_double1_);
+      }  
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset*(walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_)/(t_rest_init_ + t_double1_);
+      }
+    }
+    else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset ;
+      }
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset ;
+      } 
+    }
+    else if(walking_tick_mj >= t_start_ + t_total_ - t_double2_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset - zmp_offset*(walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_))/(t_rest_last_ + t_double2_)  ;
+      }  
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset + zmp_offset*(walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_))/(t_rest_last_ + t_double2_);
+      }   
+    }
+    else
+    {
+      ZMP_Y_REF_alpha = ZMP_Y_REF ;
+    }
+  }    
+  else
+  {
+    ZMP_Y_REF_alpha = ZMP_Y_REF ;
+  }
+
+  ////////////////////////
+//   double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
+//   A =  (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
+//   B = -(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+//   X1 = ZMP_Y_REF_alpha + 0*del_zmp(1) - rfoot_support_current_.translation()(1);
+//   Y1 = ZMP_X_REF + 0*del_zmp(0) - rfoot_support_current_.translation()(0);
+//   L = sqrt(A*A + B*B);
+//   d = abs(A*X1 + B*Y1) / L;
+//   e_2 = X1*X1 + Y1*Y1;
+//   l = sqrt(e_2 - d*d);
+//   alpha_new = l/L; 
+  alpha = (ZMP_Y_REF_alpha + 0*del_zmp(1) - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+  //cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
+  // 로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨. 
+  if(alpha > 1)
+  { alpha = 1; } // 왼발 지지때 alpha = 1
+  else if(alpha < 0)
+  { alpha = 0; }
+//   if(alpha_new > 1)
+//   { alpha_new = 1; } // 왼발 지지때 alpha = 1
+//   else if(alpha_new < 0)
+//   { alpha_new = 0; }
+
+  double real_robot_mass_offset_ =  42; //42
+
+  F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 15);
+  F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임. 
+
+  if(walking_tick_mj == 0)
+  { F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
+  
+  //////////// Force
+  F_F_input_dot = 0.0001*((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 3.0*F_F_input; // 0.9초 0.0001/ 3.0
+
+  F_F_input = F_F_input + F_F_input_dot*del_t;
+
+//   if(F_F_input >= 0.02) // 1.1초 0.02
+//   {
+//     F_F_input = 0.02;
+//   }
+//   else if(F_F_input <= -0.02)
+//   {
+//     F_F_input = -0.02;
+//   }
+  if(F_F_input >= 0.01) // 0.9초 0.01
+  {
+    F_F_input = 0.01;
+  }
+  else if(F_F_input <= -0.01)
+  {
+    F_F_input = -0.01;
+  }
+  //MJ_graph << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
+  
+  //////////// Torque
+  // X,Y 축을 X,Y 방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
+  Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha + del_zmp(1))) * F_L) ;
+  Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_L) ;
+  
+  if(Tau_all_x > 100)
+  { Tau_all_x = 100; }
+  else if(Tau_all_x < -100)
+  { Tau_all_x = -100; }
+
+  if(Tau_all_y > 100)
+  { Tau_all_y = 100; }
+  else if(Tau_all_y < -100)
+  { Tau_all_y = -100; }
+  
+  Tau_R_x = (1 - alpha) * Tau_all_x;
+  Tau_L_x = (alpha) * Tau_all_x;
+
+  Tau_L_y = -alpha * Tau_all_y ;
+  Tau_R_y = -(1-alpha) * Tau_all_y ;   
+
+  double Kr_roll = 0.0, Kl_roll = 0.0;
+  double Kr_pitch = 0.0, Kl_pitch = 0.0;
+
+  if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+  {
+    Kr_roll = 20.0;
+    Kl_roll = 20.0;
+    Kr_pitch = 20.0;
+    Kl_pitch = 20.0;    
+  }
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+  {
+    if(alpha == 1) // 왼발 지지
+    {
+      Kl_roll = 20.0;
+      Kr_roll = 50.0;
+      Kl_pitch = 20.0;
+      Kr_pitch = 50.0;
+    }    
+    if(alpha == 0) // 오른발 지지
+    {
+      Kl_roll = 50.0;
+      Kr_roll = 20.0;
+      Kl_pitch = 50.0;
+      Kr_pitch = 20.0;
+    }
+  }
+  else
+  {
+    Kr_roll = 20.0;
+    Kl_roll = 20.0;
+    Kr_pitch = 20.0;
+    Kl_pitch = 20.0;
+  }
+  
+  //Roll 방향 (-0.02/-30 0.9초)
+  F_T_L_x_input_dot = -0.02*(Tau_L_x - l_ft_LPF(3)) - 30*F_T_L_x_input; 
+  F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
+//   F_T_L_x_input = 0;   
+  F_T_R_x_input_dot = -0.02*(Tau_R_x - r_ft_LPF(3)) - 30*F_T_R_x_input; 
+  F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
+//   F_T_R_x_input = 0;
+  
+  //Pitch 방향  (0.005/-30 0.9초)
+  F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - 30*F_T_L_y_input; 
+  F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t; 
+//   F_T_L_y_input = 0;
+  F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - 30*F_T_R_y_input; 
+  F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
+//   F_T_R_y_input = 0; 
+  //MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl; 
+  //MJ_graph << F_T_L_x_input << "," << F_T_R_x_input << "," <<  F_T_L_y_input << "," <<  F_T_R_y_input << "," << F_F_input << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
+  if(F_T_L_x_input >= 0.1) // 5 deg limit
+  { F_T_L_x_input = 0.1; }
+  else if(F_T_L_x_input < -0.1)
+  { F_T_L_x_input = -0.1; }
+  
+  if(F_T_R_x_input >= 0.1) // 5 deg limit
+  { F_T_R_x_input = 0.1; }
+  else if(F_T_R_x_input < -0.1)
+  { F_T_R_x_input = -0.1; }
+  
+  if(F_T_L_y_input >= 0.1) // 5 deg limit
+  { F_T_L_y_input = 0.1; }
+  else if(F_T_L_y_input < -0.1)
+  { F_T_L_y_input = -0.1; }
+  
+  if(F_T_R_y_input >= 0.1) // 5 deg limit
+  { F_T_R_y_input = 0.1; }
+  else if(F_T_R_y_input < -0.1)
+  { F_T_R_y_input = -0.1; }
+
+  //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
+  //MJ_graph << alpha << "," << alpha_new << endl;
+  //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
+  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_LPF(3) << "," << r_ft_LPF(3) << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_F_input << endl;
+  //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
+  //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
+}
+
 void AvatarController::updateInitialStateJoy()
 {
     if (walking_tick_mj == 0)
@@ -13367,8 +13645,8 @@ void AvatarController::updateInitialStateJoy()
 void AvatarController::calculateFootStepTotal_MJoy()
 {
     double width = 0.1225;
-    double length = 0.07;
-    double lengthb = 0.05;
+    double length = 0.00;
+    double lengthb = 0.00;
     double theta = 10 * DEG2RAD;
     double width_buffer = 0.0;
     double temp;
