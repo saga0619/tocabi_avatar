@@ -14,8 +14,8 @@
 #include <fstream>
 
 //lexls
-#include <lexls/lexlsi.h>
-#include <lexls/tools.h>
+// #include <lexls/lexlsi.h>
+// #include <lexls/tools.h>
 // #include <lexls>
 
 #include <iomanip>
@@ -88,15 +88,15 @@ public:
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
     //lQR-HQP (Lexls)
-    LexLS::tools::HierarchyType type_of_hierarchy;
-    LexLS::Index number_of_variables;
-    LexLS::Index number_of_objectives;
-    std::vector<LexLS::Index> number_of_constraints;
-    std::vector<LexLS::ObjectiveType> types_of_objectives;
-    std::vector<Eigen::MatrixXd> objectives;
-    LexLS::ParametersLexLSI parameters;
+    // LexLS::tools::HierarchyType type_of_hierarchy;
+    // LexLS::Index number_of_variables;
+    // LexLS::Index number_of_objectives;
+    // std::vector<LexLS::Index> number_of_constraints;
+    // std::vector<LexLS::ObjectiveType> types_of_objectives;
+    // std::vector<Eigen::MatrixXd> objectives;
+    // LexLS::ParametersLexLSI parameters;
 
-    LexLS::internal::LexLSI lsi_;
+    // LexLS::internal::LexLSI lsi_;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -130,11 +130,12 @@ public:
 
     //estimator
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
-    Eigen::VectorXd momentumObserverFbInternal(VectorXd current_torque, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
-    Eigen::VectorXd momentumObserverFbExternal(Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
 
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
+    void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM); //angular only
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -152,7 +153,7 @@ public:
     void motionRetargeting_QPIK_wholebody();
     void motionRetargeting_HQPIK();
     void motionRetargeting_HQPIK2();
-    void motionRetargeting_HQPIK_lexls();
+    // void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
     void exoSuitRawDataProcessing();
     void azureKinectRawDataProcessing();

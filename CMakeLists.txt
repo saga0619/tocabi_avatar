@@ -10,7 +10,7 @@ tocabi_msgs
 eigen_conversions
 )
 
-find_package(lexls REQUIRED)
+# find_package(lexls REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -37,7 +37,7 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC lexls::lexls)
+# target_link_libraries(${PROJECT_NAME} PUBLIC lexls::lexls)
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
