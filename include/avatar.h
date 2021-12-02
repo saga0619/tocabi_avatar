@@ -130,12 +130,14 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     //estimator
+    void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
-    Eigen::VectorXd momentumObserverFbInternal(VectorXd current_torque, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
-    Eigen::VectorXd momentumObserverFbExternal(Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
 
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
+    void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM); //angular only
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
