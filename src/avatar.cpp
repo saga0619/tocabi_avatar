@@ -2,7 +2,7 @@
 #include <fstream>
 using namespace TOCABI;
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
 // ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
@@ -368,24 +368,24 @@ void AvatarController::setGains()
     kp_stiff_joint_(12) = 6000; //waist
     kp_stiff_joint_(13) = 10000;
     kp_stiff_joint_(14) = 10000;
-    kp_stiff_joint_(15) = 400; //left arm
-    kp_stiff_joint_(16) = 800;
-    kp_stiff_joint_(17) = 400;
-    kp_stiff_joint_(18) = 400;
-    kp_stiff_joint_(19) = 250;
-    kp_stiff_joint_(20) = 250;
-    kp_stiff_joint_(21) = 50;
-    kp_stiff_joint_(22) = 50;
+    kp_stiff_joint_(15) = 200; //left arm
+    kp_stiff_joint_(16) = 400;
+    kp_stiff_joint_(17) = 200;
+    kp_stiff_joint_(18) = 200;
+    kp_stiff_joint_(19) = 125;
+    kp_stiff_joint_(20) = 125;
+    kp_stiff_joint_(21) = 25;
+    kp_stiff_joint_(22) = 25;
     kp_stiff_joint_(23) = 50; //head
     kp_stiff_joint_(24) = 50;
-    kp_stiff_joint_(25) = 400; //right arm
-    kp_stiff_joint_(26) = 800;
-    kp_stiff_joint_(27) = 400;
-    kp_stiff_joint_(28) = 400;
-    kp_stiff_joint_(29) = 250;
-    kp_stiff_joint_(30) = 250;
-    kp_stiff_joint_(31) = 50;
-    kp_stiff_joint_(32) = 50;
+    kp_stiff_joint_(25) = 200; //right arm
+    kp_stiff_joint_(26) = 400;
+    kp_stiff_joint_(27) = 200;
+    kp_stiff_joint_(28) = 200;
+    kp_stiff_joint_(29) = 125;
+    kp_stiff_joint_(30) = 125;
+    kp_stiff_joint_(31) = 25;
+    kp_stiff_joint_(32) = 25;
 
     kv_stiff_joint_(0) = 15; //right leg
     kv_stiff_joint_(1) = 50;
@@ -402,30 +402,97 @@ void AvatarController::setGains()
     kv_stiff_joint_(12) = 200; //waist
     kv_stiff_joint_(13) = 100;
     kv_stiff_joint_(14) = 100;
-    kv_stiff_joint_(15) = 10; //left arm
-    kv_stiff_joint_(16) = 10;
-    kv_stiff_joint_(17) = 10;
-    kv_stiff_joint_(18) = 10;
+    kv_stiff_joint_(15) = 7; //left arm
+    kv_stiff_joint_(16) = 5;
+    kv_stiff_joint_(17) = 2.5;
+    kv_stiff_joint_(18) = 2.5;
     kv_stiff_joint_(19) = 2.5;
     kv_stiff_joint_(20) = 2;
     kv_stiff_joint_(21) = 2;
     kv_stiff_joint_(22) = 2;
     kv_stiff_joint_(23) = 2; //head
     kv_stiff_joint_(24) = 2;
-    kv_stiff_joint_(25) = 10; //right arm
-    kv_stiff_joint_(26) = 10;
-    kv_stiff_joint_(27) = 10;
-    kv_stiff_joint_(28) = 10;
+    kv_stiff_joint_(25) = 7; //right arm
+    kv_stiff_joint_(26) = 5;
+    kv_stiff_joint_(27) = 2.5;
+    kv_stiff_joint_(28) = 2.5;
     kv_stiff_joint_(29) = 2.5;
     kv_stiff_joint_(30) = 2;
     kv_stiff_joint_(31) = 2;
     kv_stiff_joint_(32) = 2;
 
-    for (int i = 0; i < MODEL_DOF; i++)
-    {
-        kp_soft_joint_(i) = kp_stiff_joint_(i) / 4;
-        kp_soft_joint_(i) = kv_stiff_joint_(i) / 2;
-    }
+    kp_soft_joint_(0) = 2000; //right leg
+    kp_soft_joint_(1) = 5000;
+    kp_soft_joint_(2) = 4000;
+    kp_soft_joint_(3) = 3700;
+    kp_soft_joint_(4) = 5000;
+    kp_soft_joint_(5) = 5000;
+    kp_soft_joint_(6) = 2000; //left leg
+    kp_soft_joint_(7) = 5000;
+    kp_soft_joint_(8) = 4000;
+    kp_soft_joint_(9) = 3700;
+    kp_soft_joint_(10) = 5000;
+    kp_soft_joint_(11) = 5000;
+    kp_soft_joint_(12) = 6000; //waist
+    kp_soft_joint_(13) = 10000;
+    kp_soft_joint_(14) = 10000;
+    kp_soft_joint_(15) = 200; //left arm
+    kp_soft_joint_(16) = 80;
+    kp_soft_joint_(17) = 60;
+    kp_soft_joint_(18) = 60;
+    kp_soft_joint_(19) = 60;
+    kp_soft_joint_(20) = 60;
+    kp_soft_joint_(21) = 20;
+    kp_soft_joint_(22) = 20;
+    kp_soft_joint_(23) = 50; //head
+    kp_soft_joint_(24) = 50;
+    kp_soft_joint_(25) = 200; //right arm
+    kp_soft_joint_(26) = 80;
+    kp_soft_joint_(27) = 60;
+    kp_soft_joint_(28) = 60;
+    kp_soft_joint_(29) = 60;
+    kp_soft_joint_(30) = 60;
+    kp_soft_joint_(31) = 20;
+    kp_soft_joint_(32) = 20;
+
+    kv_soft_joint_(0) = 15; //right leg
+    kv_soft_joint_(1) = 50;
+    kv_soft_joint_(2) = 20;
+    kv_soft_joint_(3) = 25;
+    kv_soft_joint_(4) = 30;
+    kv_soft_joint_(5) = 30;
+    kv_soft_joint_(6) = 15; //left leg
+    kv_soft_joint_(7) = 50;
+    kv_soft_joint_(8) = 20;
+    kv_soft_joint_(9) = 25;
+    kv_soft_joint_(10) = 30;
+    kv_soft_joint_(11) = 30;
+    kv_soft_joint_(12) = 200; //waist
+    kv_soft_joint_(13) = 100;
+    kv_soft_joint_(14) = 100;
+    kv_soft_joint_(15) = 7; //left arm
+    kv_soft_joint_(16) = 5;
+    kv_soft_joint_(17) = 2.5;
+    kv_soft_joint_(18) = 2.5;
+    kv_soft_joint_(19) = 2.5;
+    kv_soft_joint_(20) = 2;
+    kv_soft_joint_(21) = 2;
+    kv_soft_joint_(22) = 2;
+    kv_soft_joint_(23) = 2; //head
+    kv_soft_joint_(24) = 2;
+    kv_soft_joint_(25) = 7; //right arm
+    kv_soft_joint_(26) = 5;
+    kv_soft_joint_(27) = 2.5;
+    kv_soft_joint_(28) = 2.5;
+    kv_soft_joint_(29) = 2.5;
+    kv_soft_joint_(30) = 2;
+    kv_soft_joint_(31) = 2;
+    kv_soft_joint_(32) = 2;
+    // for (int i = 0; i < MODEL_DOF; i++)
+    // {
+    //     kp_soft_joint_(i) = kp_stiff_joint_(i) / 4;
+    //     kp_soft_joint_(i) = kv_stiff_joint_(i) / 2;
+    // }
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
@@ -469,8 +536,8 @@ void AvatarController::setGains()
     joint_limit_h_(19) = -10 * DEG2RAD;
     joint_limit_l_(20) = -180 * DEG2RAD;
     joint_limit_h_(20) = 180 * DEG2RAD;
-    joint_limit_l_(21) = -90 * DEG2RAD;
-    joint_limit_h_(21) = 90 * DEG2RAD;
+    joint_limit_l_(21) = -70 * DEG2RAD;
+    joint_limit_h_(21) = 70 * DEG2RAD;
     joint_limit_l_(22) = -60 * DEG2RAD;
     joint_limit_h_(22) = 60 * DEG2RAD;
     //HEAD
@@ -491,8 +558,8 @@ void AvatarController::setGains()
     joint_limit_h_(29) = 150 * DEG2RAD;
     joint_limit_l_(30) = -180 * DEG2RAD;
     joint_limit_h_(30) = 180 * DEG2RAD;
-    joint_limit_l_(31) = -90 * DEG2RAD;
-    joint_limit_h_(31) = 90 * DEG2RAD;
+    joint_limit_l_(31) = -70 * DEG2RAD;
+    joint_limit_h_(31) = 70 * DEG2RAD;
     joint_limit_l_(32) = -60 * DEG2RAD;
     joint_limit_h_(32) = 60 * DEG2RAD;
 
@@ -575,9 +642,11 @@ void AvatarController::computeSlow()
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
         }
 
-        // l_ft_ = rd_.LF_FT;
-        // r_ft_ = rd_.RF_FT;       
-        // cout << l_ft_(2) << "," << r_ft_(2) << endl;
+        l_ft_ = rd_.LF_FT;  //Fz: generated by robot,  Fx:   , Fy:    Mx: ,   My: , Mz:
+        r_ft_ = rd_.RF_FT;    
+
+        if( int(rd_.control_time_*2000)%1000 == 0)   
+            cout << "l_ft: "<<l_ft_.transpose() << "\n r_ft_: " << r_ft_.transpose() << endl;
         // MJ_graph << l_ft_(2) << "," << r_ft_(2) << endl;
 
     }
@@ -629,8 +698,8 @@ void AvatarController::computeSlow()
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = q_des(i);
-                    // ref_q_(i) = DOB_IK_output_(i);
+                    //ref_q_(i) = q_des(i);
+                    ref_q_(i) = DOB_IK_output_(i);
                 }
                 hip_compensator();
                 std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
@@ -998,6 +1067,8 @@ void AvatarController::computeSlow()
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         ////////////////////////////////////////////////////////////////////////////////
+
+            
         // printOutTextFile();
     }
     else if (rd_.tc_.mode == 14)
@@ -2847,158 +2918,6 @@ void AvatarController::motionGenerator()
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
     }
-    // else if (upper_body_mode_ == 4) // upperbody qpik
-    // {
-    //     if (hmd_check_pose_calibration_[3] == false)
-    //     {
-    //         cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-    //         upper_body_mode_ = 3;
-    //         upperbody_mode_recieved_ = true;
-    //         motion_q_ = motion_q_pre_;
-    //     }
-    //     else
-    //     {
-
-    //         if (upperbody_mode_recieved_ == true)
-    //         {
-    //             cout << "Upperbody Mode is Changed to #4" << endl;
-    //             first_loop_upperbody_ = true;
-    //             first_loop_qp_retargeting_ = true;
-
-    //             std_msgs::String msg;
-    //             std::stringstream upperbody_mode_ss;
-    //             upperbody_mode_ss << "Motion Tracking Contorol in On (Upperbody QPIK)";
-    //             msg.data = upperbody_mode_ss.str();
-    //             calibration_state_pub.publish(msg);
-    //         }
-
-    //         rawMasterPoseProcessing();
-    //         // masterTrajectoryTest();
-    //         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    //         motionRetargeting_QPIK_upperbody();
-    //         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-    //         if (int(current_time_ * 10000) % 10000 == 0)
-    //         {
-    //             cout<<"qpik_ub_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-    //         }
-    //     }
-    // }
-    // else if (upper_body_mode_ == 5) // human motion retargetting: joint pd control with CLIK
-    // {
-    //     if (hmd_check_pose_calibration_[3] == false)
-    //     {
-    //         cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
-    //         upper_body_mode_ = 3;
-    //         upperbody_mode_recieved_ = true;
-    //         motion_q_ = motion_q_pre_;
-    //     }
-    //     else
-    //     {
-    //         if (upperbody_mode_recieved_ == true)
-    //         {
-    //             cout << "Upperbody Mode is Changed to #5" << endl;
-    //             first_loop_larm_ = true;
-    //             first_loop_rarm_ = true;
-    //             first_loop_qp_retargeting_ = true;
-
-    //             std_msgs::String msg;
-    //             std::stringstream upperbody_mode_ss;
-    //             upperbody_mode_ss << "Motion Tracking Contorol in On";
-    //             msg.data = upperbody_mode_ss.str();
-    //             calibration_state_pub.publish(msg);
-    //         }
-
-    //         rawMasterPoseProcessing();
-    //         // motionRetargeting2();
-    //         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    //         motionRetargeting_QPIK_larm();
-    //         motionRetargeting_QPIK_rarm();
-    //         ///////////////////////WAIST/////////////////////////
-    //         Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
-    //         Vector3d u_dot_upperbody = master_upperbody_vel_.segment(3, 3) + 100 * error_w_upperbody;
-    //         // VectorQVQd q_desired_pre;
-    //         // q_desired_pre.setZero();
-    //         // q_desired_pre(39) = 1;
-    //         // q_desired_pre.segment(6, MODEL_DOF) = pre_desired_q_;
-    //         MatrixXd J_temp, J_waist, J_head, J_inv_waist, J_inv_head, I3;
-    //         J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    //         J_waist.setZero(3, 3);
-    //         I3.setIdentity(3, 3);
-
-    //         RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, Eigen::Vector3d::Zero(), J_temp, false);
-    //         J_waist.block(0, 0, 3, 3) = J_temp.block(0, 18, 3, 3); //orientation
-    //         J_inv_waist = J_waist.transpose() * (J_waist * J_waist.transpose() + I3 * 0.000001).inverse();
-
-    //         for (int i = 1; i < 3; i++)
-    //         {
-    //             u_dot_upperbody(i) = DyrosMath::minmax_cut(u_dot_upperbody(i), -1.0, 1.0);
-    //         }
-
-    //         motion_q_dot_.segment(12, 3) = J_inv_waist * u_dot_upperbody;
-    //         motion_q_.segment(12, 3) = motion_q_pre_.segment(12, 3) + motion_q_dot_.segment(12, 3) * dt_;
-    //         motion_q_(12) = DyrosMath::minmax_cut(motion_q_(12), -30 * DEG2RAD, 30 * DEG2RAD);
-    //         motion_q_(13) = DyrosMath::minmax_cut(motion_q_(13), -20 * DEG2RAD, 20 * DEG2RAD);
-    //         motion_q_(14) = DyrosMath::minmax_cut(motion_q_(14), -30 * DEG2RAD, 30 * DEG2RAD);
-    //         motion_q_dot_.segment(12, 3).setZero();
-    //         // motion_q_(12) = (1-turning_phase_)*init_q_(12) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1; //yaw
-    //         // motion_q_(12) = 0;
-    //         // motion_q_(13) = 0; //pitch
-    //         // motion_q_(14) = 0; //roll
-    //         pd_control_mask_(12) = 1;
-    //         pd_control_mask_(13) = 1;
-    //         pd_control_mask_(14) = 1;
-    //         /////////////////////////////////////////////////////
-
-    //         ///////////////////////HEAD/////////////////////////
-    //         Vector3d error_w_head = -DyrosMath::getPhi(head_transform_pre_desired_from_.linear(), master_head_pose_.linear());
-    //         error_w_head = head_transform_pre_desired_from_.linear().transpose() * error_w_head;
-    //         error_w_head(0) = 0;
-    //         error_w_head = head_transform_pre_desired_from_.linear() * error_w_head;
-
-    //         Vector3d u_dot_head = master_head_vel_.segment(3, 3) + 100 * error_w_head;
-    //         J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    //         J_head.setZero(3, 2);
-    //         I3.setIdentity(3, 3);
-
-    //         RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, Eigen::Vector3d::Zero(), J_temp, false);
-    //         J_head.block(0, 0, 3, 2) = J_temp.block(0, 29, 3, 2); //orientation
-    //         J_inv_head = J_head.transpose() * (J_head * J_head.transpose() + I3 * 0.000001).inverse();
-
-    //         for (int i = 1; i < 3; i++)
-    //         {
-    //             u_dot_head(i) = DyrosMath::minmax_cut(u_dot_head(i), -1.0, 1.0);
-    //         }
-
-    //         motion_q_dot_.segment(23, 2) = J_inv_head * u_dot_head;
-    //         motion_q_.segment(23, 2) = motion_q_pre_.segment(23, 2) + motion_q_dot_.segment(23, 2) * dt_;
-    //         motion_q_(23) = DyrosMath::minmax_cut(motion_q_(23), -30 * DEG2RAD, 30 * DEG2RAD);
-    //         motion_q_(24) = DyrosMath::minmax_cut(motion_q_(24), -60 * DEG2RAD, 60 * DEG2RAD);
-    //         motion_q_dot_.segment(23, 2).setZero();
-    //         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-    //         if (int(current_time_ * 10000) % 10000 == 0)
-    //         {
-    //             // cout<< "head_transform_pre_desired_from_: \n" << head_transform_pre_desired_from_.linear() <<endl;
-    //             // cout<< "master_head_pose_: \n" << master_head_pose_.linear() <<endl;
-    //             // cout<< "master_head_pose_raw_: \n" << master_head_pose_raw_.linear() <<endl;
-    //             // cout<< "error_w_head: " << error_w_head <<endl;
-    //             // cout<< "u_dot_head: " << u_dot_head <<endl;
-    //             // cout<< "J_head: \n" << J_head <<endl;
-    //             // cout<<"motion_q_(23): "<<motion_q_(23)<<endl;
-    //             // cout<<"motion_q_(24): "<<motion_q_(24)<<endl;
-    //             // cout<<"qpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-    //             // cout<<"qpik_rarm_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
-    //         }
-
-    //         // motion_q_(23) = (1-turning_phase_)*init_q_(23) + turning_phase_*turning_duration_*(-yaw_angular_vel_)*1.2; //yaw
-    //         // motion_q_(23) = 0; //yaw
-    //         // motion_q_(24) = 0; //pitch
-    //         pd_control_mask_(23) = 1;
-    //         pd_control_mask_(24) = 1;
-    //         /////////////////////////////////////////////////////
-    //     }
-    // }
     else if (upper_body_mode_ == 5) //HEAD ONLY
     {
         if (still_pose_cali_flag_ == false)
@@ -3081,14 +3000,14 @@ void AvatarController::motionGenerator()
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #6 (HQPIK)" << endl;
+                cout << "Upperbody Mode is Changed to #6 (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)" << endl;
 
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1)";
+                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
                 calibration_state_gui_log_pub.publish(msg);
@@ -3199,6 +3118,43 @@ void AvatarController::motionGenerator()
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
                 upperbody_mode_ss << "Motion Tracking Contorol in On (PROPOSITIONAL HAND POS MAPPING)";
+                msg.data = upperbody_mode_ss.str();
+                calibration_state_pub.publish(msg);
+                calibration_state_gui_log_pub.publish(msg);
+            }
+
+            rawMasterPoseProcessing();
+            motionRetargeting_HQPIK();
+            // motionRetargeting_HQPIK_lexls();
+            // motionRetargeting_QPIK_upperbody();
+            // if (int(current_time_ * 10000) % 10000 == 0)
+            // {
+            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+            // }
+        }
+    }
+    else if (upper_body_mode_ == 10)  //Cali Pose Direction Only
+    {
+        if (hmd_check_pose_calibration_[3] == false)
+        {
+            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+            upperbody_command_time_ = current_time_;
+            motion_q_ = motion_q_pre_;
+        }
+        else
+        {
+            if (upperbody_mode_recieved_ == true)
+            {
+                cout << "Upperbody Mode is Changed to #10 (HQPIK1 - Direction Only)" << endl;
+
+                first_loop_hqpik_ = true;
+                first_loop_qp_retargeting_ = true;
+
+                std_msgs::String msg;
+                std::stringstream upperbody_mode_ss;
+                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1 - Direction Only)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
                 calibration_state_gui_log_pub.publish(msg);
@@ -5344,7 +5300,7 @@ void AvatarController::poseCalibration()
             hmd_pelv_pose_.linear() = pelv_diff_m * hmd_pelv_pose_raw_last_.linear();
 
             if (int((current_time_ - tracker_status_changed_time_) * 2000) % 1000 == 0)
-                cout << "Motion Tracking Resume!" << (current_time_ - tracker_status_changed_time_) / 5 * 100 << "%" << endl;
+                cout << "Motion Tracking Resume!" << int((current_time_ - tracker_status_changed_time_) / 5 * 100) << "%" << endl;
         }
         else
         {
@@ -6644,16 +6600,22 @@ void AvatarController::hmdRawDataProcessing()
         // }
     }
 
-    if ((int(current_time_ * 2000) % int(1000) == 0))
-    {
-        cout<<"lhand_mapping_vector_: "<<lhand_mapping_vector_.transpose()<<endl;
-        cout<<"rhand_mapping_vector_: "<<rhand_mapping_vector_.transpose()<<endl;
-        cout<<"E1_*lhand_mapping_vector_ - h_d_lhand_ "<<E1_.block(0, 0, 3, 3)*lhand_mapping_vector_ - h_d_lhand_ <<endl;
-        cout<<"E2_*rhand_mapping_vector_ - h_d_rhand_ "<<E2_.block(0, 3, 3, 3)*rhand_mapping_vector_ - h_d_rhand_ <<endl;
-    }
+    // if ((int(current_time_ * 2000) % int(1000) == 0))
+    // {
+    //     cout<<"lhand_mapping_vector_: "<<lhand_mapping_vector_.transpose()<<endl;
+    //     cout<<"rhand_mapping_vector_: "<<rhand_mapping_vector_.transpose()<<endl;
+    //     cout<<"E1_*lhand_mapping_vector_ - h_d_lhand_ "<<E1_.block(0, 0, 3, 3)*lhand_mapping_vector_ - h_d_lhand_ <<endl;
+    //     cout<<"E2_*rhand_mapping_vector_ - h_d_rhand_ "<<E2_.block(0, 3, 3, 3)*rhand_mapping_vector_ - h_d_rhand_ <<endl;
+    // }
 
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
+
+    if(upper_body_mode_ == 10)
+    {
+        hmd2robot_lhand_pos_mapping_*= hmd_larm_max_l_/robot_arm_max_l_;
+        hmd2robot_rhand_pos_mapping_*= hmd_rarm_max_l_/robot_arm_max_l_;
+    }
 
     // if( int(current_time_ *100000)%1000 == 0)
     // {
@@ -6688,20 +6650,6 @@ void AvatarController::hmdRawDataProcessing()
     {
         cout << "Motion Retargeting Parameter Initialized" << endl;
         hmd_init_pose_calibration_ = false;
-        // hmd_init_pose_cali_time_ = current_time_;
-
-        // hmd_head_pose_init_ = hmd_head_pose_;
-        // hmd_lshoulder_pose_init_ = hmd_lshoulder_pose_;
-        // hmd_lupperarm_pose_init_ = hmd_lupperarm_pose_;
-        // hmd_lhand_pose_init_ = hmd_lhand_pose_;
-        // hmd_rshoulder_pose_init_ = hmd_rshoulder_pose_;
-        // hmd_rupperarm_pose_init_ = hmd_rupperarm_pose_;
-        // hmd_rhand_pose_init_ = hmd_rhand_pose_;
-        // hmd_pelv_pose_init_ = hmd_pelv_pose_;
-        // hmd_chest_pose_init_ = hmd_chest_pose_;
-
-        // hmd2robot_lhand_pos_mapping_init_ = hmd2robot_lhand_pos_mapping_;
-        // hmd2robot_rhand_pos_mapping_init_ = hmd2robot_rhand_pos_mapping_;
     }
 
     Vector3d robot_init_hand_pos, robot_init_lshoulder_pos, robot_init_rshoulder_pos, delta_hmd2robot_lhand_pos_maping, delta_hmd2robot_rhand_pos_maping, delta_hmd2robot_lelbow_pos_maping, delta_hmd2robot_relbow_pos_maping;
@@ -10354,6 +10302,7 @@ void AvatarController::printOutTextFile()
     // {
     //     file[5] << rd_.torque_desired(i) << "t" ;
     // } 
+    // file[5] << endl;
     // for(int i = 0; i<5; i++)
     // {
     //     file[5] << rd_.q_ddot_virtual_(i) << "t" ;
@@ -10707,8 +10656,8 @@ void AvatarController::getRobotState()
     com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
 
     // l_ft : generated force by robot
-    l_ft_ = -rd_.LF_FT; 
-    r_ft_ = -rd_.RF_FT;
+    l_ft_ = rd_.LF_FT; 
+    r_ft_ = rd_.RF_FT;
 
      if(walking_tick_mj == 0)
     { l_ft_LPF = l_ft_; r_ft_LPF = r_ft_; }
@@ -10725,14 +10674,14 @@ void AvatarController::getRobotState()
     //MJ_graph << l_ft_LPF(2) << "," << l_ft_LPF(3) << "," << l_ft_LPF(4) << "," << r_ft_LPF(2) << "," << r_ft_LPF(3) << "," << r_ft_LPF(4) << endl;
     Eigen::Vector2d left_zmp, right_zmp;
 
-    left_zmp(0) = l_ft_(4) / l_ft_(2) + lfoot_support_current_.translation()(0);
-    left_zmp(1) = l_ft_(3) / l_ft_(2) + lfoot_support_current_.translation()(1);
+    left_zmp(0) = l_ft_LPF(4) / l_ft_LPF(2) + lfoot_support_current_.translation()(0);
+    left_zmp(1) = l_ft_LPF(3) / l_ft_LPF(2) + lfoot_support_current_.translation()(1);
 
-    right_zmp(0) = r_ft_(4) / r_ft_(2) + rfoot_support_current_.translation()(0);
-    right_zmp(1) = r_ft_(3) / r_ft_(2) + rfoot_support_current_.translation()(1);
+    right_zmp(0) = r_ft_LPF(4) / r_ft_LPF(2) + rfoot_support_current_.translation()(0);
+    right_zmp(1) = r_ft_LPF(3) / r_ft_LPF(2) + rfoot_support_current_.translation()(1);
 
-    zmp_measured_mj_(0) = (left_zmp(0) * l_ft_(2) + right_zmp(0) * r_ft_(2)) / (l_ft_(2) + r_ft_(2)); // ZMP X
-    zmp_measured_mj_(1) = (left_zmp(1) * l_ft_(2) + right_zmp(1) * r_ft_(2)) / (l_ft_(2) + r_ft_(2)); // ZMP Y
+    zmp_measured_mj_(0) = (left_zmp(0) * l_ft_LPF(2) + right_zmp(0) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP X
+    zmp_measured_mj_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
 
     wn = sqrt(GRAVITY / zc_mj_);
 
@@ -11067,7 +11016,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 50; //total foot step number
+        middle_total_step_number = 4; //total foot step number
         dlength = 0;
     }
 
@@ -11573,11 +11522,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.025; // 0.9 초
-    rfoot_zmp_offset_ = 0.025;
+    // lfoot_zmp_offset_ = -0.025; // 0.9 초
+    // rfoot_zmp_offset_ = 0.025;
 
-    // lfoot_zmp_offset_ = -0.02; // 1.1 초
-    // rfoot_zmp_offset_ = 0.02;
+    lfoot_zmp_offset_ = -0.02; // 1.1 초
+    rfoot_zmp_offset_ = 0.02;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -12205,22 +12154,31 @@ void AvatarController::SC_err_compen(double x_des, double y_des)
 
 void AvatarController::getPelvTrajectory()
 {
-    double pelv_offset = -0.00;
-    double pelv_transition_time = 3.0;
+    // double pelv_offset = -0.00; // DG
+    // double pelv_transition_time = 1.0;
+    // if (walking_enable_ == true)
+    // {
+    //     pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2) - com_desired_(2), 0.0, 0.0, 0.0);
+    // }
+    // else
+    // {
+    //     pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 5.0, pelv_support_init_.translation()(2) - com_desired_(2), pelv_offset, 0.0, 0.0);
+    // }
+
+    double pelv_transition_time = 2.0;
+    double pelv_height_offset_ = 0.0;
     if (walking_enable_ == true)
     {
-        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, pelv_support_init_.translation()(2) - com_desired_(2), 0.0, 0.0, 0.0);
-    }
-    else
-    {
-        pelv_height_offset_ = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 5.0, pelv_support_init_.translation()(2) - com_desired_(2), pelv_offset, 0.0, 0.0);
-    }
+        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, 0.0, 0.05, 0.0, 0.0);
+    } 
 
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
     pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0.6 * damping_y - com_support_current_(1));  //- 0.01 * zmp_err_(1) * 0;
-    pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_;
+    // pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_; //DG
+    pelv_trajectory_support_.translation()(2) = com_desired_(2) - 0*pelv_height_offset_;
+
     // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
     Eigen::Vector3d Trunk_trajectory_euler;
     Trunk_trajectory_euler.setZero();
@@ -12567,31 +12525,26 @@ void AvatarController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.3*hz_;
 
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_;
-
-    // t_rest_init_ = 0.2 * hz_; // slack
-    // t_rest_last_ = 0.2 * hz_;
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
     // t_double1_ = 0.03 * hz_;
     // t_double2_ = 0.03 * hz_;
-    // t_total_ = 1.1 * hz_;
+    // t_total_ = 0.9 * hz_;
 
-    // t_rest_init_ = 0.24*hz_;
-    // t_rest_last_ = 0.24*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.1*hz_;
+    t_rest_init_ = 0.2 * hz_; // slack
+    t_rest_last_ = 0.2 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 1.1 * hz_;
+ 
 
-    t_temp_ = 2.0 * hz_;
+    t_temp_ = 4.0 * hz_;
     t_last_ = t_total_ + t_temp_;
     t_start_ = t_temp_ + 1;
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.05;      // 0.9 sec 0.05
+    foot_height_ = 0.055;      // 0.9 sec 0.05
     pelv_height_offset_ = 0.0; // change pelvis height for manipulation when the robot stop walking
 }
 
@@ -12899,7 +12852,7 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
     double default_gain = 0.0;
     double compliant_gain = 0.0;
-    double compliant_tick = 0.2 * hz_;
+    double compliant_tick = 0.1 * hz_;
     double gain_temp = 0.0;
     for (int i = 0; i < 12; i++)
     {
@@ -12913,13 +12866,13 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
                 {
                     gain_temp = default_gain;
                 }
-                else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
+                else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick)
                 {
-                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_, default_gain, compliant_gain, 0.0, 0.0);
+                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick, default_gain, compliant_gain, 0.0, 0.0);
                 }
                 else
                 {
-                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
                 }
             }
             else
@@ -12939,13 +12892,13 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
                 {
                     gain_temp = default_gain;
                 }
-                else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
+                else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick)
                 {
-                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_, default_gain, compliant_gain, 0.0, 0.0);
+                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick, default_gain, compliant_gain, 0.0, 0.0);
                 }
                 else
                 {
-                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+                    gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ + compliant_tick, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
                 }
             }
             else // 오른발 지지 상태
@@ -12959,10 +12912,10 @@ void AvatarController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
     d_hat_b = d_hat;
     DOB_IK_output_b_ = DOB_IK_output_;
-    // MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << endl;
-    // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl;
-    // MJ_joint1 << desired_leg_q(1) << "," << desired_leg_q(2) << "," << desired_leg_q(3) << "," << desired_leg_q(4) << "," << desired_leg_q(5) << "," << desired_leg_q(6) << endl;
-    // MJ_joint2 << rd_.q_(1) << "," <<  rd_.q_(2) << "," <<  rd_.q_(3) << "," <<  rd_.q_(4) << "," <<  rd_.q_(5) << "," <<  rd_.q_(6) << endl;//"," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
+    // MJ_graph << DOB_IK_output_(1) << "," << desired_leg_q(1) << "," << DOB_IK_output_(2) << "," << desired_leg_q(2) << "," << DOB_IK_output_(3) << "," << desired_leg_q(3) << "," << DOB_IK_output_(4) << "," << desired_leg_q(4) << "," << DOB_IK_output_(5) << "," << desired_leg_q(5) << endl;
+    // MJ_graph1 << DOB_IK_output_(7) << "," << desired_leg_q(7) << "," << DOB_IK_output_(8) << "," << desired_leg_q(8) << "," << DOB_IK_output_(9) << "," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) << endl;
+    
+    
 }
 
 void AvatarController::CP_compen_MJ()
@@ -13004,8 +12957,8 @@ void AvatarController::CP_compen_MJ_FT()
   double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
   double alpha_new = 0;
 
-  zmp_offset = 0.025; // 0.9초
-//   zmp_offset = 0.02; // 1.1초 
+//   zmp_offset = 0.025; // 0.9초
+  zmp_offset = 0.02; // 1.1초 
   // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
   // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
   if(walking_tick_mj > t_temp_)
@@ -13089,22 +13042,22 @@ void AvatarController::CP_compen_MJ_FT()
 
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-//   if(F_F_input >= 0.02) // 1.1초 0.02
-//   {
-//     F_F_input = 0.02;
-//   }
-//   else if(F_F_input <= -0.02)
-//   {
-//     F_F_input = -0.02;
-//   }
-  if(F_F_input >= 0.01) // 0.9초 0.01
+  if(F_F_input >= 0.02) // 1.1초 0.02
   {
-    F_F_input = 0.01;
+    F_F_input = 0.02;
   }
-  else if(F_F_input <= -0.01)
+  else if(F_F_input <= -0.02)
   {
-    F_F_input = -0.01;
+    F_F_input = -0.02;
   }
+//   if(F_F_input >= 0.01) // 0.9초 0.01
+//   {
+//     F_F_input = 0.01;
+//   }
+//   else if(F_F_input <= -0.01)
+//   {
+//     F_F_input = -0.01;
+//   }
   //MJ_graph << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
   
   //////////// Torque
@@ -13164,18 +13117,22 @@ void AvatarController::CP_compen_MJ_FT()
   }
   
   //Roll 방향 (-0.02/-30 0.9초)
-  F_T_L_x_input_dot = -0.02*(Tau_L_x - l_ft_LPF(3)) - 30*F_T_L_x_input; 
+  F_T_L_x_input_dot = -0.02*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
+//   F_T_L_x_input_dot = -0.02*(Tau_L_x - l_ft_LPF(3)) - 30.0*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
 //   F_T_L_x_input = 0;   
-  F_T_R_x_input_dot = -0.02*(Tau_R_x - r_ft_LPF(3)) - 30*F_T_R_x_input; 
+  F_T_R_x_input_dot = -0.02*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
+//   F_T_R_x_input_dot = -0.02*(Tau_R_x - r_ft_LPF(3)) - 30.0*F_T_R_x_input; 
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
 //   F_T_R_x_input = 0;
   
   //Pitch 방향  (0.005/-30 0.9초)
-  F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - 30*F_T_L_y_input; 
+  F_T_L_y_input_dot = 0.01*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
+//   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - 30.0*F_T_L_y_input; 
   F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t; 
 //   F_T_L_y_input = 0;
-  F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - 30*F_T_R_y_input; 
+  F_T_R_y_input_dot = 0.01*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
+//   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - 30.0*F_T_R_y_input; 
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
 //   F_T_R_y_input = 0; 
   //MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl; 
@@ -13200,6 +13157,7 @@ void AvatarController::CP_compen_MJ_FT()
   else if(F_T_R_y_input < -0.1)
   { F_T_R_y_input = -0.1; }
 
+  // MJ_joint1 << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) << endl;
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << alpha << "," << alpha_new << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
