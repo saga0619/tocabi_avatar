@@ -26,25 +26,31 @@
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
-const int FILE_CNT = 14;
+//rand
+#include <cstdlib>
+#include <ctime>
+
+#include <cmath>       /* isnan, sqrt */
+
+const int FILE_CNT = 1;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/mob/0_flag_.txt",
-    "/home/dg/data/mob/1_com_.txt",
-    "/home/dg/data/mob/2_zmp_.txt",
-    "/home/dg/data/mob/3_foot_.txt",
-    "/home/dg/data/mob/4_torque_.txt",
-    "/home/dg/data/mob/5_joint_.txt",
-    "/home/dg/data/mob/6_hand_.txt",
-    "/home/dg/data/mob/7_elbow_.txt",
-    "/home/dg/data/mob/8_shoulder_.txt",
-    "/home/dg/data/mob/9_acromion_.txt",
-    "/home/dg/data/mob/10_hmd_.txt",
-    "/home/dg/data/mob/11_tracker_.txt",
-    "/home/dg/data/mob/12_qpik_.txt",
-    "/home/dg/data/mob/13_tracker_vel_.txt"
+    "/ssd2/fb_mob_learning/data/random_walking_.txt"
+    // "/ssd2/fb_mob_learning/data/1_com_.txt",
+    // "/ssd2/fb_mob_learning/data/2_zmp_.txt",
+    // "/ssd2/fb_mob_learning/data/3_foot_.txt",
+    // "/ssd2/fb_mob_learning/data/4_torque_.txt",
+    // "/ssd2/fb_mob_learning/data/5_joint_.txt",
+    // "/ssd2/fb_mob_learning/data/6_hand_.txt",
+    // "/ssd2/fb_mob_learning/data/7_elbow_.txt",
+    // "/ssd2/fb_mob_learning/data/8_shoulder_.txt",
+    // "/ssd2/fb_mob_learning/data/9_acromion_.txt",
+    // "/ssd2/fb_mob_learning/data/10_hmd_.txt",
+    // "/ssd2/fb_mob_learning/data/11_tracker_.txt",
+    // "/ssd2/fb_mob_learning/data/12_qpik_.txt",
+    // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
 const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
@@ -1124,6 +1130,9 @@ public:
     Eigen::Vector6d mob_residual_external_;
 
     Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
+    Eigen::VectorQd torque_from_l_ft_; //J^T*FT_F
+    Eigen::VectorQd torque_from_r_ft_; //J^T*FT_F
+
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
