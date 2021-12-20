@@ -105,6 +105,7 @@ public:
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_MJ_;  //for calcuating Coriolis matrix
 
     //////////dg custom controller functions////////
     void setGains();
@@ -176,6 +177,9 @@ public:
     void previewParam_MJ(double dt, int NL, double zc, Eigen::Matrix4d& K, Eigen::MatrixXd& Gi, Eigen::VectorXd& Gd, Eigen::MatrixXd& Gx, Eigen::MatrixXd& A, Eigen::VectorXd& B, Eigen::MatrixXd& C, Eigen::MatrixXd& D, Eigen::MatrixXd& A_bar, Eigen::VectorXd& B_bar);
     void preview_MJ(double dt, int NL, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double& UX, double& UY, Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD);
     Eigen::MatrixXd discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q);
+
+    void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
+    void updateCMM_DG();
 
     void getZmpTrajectory_dg();
     void savePreData();
@@ -1224,6 +1228,13 @@ public:
     Eigen::Vector3d pelv_support_euler_init_;
     Eigen::Vector3d lfoot_support_euler_init_;
     Eigen::Vector3d rfoot_support_euler_init_;
+
+    Eigen::Vector2d del_cmp;
+    Eigen::Vector3d del_tau_;
+    Eigen::Vector3d del_ang_momentum_;
+    Eigen::Vector3d del_ang_momentum_prev_;
+    Eigen::VectorQd del_cmm_q_;
+    unsigned int cmp_control_mode = 0;
 
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
