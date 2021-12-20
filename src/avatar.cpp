@@ -13221,9 +13221,9 @@ void AvatarController::updateCMM_DG()
   // Defined the selection matrix // 
   sel_matrix(13,13) = 0.0; // waist pitch
   sel_matrix(14,14) = 1.0; // waist roll
-  sel_matrix(16,16) = 0.0; // left shoulder pitch
+  sel_matrix(16,16) = 1.0; // left shoulder pitch
   sel_matrix(17,17) = 1.0; // left shoulder roll
-  sel_matrix(26,26) = 0.0; // right shoulder pitch
+  sel_matrix(26,26) = 1.0; // right shoulder pitch
   sel_matrix(27,27) = 1.0; // right shoulder roll
   
   RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_MJ_, q_test, mass_matrix_temp, true);
