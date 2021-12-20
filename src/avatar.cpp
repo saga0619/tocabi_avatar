@@ -12956,12 +12956,12 @@ void AvatarController::CP_compen_MJ_FT()
   double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0 ;
   double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
   double alpha_new = 0;
-
+ 
 //   zmp_offset = 0.025; // 0.9초
   zmp_offset = 0.02; // 1.1초 
   // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
   // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
-  if(walking_tick_mj > t_temp_)
+  if(walking_tick_mj  > t_temp_)
   {
     if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
