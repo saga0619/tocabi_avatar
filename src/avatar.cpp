@@ -10998,7 +10998,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 15; //total foot step number
+        middle_total_step_number = 20; //total foot step number
         dlength = 0;
     }
 
@@ -12084,7 +12084,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
     del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1)); 
     
-    double foot_width_x = 0.13;  // original foot width in urdf -> 0.15
+    double foot_width_x = 0.10;  // original foot width in urdf -> 0.15
     double foot_width_y = 0.055; // original foot width in urdf -> 0.065
 
     if(walking_tick_mj == 0)
@@ -12107,7 +12107,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
         del_zmp(0) = del_cmp(0);
         if(walking_tick_mj > t_temp_) 
         { 
-            del_tau_(1) = 0*( 5*(ref_q_(13) - rd_.q_(13)) - 2.5*rd_.q_dot_(13) + 5*(ref_q_(16) - rd_.q_(16)) - 2.5*rd_.q_dot_(16) + 5*(ref_q_(26) - rd_.q_(26)) - 2.5*rd_.q_dot_(26));
+            del_tau_(1) = -( 50*(ref_q_(13) - rd_.q_(13)) - 15*rd_.q_dot_(13) + 5*(ref_q_(16) - rd_.q_(16)) - 2.5*rd_.q_dot_(16) + 5*(ref_q_(26) - rd_.q_(26)) - 2.5*rd_.q_dot_(26));
         }
         else
         {
@@ -13219,7 +13219,7 @@ void AvatarController::updateCMM_DG()
   cmm_selected.setZero(3, MODEL_DOF);
   
   // Defined the selection matrix // 
-  sel_matrix(13,13) = 0.0; // waist pitch
+  sel_matrix(13,13) = 1.0; // waist pitch
   sel_matrix(14,14) = 1.0; // waist roll
   sel_matrix(16,16) = 1.0; // left shoulder pitch
   sel_matrix(17,17) = 1.0; // left shoulder roll
@@ -13248,7 +13248,7 @@ void AvatarController::updateCMM_DG()
   del_cmm_q_prev_ = del_cmm_q_;    
   del_cmm_q_dot_ = cmm_selected.transpose()*((cmm_selected*cmm_selected.transpose()).inverse()) * del_ang_momentum_;
   
-  if(del_cmm_q_dot_(14) > 500*DEG2RAD) // 사실 이렇게 하면 안됨, 관절 각속도 리밋을 고려해서 해를 푸는게 아니라 억지로 리밋 위로는 잘라버리는 거니까.
+  if(del_cmm_q_dot_(14) > 500*DEG2RAD) // These limitation method are not correct, 관절 각속도 리밋을 고려해서 해를 푸는게 아니라 억지로 리밋 위로는 잘라버리는 거니까.
   { del_cmm_q_dot_(14) = 500*DEG2RAD; }
   else if(del_cmm_q_dot_(14) < -500*DEG2RAD)
   { del_cmm_q_dot_(14) = -500*DEG2RAD; }
@@ -13264,7 +13264,13 @@ void AvatarController::updateCMM_DG()
   { del_cmm_q_dot_(27) = -500*DEG2RAD; }
 
   del_cmm_q_ = del_cmm_q_prev_ + del_cmm_q_dot_ * del_t;
-  // del_cmm_q_.setZero();  
+  // del_cmm_q_.setZero();
+
+  if(del_cmm_q_(13) > 20*DEG2RAD)
+  { del_cmm_q_(13) = 20*DEG2RAD; }
+  else if(del_cmm_q_(13) < -20*DEG2RAD)
+  { del_cmm_q_(13) = -20*DEG2RAD; }
+
   if(del_cmm_q_(14) > 20*DEG2RAD)
   { del_cmm_q_(14) = 20*DEG2RAD; }
   else if(del_cmm_q_(14) < -20*DEG2RAD)
