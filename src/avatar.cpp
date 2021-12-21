@@ -638,6 +638,7 @@ void AvatarController::computeSlow()
 
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+            Gravity_MJ_.setZero();
             atb_grav_update_ = false;
         }
 
@@ -723,8 +724,8 @@ void AvatarController::computeSlow()
                     ref_q_(13) = Initial_ref_q_(13);
                     ref_q_(14) = Initial_ref_q_(14);
                     //for arm
-                    ref_q_(16) = Initial_ref_q_(16);//DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(16), 50.0 * DEG2RAD, 0.0, 0.0); // + direction angle makes the left arm down.
-                    ref_q_(26) = Initial_ref_q_(26);//DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(26), -50.0 * DEG2RAD, 0.0, 0.0);
+                    ref_q_(16) = Initial_ref_q_(16);
+                    ref_q_(26) = Initial_ref_q_(26);
                     ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(17), 50.0 * DEG2RAD, 0.0, 0.0); // + direction angle makes the left arm down.
                     ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(27), -50.0 * DEG2RAD, 0.0, 0.0); // - direction angle makes the right arm down.
                 }
