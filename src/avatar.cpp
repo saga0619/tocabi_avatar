@@ -693,9 +693,9 @@ void AvatarController::computeSlow()
             {
                 getZmpTrajectory(); 
                 getComTrajectory();
-                //
+                // MJDG CMP control
                 CentroidalMomentCalculator();
-                updateCMM_DG();
+                updateCMM_DG();                
                 // 
                 getFootTrajectory();    
                 getPelvTrajectory();    
@@ -13195,7 +13195,7 @@ void AvatarController::CentroidalMomentCalculator()
     del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
     // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
 
-    
+    CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1)); // 원래 previewcontroller 자리에 있던 함수.
 }
 
 void AvatarController::updateCMM_DG()
