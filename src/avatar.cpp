@@ -692,7 +692,11 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory(); 
-                getComTrajectory(); 
+                getComTrajectory();
+                //
+                CentroidalMomentCalculator();
+                updateCMM_DG();
+                // 
                 getFootTrajectory();    
                 getPelvTrajectory();    
                 supportToFloatPattern();    
@@ -705,7 +709,7 @@ void AvatarController::computeSlow()
                 }
                 hip_compensator();
                 // GravityCalculate_MJ(); 
-                updateCMM_DG();
+                
                 if (atb_grav_update_ == false)
                 {
                     atb_grav_update_ = true;
@@ -780,8 +784,9 @@ void AvatarController::computeSlow()
 
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
-        {   //Is there any problem if i write the code as below? - myeongju-
+        {   
             //torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
+            //Is there any problem if i write the code as below? - myeongju-
             torque_upper_(i) = (Kp(i) * (ref_q_(i) - del_cmm_q_(i) - rd_.q_(i)) + Kd(i) * (0.0 - rd_.q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
             //torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
@@ -12082,78 +12087,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
 
-    del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
-    del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1)); 
     
-    double foot_width_x = 0.10;  // original foot width in urdf -> 0.15
-    double foot_width_y = 0.055; // original foot width in urdf -> 0.065
-
-    if(walking_tick_mj == 0)
-    {
-        del_tau_.setZero();
-        del_ang_momentum_.setZero();
-        del_ang_momentum_prev_.setZero();
-    }   
-    
-    del_ang_momentum_prev_ = del_ang_momentum_;
-
-    // X direction CP control
-    if(del_cmp(0) > foot_width_x) 
-    {
-        del_zmp(0) = foot_width_x; 
-        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment , X direction CP control      
-    }
-    else if(del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x)
-    {
-        del_zmp(0) = del_cmp(0);
-        if(walking_tick_mj > t_temp_) 
-        { 
-            del_tau_(1) = -( 50*(ref_q_(13) - rd_.q_(13)) - 15*rd_.q_dot_(13) + 5*(ref_q_(16) - rd_.q_(16)) - 2.5*rd_.q_dot_(16) + 5*(ref_q_(26) - rd_.q_(26)) - 2.5*rd_.q_dot_(26));
-        }
-        else
-        {
-            del_tau_(1) = 0;
-        } 
-    }
-    else if(del_cmp(0) < -foot_width_x)
-    {
-        del_zmp(0) = -foot_width_x;
-        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment to control x-CP error     
-    }
-    
-    // Y direction CP control
-    if(del_cmp(1) > foot_width_y) 
-    {
-        del_zmp(1) = foot_width_y; 
-        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment to control y-CP error
-        cmp_control_mode = 1;
-    }
-    else if(del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
-    {
-        del_zmp(1) = del_cmp(1);
-        if(walking_tick_mj > t_temp_) 
-        {   
-            //The damping coefficient has a great influence on the recovery strategy. If the damping gain is small, del_tau value is continuously integrated and diverged.
-            //del_tau_(0) = ( 0*10*(ref_q_(14) - rd_.q_(14)) - 0*5*rd_.q_dot_(14) + 10*(ref_q_(17) - rd_.q_(17)) - 5*rd_.q_dot_(17) + 10*(ref_q_(27) - rd_.q_(27)) - 5*rd_.q_dot_(27));
-            del_tau_(0) = (50*(ref_q_(14) - rd_.q_(14)) - 15*rd_.q_dot_(14) + 5*(ref_q_(17) - rd_.q_(17)) - 2.5*rd_.q_dot_(17) + 5*(ref_q_(27) - rd_.q_(27)) - 2.5*rd_.q_dot_(27)) ;
-        }
-        else
-        {
-            del_tau_(0) = 0;
-        }
-        cmp_control_mode = 0; 
-    }
-    else if(del_cmp(1) < -foot_width_y)
-    {
-        del_zmp(1) = -foot_width_y;
-        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
-        cmp_control_mode = 1;
-    } 
-
-    del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
-    // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
-
-    CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
 }
 
 void AvatarController::SC_err_compen(double x_des, double y_des)
@@ -13192,6 +13126,78 @@ void AvatarController::CP_compen_MJ_FT()
 
 }
 
+void AvatarController::CentroidalMomentCalculator()
+{
+    del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+    del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1)); 
+    
+    double foot_width_x = 0.10;  // original foot width in urdf -> 0.15
+    double foot_width_y = 0.055; // original foot width in urdf -> 0.065
+
+    if(walking_tick_mj == 0)
+    {
+        del_tau_.setZero();
+        del_ang_momentum_.setZero();
+        del_ang_momentum_prev_.setZero();
+    }   
+    
+    del_ang_momentum_prev_ = del_ang_momentum_;
+
+    // X direction CP control 
+    if(del_cmp(0) > foot_width_x) 
+    {
+        del_zmp(0) = foot_width_x; 
+        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment , X direction CP control      
+    }
+    else if(del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x) // recovery strategy
+    {
+        del_zmp(0) = del_cmp(0);
+        if(walking_tick_mj > t_temp_) 
+        { 
+            del_tau_(1) = -( 50*(ref_q_(13) - rd_.q_(13)) - 15*rd_.q_dot_(13) + 5*(ref_q_(16) - rd_.q_(16)) - 2.5*rd_.q_dot_(16) + 5*(ref_q_(26) - rd_.q_(26)) - 2.5*rd_.q_dot_(26));
+        }
+        else
+        {
+            del_tau_(1) = 0;
+        } 
+    }
+    else if(del_cmp(0) < -foot_width_x)
+    {
+        del_zmp(0) = -foot_width_x;
+        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment to control x-CP error     
+    }
+    
+    // Y direction CP control
+    if(del_cmp(1) > foot_width_y) 
+    {
+        del_zmp(1) = foot_width_y; 
+        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment to control y-CP error
+    }
+    else if(del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y) // recovery strategy
+    {
+        del_zmp(1) = del_cmp(1);
+        if(walking_tick_mj > t_temp_) 
+        {   
+            //del_tau_(0) = ( 0*10*(ref_q_(14) - rd_.q_(14)) - 0*5*rd_.q_dot_(14) + 10*(ref_q_(17) - rd_.q_(17)) - 5*rd_.q_dot_(17) + 10*(ref_q_(27) - rd_.q_(27)) - 5*rd_.q_dot_(27));
+            del_tau_(0) = (50*(ref_q_(14) - rd_.q_(14)) - 15*rd_.q_dot_(14) + 5*(ref_q_(17) - rd_.q_(17)) - 2.5*rd_.q_dot_(17) + 5*(ref_q_(27) - rd_.q_(27)) - 2.5*rd_.q_dot_(27)) ;
+        }
+        else
+        {
+            del_tau_(0) = 0;
+        }
+    }
+    else if(del_cmp(1) < -foot_width_y)
+    {
+        del_zmp(1) = -foot_width_y;
+        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
+    } 
+
+    del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
+    // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
+
+    
+}
+
 void AvatarController::updateCMM_DG()
 {      
   Eigen::VectorXd q_test, q_dot_test;
@@ -13304,7 +13310,6 @@ void AvatarController::updateCMM_DG()
   {
       cout << "Pitch : " << del_cmm_q_(16)*RAD2DEG << "," << del_cmm_q_(26)*RAD2DEG << "," << del_tau_(1) << "," << del_cmp(0) << endl;
       cout << "Roll : " << del_cmm_q_(17)*RAD2DEG << "," << del_cmm_q_(27)*RAD2DEG << "," << del_tau_(0) << "," << del_cmp(1) << endl;
-    //   cout << "del_cmm_q_dot : " << del_cmm_q_dot_(17)*RAD2DEG << "," << del_cmm_q_dot_(27)*RAD2DEG << endl;
       //cout<<"mass_matrix_temp: \n"<< mass_matrix_temp <<endl;
       //cout<<"com_ang_momentum_temp: "<<com_ang_momentum_test.transpose()<<endl;
       //cout<<"IC*wb + CMM*qdot: "<< (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3)+ cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
