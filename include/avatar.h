@@ -138,8 +138,8 @@ public:
     //estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
-    Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
-    Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k);
+    Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
+    Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
 
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
@@ -315,8 +315,12 @@ public:
     double current_time_;
     double pre_time_;
     double start_time_;
-    double dt_;
+    double dt_;    
     double init_leg_time_;  //for first smothing of leg joint angle
+
+    double current_time_computeslow_;
+    double pre_time_computeslow_;
+    double dt_computeslow_;    
 
     double walking_speed_;
     double walking_speed_side_;
@@ -682,6 +686,15 @@ public:
     
     Eigen::Vector6d l_ft_;
     Eigen::Vector6d r_ft_;
+
+    Eigen::Vector6d l_ft_wo_fw_;
+    Eigen::Vector6d r_ft_wo_fw_;
+
+    Eigen::Vector6d l_cf_ft_global_;
+    Eigen::Vector6d r_cf_ft_global_;
+
+    Eigen::Vector6d l_cf_ft_local_;
+    Eigen::Vector6d r_cf_ft_local_;
 
     Eigen::Vector6d l_ft_LPF;
     Eigen::Vector6d r_ft_LPF;
@@ -1125,9 +1138,15 @@ public:
     
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
     Eigen::VectorXd mob_integral_internal_;
-    Eigen::VectorQd mob_residual_internal_;
+    Eigen::VectorXd mob_residual_internal_;
     Eigen::VectorXd mob_integral_external_;
-    Eigen::Vector6d mob_residual_external_;
+    Eigen::VectorXd mob_residual_external_;
+
+    Eigen::VectorXd mob_integral_wholebody_;
+    Eigen::VectorXd mob_residual_wholebody_;
+
+    Eigen::VectorXd mob_residual_jts_;
+    Eigen::VectorXd mob_integral_jts_;
 
     Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
     Eigen::VectorQd torque_from_l_ft_; //J^T*FT_F

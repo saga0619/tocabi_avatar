@@ -556,6 +556,7 @@ void AvatarController::computeSlow()
             walking_tick_mj = 0;
             walking_end_flag = 0;
             parameterSetting();
+            initWalkingParameter();
             cout << "mode = 10 Fast thread" << endl;
 
             WBC::SetContact(rd_, 1, 1);
@@ -575,10 +576,6 @@ void AvatarController::computeSlow()
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
         }
 
-        // l_ft_ = rd_.LF_FT;
-        // r_ft_ = rd_.RF_FT;       
-        // cout << l_ft_(2) << "," << r_ft_(2) << endl;
-        // MJ_graph << l_ft_(2) << "," << r_ft_(2) << endl;
         rd_.tc_.mode = 11;  // dg test
 
     }
@@ -677,6 +674,7 @@ void AvatarController::computeSlow()
                 updateNextStepTime();
 
                 q_prev_MJ_ = rd_.q_;
+                pre_time_computeslow_ = current_time_computeslow_;
                 std::chrono::steady_clock::time_point t14 = std::chrono::steady_clock::now();
 
                 // if (int(walking_tick_mj) % 500 == 0)
@@ -768,6 +766,7 @@ void AvatarController::computeSlow()
             chair_mode_ = false; ///avatar semifinals //1025
 
             parameterSetting();
+            initWalkingParameter();
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
@@ -852,8 +851,8 @@ void AvatarController::computeSlow()
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
                 {
-                    //ref_q_(i) = q_des(i);
-                    ref_q_(i) = DOB_IK_output_(i);
+                    ref_q_(i) = q_des(i);
+                    // ref_q_(i) = DOB_IK_output_(i);
                 }
                 hip_compensator();
 
@@ -944,8 +943,8 @@ void AvatarController::computeSlow()
             Compliant_control(q_des);
             for (int i = 0; i < 12; i++)
             {
-                //ref_q_(i) = q_des(i);
-                ref_q_(i) = DOB_IK_output_(i);
+                ref_q_(i) = q_des(i);
+                // ref_q_(i) = DOB_IK_output_(i);
             }
             hip_compensator();
             if (atb_grav_update_ == false)
@@ -974,6 +973,16 @@ void AvatarController::computeSlow()
             {
                 torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
             }
+            
+            if(rd_.control_time_ >= init_leg_time_+3.0)
+            {
+                printOutTextFile();
+            }
+                
+                            
+                            
+            pre_time_computeslow_ = current_time_computeslow_;  //dg test
+
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -996,7 +1005,6 @@ void AvatarController::computeSlow()
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         ////////////////////////////////////////////////////////////////////////////////
-        // printOutTextFile();
     }
     else if (rd_.tc_.mode == 14)
     {
@@ -1429,12 +1437,20 @@ void AvatarController::initWalkingParameter()
     torque_from_l_ft_.setZero();
     torque_from_r_ft_.setZero();
 
+    A_mat_ = rd_.A_;
     A_mat_pre_ = rd_.A_;
     
     mob_residual_internal_.setZero(MODEL_DOF);
-    mob_residual_external_.setZero(6);
     mob_integral_internal_.setZero(MODEL_DOF);
+    
+    mob_residual_external_.setZero(6);
     mob_integral_external_.setZero(6);
+
+    mob_residual_wholebody_.setZero(MODEL_DOF_VIRTUAL);
+    mob_integral_wholebody_.setZero(MODEL_DOF_VIRTUAL);
+
+    mob_residual_jts_.setZero(MODEL_DOF);
+    mob_integral_jts_.setZero(MODEL_DOF);
 
     motion_q_pre_ = init_q_;
     motion_q_dot_pre_.setZero();
@@ -1801,7 +1817,7 @@ void AvatarController::getRobotData()
     rfoot_to_com_jac_from_global_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = (adjoint_pelv_to_ankle * jac_rfoot_).block(0, 0, 3, MODEL_DOF_VIRTUAL) + jac_com_pos_;
     rfoot_to_com_jac_from_global_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = (adjoint_pelv_to_ankle * jac_rfoot_).block(3, 0, 3, MODEL_DOF_VIRTUAL);
 
-    torque_sim_jts_ = -rd_.torque_jts_; //exterted external torque
+    torque_sim_jts_ = rd_.torque_jts_; //exterted external torque
     // A_mat_ = rd_.A_;
     // Eigen::MatrixXd A_temp;
     // A_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
@@ -1887,32 +1903,56 @@ void AvatarController::floatingBaseMOB()
     q_virtual_c(39) = 1; 
     RigidBodyDynamics::UpdateKinematicsCustom(model_c_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c); // global frame is fixed to the pelvis frame
 
+    A_mat_pre_ = A_mat_;
+
     Eigen::MatrixXd A_temp;
     A_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
     RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_c_, q_virtual_c, A_temp, false);
-    A_mat_ = A_temp;    
-    A_dot_mat_ = (A_mat_ - A_mat_pre_)/dt_;
+    A_mat_ = A_temp;
+
+    A_dot_mat_ = (A_mat_ - A_mat_pre_)*hz_;
+    // A_dot_mat_.setZero();
     // A_dot_mat_ = getAdotMatrix(q_virtual_c,  q_dot_virtual_c);
     // C_mat_temp = getCMatrix(q_virtual_c, q_dot_virtual_c);    //>1ms... too slow
     // C_mat_ = C_mat_temp.block(0, 0, MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
 
-    RigidBodyDynamics::NonlinearEffects(model_c_, q_virtual_c, q_dot_virtual_c, nonlinear_torque_temp);
+    // RigidBodyDynamics::NonlinearEffects(model_c_, q_virtual_c, q_dot_virtual_c, nonlinear_torque_temp);
     // RigidBodyDynamics::NonlinearEffects(model_c_, q_virtual_c, Eigen::VectorXd::Zero(MODEL_DOF_VIRTUAL, 1), gravity_torque_temp);
     // nonlinear_torque_ = nonlinear_torque_temp - gravity_torque_temp; // get Centrifual Corioli force in base frame
-    nonlinear_torque_ = nonlinear_torque_temp;
+    // nonlinear_torque_ = nonlinear_torque_temp;
+    // nonlinear_torque_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(0, 3);
+    // nonlinear_torque_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(3, 3);
     ////
     // std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
-    // q_ddot_virtual_c = rd_.q_ddot_virtual_;
-    // q_dot_virtual_c = rd_.q_dot_virtual_;
-    // q_virtual_c = rd_.q_virtual_;
-    // RigidBodyDynamics::UpdateKinematicsCustom(model_c_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c); 
+    q_ddot_virtual_c = rd_.q_ddot_virtual_;
+    q_dot_virtual_c = rd_.q_dot_virtual_;
+    q_virtual_c = rd_.q_virtual_;
+    q_virtual_c.segment(0, 3).setZero();
+    RigidBodyDynamics::UpdateKinematicsCustom(model_C_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c); 
 
-    // RigidBodyDynamics::NonlinearEffects(model_c_, q_virtual_c, Eigen::VectorXd::Zero(MODEL_DOF_VIRTUAL, 1), gravity_torque_temp);
+    RigidBodyDynamics::NonlinearEffects(model_C_, q_virtual_c, q_dot_virtual_c, nonlinear_torque_temp);
 
     // nonlinear_torque_.segment(0, 3) += rd_.link_[Pelvis].rotm.transpose()*gravity_torque_temp.segment(0, 3);
     // nonlinear_torque_.segment(3, 3) += rd_.link_[Pelvis].rotm.transpose()*gravity_torque_temp.segment(3, 3);
     // nonlinear_torque_.segment(6, MODEL_DOF) += gravity_torque_temp.segment(6, MODEL_DOF);
+    
+    // Eigen::Quaterniond q_pelv;
+    // q_pelv.x() = q_virtual_c(3);
+    // q_pelv.y() = q_virtual_c(4);
+    // q_pelv.z() = q_virtual_c(5);
+    // q_pelv.w() = q_virtual_c(MODEL_DOF_VIRTUAL);  
 
+    // Eigen::Matrix3d pelv_rotm = q_pelv.normalized().toRotationMatrix();
+    Eigen::Vector6d base_velocity;
+    Eigen::Matrix6d adjt_global2pelv;
+    adjt_global2pelv.setZero();
+    adjt_global2pelv.block(0, 0, 3, 3) = rd_.link_[Pelvis].rotm.transpose();
+    adjt_global2pelv.block(3, 3, 3, 3) = rd_.link_[Pelvis].rotm.transpose();
+
+    nonlinear_torque_ = nonlinear_torque_temp;
+    nonlinear_torque_.segment(0, 6) = adjt_global2pelv*nonlinear_torque_.segment(0, 6);
+    // nonlinear_torque_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(0, 3);
+    // nonlinear_torque_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(3, 3);
     // q_ddot_virtual_c = rd_.q_ddot_virtual_;
     // q_ddot_virtual_c.segment(0, 6).setZero();
     // q_dot_virtual_c = rd_.q_dot_virtual_;
@@ -1935,10 +1975,12 @@ void AvatarController::floatingBaseMOB()
     // Eigen::VectorXd q_test, q_dot_test, q_ddot_test;
     // q_test = rd_.q_virtual_;
     // //// modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame 
-    Eigen::Vector6d base_velocity;
-    base_velocity = rd_.q_dot_virtual_.segment(0, 6);
-    base_velocity.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose()*base_velocity.segment(0, 3);
-    base_velocity.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose()*base_velocity.segment(3, 3);
+
+    // adjt.block(3, 0, 3, 3) = DyrosMath::skm(-rd_.link_[Pelvis].rotm.transpose()*rd_.q_virtual_.segment(0, 3)) * rd_.link_[Pelvis].rotm.transpose();
+
+    base_velocity = adjt_global2pelv*rd_.q_dot_virtual_.segment(0, 6);
+    // base_velocity.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(0, 3);
+    // base_velocity.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(3, 3);
 
     // q_test.segment(0, 6).setZero();
     // q_test(39) = 1;
@@ -1998,45 +2040,116 @@ void AvatarController::floatingBaseMOB()
     // rd_.ZMP_ft = wc_.GetZMPpos(rd_);
 
     // zmp_local_both_foot = wc.GetZMPpos_fromFT(rd_).segment(0, 2);  //get zmp using f/t sensors on both foot
-    Eigen::VectorXd current_torque, nonlinear_torque_g, mob_residual_pre_internal, mob_residual_pre_external;
+    Eigen::VectorXd current_torque, rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g, mob_residual_pre_internal, mob_residual_pre_external, mob_residual_pre_jts, mob_residual_pre_wholebody;
     // current_torque.setZero(MODEL_DOF_VIRTUAL, 1);
     // current_torque.segment(6, MODEL_DOF) = rd_.torque_desired;
     // current_torque = rd_.torque_desired;
     current_torque = torque_lower_ + torque_upper_;
-    // cout<<"test1" <<endl;
-
+    rd_q_virtual = rd_.q_virtual_;
+    rd_q_dot_virtual = rd_.q_dot_virtual_;
+    // nonlinear_torque_g.setZero(MODEL_DOF_VIRTUAL, 1);
     // nonlinear_torque_g = A_dot_mat_*rd_.q_dot_virtual_ - (nonlinear_torque_);
-
+    // RigidBodyDynamics::NonlinearEffects(rd_.model_, rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g);
+    mob_residual_pre_external = mob_residual_external_;
     mob_residual_pre_internal = mob_residual_internal_;
-    if( (current_torque(0) == current_torque(0)))
+    mob_residual_pre_wholebody = mob_residual_wholebody_;
+
+    mob_residual_pre_jts = mob_residual_jts_;
+    
+    // VectorQd inertia_term, nonlinear_term_for_mob_jts;
+    // inertia_term = (rd_.A_*rd_.q_ddot_virtual_).segment(6, MODEL_DOF);
+    // nonlinear_term_for_mob_jts = nonlinear_torque_g.segment(6, MODEL_DOF);
+    // mob_residual_jts_.segment(0, MODEL_DOF) = torque_sim_jts_ - inertia_term - nonlinear_term_for_mob_jts;
+
+    Eigen::MatrixXd R_temp, J_temp;
+    // lfoot_ft_sensor_offset_ << 0.03, 0, -0.145;
+    // lfoot_ft_sensor_offset_(2) += -0.0135;
+
+    // rfoot_ft_sensor_offset_  << 0.03, 0, -0.145;
+    // rfoot_ft_sensor_offset_(2) += -0.0135;
+    // RigidBodyDynamics::UpdateKinematicsCustom(model_C_, &rd_.q_virtual_, &q_dot_virtual_c, &q_ddot_virtual_c); // global frame is fixed to the pelvis frame
+
+    
+    // cout<<"test2" << endl;
+    J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(rd_.model_, rd_.q_virtual_, rd_.link_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp, true);
+    jac_lfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); //position
+    jac_lfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); //orientation
+    
+    J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(rd_.model_, rd_.q_virtual_, rd_.link_[Right_Foot].id, rfoot_ft_sensor_offset_, J_temp, true);
+    jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); //position
+    jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); //orientation
+    R_temp.setZero(6, 6);
+    R_temp.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
+    R_temp.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
+    // J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    // J_temp = (rd_.link_[Left_Foot].jac).cast<double>();
+
+    torque_from_l_ft_ = jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-l_ft_wo_fw_);
+    // torque_from_l_ft_ =  jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.LF_CF_FT;
+
+    R_temp.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
+    R_temp.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
+    // J_temp = rd_.link_[Right_Foot].jac.cast<double>();
+
+    torque_from_r_ft_ = jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-r_ft_wo_fw_);
+
+    if( current_torque == current_torque )
     {
+
+        // using FT sensor version
+        // nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) + l_cf_ft_local_ + r_cf_ft_local_;
+
+        std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
+        mob_residual_external_ = momentumObserverFbExternal(A_mat_, A_dot_mat_, rd_.q_dot_, base_velocity, nonlinear_torque_, mob_residual_pre_external, mob_integral_external_, 1/hz_, 50);
+        std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
+
+        if( mob_residual_external_!= mob_residual_external_)
+        {
+            mob_residual_external_ = mob_residual_pre_external;
+            cout<<"!!!!!!!!!!! ERROR: Floating Base MOB External Residual is NaN !!!!!!!!!!!!"<<endl;
+            cout<<"walking_tick: "<<walking_tick_mj<<endl;
+        }
+
+        // without FT sensor version
+        nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) - mob_residual_external_.segment(0, 6);
+
+        //using FT sensor version
+        // current_torque.segment(0, MODEL_DOF) = current_torque.segment(0, MODEL_DOF) + torque_from_l_ft_ + torque_from_r_ft_;
 
         // mob_residual_ = momentumObserver(current_momentum, current_torque, nonlinear_torque_g, mob_residual_pre, dt_, 50);
         std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
-        mob_residual_internal_ = momentumObserverFbInternal(A_mat_, A_dot_mat_, current_torque, current_q_dot_, nonlinear_torque_, mob_residual_pre_internal, 1/hz_, 100);
+        mob_residual_internal_ = momentumObserverFbInternal(A_mat_, A_dot_mat_, current_torque, rd_.q_dot_, nonlinear_torque_, mob_residual_pre_internal, mob_integral_internal_, 1/hz_, 100);
         // mob_residual_internal_ = momentumObserverFbInternal(A_mat_.block(0,0,18,18), A_dot_mat_.block(0,0,18,18), current_torque.block(0,0,18,1), current_q_dot_.block(0,0,18,1), nonlinear_torque_.block(0,0,18,1), mob_residual_pre_internal, dt_, 100);
 
+        // mob_residual_jts_ = momentumObserverFbInternal(A_mat_, A_dot_mat_, torque_sim_jts_, rd_.q_dot_, nonlinear_torque_, mob_residual_pre_jts, mob_integral_jts_, dt_computeslow_, 100);
+        // mob_residual_jts_ = torque_sim_jts_;
         std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
 
-        if( isnan(mob_residual_internal_(0)))
+        if( mob_residual_internal_!= mob_residual_internal_ )
         {
             mob_residual_internal_ = mob_residual_pre_internal;
-            cout<<"!!!!!!!!!!! ERROR: Floating Base MOB residual is NaN !!!!!!!!!!!!"<<endl;
+            cout<<"!!!!!!!!!!! ERROR: Floating Base MOB Internal Residual is NaN !!!!!!!!!!!!"<<endl;
             cout<<"walking_tick: "<<walking_tick_mj<<endl;
         }        
-
-
-        mob_residual_pre_external = mob_residual_external_;
-        std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
-        mob_residual_external_ = momentumObserverFbExternal(A_mat_, A_dot_mat_, current_q_dot_, base_velocity, nonlinear_torque_, mob_residual_pre_external, 1/hz_, 100);
-        std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
-
-        if( isnan(mob_residual_external_(1)))
+        
+        VectorXd momentum_virtual, current_torque_virtual, nonlinear_term_virtual;
+        momentum_virtual.setZero(MODEL_DOF_VIRTUAL);
+        momentum_virtual.segment(0, MODEL_DOF_VIRTUAL) = (rd_.A_ * rd_.q_dot_virtual_).segment(0, MODEL_DOF_VIRTUAL);
+        current_torque_virtual.setZero(MODEL_DOF_VIRTUAL);
+        current_torque_virtual.segment(6, MODEL_DOF) = current_torque.segment(0, MODEL_DOF);
+        nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
+        nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = nonlinear_torque_temp.segment(0, MODEL_DOF_VIRTUAL);
+        mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1/hz_, 100);
+        if( mob_residual_wholebody_!= mob_residual_wholebody_ )
         {
-            mob_residual_external_ = mob_residual_pre_external;
-        }       
+            mob_residual_wholebody_ = mob_residual_pre_wholebody;
+            cout<<"!!!!!!!!!!! ERROR: Floating Base MOB Wholebody Residual is NaN !!!!!!!!!!!!"<<endl;
+            cout<<"walking_tick: "<<walking_tick_mj<<endl;
+        }   
 
-        if( int(current_time_*2000)%2000 == 0 )
+        if( int(current_time_*2000)%1000 == 0 )
         {
         //     cout<<"momentumObserverFbInternal time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(t8 - t7).count() <<endl;
             // cout<<"sqrt(-1.0):"<< isnan(sqrt(-1.0))<<endl;
@@ -2044,37 +2157,23 @@ void AvatarController::floatingBaseMOB()
             // // cout<<"test: "<<isnan(sqrt(-1.0))<<endl;
             // cout<<"mob_residual_internal_: "<<mob_residual_internal_.segment(0, 6).transpose() <<endl;
             // cout<<"current_torque: "<<current_torque.segment(0, 6).transpose() <<endl;
+            // cout<<"nonlinear_torque_: "<<nonlinear_torque_.transpose() <<endl;
+            // cout<<"gravity_torque_temp.segment(3, 3): "<<gravity_torque_temp.segment(3, 3)<<endl;
+            // cout<<"dt_computeslow_: "<<dt_computeslow_ <<endl;
+            // cout<<"mob_integral_internal_.setZero(0, 6): "<<mob_integral_internal_.segment(0, 6).transpose()<<endl;
+            // cout<<"l_cf_ft_local_(2): "<<l_cf_ft_local_(2) <<endl;
+            cout<<"q_dot_: "<<rd_.q_dot_virtual_.segment(0, 6).transpose()<<endl;
+            cout<<"q_: "<<rd_.q_virtual_.segment(0, 6).transpose()<<endl;
         }
     }
     else
     {
         cout<<"!!!!!!!!!!! ERROR: Desired_torque is NaN !!!!!!!!!!!!"<<endl;
     }
-    
-    // cout<<"test2" << endl;
-    // J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    // RigidBodyDynamics::CalcPointJacobian6D(model_c_, q_virtual_c, rd_.link_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp_, false);
-    // jac_lfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp_.block(3, 0, 3, MODEL_DOF_VIRTUAL); //position
-    // jac_lfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp_.block(0, 0, 3, MODEL_DOF_VIRTUAL); //orientatio
-    
-    // J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    // RigidBodyDynamics::CalcPointJacobian6D(model_c_, q_virtual_c, rd_.link_[Right_Foot].id, rfoot_ft_sensor_offset_, J_temp_, false);
-    // jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp_.block(3, 0, 3, MODEL_DOF_VIRTUAL); //position
-    // jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp_.block(0, 0, 3, MODEL_DOF_VIRTUAL); //orientatio
-    Eigen::MatrixXd R_temp, J_temp;
-    R_temp.setZero(6, 6);
-    R_temp.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
-    R_temp.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
-    // J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    J_temp = (rd_.link_[Left_Foot].jac).cast<double>();
 
-    torque_from_l_ft_ = J_temp.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-l_ft_);
-    
-    R_temp.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
-    R_temp.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
-    J_temp = rd_.link_[Right_Foot].jac.cast<double>();
 
-    torque_from_r_ft_ = J_temp.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-r_ft_);
+    // torque_from_r_ft_ =  jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.RF_CF_FT;
+
     // MatrixXd j_pelv_temp;
     // j_pelv_temp.setZero(6, MODEL_DOF_VIRTUAL);
     // RigidBodyDynamics::CalcPointJacobian6D(model_c_, q_virtual_c, rd_.link_[Pelvis].id, Vector3d::Zero(), j_pelv_temp, false);
@@ -2088,14 +2187,23 @@ void AvatarController::floatingBaseMOB()
     // cout<<"right_force_resi: " << (jac_rhand_*mob_residual_).transpose() <<endl;
 
 
+    //////////////////Applied Force Calculation
+    Vector6d wrench_appied_at_sh, wrench_appied_at_pelv;
+    wrench_appied_at_sh << 10.0, 20.0, -50.0, 0.0, 0.0, 0.0;
+
+
+    
+
+
+
     if( int(current_time_*2000)%1000 == 0 )
     {
-        cout<<"mob_residual_internal_: \n"<<mob_residual_internal_.segment(0, 12).transpose() <<endl;
+        // cout<<"mob_residual_internal_: \n"<<mob_residual_internal_.segment(0, 12).transpose() <<endl;
         // cout<<"base_velocity: "<<base_velocity.transpose() <<endl;
         // cout<<"mob_residual_external_: "<<mob_residual_external_.transpose() <<endl;
-        cout<<"torque_from_l_ft_: \n"<< (torque_from_l_ft_).segment(0, 12).transpose() <<endl;
-        cout<<"torque_from_r_ft_: \n"<< (torque_from_r_ft_).segment(0, 12).transpose() <<endl;
-        cout<<"mob_residual_error - torque_from_ft: \n" << (mob_residual_internal_- torque_from_l_ft_ - torque_from_r_ft_).segment(0, 12).transpose() <<endl;
+        // cout<<"torque_from_l_ft_: \n"<< (torque_from_l_ft_).segment(0, 12).transpose() <<endl;
+        // cout<<"torque_from_r_ft_: \n"<< (torque_from_r_ft_).segment(0, 12).transpose() <<endl;
+        // cout<<"mob_residual_error - torque_from_ft: \n" << (mob_residual_internal_- torque_from_l_ft_ - torque_from_r_ft_).segment(0, 12).transpose() <<endl;
         // cout<<"left_foot_ext_torque: "<< (jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose()*adjoint_lfoot_2_global*l_ft_).transpose() <<endl;
         // cout<<"right_foot_ext_torque: "<< (jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose()*adjoint_rfoot_2_global*r_ft_).transpose() <<endl;
         // cout<<"internal residual error: "<< (jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose()*adjoint_lfoot_2_global*l_ft_).transpose() + (jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose()*adjoint_rfoot_2_global*r_ft_).transpose() - mob_residual_internal_.transpose()<<endl;
@@ -9129,7 +9237,7 @@ Eigen::VectorQd AvatarController::jointLimit()
     return joint_limit_torque;
 }
 
-Eigen::VectorXd AvatarController::momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k)
+Eigen::VectorXd AvatarController::momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k)
 {
     /*
     reference: Fabrizio Flacco, Residual-based contacts estimation for humanoid robots (Humanoids 2016)
@@ -9145,17 +9253,25 @@ Eigen::VectorXd AvatarController::momentumObserverFbInternal(MatrixXd A_matrix, 
     F = A_matrix.block(0, 6, 6, j_dof);
     FT_H_b_inv = F.transpose()*(H_b).inverse(); // + Matrix6d::Identity()*damped_puedoinverse_eps_
 
-    H_j = A_matrix.block(6, 6, j_dof, j_dof);
-    H_j = H_j - FT_H_b_inv*F;
+    H_j = A_matrix.block(6, 6, j_dof, j_dof) - FT_H_b_inv*F;
+    // H_j = A_matrix.block(6, 6, j_dof, j_dof);
      
     joint_momentum = H_j*current_qdot;
 
     H_b_dot = A_dot_matrix.block(0, 0, 6, 6);
     F_dot = A_dot_matrix.block(0, 6, 6, j_dof);
     H_j_dot = A_dot_matrix.block(6, 6, j_dof, j_dof) - F_dot.transpose()*FT_H_b_inv.transpose() - FT_H_b_inv*F_dot + FT_H_b_inv*H_b_dot*FT_H_b_inv.transpose();
+    // H_j_dot = A_dot_matrix.block(6, 6, j_dof, j_dof);
 
     p_0 = nonlinear_effect_vector.segment(0, 6);
     C_j = nonlinear_effect_vector.segment(6, j_dof) - FT_H_b_inv*p_0;
+    
+    // Vector6d pelv_acc;
+    // Vector3d grav_acc(0, 0, -9.81);
+    // pelv_acc.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() *(rd_.q_ddot_virtual_.segment(0, 3));
+    // pelv_acc.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() *(rd_.q_ddot_virtual_.segment(3, 3));
+
+    // C_j = nonlinear_effect_vector.segment(6, j_dof) - F.transpose()*pelv_acc;
    
     nonlinear_term_internal = H_j_dot*current_qdot - C_j;
 
@@ -9165,9 +9281,9 @@ Eigen::VectorXd AvatarController::momentumObserverFbInternal(MatrixXd A_matrix, 
 
     // }
 
-    return momentumObserverCore(joint_momentum, current_torque, nonlinear_term_internal, mob_residual_pre, mob_integral_internal_, dt, k);
+    return momentumObserverCore(joint_momentum, current_torque, nonlinear_term_internal, mob_residual_pre, mob_residual_integral, dt, k);
 }
-Eigen::VectorXd AvatarController::momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, double dt, double k)
+Eigen::VectorXd AvatarController::momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k)
 {
     /*
     reference: Fabrizio Flacco, Residual-based contacts estimation for humanoid robots (Humanoids 2016)
@@ -9197,11 +9313,11 @@ Eigen::VectorXd AvatarController::momentumObserverFbExternal(MatrixXd A_matrix, 
 
     // }
 
-    return momentumObserverCore(base_momentum, Eigen::Vector6d::Zero(), nonlinear_term_external, mob_residual_pre, mob_integral_external_, dt, k);
+    return momentumObserverCore(base_momentum, Eigen::Vector6d::Zero(), nonlinear_term_external, mob_residual_pre, mob_residual_integral, dt, k);
 }
 Eigen::VectorXd AvatarController::momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k)
 {
-    //input: current_momentum, current_torque, nonlinear term, mob_residual_pre, dt, k
+    //input: current_momentum, current_torque, nonlinear term, mob_residual_pre, mob_integral, dt, k
     //output: mob_residual
     const int dof = current_momentum.size();
     Eigen::VectorXd mob_residual(dof);
@@ -9397,6 +9513,7 @@ void AvatarController::getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixX
 void AvatarController::savePreData()
 {
     pre_time_ = current_time_;
+
     pre_q_ = rd_.q_;
     pre_desired_q_ = desired_q_;
     pre_desired_q_dot_ = desired_q_dot_;
@@ -9437,8 +9554,6 @@ void AvatarController::savePreData()
     torque_grav_pre_ = torque_grav_;
 
     foot_contact_pre_ = foot_contact_;
-
-    A_mat_pre_ = A_mat_;
 
     zmp_desired_pre_ = zmp_desired_from_global_;
     zmp_local_lfoot_pre_ = zmp_local_lfoot_;
@@ -10689,8 +10804,7 @@ void AvatarController::printOutTextFile()
     //         << lfoot_transform_current_from_support_.translation()(0) << "\t" << lfoot_transform_current_from_support_.translation()(1) << "\t" << lfoot_transform_current_from_support_.translation()(2) << "\t" //4
     //         << rfoot_transform_current_from_support_.translation()(0) << "\t" << rfoot_transform_current_from_support_.translation()(1) << "\t" << rfoot_transform_current_from_support_.translation()(2) << "\t" //7
     //         << swing_foot_pos_trajectory_from_support_(0) << "\t" << swing_foot_pos_trajectory_from_support_(1) << "\t" << swing_foot_pos_trajectory_from_support_(2) << endl;                                    //28
-
-    // if(walking_tick_mj%2 == 0)
+    if(walking_tick_mj%10 == 0)
     {
         file[0]<<rd_.control_time_<<"\t"<<foot_step_(current_step_num_, 6)<<"\t";
         // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
@@ -10726,11 +10840,11 @@ void AvatarController::printOutTextFile()
         }
         for(int i = 0; i <6 ; i++) 
         {
-            file[0]<< l_ft_(i) << "\t";
+            file[0]<< l_cf_ft_local_(i) << "\t";
         }
         for(int i = 0; i <6 ; i++) 
         {
-            file[0]<< r_ft_(i) << "\t";
+            file[0]<< r_cf_ft_local_(i) << "\t";
         }
         for(int i = 0; i <6 ; i++) 
         {
@@ -10744,9 +10858,12 @@ void AvatarController::printOutTextFile()
         {
             file[0]<< mob_residual_external_(i) << "\t";
         }
+        for(int i = 0; i <12 ; i++) 
+        {
+            file[0]<< mob_residual_wholebody_(i) << "\t";
+        }
         file[0]<<endl;
     }
-
 
     // file[5] << current_time_ - upperbody_command_time_ << "\t" << walking_phase_ << "\t" << foot_contact_ << "\t"
     //         << desired_q_(0) << "\t" << desired_q_(1) << "\t" << desired_q_(2) << "\t" << desired_q_(3) << "\t" << desired_q_(4) << "\t" << desired_q_(5) << "\t" << desired_q_(6) << "\t" << desired_q_(7) << "\t" << desired_q_(8) << "\t" << desired_q_(9) << "\t" << desired_q_(10) << "\t" << desired_q_(11) << "\t" << desired_q_(12) << "\t" << desired_q_(13) << "\t" << desired_q_(14) << "\t" << desired_q_(15) << "\t" << desired_q_(16) << "\t" << desired_q_(17) << "\t" << desired_q_(18) << "\t" << desired_q_(19) << "\t" << desired_q_(20) << "\t" << desired_q_(21) << "\t" << desired_q_(22) << "\t" << desired_q_(23) << "\t" << desired_q_(24) << "\t" << desired_q_(25) << "\t" << desired_q_(26) << "\t" << desired_q_(27) << "\t" << desired_q_(28) << "\t" << desired_q_(29) << "\t" << desired_q_(30) << "\t" << desired_q_(31) << "\t" << desired_q_(32) << "\t"
@@ -11122,12 +11239,59 @@ void AvatarController::getRobotState()
     l_ft_ = rd_.LF_FT; 
     r_ft_ = rd_.RF_FT;
     
-     if(walking_tick_mj == 0)
+    double foot_plate_mass = 2.326;
+    Matrix6d adt;
+    adt.setIdentity();
+    adt.block(3, 0, 3, 3) = DyrosMath::skm(rd_.link_[Left_Foot].sensor_point) * Matrix3d::Identity();
+    Matrix6d rotrf;
+    rotrf.setZero();
+    rotrf.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
+    rotrf.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
+    Vector3d LF_com(0.0162, 0.00008, -0.1209);
+
+    Vector3d com2cp = rd_.link_[Left_Foot].sensor_point - LF_com;
+
+    Matrix6d adt2;
+    adt2.setIdentity();
+    adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
+
+    Vector6d Wrench_foot_plate;
+    Wrench_foot_plate.setZero();
+    Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
+
+    l_ft_wo_fw_ = (l_ft_ - (adt2 * rotrf.transpose()) * Wrench_foot_plate);
+
+    adt.setIdentity();
+    adt.block(3, 0, 3, 3) = DyrosMath::skm(rd_.link_[Right_Foot].sensor_point) * Matrix3d::Identity();
+    rotrf.setZero();
+    rotrf.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
+    rotrf.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
+    Vector3d RF_com(0.0162, 0.00008, -0.1209);
+
+    com2cp = rd_.link_[Right_Foot].sensor_point - RF_com;
+
+    adt2.setIdentity();
+    adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2cp) * Matrix3d::Identity();
+
+    Wrench_foot_plate.setZero();
+    Wrench_foot_plate(2) = foot_plate_mass * GRAVITY;
+    
+    r_ft_wo_fw_ = (r_ft_ - (adt2 * rotrf.transpose()) * Wrench_foot_plate);
+
+    if(walking_tick_mj == 0)
     { l_ft_LPF = l_ft_; r_ft_LPF = r_ft_; }
     
     l_ft_LPF = 1/(1+2*M_PI*6.0*del_t)*l_ft_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*l_ft_;
     r_ft_LPF = 1/(1+2*M_PI*6.0*del_t)*r_ft_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*r_ft_; 
 
+    l_cf_ft_global_ = rd_.LF_CF_FT;
+    r_cf_ft_global_ = rd_.RF_CF_FT;
+
+    l_cf_ft_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.LF_CF_FT.segment(0, 3);
+    l_cf_ft_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.LF_CF_FT.segment(3, 3);
+
+    r_cf_ft_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(0, 3);
+    r_cf_ft_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(3, 3);
     // if( walking_tick_mj % 1000 == 0 )
     // {
     //     cout<<"l_ft_: "<<l_ft_.transpose()<<endl;
@@ -11157,7 +11321,15 @@ void AvatarController::getRobotState()
 
     // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     // if(walking_tick_mj%2 == 0)
-        floatingBaseMOB(); //created by DG
+
+    current_time_computeslow_ = rd_.control_time_;
+
+    if(current_time_computeslow_ != pre_time_computeslow_)    
+    {
+        dt_computeslow_ = current_time_computeslow_ - pre_time_computeslow_;
+    }
+    
+    floatingBaseMOB(); //created by DG
     // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // cout<<"floatingBaseMOB time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
 
@@ -11195,7 +11367,7 @@ void AvatarController::calculateFootStepTotal()
 
     if (length_to_target == 0)
     {
-        middle_total_step_number = 30; //
+        middle_total_step_number = 10; //
         dlength = 0;
     }
 
@@ -11486,7 +11658,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 50; //total foot step number
+        middle_total_step_number = 10; //total foot step number
         dlength = 0;
     }
 
@@ -12983,40 +13155,45 @@ void AvatarController::parameterSetting()
     //         x = 1 + std::rand()/((RAND_MAX + 1u)/6);  // Note: 1+rand()%6 is biased
     //     std::cout << x << ' ';
     // }
-     
-    target_x_ = float(std::rand())/float(RAND_MAX)*6.0 - 3.0;
-    target_y_ = float(std::rand())/float(RAND_MAX)*6.0 - 3.0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
-    step_length_x_ = (std::rand()%101)*0.001 + 0.08;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+
+    //// random walking setting////
+    // target_x_ = float(std::rand())/float(RAND_MAX)*6.0 - 3.0;
+    // target_y_ = float(std::rand())/float(RAND_MAX)*6.0 - 3.0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
+    // step_length_x_ = (std::rand()%101)*0.001 + 0.08;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
     
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.8 * hz_ + (std::rand()%5)*0.1* hz_;
     // t_rest_init_ = 0.27*hz_;
     // t_rest_last_ = 0.27*hz_;
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.3*hz_;
+    // foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
 
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.8 * hz_ + (std::rand()%5)*0.1* hz_;
+    //// Normal walking setting ////
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
 
-    // t_total_ += (std::rand()%5)*0.1* hz_;
-    // t_rest_init_ = 0.2 * hz_; // slack
-    // t_rest_last_ = 0.2 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 1.1 * hz_;
-
-    // t_rest_init_ = 0.24*hz_;
-    // t_rest_last_ = 0.24*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.1*hz_;
+    t_rest_init_ = 0.24*hz_;
+    t_rest_last_ = 0.24*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 1.0*hz_;
+    foot_height_ = 0.05;      // 0.9 sec 0.05
 
     t_temp_ = 2.0 * hz_;
     t_last_ = t_total_ + t_temp_;
@@ -13024,8 +13201,10 @@ void AvatarController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
     pelv_height_offset_ = 0.0; // change pelvis height for manipulation when the robot stop walking
+
+    current_time_computeslow_ = rd_.control_time_;
+    pre_time_computeslow_ = rd_.control_time_ - 1/hz_;
 
     cout<<"========= Walking Parameter Information ========"<<endl;
     cout<<"target_x_: "<<target_x_<<endl;
@@ -13034,6 +13213,7 @@ void AvatarController::parameterSetting()
     cout<<"step_length_x_: "<<step_length_x_<<endl;
     cout<<"t_total_: "<<t_total_<<endl;
     cout<<"foot_height_: "<<foot_height_<<endl;
+    cout<<"total_step_num_: "<<total_step_num_<<endl;
     cout<<"================================================"<<endl;
 }
 
