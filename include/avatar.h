@@ -83,6 +83,7 @@ public:
     CQuadraticProgram QP_qdot_wholebody_;
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
+    std::vector<CQuadraticProgram> QP_cam_hqp_;
 
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
@@ -100,12 +101,13 @@ public:
     // LexLS::internal::LexLSI lsi_;
 
     std::atomic<bool> atb_grav_update_{false};
-    std::atomic<bool> atb_upper_update_{false};
+    std::atomic<bool> atb_desired_q_update_{false};
+    std::atomic<bool> atb_walking_traj_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
-    RigidBodyDynamics::Model model_MJ_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_MJ_;  //for calcuating CMM
 
     //////////dg custom controller functions////////
     void setGains();
@@ -130,6 +132,8 @@ public:
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
 
+    void computeCMAcontrol_HQP();
+    
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
@@ -1114,7 +1118,26 @@ public:
 
     ////////////////////////////////////////////////////////////
 
+    /////////////CAM-HQP//////////////////////////
+    const int hierarchy_num_camhqp_ = 2;
+    const int variable_size_camhqp_ = 6;
+    const int constraint_size1_camhqp_ = 6; //[lb <=	x	<= 	ub] form constraints
+    const int constraint_size2_camhqp_[2] = {0, 3};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_camhqp_[2] = {3, 6}; //1: CAM control, 2: init pose
+
+    double w1_camhqp_[2];
+    double w2_camhqp_[2];
+    double w3_camhqp_[2];
     
+    Eigen::MatrixXd H_camhqp_[2], A_camhqp_[2];
+    Eigen::MatrixXd J_camhqp_[2];
+    Eigen::VectorXd g_camhqp_[2], u_dot_camhqp_[2], qpres_camhqp_, ub_camhqp_[2],lb_camhqp_[2], ubA_camhqp_[2], lbA_camhqp_[2];
+    Eigen::VectorXd q_dot_camhqp_[2];
+
+    int control_joint_idx_camhqp_[6];
+    int last_solved_hierarchy_num_camhqp_;
+    ///////////////////////////////////////////////////
+
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
     Eigen::VectorVQd mob_integral_;
     Eigen::VectorVQd mob_residual_;
@@ -1152,7 +1175,7 @@ private:
     bool first_loop_hqpik_;
     bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
-
+    bool first_loop_camhqp_;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1213,7 +1236,7 @@ public:
     
     Eigen::VectorQd q_prev_MJ_;
 
-    Eigen::Vector12d q_des;
+    Eigen::Vector12d q_des_;
     
     Eigen::Isometry3d pelv_trajectory_support_; //local frame
     
@@ -1226,6 +1249,12 @@ public:
     Eigen::Isometry3d rfoot_trajectory_float_;
     Eigen::Isometry3d lfoot_trajectory_float_;
 
+    Eigen::Isometry3d lfoot_trajectory_float_fast_;
+    Eigen::Isometry3d lfoot_trajectory_float_slow_;
+
+    Eigen::Isometry3d rfoot_trajectory_float_fast_;
+    Eigen::Isometry3d rfoot_trajectory_float_slow_;
+
     Eigen::Vector3d pelv_support_euler_init_;
     Eigen::Vector3d lfoot_support_euler_init_;
     Eigen::Vector3d rfoot_support_euler_init_;
@@ -1234,6 +1263,10 @@ public:
     Eigen::Vector3d del_tau_;
     Eigen::Vector3d del_ang_momentum_;
     Eigen::Vector3d del_ang_momentum_prev_;
+
+    Eigen::Vector3d del_ang_momentum_slow_;
+    Eigen::Vector3d del_ang_momentum_fast_;
+
     Eigen::VectorQd del_cmm_q_;
     unsigned int cmp_control_mode = 0;
 
