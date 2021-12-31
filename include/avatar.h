@@ -132,7 +132,7 @@ public:
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
 
-    void computeCMAcontrol_HQP();
+    void computeCAMcontrol_HQP();
     
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);

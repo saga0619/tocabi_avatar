@@ -1157,8 +1157,8 @@ void AvatarController::computeFast()
 
         //motion planing and control//
         motionGenerator();
-        //STEP3: Compute q_dot for CMA control
-        computeCMAcontrol_HQP();
+        //STEP3: Compute q_dot for CAM control
+        computeCAMcontrol_HQP();
 
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -8978,7 +8978,7 @@ MatrixXd AvatarController::getCMatrix(VectorXd q, VectorXd qdot)
 
     return C;
 }
-void AvatarController::computeCMAcontrol_HQP()
+void AvatarController::computeCAMcontrol_HQP()
 {
     // const int hierarchy_num_camhqp_ = 2;
     // const int variable_size_camhqp_ = 6;
@@ -9173,7 +9173,8 @@ void AvatarController::computeCMAcontrol_HQP()
 
     for (int i = 0; i < variable_size_camhqp_; i++)
     {
-        motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[last_solved_hierarchy_num_camhqp_](i);
+        motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[0](i); // first hierarchy solution
+        //motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[last_solved_hierarchy_num_camhqp_](i);
         motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * dt_;
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
