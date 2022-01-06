@@ -616,7 +616,7 @@ void AvatarController::computeSlow()
 
     if (rd_.tc_.mode == 10)
     {
-        if (initial_flag == 0)
+        if (initial_flag == 2)
         {
             Joint_gain_set_MJ();
             walking_enable_ = true;
@@ -1079,7 +1079,7 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
-        if (initial_flag == 1)
+        if (initial_flag == 0)
         {
             WBC::SetContact(rd_, 1, 1);
 
@@ -1091,6 +1091,7 @@ void AvatarController::computeFast()
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
+            initial_flag = 2;
         }
     }
     else if (rd_.tc_.mode == 11)
@@ -9005,12 +9006,13 @@ void AvatarController::computeCAMcontrol_HQP()
 
             q_dot_camhqp_[i].setZero(variable_size_camhqp_);
 
-            w1_camhqp_[0] = 2500;//upperbody tracking (2500)
-            w1_camhqp_[1] = 2500;
-            w2_camhqp_[0] = 50;  //upperbody tracking (2500)
-            w2_camhqp_[1] = 50;
-            //w2_camhqp_[i] = 50;    //kinetic energy (50)
-            w3_camhqp_[i] = 0.0000; //acceleration (0.000)
+            w1_camhqp_[0] = 2500; // |A*qdot - h|
+            w2_camhqp_[0] = 50; // |q_dot|
+            w3_camhqp_[0] = 5000; // |q_dot - q_dot_zero|
+            
+            w1_camhqp_[1] = 0.0; // |q_dot - q_dot_zero|
+            w2_camhqp_[1] = 50; // |q_dot|
+            w3_camhqp_[1] = 0.0000; //acceleration (0.000)
         }
          
         control_joint_idx_camhqp_[0] = 13;
@@ -9068,11 +9070,11 @@ void AvatarController::computeCAMcontrol_HQP()
     for(int i =0; i < control_size_camhqp_[1]; i++) // 처음에 zero position으로 가는 이유는 CAM이 0이 되도록 대칭으로 움직이기때문, 복구가 안되는 이유는 CAM이 0이면서 비대칭으로 움직일수 없으니까.
     {
         // recovery strategy
-        u_dot_camhqp_[1](i) = 10*(0.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[i]));        
+        u_dot_camhqp_[1](i) = 20*(0.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[i]));        
     }
 
-    u_dot_camhqp_[1](3) = 10*(+20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])); // 40도 이상 을 초기자세로 하고싶으면, limit을 바꿔줘야함.
-    u_dot_camhqp_[1](5) = 10*(-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5]));
+    u_dot_camhqp_[1](3) = 20*(+20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])); // 40도 이상 을 초기자세로 하고싶으면, limit을 바꿔줘야함.
+    u_dot_camhqp_[1](5) = 20*(-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5]));
 
     for (int i = 0; i < hierarchy_num_camhqp_; i++)
     {
@@ -9089,14 +9091,15 @@ void AvatarController::computeCAMcontrol_HQP()
 
         H1 = J_camhqp_[i].transpose() * J_camhqp_[i];
         H2 = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_);
-        H3 = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_) * (1 / dt_) * (1 / dt_);
-
-        g1 = -J_camhqp_[i].transpose() * u_dot_camhqp_[i];
-        g2.setZero(variable_size_camhqp_);
-        g3.setZero(variable_size_camhqp_);
+        //H3 = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_) * (1 / dt_) * (1 / dt_);
+        H3 = J_camhqp_[1].transpose() * J_camhqp_[1];
+        g1 = -J_camhqp_[i].transpose() * u_dot_camhqp_[i]; // (variable_size_camhqp_ x 1 (i.e. 6x1))
+        g2.setZero(variable_size_camhqp_);  
+        //g3.setZero(variable_size_camhqp_);  
+        g3 = -J_camhqp_[1].transpose() * u_dot_camhqp_[1];
         for(int j=0; j < variable_size_camhqp_; j++)
         {
-            g3(j) = -motion_q_dot_pre_(control_joint_idx_camhqp_[i]) * (1 / dt_) * (1 / dt_);
+            //g3(j) = -motion_q_dot_pre_(control_joint_idx_camhqp_[i]) * (1 / dt_) * (1 / dt_);
         }
 
         H_camhqp_[i] = w1_camhqp_[i] * H1 + w2_camhqp_[i] * H2 + w3_camhqp_[i] * H3;
@@ -9180,8 +9183,8 @@ void AvatarController::computeCAMcontrol_HQP()
         
     for (int i = 0; i < variable_size_camhqp_; i++)
     {
-        //motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[0](i); // first hierarchy solution
-        motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[last_solved_hierarchy_num_camhqp_](i);
+        motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[0](i); // first hierarchy solution
+        //motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[last_solved_hierarchy_num_camhqp_](i);
         motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * dt_;
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
