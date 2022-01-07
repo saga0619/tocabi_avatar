@@ -616,7 +616,7 @@ void AvatarController::computeSlow()
 
     if (rd_.tc_.mode == 10)
     {
-        if (initial_flag == 2)
+        if (initial_flag == 0)
         {
             Joint_gain_set_MJ();
             walking_enable_ = true;
@@ -630,7 +630,7 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-            initial_flag = 1;
+            
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
             walking_end_flag = 0;
@@ -639,8 +639,9 @@ void AvatarController::computeSlow()
 
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
-            Gravity_MJ_.setZero();
+            //Gravity_MJ_.setZero();
             atb_grav_update_ = false;
+            initial_flag = 1;
         }
 
         if (atb_grav_update_ == false)
@@ -1079,7 +1080,7 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
-        if (initial_flag == 0)
+        if (initial_flag == 1)
         {
             WBC::SetContact(rd_, 1, 1);
 
@@ -1091,7 +1092,7 @@ void AvatarController::computeFast()
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
-            initial_flag = 2;
+            //initial_flag = 2;
         }
     }
     else if (rd_.tc_.mode == 11)
@@ -9015,13 +9016,13 @@ void AvatarController::computeCAMcontrol_HQP()
             w3_camhqp_[1] = 0.0000; //acceleration (0.000)
         }
          
-        control_joint_idx_camhqp_[0] = 13;
-        control_joint_idx_camhqp_[1] = 14;
-        control_joint_idx_camhqp_[2] = 16;
-        control_joint_idx_camhqp_[3] = 17;
-        control_joint_idx_camhqp_[4] = 26;
-        control_joint_idx_camhqp_[5] = 27;
-
+        control_joint_idx_camhqp_[0] = 13; // waist pitch
+        control_joint_idx_camhqp_[1] = 14; // waist roll
+        control_joint_idx_camhqp_[2] = 16; // left shoulder pitch
+        control_joint_idx_camhqp_[3] = 17; // left shoulder roll
+        control_joint_idx_camhqp_[4] = 26; // right shoulder pitch
+        control_joint_idx_camhqp_[5] = 27; // right shoulder roll
+ 
         last_solved_hierarchy_num_camhqp_ = -1;
 
         first_loop_camhqp_ = false;
@@ -9061,6 +9062,9 @@ void AvatarController::computeCAMcontrol_HQP()
     cmm_support = pelv_support_current_.linear() * cmm; // considering the gravity direction
     //Eigen::Vector3d Real_ang_momentum;
     //Real_ang_momentum = mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm_support*q_dot_test.segment(6, MODEL_DOF);
+
+
+
     cmm_selected = cmm_support * sel_matrix;
     J_camhqp_[0] = cmm_selected;
     u_dot_camhqp_[0] = -del_ang_momentum_slow_;
@@ -9073,8 +9077,8 @@ void AvatarController::computeCAMcontrol_HQP()
         u_dot_camhqp_[1](i) = 20*(0.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[i]));        
     }
 
-    u_dot_camhqp_[1](3) = 20*(+20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])); // 40도 이상 을 초기자세로 하고싶으면, limit을 바꿔줘야함.
-    u_dot_camhqp_[1](5) = 20*(-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5]));
+    u_dot_camhqp_[1](3) = 20*(+50.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])); // Joint limit of LSR -> 10/70 deg
+    u_dot_camhqp_[1](5) = 20*(-50.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])); // Joint limit of RSR -> -70/-10 deg
 
     for (int i = 0; i < hierarchy_num_camhqp_; i++)
     {
@@ -9112,18 +9116,33 @@ void AvatarController::computeCAMcontrol_HQP()
         //     lb_camhqp_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(control_joint_idx_camhqp_[j]) - current_q_(control_joint_idx_camhqp_[j])), joint_vel_limit_l_(control_joint_idx_camhqp_[j])), joint_vel_limit_h_(control_joint_idx_camhqp_[j]));
         //     ub_camhqp_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(control_joint_idx_camhqp_[j]) - current_q_(control_joint_idx_camhqp_[j])), joint_vel_limit_h_(control_joint_idx_camhqp_[j])), joint_vel_limit_l_(control_joint_idx_camhqp_[j]));
         // }
-        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
-        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
-        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
-        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
+        
+        // DG's joint limit
+        // lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
+        // ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        // lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
+        // ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
+        // lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
+        // ub_camhqp_[i](2) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
+        // lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
+        // ub_camhqp_[i](3) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
+        // lb_camhqp_[i](4) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
+        // ub_camhqp_[i](4) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
+        // lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
+        // ub_camhqp_[i](5) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+
+        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
+        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
+        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
-        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
-        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
+        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
+        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
         lb_camhqp_[i](4) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
         ub_camhqp_[i](4) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
-        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
-        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
+        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (-10*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
 
         int higher_task_equality_num = 0;
         for (int h = 0; h < i; h++)
@@ -9189,17 +9208,17 @@ void AvatarController::computeCAMcontrol_HQP()
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
 
-    Eigen::VectorXd AA, BB, CC;
-    AA.resize(6);
-    BB.resize(6);
-    CC.resize(6);
-    AA = q_dot_camhqp_[0]; // only first hierarchy solution (angular velocity)
-    BB = q_dot_camhqp_[1]; // final solution (angular velocity)
-    CC = u_dot_camhqp_[1];
+    // Eigen::VectorXd AA, BB, CC;
+    // AA.resize(6);
+    // BB.resize(6);
+    // CC.resize(6);
+    // AA = q_dot_camhqp_[0]; // only first hierarchy solution (angular velocity)
+    // BB = q_dot_camhqp_[1]; // final solution (angular velocity)
+    // CC = u_dot_camhqp_[1];
     
-    MJ_graph1 << AA(0) << "," << AA(2) << "," << AA(4) << "," << BB(0) << "," << BB(2) << "," << BB(4) << endl;
+    //MJ_graph1 << AA(0) << "," << AA(2) << "," << AA(4) << "," << BB(0) << "," << BB(2) << "," << BB(4) << endl;
     //MJ_graph1 << CC(0) << "," << CC(1) << "," << CC(2) << "," << CC(3) << "," << CC(4) << "," << CC(5) << endl;
-    MJ_graph << current_q_(13) << "," << current_q_(16) << "," << current_q_(26) << "," << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(26) << "," << del_ang_momentum_(1) << "," << del_tau_(1) << endl;
+    MJ_graph << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(26) << "," << motion_q_(27) << "," << del_ang_momentum_(0) << "," << del_tau_(0) << endl;
     //MJ_graph1 << J_camhqp_[0]*q_dot_camhqp_[0]
 }
 
@@ -13521,6 +13540,27 @@ void AvatarController::CentroidalMomentCalculator()
         del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
         del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
     }
+    // del tau, del CAM output limitation (220107)
+    double limit = 100.0;
+    if(del_tau_(0) > limit)
+    { del_tau_(0) = limit; }
+    else if(del_tau_(0) < -limit)
+    { del_tau_(0) = -limit; }
+
+    if(del_tau_(1) > limit)
+    { del_tau_(1) = limit; }
+    else if(del_tau_(1) < -limit)
+    { del_tau_(1) = -limit; }
+
+    if(del_ang_momentum_(0) > limit)
+    { del_ang_momentum_(0) = limit; }
+    else if(del_ang_momentum_(0) < -limit)
+    { del_ang_momentum_(0) = -limit; }
+
+    if(del_ang_momentum_(1) > limit)
+    { del_ang_momentum_(1) = limit; }
+    else if(del_ang_momentum_(1) < -limit)
+    { del_ang_momentum_(1) = -limit; }
 
     //del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
     // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
