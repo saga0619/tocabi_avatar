@@ -89,6 +89,7 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
+    Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
     // LexLS::tools::HierarchyType type_of_hierarchy;
     // LexLS::Index number_of_variables;
@@ -1134,7 +1135,7 @@ public:
     Eigen::VectorXd g_camhqp_[2], u_dot_camhqp_[2], qpres_camhqp_, ub_camhqp_[2],lb_camhqp_[2], ubA_camhqp_[2], lbA_camhqp_[2];
     Eigen::VectorXd q_dot_camhqp_[2];
 
-    int control_joint_idx_camhqp_[8];
+    int control_joint_idx_camhqp_[8]; // original number -> 6 (DG)
     int last_solved_hierarchy_num_camhqp_;
     ///////////////////////////////////////////////////
 
@@ -1436,6 +1437,7 @@ public:
     //
     Eigen::VectorQd contact_torque_MJ;
     Eigen::VectorQd Initial_ref_q_;
+    Eigen::VectorQd Initial_ref_upper_q_;
     Eigen::VectorQd Initial_current_q_;
     Eigen::VectorQd Initial_ref_q_walk_;
     bool walking_enable_ ;
@@ -1462,6 +1464,7 @@ public:
 private:    
     //////////////////////////////// Myeong-Ju
     unsigned int walking_tick_mj = 0;
+    unsigned int initial_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  
 };
