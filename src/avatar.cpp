@@ -551,17 +551,19 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-            initial_flag = 1;
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
             walking_end_flag = 0;
             parameterSetting();
             initWalkingParameter();
-            cout << "mode = 10 Fast thread" << endl;
+
 
             WBC::SetContact(rd_, 1, 1);
+
             Gravity_MJ_fast_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+
             atb_grav_update_ = false;
+            initial_flag = 1;
         }
 
         if (atb_grav_update_ == false || initial_flag==2)
@@ -1016,10 +1018,12 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
+
         if (initial_flag == 1)
         {
+
             WBC::SetContact(rd_, 1, 1);
-            
+
             VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             if (atb_grav_update_ == false)
             {
@@ -1028,6 +1032,7 @@ void AvatarController::computeFast()
                 atb_grav_update_ = false;
                 initial_flag =2;
             }
+
         }
     }
     else if (rd_.tc_.mode == 11)
