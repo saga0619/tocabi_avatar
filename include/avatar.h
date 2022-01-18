@@ -1381,6 +1381,7 @@ public:
 
     double ZMP_X_REF;
     double ZMP_Y_REF;
+    double ZMP_Y_REF_alpha = 0;
 
     double t_last_;
     double t_start_;

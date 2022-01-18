@@ -744,7 +744,7 @@ void AvatarController::computeSlow()
                     //ref_q_(i) = q_des_(i);
                     ref_q_(i) = DOB_IK_output_(i);
                 }
-                hip_compensator();
+                //hip_compensator();
                 // GravityCalculate_MJ();
 
                 if (atb_grav_update_ == false)
@@ -9240,17 +9240,7 @@ void AvatarController::computeCAMcontrol_HQP()
         motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * dt_;
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
-
-    // Eigen::VectorXd AA, BB, CC;
-    // AA.resize(6);
-    // BB.resize(6);
-    // CC.resize(6);
-    // AA = q_dot_camhqp_[0]; // only first hierarchy solution (angular velocity)
-    // BB = q_dot_camhqp_[1]; // final solution (angular velocity)
-    // CC = u_dot_camhqp_[1];
     
-    //MJ_graph1 << AA(0) << "," << AA(2) << "," << AA(4) << "," << BB(0) << "," << BB(2) << "," << BB(4) << endl;
-    //MJ_graph1 << CC(0) << "," << CC(1) << "," << CC(2) << "," << CC(3) << "," << CC(4) << "," << CC(5) << endl;
     MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
     MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
 }
@@ -9350,9 +9340,9 @@ void AvatarController::computeCAMcontrol_HQP()
     J_camhqp_[0] = cmm_selected;
     u_dot_camhqp_[0] = -del_ang_momentum_slow_;
     J_camhqp_[1].setIdentity(8, 8);
-    u_dot_camhqp_[1].setZero(control_size_camhqp_[1]);
-    // (u_dot_camhqp_[1])(0) = 50*( zero_q_(13) - current_q_(13)) ;
-    for(int i =0; i < control_size_camhqp_[1]; i++) // HQP 했을때 처음에 zero position으로 가는 이유는 CAM이 0이 되도록 대칭으로 움직이기때문, 복구가 안되는 이유는 CAM이 0이면서 비대칭으로 움직일수 없으니까.
+    u_dot_camhqp_[1].setZero(control_size_camhqp_[1]); 
+
+    for(int i =0; i < control_size_camhqp_[1]; i++) 
     {
         // recovery strategy
         u_dot_camhqp_[1](i) = 20*(CAM_upper_init_q_(control_joint_idx_camhqp_[i]) - motion_q_pre_(control_joint_idx_camhqp_[i]));        
@@ -9433,7 +9423,7 @@ void AvatarController::computeCAMcontrol_HQP()
         
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = 0.5;
+            eps(k) = 0.3;
         }
 
         for (int h = 0; h < i; h++)
@@ -9507,12 +9497,11 @@ void AvatarController::computeCAMcontrol_HQP()
     // AA = q_dot_camhqp_[0]; // only first hierarchy solution (angular velocity)
     // BB = q_dot_camhqp_[1]; // final solution (angular velocity)
     // CC = u_dot_camhqp_[1];
-    
-    //MJ_graph1 << AA(0) << "," << AA(2) << "," << AA(4) << "," << BB(0) << "," << BB(2) << "," << BB(4) << endl;
-    //MJ_graph1 << CC(0) << "," << CC(1) << "," << CC(2) << "," << CC(3) << "," << CC(4) << "," << CC(5) << endl;
+
     MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
     MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
 }
+
 void AvatarController::savePreData()
 {
     pre_time_ = current_time_;
@@ -13744,7 +13733,7 @@ void AvatarController::CentroidalMomentCalculator()
     del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
     del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
 
-    double foot_width_x = 0.10;  // original foot width in urdf -> 0.15
+    double foot_width_x = 0.13;  // original foot width in urdf -> 0.15
     double foot_width_y = 0.055; // original foot width in urdf -> 0.065
 
     if (walking_tick_mj == 0)
@@ -13778,14 +13767,12 @@ void AvatarController::CentroidalMomentCalculator()
         del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment , X direction CP control
         del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
     }
-    else if (del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x) // recovery strategy
+    else if (del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x)  
     {
         del_zmp(0) = del_cmp(0);
-        // del_tau_(1) = 0;
+
         if (walking_tick_mj > t_temp_)
         {
-            // del_tau_(1) = -(50 * (ref_q_(13) - rd_.q_(13)) - 15 * rd_.q_dot_(13) + 5 * (ref_q_(16) - rd_.q_(16)) - 2.5 * rd_.q_dot_(16) + 5 * (ref_q_(26) - rd_.q_(26)) - 2.5 * rd_.q_dot_(26));
-            // del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
             del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY;
             del_ang_momentum_(1) = del_ang_momentum_(1)*0.99;
         }
@@ -13798,7 +13785,7 @@ void AvatarController::CentroidalMomentCalculator()
     else if (del_cmp(0) < -foot_width_x)
     {
         del_zmp(0) = -foot_width_x;
-        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY; // Y axis delta angular moment to control x-CP error
+        del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY;  
         del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
     }
 
@@ -13806,19 +13793,17 @@ void AvatarController::CentroidalMomentCalculator()
     if (del_cmp(1) > foot_width_y)
     {
         del_zmp(1) = foot_width_y;
-        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment to control y-CP error
+        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY;  
         del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
     }
-    else if (del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y) // recovery strategy
+    else if (del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
     {
         del_zmp(1) = del_cmp(1);
-        // del_tau_(0) = 0;
+        
         if (walking_tick_mj > t_temp_)
-        {
-            //del_tau_(0) = ( 0*10*(ref_q_(14) - rd_.q_(14)) - 0*5*rd_.q_dot_(14) + 10*(ref_q_(17) - rd_.q_(17)) - 5*rd_.q_dot_(17) + 10*(ref_q_(27) - rd_.q_(27)) - 5*rd_.q_dot_(27));
+        {            
             del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY;
-            del_ang_momentum_(0) = del_ang_momentum_(0)*0.99;
-            //del_tau_(0) = (50 * (ref_q_(14) - rd_.q_(14)) - 15 * rd_.q_dot_(14) + 5 * (ref_q_(17) - rd_.q_(17)) - 2.5 * rd_.q_dot_(17) + 5 * (ref_q_(27) - rd_.q_(27)) - 2.5 * rd_.q_dot_(27));
+            del_ang_momentum_(0) = del_ang_momentum_(0)*0.99;            
         }
         else
         {
@@ -13828,7 +13813,7 @@ void AvatarController::CentroidalMomentCalculator()
     else if (del_cmp(1) < -foot_width_y)
     {
         del_zmp(1) = -foot_width_y;
-        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
+        del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY;  
         del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
     }
     // del tau, del CAM output limitation (220107/ referenced by DLR)
@@ -13867,7 +13852,6 @@ void AvatarController::CentroidalMomentCalculator()
     { 
         del_ang_momentum_(1) = -limit; 
     }
-
     
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1)); // 원래 previewcontroller 자리에 있던 함수.
 }
