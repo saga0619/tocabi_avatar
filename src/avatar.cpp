@@ -9240,9 +9240,36 @@ void AvatarController::computeCAMcontrol_HQP()
         motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * dt_;
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
+
+    // CAM calculation based on actual joint angular velocity
+    Eigen::VectorXd cam_a;
+    Eigen::VectorXd real_q_dot_hqp_; 
+    cam_a.setZero(3);
+    real_q_dot_hqp_.setZero(8);
     
-    MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
-    MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
+    for(int i = 0; i < variable_size_camhqp_; i++)
+    {
+      real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
+    }
+    cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
+
+    // CAM calculation based on commanded joint angular velocity
+    Eigen::VectorXd cam_c;
+    Eigen::VectorXd comm_q_dot_hqp_; 
+    cam_c.setZero(3);
+    comm_q_dot_hqp_.setZero(8);
+
+    for(int i = 0; i < variable_size_camhqp_; i++)
+    {
+      comm_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
+    }
+    cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
+
+    MJ_graph << cam_a(0) << "," << cam_c(0) << "," << cam_a(1) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
+   
+    
+    //MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
+    //MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
 }
 */
 
@@ -9333,8 +9360,6 @@ void AvatarController::computeCAMcontrol_HQP()
     cmm_support = pelv_support_current_.linear() * cmm; // considering the gravity direction
     //Eigen::Vector3d Real_ang_momentum;
     //Real_ang_momentum = mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm_support*q_dot_test.segment(6, MODEL_DOF);
-
-
 
     cmm_selected = cmm_support * sel_matrix;
     J_camhqp_[0] = cmm_selected;
@@ -9490,16 +9515,33 @@ void AvatarController::computeCAMcontrol_HQP()
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
 
-    // Eigen::VectorXd AA, BB, CC;
-    // AA.resize(6);
-    // BB.resize(6);
-    // CC.resize(6);
-    // AA = q_dot_camhqp_[0]; // only first hierarchy solution (angular velocity)
-    // BB = q_dot_camhqp_[1]; // final solution (angular velocity)
-    // CC = u_dot_camhqp_[1];
+    // CAM calculation based on actual joint angular velocity
+    Eigen::VectorXd cam_a;
+    Eigen::VectorXd real_q_dot_hqp_; 
+    cam_a.setZero(3);
+    real_q_dot_hqp_.setZero(8);
+    
+    for(int i = 0; i < variable_size_camhqp_; i++)
+    {
+      real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
+    }
+    cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
 
-    MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
-    MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
+    // CAM calculation based on commanded joint angular velocity
+    Eigen::VectorXd cam_c;
+    Eigen::VectorXd comm_q_dot_hqp_; 
+    cam_c.setZero(3);
+    comm_q_dot_hqp_.setZero(8);
+
+    for(int i = 0; i < variable_size_camhqp_; i++)
+    {
+      comm_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
+    }
+    cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
+
+    MJ_graph << cam_a(0) << "," << cam_c(0) << "," << cam_a(1) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
+    //MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
+    //MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
 }
 
 void AvatarController::savePreData()
@@ -13733,8 +13775,33 @@ void AvatarController::CentroidalMomentCalculator()
     del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
     del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
 
-    double foot_width_x = 0.13;  // original foot width in urdf -> 0.15
-    double foot_width_y = 0.055; // original foot width in urdf -> 0.065
+    Eigen::Vector2d cmp_limit_;
+    Eigen::Vector2d del_tau_limit_;    
+    double foot_width_x = 0.120;  // alpha = 0.8 / original foot width in urdf -> 0.15 
+    double foot_width_y = 0.052; // alpha = 0.8 / original foot width in urdf -> 0.065 
+
+    // del tau output limitation (220118/ DLR's CAM output is an approximately 20 Nm (maximum) and TORO has a weight of 79.2 kg)
+    del_tau_limit_(0) = 20.0;
+    del_tau_limit_(1) = 20.0;
+    cmp_limit_(0) = foot_width_x + del_tau_limit_(0)/(rd_.link_[COM_id].mass * GRAVITY);
+    cmp_limit_(1) = foot_width_y + del_tau_limit_(1)/(rd_.link_[COM_id].mass * GRAVITY);
+
+    if(del_cmp(0) > cmp_limit_(0))
+    { 
+        del_cmp(0) = cmp_limit_(0); 
+    }
+    else if(del_cmp(0) < -cmp_limit_(0))
+    { 
+        del_cmp(0) = -cmp_limit_(0); 
+    }
+    if(del_cmp(1) > cmp_limit_(1))
+    { 
+        del_cmp(1) = cmp_limit_(1); 
+    }
+    else if(del_cmp(1) < -cmp_limit_(1))
+    { 
+        del_cmp(1) = -cmp_limit_(1); 
+    }
 
     if (walking_tick_mj == 0)
     {
@@ -13742,23 +13809,8 @@ void AvatarController::CentroidalMomentCalculator()
         del_ang_momentum_.setZero();
         del_ang_momentum_prev_.setZero();
     }
-    // VectorXd q_virtual;
-    // q_virtual = rd_.q_virtual_;
-    // q_virtual.segment(0, 6).setZero();
-    // q_virtual(39) = 1;
-    
-    // Eigen::MatrixXd mass_matrix_temp, cmm, cmm_support;
-    // mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
-    // cmm.setZero(3, MODEL_DOF);
-    // cmm_support.setZero(3, MODEL_DOF);
 
-    // RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_c_, q_virtual, mass_matrix_temp, true);
-    // getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
-    // cmm_support = pelv_support_current_.linear() * cmm; // considering the gravity direction
-
-    // del_ang_momentum_prev_ = cmm_support*rd_.q_dot_;
-
-    del_ang_momentum_prev_ = del_ang_momentum_;
+    del_ang_momentum_prev_ = del_ang_momentum_;   
 
     // X direction CP control
     if (del_cmp(0) > foot_width_x)
@@ -13770,17 +13822,8 @@ void AvatarController::CentroidalMomentCalculator()
     else if (del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x)  
     {
         del_zmp(0) = del_cmp(0);
-
-        if (walking_tick_mj > t_temp_)
-        {
-            del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.link_[COM_id].mass * GRAVITY;
-            del_ang_momentum_(1) = del_ang_momentum_(1)*0.99;
-        }
-        else
-        {
-            del_tau_(1) = 0;
-            del_ang_momentum_(1) = 0;
-        }
+        del_tau_(1) = 0;
+        del_ang_momentum_(1) = del_ang_momentum_(1)*0.99;    
     }
     else if (del_cmp(0) < -foot_width_x)
     {
@@ -13799,16 +13842,8 @@ void AvatarController::CentroidalMomentCalculator()
     else if (del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
     {
         del_zmp(1) = del_cmp(1);
-        
-        if (walking_tick_mj > t_temp_)
-        {            
-            del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY;
-            del_ang_momentum_(0) = del_ang_momentum_(0)*0.99;            
-        }
-        else
-        {
-            del_tau_(0) = 0;
-        }
+        del_tau_(0) = 0;
+        del_ang_momentum_(0) = del_ang_momentum_(0)*0.99; 
     }
     else if (del_cmp(1) < -foot_width_y)
     {
@@ -13816,41 +13851,25 @@ void AvatarController::CentroidalMomentCalculator()
         del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.link_[COM_id].mass * GRAVITY;  
         del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
     }
-    // del tau, del CAM output limitation (220107/ referenced by DLR)
-    double limit = 70.0;
-    
-    if(del_tau_(0) > limit)
+
+    // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
+    double A_limit = 10.0;
+       
+    if(del_ang_momentum_(0) > A_limit)
     { 
-        del_tau_(0) = limit; 
+        del_ang_momentum_(0) = A_limit; 
     }
-    else if(del_tau_(0) < -limit)
+    else if(del_ang_momentum_(0) < -A_limit)
     { 
-        del_tau_(0) = -limit; 
+        del_ang_momentum_(0) = -A_limit; 
     }
-    if(del_tau_(1) > limit)
+    if(del_ang_momentum_(1) > A_limit)
     { 
-        del_tau_(1) = limit; 
+        del_ang_momentum_(1) = A_limit; 
     }
-    else if(del_tau_(1) < -limit)
+    else if(del_ang_momentum_(1) < -A_limit)
     { 
-        del_tau_(1) = -limit; 
-    }
-    
-    if(del_ang_momentum_(0) > limit)
-    { 
-        del_ang_momentum_(0) = limit; 
-    }
-    else if(del_ang_momentum_(0) < -limit)
-    { 
-        del_ang_momentum_(0) = -limit; 
-    }
-    if(del_ang_momentum_(1) > limit)
-    { 
-        del_ang_momentum_(1) = limit; 
-    }
-    else if(del_ang_momentum_(1) < -limit)
-    { 
-        del_ang_momentum_(1) = -limit; 
+        del_ang_momentum_(1) = -A_limit; 
     }
     
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1)); // 원래 previewcontroller 자리에 있던 함수.
