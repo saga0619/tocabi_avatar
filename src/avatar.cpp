@@ -12,11 +12,12 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-// ofstream MJ_joint1("/home/myeongju/MJ_joint1.txt");
-// ofstream MJ_ZMP("/home/myeongju/MJ_ZMP.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
+ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
+ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
+ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -9004,8 +9005,8 @@ MatrixXd AvatarController::getCMatrix(VectorXd q, VectorXd qdot)
 
     return C;
 }
-/*
-void AvatarController::computeCAMcontrol_HQP()
+
+/*void AvatarController::computeCAMcontrol_HQP()
 {
     // const int hierarchy_num_camhqp_ = 2;
     // const int variable_size_camhqp_ = 8; 
@@ -9032,7 +9033,7 @@ void AvatarController::computeCAMcontrol_HQP()
 
             q_dot_camhqp_[i].setZero(variable_size_camhqp_);
 
-            w1_camhqp_[0] = 2500; // |A*qdot - h|
+            w1_camhqp_[0] = 5000; // |A*qdot - h|
             w2_camhqp_[0] = 0.0; // |q_dot|
             w3_camhqp_[0] = 2500; // |q_dot - q_dot_zero|  
             
@@ -9265,13 +9266,16 @@ void AvatarController::computeCAMcontrol_HQP()
     }
     cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
 
-    MJ_graph << cam_a(0) << "," << cam_c(0) << "," << cam_a(1) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
-   
+    //if((walking_tick_mj % 100) == 0 )
+    {
+        MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
+        MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
+        MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
+        MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+    }
     
-    //MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
-    //MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
-}
-*/
+}*/
+
 
 void AvatarController::computeCAMcontrol_HQP()
 {
@@ -9538,10 +9542,15 @@ void AvatarController::computeCAMcontrol_HQP()
       comm_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
     }
     cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
-
-    MJ_graph << cam_a(0) << "," << cam_c(0) << "," << cam_a(1) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
-    //MJ_graph << motion_q_(13) << "," << motion_q_(16) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(29) << "," << del_tau_(1) << "," << del_ang_momentum_(1) << endl;
-    //MJ_graph1 << motion_q_(14) << "," << motion_q_(17) << "," << motion_q_(27) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl;
+    
+    //if((walking_tick_mj % 100) == 0 )
+    {
+        MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
+        MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
+        MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
+        MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+    }    
+    
 }
 
 void AvatarController::savePreData()
@@ -13546,7 +13555,7 @@ void AvatarController::CP_compen_MJ_FT()
     double F_R = 0, F_L = 0;
     double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0;
     double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0;
-    double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
+    double zmp_offset = 0;
     double alpha_new = 0;
 
     zmp_offset = 0.01; // zmp_offset 함수 참고
@@ -14067,7 +14076,7 @@ void AvatarController::CP_compen_MJ_FT()
   double F_R = 0, F_L = 0;
   double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
   double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0 ;
-  double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
+  double zmp_offset = 0;
   double alpha_new = 0;
  
 //   zmp_offset = 0.025; // 0.9초
