@@ -2148,6 +2148,7 @@ void AvatarController::floatingBaseMOB()
         nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
         nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = nonlinear_torque_temp.segment(0, MODEL_DOF_VIRTUAL);
         mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1/hz_, 100);
+        
         if( mob_residual_wholebody_!= mob_residual_wholebody_ )
         {
             mob_residual_wholebody_ = mob_residual_pre_wholebody;
@@ -9515,7 +9516,6 @@ void AvatarController::getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixX
 
     // return CMM;
 }
-
 void AvatarController::savePreData()
 {
     pre_time_ = current_time_;
@@ -10864,10 +10864,10 @@ void AvatarController::printOutTextFile()
         {
             file[0]<< mob_residual_external_(i) << "\t";
         }
-        // for(int i = 0; i <12 ; i++) 
-        // {
-        //     file[0]<< mob_residual_wholebody_(i) << "\t";
-        // }
+        for(int i = 0; i <12 ; i++) 
+        {
+            file[0]<< mob_residual_wholebody_(i) << "\t";
+        }
         file[0]<<endl;
     }
 
@@ -13163,7 +13163,6 @@ void AvatarController::parameterSetting()
     // }
 
     //// random walking setting////
-
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
@@ -13185,6 +13184,7 @@ void AvatarController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.3*hz_;
     foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
+    ///////////////////////////////////////////////
 
     //// Normal walking setting ////
     // target_x_ = 1.0;
@@ -13202,6 +13202,7 @@ void AvatarController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.0*hz_;
     // foot_height_ = 0.05;      // 0.9 sec 0.05
+    /////////////////////////////////
 
     t_temp_ = 2.0 * hz_;
     t_last_ = t_total_ + t_temp_;

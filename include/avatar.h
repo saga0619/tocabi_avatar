@@ -135,7 +135,7 @@ public:
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
 
-    //estimator
+    ////// external torque estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
@@ -144,6 +144,7 @@ public:
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
     void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM); //angular only
+    ///////////////////
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -1151,7 +1152,6 @@ public:
     Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
     Eigen::VectorQd torque_from_l_ft_; //J^T*FT_F
     Eigen::VectorQd torque_from_r_ft_; //J^T*FT_F
-
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
