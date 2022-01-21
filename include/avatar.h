@@ -438,6 +438,11 @@ public:
     Eigen::MatrixVVd A_inv_mat_;
     Eigen::MatrixVVd A_dot_mat_;
 
+    Eigen::MatrixVVd A_mat_global_;
+    Eigen::MatrixVVd A_mat_global_pre_;
+    Eigen::MatrixVVd A_global_inv_mat_;
+    Eigen::MatrixVVd A_dot_mat_global_;
+
     Eigen::MatrixVVd motor_inertia_mat_;
     Eigen::MatrixVVd motor_inertia_inv_mat_;
 

@@ -1445,7 +1445,9 @@ void AvatarController::initWalkingParameter()
 
     A_mat_ = rd_.A_;
     A_mat_pre_ = rd_.A_;
-    
+    A_mat_global_ = rd_.A_;
+    A_mat_global_pre_ = rd_.A_;
+
     mob_residual_internal_.setZero(MODEL_DOF);
     mob_integral_internal_.setZero(MODEL_DOF);
     
@@ -2140,13 +2142,19 @@ void AvatarController::floatingBaseMOB()
             cout<<"walking_tick: "<<walking_tick_mj<<endl;
         }        
         
+        A_mat_global_pre_ = A_mat_global_;
+
+        A_mat_global_ = rd_.A_;
+
+        A_dot_mat_global_ = (A_mat_global_- A_mat_global_pre_)*hz_;
+
         VectorXd momentum_virtual, current_torque_virtual, nonlinear_term_virtual;
         momentum_virtual.setZero(MODEL_DOF_VIRTUAL);
-        momentum_virtual.segment(0, MODEL_DOF_VIRTUAL) = (rd_.A_ * rd_.q_dot_virtual_).segment(0, MODEL_DOF_VIRTUAL);
+        momentum_virtual.segment(0, MODEL_DOF_VIRTUAL) = A_mat_.block(0, 0, MODEL_DOF_VIRTUAL, 6)*base_velocity + A_mat_.block(0, 6, MODEL_DOF_VIRTUAL, MODEL_DOF)*rd_.q_dot_;
         current_torque_virtual.setZero(MODEL_DOF_VIRTUAL);
         current_torque_virtual.segment(6, MODEL_DOF) = current_torque.segment(0, MODEL_DOF);
         nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
-        nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = nonlinear_torque_temp.segment(0, MODEL_DOF_VIRTUAL);
+        nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = A_dot_mat_.block(0, 0, MODEL_DOF_VIRTUAL, 6)*base_velocity + A_dot_mat_.block(0, 6, MODEL_DOF_VIRTUAL, MODEL_DOF)*rd_.q_dot_ - nonlinear_torque_;
         mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1/hz_, 100);
         
         if( mob_residual_wholebody_!= mob_residual_wholebody_ )
@@ -13163,45 +13171,45 @@ void AvatarController::parameterSetting()
     // }
 
     //// random walking setting////
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
-    step_length_x_ = (std::rand()%191)*0.001 + 0.01;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-    target_x_ = step_length_x_*10*sin(target_theta_);
-    target_y_ = step_length_x_*10*cos(target_theta_);
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
+    // step_length_x_ = (std::rand()%191)*0.001 + 0.01;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+    // target_x_ = step_length_x_*10*sin(target_theta_);
+    // target_y_ = step_length_x_*10*cos(target_theta_);
 
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.8 * hz_ + (std::rand()%8)*0.1* hz_;
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.8 * hz_ + (std::rand()%8)*0.1* hz_;
 
-    // t_rest_init_ = 0.27*hz_;
-    // t_rest_last_ = 0.27*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.3*hz_;
-    foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
+    // // t_rest_init_ = 0.27*hz_;
+    // // t_rest_last_ = 0.27*hz_;
+    // // t_double1_ = 0.03*hz_;
+    // // t_double2_ = 0.03*hz_;
+    // // t_total_= 1.3*hz_;
+    // foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
-    // target_x_ = 1.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.24*hz_;
-    // t_rest_last_ = 0.24*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.0*hz_;
-    // foot_height_ = 0.05;      // 0.9 sec 0.05
+    t_rest_init_ = 0.24*hz_;
+    t_rest_last_ = 0.24*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 1.0*hz_;
+    foot_height_ = 0.05;      // 0.9 sec 0.05
     /////////////////////////////////
 
     t_temp_ = 2.0 * hz_;
