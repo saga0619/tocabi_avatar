@@ -819,7 +819,7 @@ void AvatarController::computeSlow()
                     mujoco_applied_ext_force_.data[4] = 0;  //y-axis angular moment
                     mujoco_applied_ext_force_.data[5] = 0;  //z-axis angular moment
 
-                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis 
 
                     mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_); 
                 }
