@@ -231,6 +231,9 @@ public:
     ros::Publisher calibration_state_pub;
     ros::Publisher calibration_state_gui_log_pub;
 
+    ros::Publisher mujoco_ext_force_apply_pub;
+    std_msgs::Float32MultiArray mujoco_applied_ext_force_; // 6 ext wrench + 1 link idx
+
     void WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg);
 
     void UpperbodyModeCallback(const std_msgs::Int8 &msg);
@@ -1137,6 +1140,7 @@ public:
 
     int control_joint_idx_camhqp_[8]; // original number -> 6 (DG)
     int last_solved_hierarchy_num_camhqp_;
+    unsigned int torque_flag_x = 0, torque_flag_y = 0; 
     ///////////////////////////////////////////////////
 
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
