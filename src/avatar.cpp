@@ -2110,7 +2110,7 @@ void AvatarController::floatingBaseMOB()
         // nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) + l_cf_ft_local_ + r_cf_ft_local_;
 
         std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
-        mob_residual_external_ = momentumObserverFbExternal(A_mat_, A_dot_mat_, rd_.q_dot_, base_velocity, nonlinear_torque_, mob_residual_pre_external, mob_integral_external_, 1/hz_, 50);
+        mob_residual_external_ = momentumObserverFbExternal(A_mat_, A_dot_mat_, rd_.q_dot_, base_velocity, nonlinear_torque_, mob_residual_pre_external, mob_integral_external_, 1/hz_, 100);
         std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
 
         if( mob_residual_external_!= mob_residual_external_)
@@ -2142,11 +2142,12 @@ void AvatarController::floatingBaseMOB()
             cout<<"walking_tick: "<<walking_tick_mj<<endl;
         }        
         
-        A_mat_global_pre_ = A_mat_global_;
+        // A_mat_global_pre_ = A_mat_global_;
+        // A_mat_global_ = rd_.A_;
+        // A_dot_mat_global_ = (A_mat_global_- A_mat_global_pre_)*hz_;
 
-        A_mat_global_ = rd_.A_;
-
-        A_dot_mat_global_ = (A_mat_global_- A_mat_global_pre_)*hz_;
+        // without FT sensor version
+        nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) + mob_residual_external_.segment(0, 6);
 
         VectorXd momentum_virtual, current_torque_virtual, nonlinear_term_virtual;
         momentum_virtual.setZero(MODEL_DOF_VIRTUAL);
@@ -2179,6 +2180,8 @@ void AvatarController::floatingBaseMOB()
             // cout<<"l_cf_ft_local_(2): "<<l_cf_ft_local_(2) <<endl;
             // cout<<"q_dot_: "<<rd_.q_dot_virtual_.segment(0, 6).transpose()<<endl;
             // cout<<"q_: "<<rd_.q_virtual_.segment(0, 6).transpose()<<endl;
+            // cout<<"rd_.imu_lin_acc: "<<rd_.imu_lin_acc.transpose()<<endl;
+            // cout<<"q_ddot_virtual_: "<<rd_.q_ddot_virtual_.segment(0, 6).transpose()<<endl;
         }
     }
     else
@@ -10819,8 +10822,9 @@ void AvatarController::printOutTextFile()
     //         << rfoot_transform_current_from_support_.translation()(0) << "\t" << rfoot_transform_current_from_support_.translation()(1) << "\t" << rfoot_transform_current_from_support_.translation()(2) << "\t" //7
     //         << swing_foot_pos_trajectory_from_support_(0) << "\t" << swing_foot_pos_trajectory_from_support_(1) << "\t" << swing_foot_pos_trajectory_from_support_(2) << endl;                                    //28
     // if(walking_tick_mj%20 == 0)
+    if(printout_cnt_ <= 2000*60*60*3) //3h
     {
-        file[0]<<rd_.control_time_<<"\t"<<foot_step_(current_step_num_, 6)<<"\t";
+        file[0]<<rd_.control_time_<<"\t"<<foot_step_(current_step_num_, 6)<<"\t"<< lfoot_support_current_.translation()(2) <<"\t"<< rfoot_support_current_.translation()(2) <<"\t";
         // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
         // file[4] << torque_grav_(0) << "\t" << torque_grav_(1) << "\t" << torque_grav_(2) << "\t" << torque_grav_(3) << "\t" << torque_grav_(4) << "\t" << torque_grav_(5) << "\t" << torque_grav_(6) << "\t" << torque_grav_(7) << "\t" << torque_grav_(8) << "\t" << torque_grav_(9) << "\t" << torque_grav_(10) << "\t" << torque_grav_(11) << endl;
         file[0]<< rd_.q_virtual_(39) << "\t";       //w of quaternion
@@ -10834,7 +10838,7 @@ void AvatarController::printOutTextFile()
         }
         for(int i = 0; i <3 ; i++) 
         {
-            file[0]<< rd_.q_ddot_virtual_(i) << "\t" ;
+            file[0]<< rd_.imu_lin_acc(i) << "\t" ;
         }  
         for(int i = 0; i <12 ; i++) 
         {
@@ -10844,9 +10848,9 @@ void AvatarController::printOutTextFile()
         {
             file[0]<< rd_.torque_desired(i) << "\t";
         }
-        for(int i = 0; i <12 ; i++) 
+        for(int i = 6; i <18 ; i++) // left + right leg
         {
-            file[0]<< mob_residual_internal_(i) << "\t";
+            file[0]<< mob_residual_wholebody_(i) << "\t"; //mob_residual_internal_
         }
         for(int i = 0; i <12 ; i++) 
         {
@@ -10868,15 +10872,19 @@ void AvatarController::printOutTextFile()
         {
             file[0]<< torque_from_r_ft_(6+i) << "\t";
         }
-        for(int i = 0; i <6 ; i++) 
-        {
-            file[0]<< mob_residual_external_(i) << "\t";
-        }
-        for(int i = 0; i <12 ; i++) 
-        {
-            file[0]<< mob_residual_wholebody_(i) << "\t";
-        }
+        // for(int i = 0; i <6 ; i++) 
+        // {
+        //     file[0]<< mob_residual_external_(i) << "\t";
+        // }
+        // for(int i = 0; i <12 ; i++) 
+        // {
+        //     file[0]<< mob_residual_wholebody_(i) << "\t";
+        // }
         file[0]<<endl;
+    }
+    else
+    {
+        cout <<"WARNING: Logging for 3h" <<endl;
     }
 
     // file[5] << current_time_ - upperbody_command_time_ << "\t" << walking_phase_ << "\t" << foot_contact_ << "\t"
@@ -10966,6 +10974,8 @@ void AvatarController::printOutTextFile()
     // <<hmd_pelv_vel_(0)<<"\t"<<hmd_pelv_vel_(1)<<"\t"<<hmd_pelv_vel_(2)<<"\t"<<hmd_pelv_vel_(3)<<"\t"<<hmd_pelv_vel_(4)<<"\t"<<hmd_pelv_vel_(5)<<endl;
 
     // }
+
+    printout_cnt_ += 1;
 }
 
 //////////////////////////////MJ's Functions////////////////////
@@ -13171,45 +13181,45 @@ void AvatarController::parameterSetting()
     // }
 
     //// random walking setting////
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
-    // step_length_x_ = (std::rand()%191)*0.001 + 0.01;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-    // target_x_ = step_length_x_*10*sin(target_theta_);
-    // target_y_ = step_length_x_*10*cos(target_theta_);
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = (float(std::rand())/float(RAND_MAX)*180.0 - 90.0)* DEG2RAD;
+    step_length_x_ = (std::rand()%191)*0.001 + 0.01;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+    target_x_ = step_length_x_*10*sin(target_theta_);
+    target_y_ = step_length_x_*10*cos(target_theta_);
 
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.8 * hz_ + (std::rand()%8)*0.1* hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.8 * hz_ + (std::rand()%8)*0.1* hz_;
 
-    // // t_rest_init_ = 0.27*hz_;
-    // // t_rest_last_ = 0.27*hz_;
-    // // t_double1_ = 0.03*hz_;
-    // // t_double2_ = 0.03*hz_;
-    // // t_total_= 1.3*hz_;
-    // foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+    foot_height_ = float(std::rand())/float(RAND_MAX)*0.05 + 0.03;      // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    // target_x_ = 1.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.24*hz_;
-    t_rest_last_ = 0.24*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 1.0*hz_;
-    foot_height_ = 0.05;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.24*hz_;
+    // t_rest_last_ = 0.24*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.0*hz_;
+    // foot_height_ = 0.05;      // 0.9 sec 0.05
     /////////////////////////////////
 
     t_temp_ = 2.0 * hz_;
