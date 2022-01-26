@@ -37,7 +37,7 @@ const int FILE_CNT = 1;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/ssd2/fb_mob_learning/data/random_walking_.txt"
+    "/home/dyros21/FB_MOB_LEARNING_TOCABI/data/random_walking_.txt"
     // "/ssd2/fb_mob_learning/data/1_com_.txt",
     // "/ssd2/fb_mob_learning/data/2_zmp_.txt",
     // "/ssd2/fb_mob_learning/data/3_foot_.txt",
@@ -53,7 +53,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros21/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 

@@ -544,6 +544,7 @@ void AvatarController::computeSlow()
         if (initial_flag == 0)
         {
             Joint_gain_set_MJ();
+            cout << "mode10 check 1" << endl;
             walking_enable_ = true;
             // Initial pose
             ref_q_ = rd_.q_;
@@ -551,33 +552,39 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
+            cout << "mode10 check 2" << endl;
             q_prev_MJ_ = rd_.q_;
+            desired_q_slow_ = rd_.q_;
+            desired_q_dot_.setZero();
+
             walking_tick_mj = 0;
             walking_end_flag = 0;
             parameterSetting();
+            cout << "mode10 check 3" << endl;
             initWalkingParameter();
-
+            cout << "mode10 check 4" << endl;
 
             WBC::SetContact(rd_, 1, 1);
-
+            cout << "mode10 check 5" << endl;
             Gravity_MJ_fast_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
-
+            cout << "mode10 check 6" << endl;
             atb_grav_update_ = false;
             initial_flag = 1;
         }
-
+        
+        cout << "mode10 check 7" << endl;
         if (atb_grav_update_ == false || initial_flag==2)
         {
             atb_grav_update_ = true;
             Gravity_MJ_fast_ = Gravity_MJ_;
             atb_grav_update_ = false;
         }
-
+        cout << "mode10 check 8" << endl;
         for (int i = 0; i < MODEL_DOF; i++)
         {
             rd_.torque_desired(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
         }
-
+        cout << "mode10 check 9" << endl;
         if(initial_flag == 2)
             rd_.tc_.mode = 11;  // dg test
 
@@ -607,10 +614,24 @@ void AvatarController::computeSlow()
             }
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
             updateInitialState();   //0us
+            if (walking_tick_mj == 0)
+            {
+                cout << "check1" << endl;
+            }
+
             std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
             getRobotState();        //1us
+
+            if (walking_tick_mj == 0)
+            {
+                cout << "check2" << endl;
+            }
             std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
             floatToSupportFootstep();   //0us
+            if (walking_tick_mj == 0)
+            {
+                cout << "check3" << endl;
+            }
             std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
@@ -725,7 +746,7 @@ void AvatarController::computeSlow()
            
         }
         /////////////////////////////////////////////////////////////////////////////////////////
-               if (atb_upper_update_ == false)
+        if (atb_upper_update_ == false)
         {
             atb_upper_update_ = true;
             desired_q_fast_ = desired_q_slow_;
@@ -739,6 +760,7 @@ void AvatarController::computeSlow()
             torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
             torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
+        
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
@@ -1022,7 +1044,7 @@ void AvatarController::computeFast()
         if (initial_flag == 1)
         {
 
-            WBC::SetContact(rd_, 1, 1);
+            // WBC::SetContact(rd_, 1, 1);
 
             VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             if (atb_grav_update_ == false)
@@ -1059,11 +1081,11 @@ void AvatarController::computeFast()
             {
                 support_foot = 0;
             }
+            
+            VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
 
             if (atb_grav_update_ == false)
             {
-                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
-
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
@@ -1119,10 +1141,10 @@ void AvatarController::computeFast()
         if (initial_flag == 1)
         {
             WBC::SetContact(rd_, 1, 1);
+            VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+
             if (atb_grav_update_ == false)
-            {
-                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
-                
+            {    
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
@@ -1152,11 +1174,11 @@ void AvatarController::computeFast()
             {
                 support_foot = 0;
             }
+            
+            VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
 
             if (atb_grav_update_ == false)
-            {
-                VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
-                
+            {    
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
