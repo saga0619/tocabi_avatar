@@ -112,8 +112,10 @@ public:
     std::atomic<bool> atb_walking_traj_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
-    RigidBodyDynamics::Model model_c_;  //updated by current q
-    RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_local_;  //updated by local q
+    RigidBodyDynamics::Model model_global_;  //updated by global q
+    RigidBodyDynamics::Model model_C_;  //for calcuating C & Adot mat
+
     RigidBodyDynamics::Model model_MJ_;  //for calcuating CMM
 
     //////////dg custom controller functions////////
@@ -431,6 +433,10 @@ public:
     Eigen::VectorQVQd pre_desired_q_qvqd_;
     Eigen::VectorVQd pre_desired_q_dot_vqd_;
     Eigen::VectorVQd pre_desired_q_ddot_vqd_;
+
+    Eigen::VectorXd q_ddot_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_dot_virtual_Xd_global_pre_, q_virtual_Xd_global_;  // for model_global_ update
+    Eigen::VectorXd q_ddot_virtual_Xd_local_, q_dot_virtual_Xd_local_, q_dot_virtual_Xd_local_pre_, q_virtual_Xd_local_;
+
 
     Eigen::VectorQd desired_q_fast_;
     Eigen::VectorQd desired_q_dot_fast_;
@@ -1188,6 +1194,8 @@ public:
     Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
     Eigen::VectorQd torque_from_l_ft_; //J^T*FT_F
     Eigen::VectorQd torque_from_r_ft_; //J^T*FT_F
+    Eigen::VectorQd torque_from_l_ft_lpf_; //J^T*FT_F
+    Eigen::VectorQd torque_from_r_ft_lpf_; //J^T*FT_F
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
