@@ -1537,8 +1537,10 @@ void AvatarController::initWalkingParameter()
 
     lhand_control_point_offset_.setZero();
     rhand_control_point_offset_.setZero();
-    lhand_control_point_offset_(2) = -0.13;
-    rhand_control_point_offset_(2) = -0.13;
+    // lhand_control_point_offset_(2) = -0.13;
+    // rhand_control_point_offset_(2) = -0.13;
+    lhand_control_point_offset_(2) = 0.04;
+    rhand_control_point_offset_(2) = 0.04;
 
     robot_shoulder_width_ = 0.6;
 
@@ -4647,12 +4649,12 @@ void AvatarController::motionRetargeting_HQPIK()
         // cout<<"u_dot_[1]: \n" << u_dot_[1]<<endl;
         // cout<<"u_dot_[2]: \n" << u_dot_[2]<<endl;
         
-        cout<<"HQPIK time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+        //cout<<"HQPIK time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
 
-        for(int i=0; i<hierarchy_num_hqpik_; i++)
-        {
-            cout<<"iteration "<<i<<"-th time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t_end_hqpik[i] - t_start_hqpik[i]).count() <<endl;
-        }
+        // for(int i=0; i<hierarchy_num_hqpik_; i++)
+        // {
+        //     cout<<"iteration "<<i<<"-th time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t_end_hqpik[i] - t_start_hqpik[i]).count() <<endl;
+        // }
     }
 
     // cout<<"J_hqpik_[0]: \n"<< J_hqpik_[0]<<endl;
@@ -5776,14 +5778,14 @@ void AvatarController::poseCalibration()
     hmd_rshoulder_pose_.linear() = hmd_chest_pose_.linear();
 
     //HMD Velocity
-    hmd_head_vel_.segment(0, 3) = (hmd_head_pose_.translation() - hmd_head_pose_pre_.translation()) / dt_;
-    hmd_lshoulder_vel_.segment(0, 3) = (hmd_lshoulder_pose_.translation() - hmd_lshoulder_pose_pre_.translation()) / dt_;
-    hmd_lupperarm_vel_.segment(0, 3) = (hmd_lupperarm_pose_.translation() - hmd_lupperarm_pose_pre_.translation()) / dt_;
-    hmd_lhand_vel_.segment(0, 3) = (hmd_lhand_pose_.translation() - hmd_lhand_pose_pre_.translation()) / dt_;
-    hmd_rshoulder_vel_.segment(0, 3) = (hmd_rshoulder_pose_.translation() - hmd_rshoulder_pose_pre_.translation()) / dt_;
-    hmd_rupperarm_vel_.segment(0, 3) = (hmd_rupperarm_pose_.translation() - hmd_rupperarm_pose_pre_.translation()) / dt_;
-    hmd_rhand_vel_.segment(0, 3) = (hmd_rhand_pose_.translation() - hmd_rhand_pose_pre_.translation()) / dt_;
-    hmd_chest_vel_.segment(0, 3) = (hmd_chest_pose_.translation() - hmd_chest_pose_pre_.translation()) / dt_;
+    hmd_head_vel_.segment(0, 3) = (hmd_head_pose_.translation() - hmd_head_pose_pre_.translation()) *133;
+    hmd_lshoulder_vel_.segment(0, 3) = (hmd_lshoulder_pose_.translation() - hmd_lshoulder_pose_pre_.translation()) *133;
+    hmd_lupperarm_vel_.segment(0, 3) = (hmd_lupperarm_pose_.translation() - hmd_lupperarm_pose_pre_.translation()) *133;
+    hmd_lhand_vel_.segment(0, 3) = (hmd_lhand_pose_.translation() - hmd_lhand_pose_pre_.translation()) *133;
+    hmd_rshoulder_vel_.segment(0, 3) = (hmd_rshoulder_pose_.translation() - hmd_rshoulder_pose_pre_.translation()) *133;
+    hmd_rupperarm_vel_.segment(0, 3) = (hmd_rupperarm_pose_.translation() - hmd_rupperarm_pose_pre_.translation()) *133;
+    hmd_rhand_vel_.segment(0, 3) = (hmd_rhand_pose_.translation() - hmd_rhand_pose_pre_.translation()) *133;
+    hmd_chest_vel_.segment(0, 3) = (hmd_chest_pose_.translation() - hmd_chest_pose_pre_.translation()) *133;
 
     Eigen::AngleAxisd ang_temp_1(hmd_head_pose_.linear() * hmd_head_pose_pre_.linear().transpose());
     Eigen::AngleAxisd ang_temp_2(hmd_lshoulder_pose_.linear() * hmd_lshoulder_pose_pre_.linear().transpose());
@@ -5794,14 +5796,42 @@ void AvatarController::poseCalibration()
     Eigen::AngleAxisd ang_temp_7(hmd_rhand_pose_.linear() * hmd_rhand_pose_pre_.linear().transpose());
     Eigen::AngleAxisd ang_temp_8(hmd_chest_pose_.linear() * hmd_chest_pose_pre_.linear().transpose());
 
-    hmd_head_vel_.segment(3, 3) = ang_temp_1.axis() * ang_temp_1.angle() / dt_;
-    hmd_lshoulder_vel_.segment(3, 3) = ang_temp_2.axis() * ang_temp_2.angle() / dt_;
-    hmd_lupperarm_vel_.segment(3, 3) = ang_temp_3.axis() * ang_temp_3.angle() / dt_;
-    hmd_lhand_vel_.segment(3, 3) = ang_temp_4.axis() * ang_temp_4.angle() / dt_;
-    hmd_rshoulder_vel_.segment(3, 3) = ang_temp_5.axis() * ang_temp_5.angle() / dt_;
-    hmd_rupperarm_vel_.segment(3, 3) = ang_temp_6.axis() * ang_temp_6.angle() / dt_;
-    hmd_rhand_vel_.segment(3, 3) = ang_temp_7.axis() * ang_temp_7.angle() / dt_;
-    hmd_chest_vel_.segment(3, 3) = ang_temp_8.axis() * ang_temp_8.angle() / dt_;
+    hmd_head_vel_.segment(3, 3) = ang_temp_1.axis() * ang_temp_1.angle() *133;
+    hmd_lshoulder_vel_.segment(3, 3) = ang_temp_2.axis() * ang_temp_2.angle() *133;
+    hmd_lupperarm_vel_.segment(3, 3) = ang_temp_3.axis() * ang_temp_3.angle() *133;
+    hmd_lhand_vel_.segment(3, 3) = ang_temp_4.axis() * ang_temp_4.angle() *133;
+    hmd_rshoulder_vel_.segment(3, 3) = ang_temp_5.axis() * ang_temp_5.angle() *133;
+    hmd_rupperarm_vel_.segment(3, 3) = ang_temp_6.axis() * ang_temp_6.angle() *133;
+    hmd_rhand_vel_.segment(3, 3) = ang_temp_7.axis() * ang_temp_7.angle() *133;
+    hmd_chest_vel_.segment(3, 3) = ang_temp_8.axis() * ang_temp_8.angle() *133;
+
+
+
+    // abrupt motion check and stop
+    if( (hmd_lhand_vel_.segment(0, 3).norm()>2.0))
+    {
+        cout<<"WARNING: left hand linear velocity is over the 2.0m/s limit"<<endl;
+        upper_body_mode_ = 3;
+        upperbody_mode_recieved_ = true;
+    }
+    if( (hmd_lhand_vel_.segment(3, 3).norm()>2*M_PI))
+    {
+        cout<<"WARNING: left hand angular velocity is over the 360 degree/s limit"<<endl;
+        upper_body_mode_ = 3;
+        upperbody_mode_recieved_ = true;
+    }
+    if( (hmd_rhand_vel_.segment(0, 3).norm()>2.0))
+    {
+        cout<<"WARNING: right hand linear velocity is over the 2.0m/s limit"<<endl;
+        upper_body_mode_ = 3;
+        upperbody_mode_recieved_ = true;
+    }
+    if( (hmd_rhand_vel_.segment(3, 3).norm()>2*M_PI))
+    {
+        cout<<"WARNING: right hand angular velocity is over the 360 degree/s limit"<<endl;
+        upper_body_mode_ = 3;
+        upperbody_mode_recieved_ = true;
+    }
 }
 void AvatarController::getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali)
 {
@@ -6431,8 +6461,6 @@ void AvatarController::hmdRawDataProcessing()
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////HQP MOTION RETARGETING////////////////////////////////////////////
-    // To Do List: omit the relative shoulder basis
-
     if (first_loop_qp_retargeting_)
     {
         lhand_master_ref_stack_.setZero(3, 3);
