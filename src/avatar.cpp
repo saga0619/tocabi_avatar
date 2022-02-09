@@ -1703,8 +1703,10 @@ void AvatarController::initWalkingParameter()
 
     lhand_control_point_offset_.setZero();
     rhand_control_point_offset_.setZero();
-    lhand_control_point_offset_(2) = -0.13;
-    rhand_control_point_offset_(2) = -0.13;
+    // lhand_control_point_offset_(2) = -0.13;
+    // rhand_control_point_offset_(2) = -0.13;
+    lhand_control_point_offset_(2) = -0.4;
+    rhand_control_point_offset_(2) = -0.4;
 
     robot_shoulder_width_ = 0.6;
 
