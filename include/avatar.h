@@ -89,11 +89,13 @@ public:
     CQuadraticProgram QP_qdot_wholebody_;
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
+    std::vector<CQuadraticProgram> QP_cam_hqp_;
 
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
+    Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
     // LexLS::tools::HierarchyType type_of_hierarchy;
     // LexLS::Index number_of_variables;
@@ -106,11 +108,13 @@ public:
     // LexLS::internal::LexLSI lsi_;
 
     std::atomic<bool> atb_grav_update_{false};
-    std::atomic<bool> atb_upper_update_{false};
+    std::atomic<bool> atb_desired_q_update_{false};
+    std::atomic<bool> atb_walking_traj_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_MJ_;  //for calcuating CMM
 
     //////////dg custom controller functions////////
     void setGains();
@@ -135,15 +139,17 @@ public:
     Eigen::VectorQd jointLimit(); 
     Eigen::VectorQd ikBalanceControlCompute();
 
-    //estimator
+    ////// external torque estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
 
+    void computeCAMcontrol_HQP();
+    
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
-    void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM); //angular only
+    ///////////////////
 
     bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
     int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
@@ -189,6 +195,10 @@ public:
     void preview_MJ(double dt, int NL, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double& UX, double& UY, Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD);
     Eigen::MatrixXd discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q);
 
+    void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
+    void updateCMM_DG();
+    void CentroidalMomentCalculator();
+
     void getZmpTrajectory_dg();
     void savePreData();
     void printOutTextFile();
@@ -232,6 +242,9 @@ public:
 
     ros::Publisher calibration_state_pub;
     ros::Publisher calibration_state_gui_log_pub;
+
+    ros::Publisher mujoco_ext_force_apply_pub;
+    std_msgs::Float32MultiArray mujoco_applied_ext_force_; // 6 ext wrench + 1 link idx
 
     void WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg);
 
@@ -436,6 +449,11 @@ public:
     Eigen::MatrixVVd A_mat_pre_;
     Eigen::MatrixVVd A_inv_mat_;
     Eigen::MatrixVVd A_dot_mat_;
+
+    Eigen::MatrixVVd A_mat_global_;
+    Eigen::MatrixVVd A_mat_global_pre_;
+    Eigen::MatrixVVd A_global_inv_mat_;
+    Eigen::MatrixVVd A_dot_mat_global_;
 
     Eigen::MatrixVVd motor_inertia_mat_;
     Eigen::MatrixVVd motor_inertia_inv_mat_;
@@ -1135,7 +1153,26 @@ public:
 
     ////////////////////////////////////////////////////////////
 
+    /////////////CAM-HQP//////////////////////////
+    const int hierarchy_num_camhqp_ = 2;
+    const int variable_size_camhqp_ = 8; // original number -> 6 (DG)
+    const int constraint_size1_camhqp_ = 8; //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
+    const int constraint_size2_camhqp_[2] = {0, 3};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_camhqp_[2] = {3, 8}; //1: CAM control, 2: init pose // original number -> 6 (DG)
+
+    double w1_camhqp_[2];
+    double w2_camhqp_[2];
+    double w3_camhqp_[2];
     
+    Eigen::MatrixXd H_camhqp_[2], A_camhqp_[2];
+    Eigen::MatrixXd J_camhqp_[2];
+    Eigen::VectorXd g_camhqp_[2], u_dot_camhqp_[2], qpres_camhqp_, ub_camhqp_[2],lb_camhqp_[2], ubA_camhqp_[2], lbA_camhqp_[2];
+    Eigen::VectorXd q_dot_camhqp_[2];
+
+    int control_joint_idx_camhqp_[8]; // original number -> 6 (DG)
+    int last_solved_hierarchy_num_camhqp_;
+    ///////////////////////////////////////////////////
+
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
     Eigen::VectorXd mob_integral_internal_;
     Eigen::VectorXd mob_residual_internal_;
@@ -1151,7 +1188,6 @@ public:
     Eigen::VectorQd torque_sim_jts_; //external torque obtained from mujoco FT sensors at each joints
     Eigen::VectorQd torque_from_l_ft_; //J^T*FT_F
     Eigen::VectorQd torque_from_r_ft_; //J^T*FT_F
-
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
@@ -1187,6 +1223,9 @@ private:
     bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
 
+    int printout_cnt_ = 0;
+
+    bool first_loop_camhqp_;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1247,7 +1286,7 @@ public:
     
     Eigen::VectorQd q_prev_MJ_;
 
-    Eigen::Vector12d q_des;
+    Eigen::Vector12d q_des_;
     
     Eigen::Isometry3d pelv_trajectory_support_; //local frame
     
@@ -1260,9 +1299,26 @@ public:
     Eigen::Isometry3d rfoot_trajectory_float_;
     Eigen::Isometry3d lfoot_trajectory_float_;
 
+    Eigen::Isometry3d lfoot_trajectory_float_fast_;
+    Eigen::Isometry3d lfoot_trajectory_float_slow_;
+
+    Eigen::Isometry3d rfoot_trajectory_float_fast_;
+    Eigen::Isometry3d rfoot_trajectory_float_slow_;
+
     Eigen::Vector3d pelv_support_euler_init_;
     Eigen::Vector3d lfoot_support_euler_init_;
     Eigen::Vector3d rfoot_support_euler_init_;
+
+    Eigen::Vector2d del_cmp;
+    Eigen::Vector3d del_tau_;
+    Eigen::Vector3d del_ang_momentum_;
+    Eigen::Vector3d del_ang_momentum_prev_;
+
+    Eigen::Vector3d del_ang_momentum_slow_;
+    Eigen::Vector3d del_ang_momentum_fast_;
+
+    Eigen::VectorQd del_cmm_q_;
+    unsigned int cmp_control_mode = 0;
 
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
@@ -1374,6 +1430,7 @@ public:
 
     double ZMP_X_REF;
     double ZMP_Y_REF;
+    double ZMP_Y_REF_alpha = 0;
 
     double t_last_;
     double t_start_;
@@ -1430,6 +1487,7 @@ public:
     //
     Eigen::VectorQd contact_torque_MJ;
     Eigen::VectorQd Initial_ref_q_;
+    Eigen::VectorQd Initial_ref_upper_q_;
     Eigen::VectorQd Initial_current_q_;
     Eigen::VectorQd Initial_ref_q_walk_;
     bool walking_enable_ ;
@@ -1456,6 +1514,7 @@ public:
 private:    
     //////////////////////////////// Myeong-Ju
     unsigned int walking_tick_mj = 0;
+    unsigned int initial_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  
 };
