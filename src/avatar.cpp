@@ -2271,7 +2271,7 @@ void AvatarController::floatingBaseMOB()
     // J_temp.setZero(6, MODEL_DOF_VIRTUAL);
     // J_temp = (rd_.link_[Left_Foot].jac).cast<double>();
 
-    Eigen::VectorQd torque_from_l_ft_pre = torque_from_l_ft_;
+    Eigen::VectorQd torque_from_l_ft_pre = torque_from_l_ft_lpf_;
     torque_from_l_ft_ = jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-l_ft_wo_fw_);
     torque_from_l_ft_lpf_ = DyrosMath::lpf<33>(torque_from_l_ft_, torque_from_l_ft_pre, 2000, 100/(2*M_PI));
     // torque_from_l_ft_ =  jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.LF_CF_FT;
@@ -2280,7 +2280,7 @@ void AvatarController::floatingBaseMOB()
     R_temp.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
     // J_temp = rd_.link_[Right_Foot].jac.cast<double>();
 
-    Eigen::VectorQd torque_from_r_ft_pre = torque_from_r_ft_;
+    Eigen::VectorQd torque_from_r_ft_pre = torque_from_r_ft_lpf_;
     torque_from_r_ft_ = jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp*(-r_ft_wo_fw_);
     torque_from_r_ft_lpf_ = DyrosMath::lpf<33>(torque_from_r_ft_, torque_from_r_ft_pre, 2000, 100/(2*M_PI));
 
@@ -6983,6 +6983,7 @@ void AvatarController::hmdRawDataProcessing()
         r_pre_rhand_ = rhand_robot_ref_stack_ * rhand_mapping_vector_pre_;
     }
 
+
     double hand_d = (hmd_lhand_pose_.translation() - hmd_rhand_pose_.translation()).norm();
     // double beta = DyrosMath::cubic(hand_d, human_shoulder_width_+0.2, human_shoulder_width_-0.1, 1, 0, 0, 0);    // cubic transition
     double beta = 0;
@@ -11402,7 +11403,7 @@ void AvatarController::printOutTextFile()
             }
             for(int i = 0; i <3 ; i++) 
             {
-                file[0]<< rd_.imu_lin_acc(i) << "\t" ;
+                file[0]<< rd_.q_ddot_virtual_(i) << "\t" ;
             }  
             for(int i = 0; i <12 ; i++) 
             {
@@ -11422,11 +11423,11 @@ void AvatarController::printOutTextFile()
             }
             for(int i = 0; i <6 ; i++) 
             {
-                file[0]<< l_cf_ft_local_(i) << "\t";
+                file[0]<< l_ft_wo_fw_(i) << "\t";
             }
             for(int i = 0; i <6 ; i++) 
             {
-                file[0]<< r_cf_ft_local_(i) << "\t";
+                file[0]<< r_ft_wo_fw_(i) << "\t";
             }
             for(int i = 0; i <6 ; i++) 
             {
