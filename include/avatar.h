@@ -37,7 +37,7 @@ const int FILE_CNT = 1;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/ssd2/fb_mob_learning/data/random_walking_.txt"
+    "/home/dyros/data/dg/random_walking_.txt"
     // "/ssd2/fb_mob_learning/data/1_com_.txt",
     // "/ssd2/fb_mob_learning/data/2_zmp_.txt",
     // "/ssd2/fb_mob_learning/data/3_foot_.txt",
