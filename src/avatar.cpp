@@ -729,8 +729,8 @@ void AvatarController::computeSlow()
                 // cout<<"com_desired_(0): "<<com_desired_(0)<<endl;
                 // cout<<"com_desired_(1): "<<com_desired_(1)<<endl;
 
-                CP_compen_MJ();
-                CP_compen_MJ_FT();
+                // CP_compen_MJ();
+                // CP_compen_MJ_FT();
                 std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
@@ -12195,9 +12195,17 @@ void AvatarController::getPelvTrajectory()
 
     double pelv_transition_time = 2.0;
     double pelv_height_offset_ = 0.0;
+
     if (walking_enable_ == true)
     {
-        pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, 0.0, 0.05, 0.0, 0.0);
+        if(walking_tick_mj <  2 * hz_)
+        {
+            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, 2 * hz_, 0.0, 0.05, 0.0, 0.0);
+        }
+        else if ((walking_tick_mj >=  2 * hz_) &&(walking_tick_mj <5.0*hz_))
+        {
+            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 3 * hz_, 5 * hz_, 0.05, 0.00, 0.0, 0.0);
+        }
     } 
 
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
@@ -12566,7 +12574,7 @@ void AvatarController::parameterSetting()
     t_total_ = 1.1 * hz_;
  
 
-    t_temp_ = 4.0 * hz_;
+    t_temp_ = 60.0 * hz_;
     t_last_ = t_total_ + t_temp_;
     t_start_ = t_temp_ + 1;
     t_start_real_ = t_start_ + t_rest_init_;
