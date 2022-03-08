@@ -12195,16 +12195,24 @@ void AvatarController::getPelvTrajectory()
 
     double pelv_transition_time = 2.0;
     double pelv_height_offset_ = 0.0;
+    double down_t = 2.0;
+    double wait_t = 2.25;
+    double up_t = 2.5;
+    double finish_t = 2.75;
 
     if (walking_enable_ == true)
     {
-        if(walking_tick_mj <  2 * hz_)
+        if(walking_tick_mj >  down_t * hz_ && walking_tick_mj <  wait_t * hz_)
         {
-            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, 2 * hz_, 0.0, 0.05, 0.0, 0.0);
+            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, down_t * hz_, wait_t * hz_, 0.0, 0.10, 0.0, 0.0);
         }
-        else if ((walking_tick_mj >=  2 * hz_) &&(walking_tick_mj <5.0*hz_))
+        else if (walking_tick_mj >  wait_t * hz_ && walking_tick_mj <  up_t * hz_)
         {
-            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 3 * hz_, 5 * hz_, 0.05, 0.00, 0.0, 0.0);
+            pelv_height_offset_ = 0.10;
+        }
+        else if ((walking_tick_mj >=  up_t * hz_) &&(walking_tick_mj <finish_t*hz_))
+        {
+            pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, up_t * hz_, finish_t * hz_, 0.10, 0.00, 0.0, 0.0);
         }
     } 
 
@@ -12213,7 +12221,7 @@ void AvatarController::getPelvTrajectory()
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
     pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0*0.6 * damping_y - com_support_current_(1));  //- 0.01 * zmp_err_(1) * 0;
     // pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_; //DG
-    pelv_trajectory_support_.translation()(2) = com_desired_(2) - 0*pelv_height_offset_;
+    pelv_trajectory_support_.translation()(2) = com_desired_(2) - pelv_height_offset_;
 
     // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
     Eigen::Vector3d Trunk_trajectory_euler;
@@ -12277,8 +12285,8 @@ void AvatarController::supportToFloatPattern()
     lfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * lfoot_trajectory_support_;
     rfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * rfoot_trajectory_support_;
 
-    rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
-    lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
+    rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + 0*F_F_input * 0.5;
+    lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - 0*F_F_input * 0.5;
 }
 
 void AvatarController::getComTrajectory()
