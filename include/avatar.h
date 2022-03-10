@@ -1,3 +1,6 @@
+#ifndef AVATAR_CONTROLLER_H
+#define AVATAR_CONTROLLER_H
+
 #include "tocabi_lib/robot_data.h"
 #include "wholebody_functions.h"
 #include <std_msgs/String.h>
@@ -26,30 +29,7 @@
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
-const int FILE_CNT = 14;
-
-const std::string FILE_NAMES[FILE_CNT] =
-{
-  ///change this directory when you use this code on the other computer///
-    "/home/dh-sung/data/dg/0_flag_.txt",
-    "/home/dh-sung/data/dg/1_com_.txt",
-    "/home/dh-sung/data/dg/2_zmp_.txt",
-    "/home/dh-sung/data/dg/3_foot_.txt",
-    "/home/dh-sung/data/dg/4_torque_.txt",
-    "/home/dh-sung/data/dg/5_joint_.txt",
-    "/home/dh-sung/data/dg/6_hand_.txt",
-    "/home/dh-sung/data/dg/7_elbow_.txt",
-    "/home/dh-sung/data/dg/8_shoulder_.txt",
-    "/home/dh-sung/data/dg/9_acromion_.txt",
-    "/home/dh-sung/data/dg/10_hmd_.txt",
-    "/home/dh-sung/data/dg/11_tracker_.txt",
-    "/home/dh-sung/data/dg/12_qpik_.txt",
-    "/home/dh-sung/data/dg/13_tracker_vel_.txt"
-};
-
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
-// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
-//const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
+#include <random>
 
 class AvatarController
 {
@@ -57,10 +37,6 @@ public:
     AvatarController(RobotData &rd);
     // ~AvatarController();
     Eigen::VectorQd getControl();
-    std::ofstream file[FILE_CNT];
-    std::ofstream calibration_log_file_ofstream_[4];
-    std::ifstream calibration_log_file_ifstream_[4];
-    //void taskCommandToCC(TaskCommand tc_);
 
     void computeSlow();
     void computeFast();
@@ -73,31 +49,6 @@ public:
 
     ros::NodeHandle nh_avatar_;
     ros::CallbackQueue queue_avatar_;
-    void avatar_callback(const std_msgs::StringConstPtr& msg);
-    ros::Subscriber sub_1;
-
-    CQuadraticProgram QP_qdot;
-    CQuadraticProgram QP_qdot_larm;
-    CQuadraticProgram QP_qdot_rarm;
-    CQuadraticProgram QP_qdot_upperbody_;
-    CQuadraticProgram QP_qdot_wholebody_;
-    std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
-    std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
-
-    CQuadraticProgram QP_motion_retargeting_lhand_;
-    CQuadraticProgram QP_motion_retargeting_rhand_;
-    CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
-
-    //lQR-HQP (Lexls)
-    // LexLS::tools::HierarchyType type_of_hierarchy;
-    // LexLS::Index number_of_variables;
-    // LexLS::Index number_of_objectives;
-    // std::vector<LexLS::Index> number_of_constraints;
-    // std::vector<LexLS::ObjectiveType> types_of_objectives;
-    // std::vector<Eigen::MatrixXd> objectives;
-    // LexLS::ParametersLexLSI parameters;
-
-    // LexLS::internal::LexLSI lsi_;
 
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_upper_update_{false};
@@ -111,151 +62,33 @@ public:
     void getRobotData();
     void getProcessedRobotData();
     void walkingStateManager();
-    void motionGenerator();
-    void getCOMTrajectory_dg();
-    void getLegIK();
-    void getSwingFootXYTrajectory(double phase, Eigen::Vector3d com_pos_current, Eigen::Vector3d com_vel_current, Eigen::Vector3d com_vel_desired);
-    void getSwingFootXYZTrajectory();
-    void computeIk(Eigen::Isometry3d float_trunk_transform, Eigen::Isometry3d float_lleg_transform, Eigen::Isometry3d float_rleg_transform, Eigen::Vector12d& q_des);
-    Eigen::VectorQd hipAngleCompensator(Eigen::VectorQd desired_q);
-    Eigen::VectorQd jointControl(Eigen::VectorQd current_q, Eigen::VectorQd &desired_q, Eigen::VectorQd current_q_dot, Eigen::VectorQd &desired_q_dot, Eigen::VectorQd pd_mask);
-    Eigen::VectorQd gravityCompensator(Eigen::VectorQd current_q);
-    void cpCompensator();
-    
-    Eigen::VectorQd comVelocityControlCompute();
-    Eigen::VectorQd swingFootControlCompute();
-    Eigen::VectorQd jointTrajectoryPDControlCompute();
-    Eigen::VectorQd dampingControlCompute();
-    Eigen::VectorQd jointLimit(); 
-    Eigen::VectorQd ikBalanceControlCompute();
 
-    //estimator
-    Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
-    Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
-
-    bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
-    int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured); // check where the zmp is
-    Eigen::VectorQd tuneTorqueForZMPSafety(Eigen::VectorQd task_torque); // check where the zmp is
-    // Eigen::VectorQd zmpAnkleControl();
-    // Eigen::VectorQd jointComTrackingTuning();
-    void fallDetection();
-
-    //motion control
-    void motionRetargeting();
-    void motionRetargeting2();
-    void motionRetargeting_QPIK_larm();
-    void motionRetargeting_QPIK_rarm();
-    void motionRetargeting_QPIK_upperbody();
-    void motionRetargeting_QPIK_wholebody();
-    void motionRetargeting_HQPIK();
-    void motionRetargeting_HQPIK2();
-    // void motionRetargeting_HQPIK_lexls();
-    void rawMasterPoseProcessing();
-    void exoSuitRawDataProcessing();
-    void azureKinectRawDataProcessing();
-    void hmdRawDataProcessing();
-    void poseCalibration();
-    void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
-    void abruptMotionFilter();
-    Eigen::Vector3d kinematicFilter(Eigen::Vector3d position_data, Eigen::Vector3d pre_position_data, Eigen::Vector3d reference_position, double boundary, bool &check_boundary);
-    Eigen::Isometry3d velocityFilter(Eigen::Isometry3d data, Eigen::Isometry3d pre_data, Eigen::Vector6d &vel_data, double max_vel, int &cur_iter, int max_iter, bool &check_velocity);
-    
-    void qpRetargeting_1();
-    void qpRetargeting_21();
-    void qpRetargeting_21Transition(double beta);
-
-    void masterTrajectoryTest();
-    
-    void getTranslationDataFromText(std::ifstream &text_file, Eigen::Vector3d &trans);
-    void getMatrix3dDataFromText(std::ifstream &text_file, Eigen::Matrix3d &mat);
-    void getIsometry3dDataFromText(std::ifstream &text_file, Eigen::Isometry3d &isom);
 
     //preview related functions
-    void getComTrajectory_Preview();
-    void modifiedPreviewControl_MJ();
     void previewParam_MJ(double dt, int NL, double zc, Eigen::Matrix4d& K, Eigen::MatrixXd& Gi, Eigen::VectorXd& Gd, Eigen::MatrixXd& Gx, Eigen::MatrixXd& A, Eigen::VectorXd& B, Eigen::MatrixXd& C, Eigen::MatrixXd& D, Eigen::MatrixXd& A_bar, Eigen::VectorXd& B_bar);
     void preview_MJ(double dt, int NL, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double& UX, double& UY, Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD);
-    Eigen::MatrixXd discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q);
 
-    void getZmpTrajectory_dg();
     void savePreData();
-    void printOutTextFile();
-
-    double bandBlock(double value, double max, double min);
     /////////////////////////////////////////////////////////
 
     //////////dg ROS related////////
-    ros::Subscriber walking_slider_command;
-
     ros::Subscriber upperbodymode_sub;
     ros::Subscriber nextswingleg_sub;
 
     ros::Subscriber com_walking_pd_gain_sub;
     ros::Subscriber pelv_ori_pd_gain_sub;
-    ros::Subscriber support_foot_damping_gain_sub;
     ros::Subscriber dg_leg_pd_gain_sub;
-    ros::Subscriber alpha_x_sub;
-    ros::Subscriber alpha_y_sub;
     ros::Subscriber step_width_sub;
-
-    ros::Subscriber test1_sub;
-    ros::Subscriber test2_sub;
 
     ros::Subscriber arm_pd_gain_sub;
     ros::Subscriber waist_pd_gain_sub;
 
-    // master sensor
-    ros::Subscriber hmd_posture_sub;
-    ros::Subscriber left_controller_posture_sub;
-    ros::Subscriber right_controller_posture_sub;
-    ros::Subscriber lhand_tracker_posture_sub;
-    ros::Subscriber rhand_tracker_posture_sub;
-    ros::Subscriber lelbow_tracker_posture_sub;
-    ros::Subscriber relbow_tracker_posture_sub;
-    ros::Subscriber chest_tracker_posture_sub;
-    ros::Subscriber pelvis_tracker_posture_sub;
-    ros::Subscriber tracker_status_sub;
-
-    ros::Subscriber vive_tracker_pose_calibration_sub;
-
-    ros::Publisher calibration_state_pub;
-    ros::Publisher calibration_state_gui_log_pub;
-
-    void WalkingSliderCommandCallback(const std_msgs::Float32MultiArray &msg);
-
-    void UpperbodyModeCallback(const std_msgs::Int8 &msg);
     void NextSwinglegCallback(const std_msgs::Float32 &msg);
 
-    void ComPosGainCallback(const std_msgs::Float32MultiArray &msg);
-    void PelvOriGainCallback(const std_msgs::Float32MultiArray &msg);
-    void SupportFootDampingGainCallback(const std_msgs::Float32MultiArray &msg);
     void LegJointGainCallback(const std_msgs::Float32MultiArray &msg);
-    void AlphaXCallback(const std_msgs::Float32 &msg);
-    void AlphaYCallback(const std_msgs::Float32 &msg);
     void StepWidthCommandCallback(const std_msgs::Float32 &msg);
-    
-    void Test1CommandCallback(const std_msgs::Float32 &msg);
-    void Test2CommandCallback(const std_msgs::Float32 &msg);
 
-    void ArmJointGainCallback(const std_msgs::Float32MultiArray &msg);
-    void WaistJointGainCallback(const std_msgs::Float32MultiArray &msg);
 
-    // HMD + Tracker related
-    void LeftHandTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void RightHandTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void LeftElbowTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void RightElbowTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void ChestTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void LeftControllerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void RightControllerCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void HmdCallback(const tocabi_msgs::matrix_3_4 &msg);
-    void PoseCalibrationCallback(const std_msgs::Int8 &msg);
-    void TrackerStatusCallback(const std_msgs::Bool &msg);
-
-    void ExosuitCallback(const geometry_msgs::PoseArray &msg);
-
-    void AzureKinectCallback(const visualization_msgs::MarkerArray &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -295,8 +128,6 @@ public:
     // double ssp_phase_;
 
     double turning_duration_;
-    double turning_phase_;
-    double switching_phase_duration_;
     double dsp_duration_;
     double dsp_ratio_;
 
@@ -307,21 +138,11 @@ public:
     double init_leg_time_;  //for first smothing of leg joint angle
 
     double walking_speed_;
-    double walking_speed_side_;
-    double yaw_angular_vel_;
-    double knee_target_angle_;
 
     double step_width_;
     double step_length_;
 
-    double swing_foot_height_;
-    double com_target_height_;
 
-    double ankle2footcenter_offset_;
-
-    double first_torque_supplier_;                         // this increase with cubic function from 0 to 1 during [program_start_time + program_ready_duration_, program_start_time + program_ready_duration_ + walking_control_transition_duration_]
-    double swingfoot_force_control_converter_;
-    double swingfoot_highest_time_;
     
     // CoM variables in global frame
     Eigen::Vector3d com_pos_desired_; 
@@ -436,173 +257,13 @@ public:
 	Eigen::VectorQd kp_soft_joint_;
 	Eigen::VectorQd kv_soft_joint_;
     // walking controller variables
-    double alpha_x_;
-	double alpha_y_;
-    double alpha_x_command_;    
-    double alpha_y_command_;
     Eigen::VectorQd pd_control_mask_; //1 for joint ik pd control
 
-    Eigen::Vector2d target_foot_landing_from_pelv_;
-    Eigen::Vector2d target_foot_landing_from_sup_;
-    Eigen::Vector3d swing_foot_pos_trajectory_from_global_;
-    Eigen::Vector6d swing_foot_vel_trajectory_from_global_;
-    Eigen::Vector6d swing_foot_acc_trajectory_from_global_;
-    Eigen::Matrix3d swing_foot_rot_trajectory_from_global_;
-
-    Eigen::Vector3d swing_foot_pos_trajectory_from_support_;
-    Eigen::Vector6d swing_foot_vel_trajectory_from_support_;
-    Eigen::Vector6d swing_foot_acc_trajectory_from_support_;
-    Eigen::Matrix3d swing_foot_rot_trajectory_from_support_;
-
-    Eigen::Vector3d swing_foot_pos_error_from_support_;
-
-    Eigen::Isometry3d swing_foot_transform_init_;
-    Eigen::Vector3d swing_foot_rpy_init_;
-    Eigen::Isometry3d support_foot_transform_init_;
-    Eigen::Vector3d support_foot_rpy_init_;
-
-    Eigen::Isometry3d swing_foot_transform_current_;
     Eigen::Isometry3d support_foot_transform_current_;
 
-    Eigen::Isometry3d swing_foot_transform_pre_;
-    Eigen::Isometry3d support_foot_transform_pre_;
-
-    Eigen::Vector6d swing_foot_vel_current_;
-    Eigen::Vector6d swing_foot_vel_init_;
-
-    Eigen::Vector6d support_foot_vel_current_;
-
     //getLegIK
-    Eigen::Isometry3d lfoot_transform_desired_;
-	Eigen::Isometry3d rfoot_transform_desired_;
-	Eigen::Isometry3d pelv_transform_desired_;
-    Eigen::Isometry3d lfoot_transform_desired_last_;
-	Eigen::Isometry3d rfoot_transform_desired_last_;
-	Eigen::Isometry3d pelv_transform_desired_last_;
-
-    Eigen::MatrixXd jac_com_;
-    Eigen::MatrixXd jac_com_pos_;
-    Eigen::MatrixXd jac_rhand_;
-    Eigen::MatrixXd jac_lhand_;
-    Eigen::MatrixXd jac_rfoot_;
-    Eigen::MatrixXd jac_lfoot_;
-
-    Eigen::MatrixXd lfoot_to_com_jac_from_global_;
-	Eigen::MatrixXd rfoot_to_com_jac_from_global_;
-    
-    Eigen::Isometry3d pelv_transform_start_from_global_;
-    Eigen::Isometry3d rfoot_transform_start_from_global_;
-    Eigen::Isometry3d lfoot_transform_start_from_global_;
-
-    Eigen::Isometry3d upperbody_transform_init_from_global_;
-    Eigen::Isometry3d head_transform_init_from_global_;
-    Eigen::Isometry3d lfoot_transform_init_from_global_;
-    Eigen::Isometry3d rfoot_transform_init_from_global_;
-    Eigen::Isometry3d lhand_transform_init_from_global_;
-    Eigen::Isometry3d rhand_transform_init_from_global_;
-    Eigen::Isometry3d lelbow_transform_init_from_global_;
-    Eigen::Isometry3d relbow_transform_init_from_global_;
-    Eigen::Isometry3d lupperarm_transform_init_from_global_; //4rd axis of arm joint 
-    Eigen::Isometry3d rupperarm_transform_init_from_global_; 
-    Eigen::Isometry3d lshoulder_transform_init_from_global_; //3rd axis of arm joint 
-    Eigen::Isometry3d rshoulder_transform_init_from_global_; 
-    Eigen::Isometry3d lacromion_transform_init_from_global_; //2nd axis of arm joint (견봉)
-    Eigen::Isometry3d racromion_transform_init_from_global_;
-    Eigen::Isometry3d larmbase_transform_init_from_global_; //1st axis of arm joint (견봉)
-    Eigen::Isometry3d rarmbase_transform_init_from_global_;
-
-    Eigen::Isometry3d upperbody_transform_current_from_global_;
-    Eigen::Isometry3d head_transform_current_from_global_;
     Eigen::Isometry3d lfoot_transform_current_from_global_;
     Eigen::Isometry3d rfoot_transform_current_from_global_;
-    Eigen::Isometry3d lhand_transform_current_from_global_;
-    Eigen::Isometry3d rhand_transform_current_from_global_;
-    Eigen::Isometry3d lelbow_transform_current_from_global_;
-    Eigen::Isometry3d relbow_transform_current_from_global_;
-    Eigen::Isometry3d lupperarm_transform_current_from_global_; //4th axis of arm joint
-    Eigen::Isometry3d rupperarm_transform_current_from_global_;
-    Eigen::Isometry3d lshoulder_transform_current_from_global_; //3rd axis of arm joint
-    Eigen::Isometry3d rshoulder_transform_current_from_global_;
-    Eigen::Isometry3d lacromion_transform_current_from_global_; //2nd axis of arm joint (견봉)
-    Eigen::Isometry3d racromion_transform_current_from_global_;
-    Eigen::Isometry3d larmbase_transform_current_from_global_; //1st axis of arm joint 
-    Eigen::Isometry3d rarmbase_transform_current_from_global_;
-
-    Eigen::Isometry3d lknee_transform_current_from_global_;
-    Eigen::Isometry3d rknee_transform_current_from_global_;
-
-    Eigen::Vector3d lhand_rpy_current_from_global_;
-    Eigen::Vector3d rhand_rpy_current_from_global_;
-    Eigen::Vector3d lelbow_rpy_current_from_global_;
-    Eigen::Vector3d relbow_rpy_current_from_global_;
-    Eigen::Vector3d lupperarm_rpy_current_from_global_;
-    Eigen::Vector3d rupperarm_rpy_current_from_global_;
-    Eigen::Vector3d lshoulder_rpy_current_from_global_;
-    Eigen::Vector3d rshoulder_rpy_current_from_global_;
-    Eigen::Vector3d lacromion_rpy_current_from_global_;
-    Eigen::Vector3d racromion_rpy_current_from_global_;
-
-    Eigen::Isometry3d upperbody_transform_pre_desired_from_;
-    Eigen::Isometry3d head_transform_pre_desired_from_;
-    Eigen::Isometry3d lfoot_transform_pre_desired_from_;
-    Eigen::Isometry3d rfoot_transform_pre_desired_from_;
-    Eigen::Isometry3d lhand_transform_pre_desired_from_;
-    Eigen::Isometry3d rhand_transform_pre_desired_from_;
-    Eigen::Isometry3d lelbow_transform_pre_desired_from_;
-    Eigen::Isometry3d relbow_transform_pre_desired_from_;
-    Eigen::Isometry3d lupperarm_transform_pre_desired_from_;
-    Eigen::Isometry3d rupperarm_transform_pre_desired_from_;
-    Eigen::Isometry3d lshoulder_transform_pre_desired_from_;
-    Eigen::Isometry3d rshoulder_transform_pre_desired_from_;
-    Eigen::Isometry3d lacromion_transform_pre_desired_from_;
-    Eigen::Isometry3d racromion_transform_pre_desired_from_;
-    Eigen::Isometry3d larmbase_transform_pre_desired_from_; //1st axis of arm joint
-    Eigen::Isometry3d rarmbase_transform_pre_desired_from_;
-
-    Eigen::Vector3d lhand_control_point_offset_, rhand_control_point_offset_;   //red_hand made by sy
-
-    Eigen::Vector6d lfoot_vel_current_from_global_;
-    Eigen::Vector6d rfoot_vel_current_from_global_;
-    Eigen::Vector6d lhand_vel_current_from_global_;
-    Eigen::Vector6d rhand_vel_current_from_global_;
-    Eigen::Vector6d lelbow_vel_current_from_global_;
-    Eigen::Vector6d relbow_vel_current_from_global_;
-    Eigen::Vector6d lupperarm_vel_current_from_global_;
-    Eigen::Vector6d rupperarm_vel_current_from_global_;
-    Eigen::Vector6d lshoulder_vel_current_from_global_;
-    Eigen::Vector6d rshoulder_vel_current_from_global_;
-    Eigen::Vector6d lacromion_vel_current_from_global_;
-    Eigen::Vector6d racromion_vel_current_from_global_;
-
-    Eigen::Isometry3d lfoot_transform_init_from_support_;
-    Eigen::Isometry3d rfoot_transform_init_from_support_;
-    Eigen::Isometry3d pelv_transform_init_from_support_;
-    Eigen::Vector3d pelv_rpy_init_from_support_;
-
-    Eigen::Isometry3d lfoot_transform_start_from_support_;
-    Eigen::Isometry3d rfoot_transform_start_from_support_;
-    Eigen::Isometry3d pelv_transform_start_from_support_;
-
-    Eigen::Isometry3d lfoot_transform_current_from_support_;
-    Eigen::Isometry3d rfoot_transform_current_from_support_;
-    Eigen::Isometry3d pelv_transform_current_from_support_;
-
-    Eigen::Vector6d lfoot_vel_current_from_support_;
-    Eigen::Vector6d rfoot_vel_current_from_support_;
-
-    Eigen::Isometry3d swing_foot_transform_init_from_support_;
-    Eigen::Vector3d swing_foot_rpy_init_from_support_;
-    Eigen::Isometry3d support_foot_transform_init_from_support_;
-    Eigen::Vector3d support_foot_rpy_init_from_support_;
-
-    Eigen::Isometry3d swing_foot_transform_current_from_support_;
-    Eigen::Isometry3d support_foot_transform_current_from_support_;
-
-    Eigen::Isometry3d swing_foot_transform_pre_from_support_;
-    Eigen::Isometry3d support_foot_transform_pre_from_support_;
-
-    Eigen::Vector3d middle_of_both_foot_;
-    Eigen::Vector3d middle_of_both_foot_init_;
 
     Eigen::Vector3d com_pos_init_from_support_;
 
@@ -636,11 +297,6 @@ public:
 
     Eigen::Vector3d cp_current_from_suppport_;
 
-    Eigen::Vector6d contact_force_lfoot_;
-    Eigen::Vector6d contact_force_rfoot_;
-    
-    Eigen::Vector6d contact_force_lfoot_local_;
-    Eigen::Vector6d contact_force_rfoot_local_;
 
     Eigen::Vector3d zmp_measured_;
     Eigen::Vector3d zmp_measured_pre_;
@@ -685,15 +341,6 @@ public:
     double F_T_L_y_input_dot = 0;
     double F_T_R_y_input = 0;
     double F_T_R_y_input_dot = 0;
-
-    Eigen::Vector2d f_star_xy_;
-    Eigen::Vector2d f_star_xy_pre_;
-    Eigen::Vector6d f_star_6d_;
-    Eigen::Vector6d f_star_6d_pre_;
-	Eigen::Vector6d f_star_l_;   
-	Eigen::Vector6d f_star_r_;
-	Eigen::Vector6d f_star_l_pre_;   
-	Eigen::Vector6d f_star_r_pre_;
 
     Eigen::VectorQd torque_task_;
     Eigen::VectorQd torque_init_;
@@ -763,363 +410,6 @@ public:
     Eigen::Vector3d com_pos_desired_preview_pre_;
     Eigen::Vector3d com_vel_desired_preview_pre_;
     Eigen::Vector3d com_acc_desired_preview_pre_;
-
-    //siwngFootControlCompute
-    Vector3d swingfoot_f_star_l_;
-    Vector3d swingfoot_f_star_r_;
-    Vector3d swingfoot_f_star_l_pre_;
-    Vector3d swingfoot_f_star_r_pre_;
-
-    //dampingControlCompute
-    Vector3d f_lfoot_damping_;
-	Vector3d f_rfoot_damping_;	
-    Vector3d f_lfoot_damping_pre_;
-	Vector3d f_rfoot_damping_pre_;	
-    Matrix3d support_foot_damping_gain_;
-
-    //MotionRetargeting variables
-    int upperbody_mode_recieved_;
-    double upperbody_command_time_;
-    Eigen::VectorQd upperbody_mode_q_init_;
-
-    Eigen::Isometry3d master_lhand_pose_raw_;
-    Eigen::Isometry3d master_rhand_pose_raw_;
-    Eigen::Isometry3d master_head_pose_raw_;
-    Eigen::Isometry3d master_lelbow_pose_raw_;
-    Eigen::Isometry3d master_relbow_pose_raw_;
-    Eigen::Isometry3d master_lshoulder_pose_raw_;
-    Eigen::Isometry3d master_rshoulder_pose_raw_;
-    Eigen::Isometry3d master_upperbody_pose_raw_;
-
-    Eigen::Isometry3d master_lhand_pose_raw_pre_;
-    Eigen::Isometry3d master_rhand_pose_raw_pre_;
-    Eigen::Isometry3d master_head_pose_raw_pre_;
-    Eigen::Isometry3d master_lelbow_pose_raw_pre_;
-    Eigen::Isometry3d master_relbow_pose_raw_pre_;
-    Eigen::Isometry3d master_lshoulder_pose_raw_pre_;
-    Eigen::Isometry3d master_rshoulder_pose_raw_pre_;
-    Eigen::Isometry3d master_upperbody_pose_raw_pre_;
-
-    Eigen::Isometry3d master_lhand_pose_raw_ppre_;
-    Eigen::Isometry3d master_rhand_pose_raw_ppre_;
-    Eigen::Isometry3d master_head_pose_raw_ppre_;
-    Eigen::Isometry3d master_lelbow_pose_raw_ppre_;
-    Eigen::Isometry3d master_relbow_pose_raw_ppre_;
-    Eigen::Isometry3d master_lshoulder_pose_raw_ppre_;
-    Eigen::Isometry3d master_rshoulder_pose_raw_ppre_;
-    Eigen::Isometry3d master_upperbody_pose_raw_ppre_;
-
-    Eigen::Isometry3d master_lhand_pose_;
-    Eigen::Isometry3d master_rhand_pose_;
-    Eigen::Isometry3d master_head_pose_;
-    Eigen::Isometry3d master_lelbow_pose_;
-    Eigen::Isometry3d master_relbow_pose_;
-    Eigen::Isometry3d master_lshoulder_pose_;
-    Eigen::Isometry3d master_rshoulder_pose_;
-    Eigen::Isometry3d master_upperbody_pose_;
-
-    Eigen::Isometry3d master_lhand_pose_pre_;
-    Eigen::Isometry3d master_rhand_pose_pre_;
-    Eigen::Isometry3d master_head_pose_pre_;
-    Eigen::Isometry3d master_lelbow_pose_pre_;
-    Eigen::Isometry3d master_relbow_pose_pre_;
-    Eigen::Isometry3d master_lshoulder_pose_pre_;
-    Eigen::Isometry3d master_rshoulder_pose_pre_;
-    Eigen::Isometry3d master_upperbody_pose_pre_;
-
-    Eigen::Isometry3d master_lhand_pose_ppre_;
-    Eigen::Isometry3d master_rhand_pose_ppre_;
-    Eigen::Isometry3d master_head_pose_ppre_;
-    Eigen::Isometry3d master_lelbow_pose_ppre_;
-    Eigen::Isometry3d master_relbow_pose_ppre_;
-    Eigen::Isometry3d master_lshoulder_pose_ppre_;
-    Eigen::Isometry3d master_rshoulder_pose_ppre_;
-    Eigen::Isometry3d master_upperbody_pose_ppre_;
-
-    Eigen::Vector6d master_lhand_vel_;
-    Eigen::Vector6d master_rhand_vel_;
-    Eigen::Vector6d master_head_vel_;
-    Eigen::Vector6d master_lelbow_vel_;
-    Eigen::Vector6d master_relbow_vel_;
-    Eigen::Vector6d master_lshoulder_vel_;
-    Eigen::Vector6d master_rshoulder_vel_;
-    Eigen::Vector6d master_upperbody_vel_;
-
-    Eigen::Vector3d master_lhand_rqy_;
-    Eigen::Vector3d master_rhand_rqy_;
-    Eigen::Vector3d master_lelbow_rqy_;
-    Eigen::Vector3d master_relbow_rqy_;
-    Eigen::Vector3d master_lshoulder_rqy_;
-    Eigen::Vector3d master_rshoulder_rqy_;
-    
-    Eigen::Vector3d master_head_rqy_;
-
-    Eigen::Vector3d master_relative_lhand_pos_raw_;
-    Eigen::Vector3d master_relative_rhand_pos_raw_;
-    Eigen::Vector3d master_relative_lhand_pos_;
-    Eigen::Vector3d master_relative_rhand_pos_;
-    Eigen::Vector3d master_relative_lhand_pos_pre_;
-    Eigen::Vector3d master_relative_rhand_pos_pre_;
-
-    double robot_arm_max_l_;
-    double robot_upperarm_max_l_;
-    double robot_lowerarm_max_l_;
-    double robot_shoulder_width_;
-    ////////////HMD + VIVE TRACKER////////////
-    bool hmd_init_pose_calibration_;
-    // double hmd_init_pose_cali_time_;
-
-    bool hmd_tracker_status_raw_;   //1: good, 0: bad
-    bool hmd_tracker_status_;   //1: good, 0: bad
-    bool hmd_tracker_status_pre_;   //1: good, 0: bad
-
-    double tracker_status_changed_time_;
-    double calibration_x_l_scale_;
-    double calibration_x_r_scale_;
-    double calibration_y_l_scale_;
-    double calibration_y_r_scale_;
-    double calibration_z_l_scale_;
-    double calibration_z_r_scale_;
-    
-
-    double hmd_larm_max_l_;
-    double hmd_rarm_max_l_;
-    double hmd_shoulder_width_;
-
-    bool hmd_check_pose_calibration_[5];   // 0: still cali, 1: T pose cali, 2: Forward Stretch cali, 3: Calibration is completed, 4: read calibration from log file
-    bool still_pose_cali_flag_;
-    bool t_pose_cali_flag_;
-    bool forward_pose_cali_flag_;
-    bool read_cali_log_flag_;
-
-    Eigen::Isometry3d hmd_head_pose_raw_;
-    Eigen::Isometry3d hmd_lshoulder_pose_raw_;
-    Eigen::Isometry3d hmd_lupperarm_pose_raw_;
-    Eigen::Isometry3d hmd_lhand_pose_raw_;
-    Eigen::Isometry3d hmd_rshoulder_pose_raw_;
-    Eigen::Isometry3d hmd_rupperarm_pose_raw_;
-    Eigen::Isometry3d hmd_rhand_pose_raw_;
-    Eigen::Isometry3d hmd_chest_pose_raw_;
-    Eigen::Isometry3d hmd_pelv_pose_raw_;
-
-    Eigen::Isometry3d hmd_head_pose_raw_last_;
-    Eigen::Isometry3d hmd_lshoulder_pose_raw_last_;
-    Eigen::Isometry3d hmd_lupperarm_pose_raw_last_;
-    Eigen::Isometry3d hmd_lhand_pose_raw_last_;
-    Eigen::Isometry3d hmd_rshoulder_pose_raw_last_;
-    Eigen::Isometry3d hmd_rupperarm_pose_raw_last_;
-    Eigen::Isometry3d hmd_rhand_pose_raw_last_;
-    Eigen::Isometry3d hmd_chest_pose_raw_last_;
-    Eigen::Isometry3d hmd_pelv_pose_raw_last_;
-
-    Eigen::Isometry3d hmd_head_pose_;
-    Eigen::Isometry3d hmd_lshoulder_pose_;
-    Eigen::Isometry3d hmd_lupperarm_pose_;
-    Eigen::Isometry3d hmd_lhand_pose_;
-    Eigen::Isometry3d hmd_rshoulder_pose_;
-    Eigen::Isometry3d hmd_rupperarm_pose_;
-    Eigen::Isometry3d hmd_rhand_pose_;
-    Eigen::Isometry3d hmd_chest_pose_;
-    Eigen::Isometry3d hmd_pelv_pose_;
-
-    Eigen::Isometry3d hmd_head_pose_pre_;
-    Eigen::Isometry3d hmd_lshoulder_pose_pre_;
-    Eigen::Isometry3d hmd_lupperarm_pose_pre_;
-    Eigen::Isometry3d hmd_lhand_pose_pre_;
-    Eigen::Isometry3d hmd_rshoulder_pose_pre_;
-    Eigen::Isometry3d hmd_rupperarm_pose_pre_;
-    Eigen::Isometry3d hmd_rhand_pose_pre_;
-    Eigen::Isometry3d hmd_chest_pose_pre_;
-    Eigen::Isometry3d hmd_pelv_pose_pre_;
-
-    Eigen::Isometry3d hmd_head_pose_init_;  
-    Eigen::Isometry3d hmd_lshoulder_pose_init_; 
-    Eigen::Isometry3d hmd_lupperarm_pose_init_;
-    Eigen::Isometry3d hmd_lhand_pose_init_;
-    Eigen::Isometry3d hmd_rshoulder_pose_init_; 
-    Eigen::Isometry3d hmd_rupperarm_pose_init_;
-    Eigen::Isometry3d hmd_rhand_pose_init_;
-    Eigen::Isometry3d hmd_chest_pose_init_;
-    Eigen::Isometry3d hmd_pelv_pose_init_;
-
-    Eigen::Vector3d hmd2robot_lhand_pos_mapping_;
-	Eigen::Vector3d hmd2robot_rhand_pos_mapping_;
-    Eigen::Vector3d hmd2robot_lelbow_pos_mapping_;
-    Eigen::Vector3d hmd2robot_relbow_pos_mapping_;
-
-    Eigen::Vector3d hmd2robot_lhand_pos_mapping_init_;
-    Eigen::Vector3d hmd2robot_rhand_pos_mapping_init_;
-
-    Eigen::Vector3d hmd_still_cali_lhand_pos_;
-    Eigen::Vector3d hmd_still_cali_rhand_pos_;
-    Eigen::Vector3d hmd_tpose_cali_lhand_pos_;
-    Eigen::Vector3d hmd_tpose_cali_rhand_pos_;
-    Eigen::Vector3d hmd_forward_cali_lhand_pos_;
-    Eigen::Vector3d hmd_forward_cali_rhand_pos_;
-    
-    Eigen::Vector3d hmd_lshoulder_center_pos_;
-    Eigen::Vector3d hmd_rshoulder_center_pos_;
-
-    Eigen::Vector3d hmd_chest_2_lshoulder_center_pos_;
-    Eigen::Vector3d hmd_chest_2_rshoulder_center_pos_;
-
-    //global frame of vive tracker
-    Eigen::Vector6d hmd_head_vel_global_;
-    Eigen::Vector6d hmd_lupperarm_vel_global_;
-    Eigen::Vector6d hmd_lhand_vel_global_;
-    Eigen::Vector6d hmd_rupperarm_vel_global_;
-    Eigen::Vector6d hmd_rhand_vel_global_;
-    Eigen::Vector6d hmd_chest_vel_global_;
-    Eigen::Vector6d hmd_pelv_vel_global_; 
-
-    //pelvis frame
-    Eigen::Vector6d hmd_head_vel_;
-    Eigen::Vector6d hmd_lshoulder_vel_;
-    Eigen::Vector6d hmd_lupperarm_vel_;
-    Eigen::Vector6d hmd_lhand_vel_;
-    Eigen::Vector6d hmd_rshoulder_vel_;
-    Eigen::Vector6d hmd_rupperarm_vel_;
-    Eigen::Vector6d hmd_rhand_vel_;
-    Eigen::Vector6d hmd_chest_vel_;
-    Eigen::Vector6d hmd_pelv_vel_; 
-    
-    int hmd_head_abrupt_motion_count_;
-    int hmd_lupperarm_abrupt_motion_count_;
-    int hmd_lhand_abrupt_motion_count_;
-    int hmd_rupperarm_abrupt_motion_count_;
-    int hmd_rhand_abrupt_motion_count_;
-    int hmd_chest_abrupt_motion_count_;
-    int hmd_pelv_abrupt_motion_count_;
-
-    ///////////QPIK///////////////////////////
-    Eigen::Vector3d lhand_pos_error_;
-    Eigen::Vector3d rhand_pos_error_;
-    Eigen::Vector3d lhand_ori_error_;
-    Eigen::Vector3d rhand_ori_error_;
-
-    Eigen::Vector3d lelbow_ori_error_;
-    Eigen::Vector3d relbow_ori_error_;
-    Eigen::Vector3d lshoulder_ori_error_;
-    Eigen::Vector3d rshoulder_ori_error_;
-
-    Eigen::Vector6d lhand_vel_error_;
-    Eigen::Vector6d rhand_vel_error_;
-    Eigen::Vector3d lelbow_vel_error_;
-    Eigen::Vector3d relbow_vel_error_;
-    Eigen::Vector3d lacromion_vel_error_;
-    Eigen::Vector3d racromion_vel_error_;
-    //////////////////////////////////////////
-
-    /////////////QPIK UPPERBODY /////////////////
-    const int hierarchy_num_upperbody_ = 4;
-    const int variable_size_upperbody_ = 21;
-	const int constraint_size1_upperbody_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_upperbody_ = 12;	//[lb <=	Ax 	<=	ub] from constraints
-   	const int control_size_upperbody_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
-
-	// const int control_size_hand = 12;		//2
-	// const int control_size_upperbody = 3;	//1
-	// const int control_size_head = 2;		//2
-	// const int control_size_upperarm = 4; 	//3
-	// const int control_size_shoulder = 4;	//4
-
-    double w1_upperbody_;
-    double w2_upperbody_;
-    double w3_upperbody_;
-    double w4_upperbody_;
-    double w5_upperbody_;
-    double w6_upperbody_;
-
-    Eigen::MatrixXd H_upperbody_, A_upperbody_;
-    Eigen::MatrixXd J_upperbody_[4];
-    Eigen::VectorXd g_upperbody_, u_dot_upperbody_[4], qpres_upperbody_, ub_upperbody_, lb_upperbody_, ubA_upperbody_, lbA_upperbody_;
-    Eigen::VectorXd q_dot_upperbody_;
-
-    Eigen::MatrixXd N1_upperbody_, N2_aug_upperbody_, N3_aug_upperbody_;
-    Eigen::MatrixXd J2_aug_upperbody_, J2_aug_pinv_upperbody_, J3_aug_upperbody_, J3_aug_pinv_upperbody_, J1_pinv_upperbody_,  J2N1_upperbody_, J3N2_aug_upperbody_, J4N3_aug_upperbody_;
-    Eigen::MatrixXd I3_upperbody_, I6_upperbody_, I15_upperbody_, I21_upperbody_;
-    /////////////////////////////////////////////
-
-    /////////////HQPIK//////////////////////////
-    const unsigned int hierarchy_num_hqpik_ = 4;
-    const unsigned int variable_size_hqpik_ = 21;
-	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const unsigned int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
-
-    double w1_hqpik_[4];
-    double w2_hqpik_[4];
-    double w3_hqpik_[4];
-    double w4_hqpik_[4];
-    double w5_hqpik_[4];
-    double w6_hqpik_[4];
-    
-    Eigen::MatrixXd H_hqpik_[4], A_hqpik_[4];
-    Eigen::MatrixXd J_hqpik_[4], J_temp_;
-    Eigen::VectorXd g_hqpik_[4], u_dot_hqpik_[4], qpres_hqpik_, ub_hqpik_[4],lb_hqpik_[4], ubA_hqpik_[4], lbA_hqpik_[4];
-    Eigen::VectorXd q_dot_hqpik_[4];
-
-    int last_solved_hierarchy_num_;
-    const double equality_condition_eps_ = 1e-8;
-    const double damped_puedoinverse_eps_ = 1e-5;
-    ///////////////////////////////////////////////////
-    
-    /////////////HQPIK2//////////////////////////
-    const int hierarchy_num_hqpik2_ = 5;
-    const int variable_size_hqpik2_ = 21;
-	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
-
-    double w1_hqpik2_[5];
-    double w2_hqpik2_[5];
-    double w3_hqpik2_[5];
-    double w4_hqpik2_[5];
-    double w5_hqpik2_[5];
-    double w6_hqpik2_[5];
-    
-    Eigen::MatrixXd H_hqpik2_[5], A_hqpik2_[5];
-    Eigen::MatrixXd J_hqpik2_[5];
-    Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
-    Eigen::VectorXd q_dot_hqpik2_[5];
-    /////////////////////////////////////////////////////
-
-    ////////////QP RETARGETING//////////////////////////////////
-    const int variable_size_retargeting_ = 6;
-	const int constraint_size1_retargeting_ = 6;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_retargeting_[3] = {6, 6, 9};	//[lb <=	Ax 	<=	ub] from constraints
-   	const int control_size_retargeting_[3] = {3, 3, 3};		//1: left hand, 2: right hand, 3: relative hand
-
-    Eigen::Vector3d robot_still_pose_lhand_, robot_t_pose_lhand_, robot_forward_pose_lhand_, robot_still_pose_rhand_, robot_t_pose_rhand_, robot_forward_pose_rhand_;
-    Eigen::Vector3d lhand_mapping_vector_, rhand_mapping_vector_, lhand_mapping_vector_pre_, rhand_mapping_vector_pre_, lhand_mapping_vector_dot_, rhand_mapping_vector_dot_;
-    Eigen::MatrixXd lhand_master_ref_stack_, lhand_robot_ref_stack_, rhand_master_ref_stack_, rhand_robot_ref_stack_, lhand_master_ref_stack_pinverse_, rhand_master_ref_stack_pinverse_;
-    
-    Eigen::MatrixXd H_retargeting_lhand_,  A_retargeting_lhand_, H_retargeting_rhand_, A_retargeting_rhand_;
-    Eigen::VectorXd qpres_retargeting_[3], g_retargeting_lhand_, g_retargeting_rhand_, ub_retargeting_, lb_retargeting_, ubA_retargeting_[3], lbA_retargeting_[3];
-    Eigen::MatrixXd E1_, E2_, E3_, H_retargeting_, A_retargeting_[3];
-    Eigen::VectorXd g_retargeting_, u1_, u2_, u3_;
-
-    Eigen::Vector3d h_d_lhand_, h_d_rhand_, h_pre_lhand_, h_pre_rhand_, r_pre_lhand_, r_pre_rhand_;
-    double w1_retargeting_, w2_retargeting_, w3_retargeting_, human_shoulder_width_; 
-    const double control_gain_retargeting_ = 100;
-    const double human_vel_min_ = -2;
-    const double human_vel_max_ = 2;
-    const double w_dot_min_ = -30;
-    const double w_dot_max_ = 30;
-
-    ////////////////////////////////////////////////////////////
-
-    
-    /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
-    Eigen::VectorVQd mob_integral_;
-    Eigen::VectorVQd mob_residual_;
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    //fallDetection variables
-    Eigen::VectorQd fall_init_q_;
-    double fall_start_time_;
-    int foot_lift_count_;
-    int foot_landing_count_;
     ///////////////////////////////////////////////////////////////
 
 private:
@@ -1128,10 +418,10 @@ private:
     void initWalkingParameter();
 
     //Arm controller
-    Eigen::VectorXd joint_limit_l_;
-    Eigen::VectorXd joint_limit_h_;
-    Eigen::VectorXd joint_vel_limit_l_;
-    Eigen::VectorXd joint_vel_limit_h_;
+    Eigen::VectorQd joint_limit_l_;
+    Eigen::VectorQd joint_limit_h_;
+    Eigen::VectorQd joint_vel_limit_l_;
+    Eigen::VectorQd joint_vel_limit_h_;
 
     Eigen::Vector3d left_x_traj_pre_;
     Eigen::Vector3d right_x_traj_pre_;
@@ -1141,12 +431,6 @@ private:
     Eigen::VectorQVQd q_virtual_clik_;
     Eigen::Vector8d integral;
 
-    bool first_loop_larm_;
-    bool first_loop_rarm_;
-    bool first_loop_upperbody_;
-    bool first_loop_hqpik_;
-    bool first_loop_hqpik2_;
-    bool first_loop_qp_retargeting_;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
@@ -1397,26 +681,58 @@ public:
 
     //pedal_
     ros::NodeHandle nh;
-    ros::Subscriber pedal_command;
-    void PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg);
-    Eigen::Vector4d joystick_input;
-    Eigen::Vector4d joystick_input_;
-
-    //// joystick&pedal Footstep
-    void updateInitialStateJoy();
-    void calculateFootStepTotal_MJoy();
-    void calculateFootStepTotal_MJoy_End();
-    void updateNextStepTimeJoy();
-    int joy_index_ = 0;
-    Eigen::MatrixXd foot_step_joy_temp_;
-    bool joy_enable_ = false;
-    bool joy_input_enable_ = false;
 
     Eigen::VectorQd q_mj;
     Eigen::VectorQd q_mj_prev;
 private:    
     //////////////////////////////// Myeong-Ju
-    unsigned int walking_tick_mj = 0;
+    int walking_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  
+//////////////////////////////////////////// Donghyeon RL /////////////////////////////////////////
+public:
+    void reflectRLAction(bool update_phase, bool update_traj);
+    void reflectRLState();
+
+    int phase_action_scale_ = 100;
+    bool is_new_step_updated_ = false;
+    bool is_inverse_fine_ = true;
+    timespec t_u10;
+
+    Eigen::Isometry3d lfoot_trajectory_float_origin_;
+    Eigen::Isometry3d rfoot_trajectory_float_origin_;
+
+    void loadNetwork();
+    void processObservation();
+    void feedforwardPolicy();
+
+    static const int num_state = 102;
+    static const int num_hidden = 256;
+    static const int num_action = 13;
+
+    Eigen::Matrix<float, num_hidden, num_state> policy_net_w0_;
+    Eigen::Matrix<float, num_hidden, 1> policy_net_b0_;
+    Eigen::Matrix<float, num_hidden, num_hidden> policy_net_w2_;
+    Eigen::Matrix<float, num_hidden, 1> policy_net_b2_;
+    Eigen::Matrix<float, num_action, num_hidden> action_net_w_;
+    Eigen::Matrix<float, num_action, 1> action_net_b_;
+    Eigen::Matrix<float, num_hidden, 1> hidden_layer1_;
+    Eigen::Matrix<float, num_hidden, 1> hidden_layer2_;
+    Eigen::Matrix<float, num_action, 1> rl_action_;
+    
+
+    Eigen::Matrix<float, num_state, 1> state_;
+    Eigen::Matrix<float, num_state, 1> state_mean_;
+    Eigen::Matrix<float, num_state, 1> state_var_;
+
+    float mode_time = 0.0;
+    float mode_time_pre=0.0;
+    float policy_eval_dt = 0.03;
+
+    std::random_device random_dev;
+    int change_vel = 0;
+    double target_data_body_vel_=0.2;
+    
 };
+
+#endif
