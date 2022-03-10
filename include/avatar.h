@@ -36,7 +36,7 @@ const int FILE_CNT = 1;
 
 // mob lstm
 const int n_input_ = 31;
-const int n_sequence_length_ = 1;
+const int n_sequence_length_ = 10;
 const int n_output_ = 6;
 const int n_hidden_ = 64;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
@@ -1254,6 +1254,11 @@ public:
     ifstream mean_std_file_[4];
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
+
+    Eigen::Vector6d estimated_ext_force_lfoot_lstm_;
+    Eigen::Vector6d estimated_ext_force_rfoot_lstm_;
+    Eigen::Vector6d estimated_ext_force_lhand_lstm_;
+    Eigen::Vector6d estimated_ext_force_rhand_lstm_;
 
     Eigen::VectorQd estimated_model_unct_torque_fast_;
     Eigen::VectorQd estimated_model_unct_torque_slow_;

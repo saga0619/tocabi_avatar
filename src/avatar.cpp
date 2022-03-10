@@ -95,9 +95,10 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     first_loop_qp_retargeting_ = true;
     first_loop_camhqp_ = true;
 
+    // MOB-LSTM INFERENCE
     initializeLegLSTM(left_leg_mob_lstm_);
     loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm/weights/left_leg/");
-    loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm/mean_std/");
+    loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm/mean_std/left_leg/");
 }
 
 void AvatarController::setGains()
@@ -2246,7 +2247,7 @@ void AvatarController::floatingBaseMOB()
     // nonlinear_term_for_mob_jts = nonlinear_torque_g.segment(6, MODEL_DOF);
     // mob_residual_jts_.segment(0, MODEL_DOF) = torque_sim_jts_ - inertia_term - nonlinear_term_for_mob_jts;
 
-    Eigen::MatrixXd R_temp, J_temp;
+    Eigen::MatrixXd R_temp_lfoot, R_temp_rfoot, J_temp;
     // lfoot_ft_sensor_offset_ << 0.03, 0, -0.145;
     // lfoot_ft_sensor_offset_(2) += -0.0135;
 
@@ -2265,23 +2266,24 @@ void AvatarController::floatingBaseMOB()
     jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); //position
     jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); //orientation
 
-    R_temp.setZero(6, 6);
-    R_temp.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
-    R_temp.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
+    R_temp_lfoot.setZero(6, 6);
+    R_temp_lfoot.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
+    R_temp_lfoot.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
     // J_temp.setZero(6, MODEL_DOF_VIRTUAL);
     // J_temp = (rd_.link_[Left_Foot].jac).cast<double>();
 
     Eigen::VectorQd torque_from_l_ft_pre = torque_from_l_ft_lpf_;
-    torque_from_l_ft_ = jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp * (-l_ft_wo_fw_);
+    torque_from_l_ft_ = jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp_lfoot * (-l_ft_wo_fw_);
     torque_from_l_ft_lpf_ = DyrosMath::lpf<33>(torque_from_l_ft_, torque_from_l_ft_pre, 2000, 100 / (2 * M_PI));
     // torque_from_l_ft_ =  jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.LF_CF_FT;
-
-    R_temp.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
-    R_temp.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
+    
+    R_temp_rfoot.setZero(6, 6);
+    R_temp_rfoot.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
+    R_temp_rfoot.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
     // J_temp = rd_.link_[Right_Foot].jac.cast<double>();
 
     Eigen::VectorQd torque_from_r_ft_pre = torque_from_r_ft_lpf_;
-    torque_from_r_ft_ = jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp * (-r_ft_wo_fw_);
+    torque_from_r_ft_ = jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp_rfoot * (-r_ft_wo_fw_);
     torque_from_r_ft_lpf_ = DyrosMath::lpf<33>(torque_from_r_ft_, torque_from_r_ft_pre, 2000, 100 / (2 * M_PI));
 
     if (current_torque == current_torque)
@@ -2371,6 +2373,7 @@ void AvatarController::floatingBaseMOB()
         printout_cnt_ = 100 * 60 * 60 * 3 + 1;
     }
 
+    // get MOB-LSTM output 
     if(atb_lstm_input_update_ == false)
     {
         atb_lstm_input_update_ = true;
@@ -2379,6 +2382,7 @@ void AvatarController::floatingBaseMOB()
     }
 
     estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF) - estimated_model_unct_torque_slow_;
+    estimated_ext_force_lfoot_lstm_ = R_temp_lfoot.transpose()*(jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse()*estimated_ext_torque_lstm_.segment(0, 6);
     // torque_from_r_ft_ =  jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.RF_CF_FT;
 
     // MatrixXd j_pelv_temp;
@@ -2398,9 +2402,9 @@ void AvatarController::floatingBaseMOB()
 
     if (walking_tick_mj%200 == 0)
     {
-        cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 6).transpose() <<endl;
-        cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
-        cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
+        // cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 6).transpose() <<endl;
+        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
         // cout<<"base_velocity: "<<base_velocity.transpose() <<endl;
         // cout<<"mob_residual_external_: "<<mob_residual_external_.transpose() <<endl;
         // cout<<"torque_from_l_ft_: \n"<< (torque_from_l_ft_).segment(0, 12).transpose() <<endl;
@@ -10126,12 +10130,6 @@ void AvatarController::initializeLegLSTM(LSTM &lstm)
     lstm.output_gate.setZero(n_hidden_);
     lstm.output.setZero(n_output_);
 
-    // mean, std data
-    // lstm.input_mean
-    // lstm.input_std
-    // lstm.output_mean
-    // lstm.output_std
-
 }
 
 void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
@@ -10290,13 +10288,19 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
         }
     }
+
+    // cout<<"lstm.b_ih: \n"<<lstm.b_ih<<endl;
+    // cout<<"lstm.W_ih: \n"<<lstm.W_ih<<endl;
+    // cout<<"lstm.b_hh: \n"<<lstm.b_hh<<endl;
+    // cout<<"lstm.b_linear: \n"<<lstm.b_linear<<endl;
+
 }
 void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
 {
     std::string input_mean_path("input_mean.txt");
     std::string input_std_path("input_std.txt");
     std::string output_mean_path("output_mean.txt");
-    std::string output_std_path("output_mean.txt");
+    std::string output_std_path("output_std.txt");
 
 
     input_mean_path = folder_path + input_mean_path;
@@ -10411,6 +10415,61 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
         std::cout << "Can not find the 'output_std.txt' file" << std::endl;
     }
     mean_std_file_[3].close();
+
+    cout<<"lstm.input_mean: \n"<<lstm.input_mean<<endl;
+    cout<<"lstm.input_std: \n"<<lstm.input_std<<endl;
+    cout<<"lstm.output_mean: \n"<<lstm.output_mean<<endl;
+    cout<<"lstm.output_std: \n"<<lstm.output_std<<endl;
+
+}
+void AvatarController::collectRobotInputData_acc_version(LSTM &lstm)
+{
+    int tick_ago_head;
+    tick_ago_head = lstm.buffer_head - 19*lstm.n_input; //10ms ago tail for 100hz input
+    
+    if(tick_ago_head < 0)
+    {
+        tick_ago_head += lstm.buffer_size;
+    }
+
+    /////////left leg mob lstm//////////////////
+    left_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39);   //quat
+    left_leg_mob_lstm_.robot_input_data(1) = rd_.q_virtual_(3);
+    left_leg_mob_lstm_.robot_input_data(2) = rd_.q_virtual_(4);
+    left_leg_mob_lstm_.robot_input_data(3) = rd_.q_virtual_(5);
+
+    left_leg_mob_lstm_.robot_input_data(4) = rd_.q_virtual_(6);    //q
+    left_leg_mob_lstm_.robot_input_data(5) = rd_.q_virtual_(7);
+    left_leg_mob_lstm_.robot_input_data(6) = rd_.q_virtual_(8);
+    left_leg_mob_lstm_.robot_input_data(7) = rd_.q_virtual_(9);
+    left_leg_mob_lstm_.robot_input_data(8) = rd_.q_virtual_(10);
+    left_leg_mob_lstm_.robot_input_data(9) = rd_.q_virtual_(11);
+    
+    left_leg_mob_lstm_.robot_input_data(10) = rd_.q_dot_virtual_(3);    //pelv ang vel
+    left_leg_mob_lstm_.robot_input_data(11) = rd_.q_dot_virtual_(4);
+    left_leg_mob_lstm_.robot_input_data(12) = rd_.q_dot_virtual_(5);
+
+    left_leg_mob_lstm_.robot_input_data(13) = rd_.q_dot_virtual_(6);   // qdot
+    left_leg_mob_lstm_.robot_input_data(14) = rd_.q_dot_virtual_(7);
+    left_leg_mob_lstm_.robot_input_data(15) = rd_.q_dot_virtual_(8);
+    left_leg_mob_lstm_.robot_input_data(16) = rd_.q_dot_virtual_(9);
+    left_leg_mob_lstm_.robot_input_data(17) = rd_.q_dot_virtual_(10);
+    left_leg_mob_lstm_.robot_input_data(18) = rd_.q_dot_virtual_(11);
+
+    left_leg_mob_lstm_.robot_input_data(19) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 10);    //pelv ang vel 10ms ago
+    left_leg_mob_lstm_.robot_input_data(20) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 11);
+    left_leg_mob_lstm_.robot_input_data(21) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 12);
+
+    left_leg_mob_lstm_.robot_input_data(22) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 13);       //qdot 10ms ago
+    left_leg_mob_lstm_.robot_input_data(23) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 14);
+    left_leg_mob_lstm_.robot_input_data(24) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 15);
+    left_leg_mob_lstm_.robot_input_data(25) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 16);
+    left_leg_mob_lstm_.robot_input_data(26) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 17);
+    left_leg_mob_lstm_.robot_input_data(27) = lstm.ring_buffer(tick_ago_head -(lstm.n_input-1) + 18);
+
+    left_leg_mob_lstm_.robot_input_data(28) = rd_.q_ddot_virtual_(0);    //lin acc
+    left_leg_mob_lstm_.robot_input_data(29) = rd_.q_ddot_virtual_(1);
+    left_leg_mob_lstm_.robot_input_data(30) = rd_.q_ddot_virtual_(2);
 }
 void AvatarController::calculateLstmInput(LSTM &lstm)
 {
@@ -10440,7 +10499,7 @@ void AvatarController::calculateLstmInput(LSTM &lstm)
     {
         for (int j = 0; j < lstm.n_input; j++)
         {
-            int buffer_idx = lstm.buffer_head - j - lstm.n_input * int(2000 / 100) * i;
+            int buffer_idx = lstm.buffer_head - j - lstm.n_input * 20 * i;
             if (buffer_idx < 0)
                 buffer_idx += buffer_size_;
             buffer_idx = buffer_idx % buffer_size_;
@@ -10467,6 +10526,8 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
         atb_lstm_input_update_ = false;
     }
 
+    lstm.hidden.setZero();
+    lstm.cell.setZero();
     //LSTM layer
     for (int seq = 0; seq < lstm.n_sequence_length; seq++)
     {
@@ -10506,47 +10567,6 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
     {
         lstm.real_output(joint) = lstm.output(joint)*lstm.output_std(joint) + lstm.output_mean(joint);
     }
-}
-void AvatarController::collectRobotInputData_acc_version(LSTM &lstm)
-{
-    /////////left leg mob lstm//////////////////
-    left_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39);   //quat
-    left_leg_mob_lstm_.robot_input_data(1) = rd_.q_virtual_(3);
-    left_leg_mob_lstm_.robot_input_data(2) = rd_.q_virtual_(4);
-    left_leg_mob_lstm_.robot_input_data(3) = rd_.q_virtual_(5);
-
-    left_leg_mob_lstm_.robot_input_data(4) = rd_.q_virtual_(6);    //q
-    left_leg_mob_lstm_.robot_input_data(5) = rd_.q_virtual_(7);
-    left_leg_mob_lstm_.robot_input_data(6) = rd_.q_virtual_(8);
-    left_leg_mob_lstm_.robot_input_data(7) = rd_.q_virtual_(9);
-    left_leg_mob_lstm_.robot_input_data(8) = rd_.q_virtual_(10);
-    left_leg_mob_lstm_.robot_input_data(9) = rd_.q_virtual_(11);
-    
-    left_leg_mob_lstm_.robot_input_data(10) = rd_.q_dot_virtual_(3);    //pelv ang vel
-    left_leg_mob_lstm_.robot_input_data(11) = rd_.q_dot_virtual_(4);
-    left_leg_mob_lstm_.robot_input_data(12) = rd_.q_dot_virtual_(5);
-
-    left_leg_mob_lstm_.robot_input_data(13) = rd_.q_dot_virtual_(6);   // qdot
-    left_leg_mob_lstm_.robot_input_data(14) = rd_.q_dot_virtual_(7);
-    left_leg_mob_lstm_.robot_input_data(15) = rd_.q_dot_virtual_(8);
-    left_leg_mob_lstm_.robot_input_data(16) = rd_.q_dot_virtual_(9);
-    left_leg_mob_lstm_.robot_input_data(17) = rd_.q_dot_virtual_(10);
-    left_leg_mob_lstm_.robot_input_data(18) = rd_.q_dot_virtual_(11);
-
-    left_leg_mob_lstm_.robot_input_data(19) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 10)*lstm.input_std(10)+lstm.input_mean(10);    //pelv ang vel 10ms ago
-    left_leg_mob_lstm_.robot_input_data(20) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 11)*lstm.input_std(11)+lstm.input_mean(11);
-    left_leg_mob_lstm_.robot_input_data(21) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 12)*lstm.input_std(12)+lstm.input_mean(12);
-
-    left_leg_mob_lstm_.robot_input_data(22) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 13)*lstm.input_std(13)+lstm.input_mean(13);       //qdot 10ms ago
-    left_leg_mob_lstm_.robot_input_data(23) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 14)*lstm.input_std(14)+lstm.input_mean(14);
-    left_leg_mob_lstm_.robot_input_data(24) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 15)*lstm.input_std(15)+lstm.input_mean(15);
-    left_leg_mob_lstm_.robot_input_data(25) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 16)*lstm.input_std(16)+lstm.input_mean(16);
-    left_leg_mob_lstm_.robot_input_data(26) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 17)*lstm.input_std(17)+lstm.input_mean(17);
-    left_leg_mob_lstm_.robot_input_data(27) = lstm.input_slow(lstm.nn_input_size - lstm.n_input + 18)*lstm.input_std(18)+lstm.input_mean(18);
-
-    left_leg_mob_lstm_.robot_input_data(28) = rd_.q_ddot_virtual_(0);    //lin acc
-    left_leg_mob_lstm_.robot_input_data(29) = rd_.q_ddot_virtual_(1);
-    left_leg_mob_lstm_.robot_input_data(30) = rd_.q_ddot_virtual_(2);
 }
 void AvatarController::savePreData()
 {
@@ -11875,9 +11895,17 @@ void AvatarController::printOutTextFile()
             {
                 file[0] << mob_residual_wholebody_(i) << "\t"; //mob_residual_internal_
             }
-            for (int i = 0; i < 12; i++)
+            // for (int i = 0; i < 12; i++)
+            // {
+            //     file[0] << torque_sim_jts_(i) << "\t";
+            // }
+            for (int i = 0; i < 6; i++)
             {
-                file[0] << torque_sim_jts_(i) << "\t";
+                file[0] << estimated_ext_torque_lstm_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[0] << estimated_ext_force_lfoot_lstm_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
@@ -12440,6 +12468,8 @@ void AvatarController::getRobotState()
         dt_computeslow_ = current_time_computeslow_ - pre_time_computeslow_;
     }
     // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    
+    // MOB-LSTM INFERENCE
     collectRobotInputData_acc_version(left_leg_mob_lstm_);  //1us
     calculateLstmInput(left_leg_mob_lstm_); //1us
     // if( walking_tick_mj%20 == 0)
@@ -14305,45 +14335,45 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     // random walking setting////
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-    target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
 
-    // t_rest_init_ = 0.27*hz_;
-    // t_rest_last_ = 0.27*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.3*hz_;
-    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // // t_rest_init_ = 0.27*hz_;
+    // // t_rest_last_ = 0.27*hz_;
+    // // t_double1_ = 0.03*hz_;
+    // // t_double2_ = 0.03*hz_;
+    // // t_total_= 1.3*hz_;
+    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
-    // target_x_ = 1.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.2*hz_;
-    // t_rest_last_ = 0.2*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.1*hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
+    t_rest_init_ = 0.2*hz_;
+    t_rest_last_ = 0.2*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 1.1*hz_;
+    foot_height_ = 0.055;      // 0.9 sec 0.05
     /////////////////////////////////
 
     t_temp_ = 4.0 * hz_;
