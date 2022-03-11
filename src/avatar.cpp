@@ -866,7 +866,6 @@ void AvatarController::computeFast()
     }
     else if (rd_.tc_.mode == 11)
     {
-            std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
@@ -929,7 +928,6 @@ void AvatarController::computeFast()
         walkingStateManager(); //avatar
         getProcessedRobotData();
         savePreData();
-            std::cout << "dt: " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t5).count() << std::endl;
     }
 }
 
@@ -4406,93 +4404,37 @@ void AvatarController::copyRobotData(RobotData &rd_l)
 void AvatarController::processObservation()
 {
     int data_idx = 0;
-
-    state_(data_idx) = rd_.q_virtual_(MODEL_DOF_VIRTUAL);
-    data_idx++;	
-	state_(data_idx) = rd_.q_virtual_(3);
-    data_idx++;	
-	state_(data_idx) = rd_.q_virtual_(4);
-    data_idx++;	
-	state_(data_idx) = rd_.q_virtual_(5);
-    data_idx++;	
-
-    for (int i = 0; i <MODEL_DOF; i++)
+    for (int i = 2; i < MODEL_DOF_QVIRTUAL; i++)
     {
-        state_(data_idx) = rd_.q_(i);
+        state_(data_idx) = rd_.q_virtual_rl_(i);
         data_idx++;
     }
-
-    state_(data_idx) = rd_.q_dot_virtual_(0);
-    data_idx++;	
-	state_(data_idx) = rd_.q_dot_virtual_(1);
-    data_idx++;	
-	state_(data_idx) = rd_.q_dot_virtual_(2);
-    data_idx++;	
-    state_(data_idx) = rd_.q_dot_virtual_(3);
-    data_idx++;	
-	state_(data_idx) = rd_.q_dot_virtual_(4);
-    data_idx++;	
-	state_(data_idx) = rd_.q_dot_virtual_(5);
-    data_idx++;	
-    
-    for (int i = 0; i <MODEL_DOF; i++)
+    for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
     {
-        state_(data_idx) = rd_.q_dot_(i);
+        state_(data_idx) = rd_.q_dot_virtual_rl_(i);
         data_idx++;
     }
-
-    state_(data_idx) = rd_.q_virtual_(2);
-    data_idx++;
-
-    state_(data_idx) = target_data_body_vel_;
-    data_idx++;
-
-    Eigen::Vector3d left_Euler_lipm = DyrosMath::rot2Euler(lfoot_trajectory_float_origin_.linear());
-    Eigen::Vector3d right_Euler_lipm = DyrosMath::rot2Euler(rfoot_trajectory_float_origin_.linear());
-    Eigen::Vector3d left_Euler_rl = DyrosMath::rot2Euler(lfoot_trajectory_float_.linear());
-    Eigen::Vector3d right_Euler_rl = DyrosMath::rot2Euler(rfoot_trajectory_float_.linear());
-    
-    for (int i = 0; i <3; i++)
+    for (int i = 0; i < 6; i++)
     {
-        state_(data_idx) = lfoot_trajectory_float_origin_.translation()(i);
+        state_(data_idx) = rd_.left_foot_pose_lipm_[i];
         data_idx++;
     }
-    for (int i = 0; i <3; i++)
+    for (int i = 0; i < 6; i++)
     {
-        state_(data_idx) = left_Euler_lipm(i);
-        data_idx++;
-    }        
-    for (int i = 0; i <3; i++)
-    {
-        state_(data_idx) = rfoot_trajectory_float_origin_.translation()(i);
-        data_idx++;
-    }
-    for (int i = 0; i <3; i++)
-    {
-        state_(data_idx) = right_Euler_lipm(i);
-        data_idx++;
-    }
-    for (int i = 0; i <3; i++)
-    {
-        state_(data_idx) = lfoot_trajectory_float_.translation()(i);
-        data_idx++;
-    }
-    for (int i = 0; i <3; i++)
-    {
-        state_(data_idx) = left_Euler_rl(i);
+        state_(data_idx) = rd_.right_foot_pose_lipm_[i];
         data_idx++;
     }    
-    
-    for (int i = 0; i <3; i++)
+    for (int i = 0; i < 6; i++)
     {
-        state_(data_idx) = rfoot_trajectory_float_.translation()(i);
+        state_(data_idx) = rd_.left_foot_pose_rl_[i];
         data_idx++;
     }
-    for (int i = 0; i <3;  i++)
+    for (int i = 0; i < 6; i++)
     {
-        state_(data_idx) = right_Euler_rl(i);
+        state_(data_idx) = rd_.right_foot_pose_rl_[i];
         data_idx++;
     }
+    state_(data_idx) = target_data_body_vel_;
 }
 
 
@@ -4631,6 +4573,9 @@ void AvatarController::reflectRLState()
     Eigen::Vector3d right_Euler_rl = DyrosMath::rot2Euler(rfoot_trajectory_float_.linear());
 
     rd_.is_state_writing_ = true;
+
+    rd_.q_virtual_rl_ = rd_.q_virtual_;
+    rd_.q_dot_virtual_rl_ = rd_.q_dot_virtual_;
 
     if (is_right_foot_swing_)
     {
