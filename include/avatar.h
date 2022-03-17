@@ -32,12 +32,13 @@
 
 #include <cmath>       /* isnan, sqrt */
 
-const int FILE_CNT = 1;
+const int FILE_CNT = 2;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros21/FB_MOB_LEARNING_TOCABI/data/random_walking_.txt"
+    "/home/dyros/data/dg/random_walking_.txt",
+    "/home/dyros/data/dg/text.txt"
     // "/ssd2/fb_mob_learning/data/1_com_.txt",
     // "/ssd2/fb_mob_learning/data/2_zmp_.txt",
     // "/ssd2/fb_mob_learning/data/3_foot_.txt",
@@ -110,6 +111,8 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
+    std::atomic<bool> atb_hmd_vel_update_{false};
+
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_local_;  //updated by local q
@@ -296,6 +299,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_;                                      // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -336,6 +340,8 @@ public:
     double current_time_computeslow_;
     double pre_time_computeslow_;
     double dt_computeslow_;    
+
+    double last_hmd_vel_calc_time_;
 
     double walking_speed_;
     double walking_speed_side_;
@@ -713,6 +719,8 @@ public:
 
     Eigen::Vector6d l_ft_wo_fw_;
     Eigen::Vector6d r_ft_wo_fw_;
+    Eigen::Vector6d l_ft_wo_fw_LPF_;
+    Eigen::Vector6d r_ft_wo_fw_LPF_;
 
     Eigen::Vector6d l_cf_ft_global_;
     Eigen::Vector6d r_cf_ft_global_;
@@ -1033,6 +1041,10 @@ public:
     Eigen::Vector6d hmd_chest_vel_;
     Eigen::Vector6d hmd_pelv_vel_; 
     
+    Eigen::Vector6d hmd_chest_vel_thread_;
+    Eigen::Vector6d hmd_chest_vel_slow_;
+    Eigen::Vector6d hmd_chest_vel_slow_lpf_;
+
     int hmd_head_abrupt_motion_count_;
     int hmd_lupperarm_abrupt_motion_count_;
     int hmd_lhand_abrupt_motion_count_;
