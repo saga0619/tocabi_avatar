@@ -585,8 +585,8 @@ void AvatarController::setGains()
     //UPPERBODY
     for (int i = 12; i < 33; i++)
     {
-        joint_vel_limit_l_(i) = -M_PI * 2;
-        joint_vel_limit_h_(i) = M_PI * 2;
+        joint_vel_limit_l_(i) = -M_PI * 3;
+        joint_vel_limit_h_(i) = M_PI * 3;
     }
 
     //1st arm joint vel limit
@@ -797,7 +797,7 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 7.5*hz_)&&(walking_tick_mj < 7.608*hz_))
+                if( (walking_tick_mj >= 7.5*hz_)&&(walking_tick_mj < 7.60*hz_))
                 { // -170,175 // -350 7.5 - 7.6
                     mujoco_applied_ext_force_.data[0] = -350.0; //x-axis linear force // -75N linear force (7.5-8.0 s) only waist // -117~120N (7.5-7.8s) with arms -118 is best..
                     mujoco_applied_ext_force_.data[1] = 0*-57.0;  //y-axis linear force // -50N linear force (7.5-7.8 s)
@@ -9471,7 +9471,7 @@ void AvatarController::computeCAMcontrol_HQP()
         H_camhqp_[i] = w1_camhqp_[i] * H1 + w2_camhqp_[i] * H2 + w3_camhqp_[i] * H3;
         g_camhqp_[i] = w1_camhqp_[i] * g1 + w2_camhqp_[i] * g2 + w3_camhqp_[i] * g3;
 
-        double speed_reduce_rate = 40; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
+        double speed_reduce_rate = 50; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
 
         // for (int j = 0; j < constraint_size1_camhqp_; j++)
         // {
