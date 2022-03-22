@@ -12083,6 +12083,7 @@ void AvatarController::printOutTextFile()
             file[0] << endl;
 
             //// lstm file
+            file[3]<<rd_.control_time_<<"\t";
             for (int i = 0; i < 12; i++)
             {
                 file[3] << estimated_ext_torque_lstm_(i) << "\t";
@@ -12095,27 +12096,23 @@ void AvatarController::printOutTextFile()
             {
                 file[3] << estimated_ext_force_rfoot_lstm_(i) << "\t";
             }
-            file[3] << endl;
-
-
-            file[1]<<rd_.control_time_<<"\t";
             for(int i = 0; i <6 ; i++) 
             {
-                file[1]<< l_ft_LPF(i) << "\t";
+                file[3]<< l_ft_LPF(i) << "\t";
             }
             for(int i = 0; i <6 ; i++) 
             {
-                file[1]<< r_ft_LPF(6+i) << "\t";
+                file[3]<< r_ft_LPF(6+i) << "\t";
             }
             for(int i = 0; i <3 ; i++) 
             {
-                file[1]<< rd_.q_dot_virtual_(i) << "\t";
+                file[3]<< rd_.q_dot_virtual_(i) << "\t";
             }
             for(int i = 0; i <3 ; i++) 
             {
-                file[1]<< hmd_chest_vel_slow_lpf_(i) << "\t";
+                file[3]<< hmd_chest_vel_slow_lpf_(i) << "\t";
             }
-            file[1]<<endl;
+            file[3]<<endl;
 
             printout_cnt_ += 1;
         }
