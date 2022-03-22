@@ -118,6 +118,8 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
+    std::atomic<bool> atb_hmd_vel_update_{false};
+
 
 
     RigidBodyDynamics::Model model_d_;      //updated by desired q
@@ -301,10 +303,11 @@ public:
     /////
     ///////////////////////////////////////////////////////////
 
-    unsigned int upper_body_mode_; // 1: init pose,  2: zero pose, 3: swing arm 4: motion retarggeting
-    bool walking_mode_on_;         // turns on when the walking control command is received and truns off after saving start time
-    double stop_vel_threshold_;    // acceptable capture point deviation from support foot
-    bool chair_mode_;              // For chair sitting mode
+    unsigned int upper_body_mode_;                          // 1: init pose,  2: zero pose, 3: swing arm 4: motion retarggeting
+    bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
+    double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
+    bool chair_mode_;                                       // For chair sitting mode
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -345,6 +348,8 @@ public:
     double current_time_computeslow_;
     double pre_time_computeslow_;
     double dt_computeslow_;
+
+    double last_hmd_vel_calc_time_;
 
     double walking_speed_;
     double walking_speed_side_;
@@ -1037,7 +1042,11 @@ public:
     Eigen::Vector6d hmd_rupperarm_vel_;
     Eigen::Vector6d hmd_rhand_vel_;
     Eigen::Vector6d hmd_chest_vel_;
-    Eigen::Vector6d hmd_pelv_vel_;
+    Eigen::Vector6d hmd_pelv_vel_; 
+    
+    Eigen::Vector6d hmd_chest_vel_thread_;
+    Eigen::Vector6d hmd_chest_vel_slow_;
+    Eigen::Vector6d hmd_chest_vel_slow_lpf_;
 
     int hmd_head_abrupt_motion_count_;
     int hmd_lupperarm_abrupt_motion_count_;
