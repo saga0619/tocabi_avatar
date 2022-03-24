@@ -84,7 +84,7 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
-
+    CQuadraticProgram QP_mpc_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
@@ -1122,7 +1122,12 @@ public:
     const double w_dot_max_ = 30;
 
     ////////////////////////////////////////////////////////////
-
+    /////////////MPC-MJ//////////////////////////
+    Eigen::Vector3d x_hat_;
+    Eigen::Vector3d y_hat_;
+    Eigen::VectorXd MPC_input_;
+    ////////////////////////////////////////////////////////////
+    
     /////////////CAM-HQP//////////////////////////
     const int hierarchy_num_camhqp_ = 2;
     const int variable_size_camhqp_ = 8; // original number -> 6 (DG)

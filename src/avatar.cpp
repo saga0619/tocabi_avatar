@@ -630,7 +630,7 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-
+            
             // Saving for initial upper body pose
             // edited by MJ (Initial upper body trajectory generation for CAM control /220110)
             CAM_upper_init_q_.setZero();
@@ -1166,7 +1166,7 @@ void AvatarController::computeFast()
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
-                cout<<"comutefast tc.mode =10 is initialized"<<endl;
+                //cout<<"comutefast tc.mode =10 is initialized"<<endl;
             }
             //initial_flag = 2;
         }
@@ -9061,7 +9061,7 @@ void AvatarController::computeCAMcontrol_HQP()
     if (first_loop_camhqp_)
     {
         for (int i = 0; i < hierarchy_num_camhqp_; i++)
-        {
+        {   
             QP_cam_hqp_.resize(hierarchy_num_camhqp_);
             QP_cam_hqp_[i].InitializeProblemSize(variable_size_camhqp_, constraint_size2_camhqp_[i]);
             J_camhqp_[i].setZero(control_size_camhqp_[i], variable_size_camhqp_);
@@ -9333,103 +9333,164 @@ void AvatarController::computeCAMcontrol_HQP()
 }
 
 void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview_window)
-{
-    // freq = 50; % [Hz]
-    // T = 1/freq; % [s] sampling time
-    // h = 0.7; % [m] Height of Center of Mass 
-    // g = 9.81;
-    // sim_time = 10; % [s]
-    // sim_n = sim_time*freq;   
-    // T_prev = 1.5;    % [s] Preview window  
-    // N = T_prev*freq;  % Future step  
+{    
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+    int N = preview_window * MPC_freq; // N step horizon
+    int mpc_tick = walking_tick_mj - zmp_start_time_mj_;
     
-    Eigen::Matrix3d A;
-    Eigen::Vector3d B;
-    Eigen::MatrixXd C;
-
-    A(0, 0) = 1.0;
-    A(0, 1) = T;
-    A(0, 2) = T * T * 0.5;
-    A(1, 0) = 0;
-    A(1, 1) = 1.0;
-    A(1, 2) = T;
-    A(2, 0) = 0;
-    A(2, 1) = 0;
-    A(2, 2) = 1.0;
-
-    B.resize(3);
-    B(0) = T * T * T / 6;
-    B(1) = T * T / 2;
-    B(2) = T;
-
-    C.resize(1, 3);
-    C(0, 0) = 1;
-    C(0, 1) = 0;
-    C(0, 2) = -0.71 / 9.81;    
-    
-    double alpha = 0, gamma = 0;
-    int N = preview_window * MPC_freq;
-    
-    alpha = 0.000001;
-    gamma = 1.0;
-
-    Eigen::MatrixXd P_zs;
+    Eigen::MatrixXd P_zs; 
     Eigen::MatrixXd P_zu;
+
+    static double W1 = 0, W2 = 0; 
+    static int MPC_initial_flag = 0;
     
-    P_zs.setZero(N,3);
-    P_zu.setZero(N,N);
+    //if(MPC_initial_flag == 0)
+       
+        //MPC_initial_flag = 1;
+        Eigen::Matrix3d A;
+        Eigen::Vector3d B;
+        Eigen::MatrixXd C;
+        // Define State matrix
+        A(0, 0) = 1.0;
+        A(0, 1) = T;
+        A(0, 2) = T * T * 0.5;
+        A(1, 0) = 0;
+        A(1, 1) = 1.0;
+        A(1, 2) = T;
+        A(2, 0) = 0;
+        A(2, 1) = 0;
+        A(2, 2) = 1.0;
+        // Define Input matrix
+        B.resize(3);
+        B(0) = T * T * T / 6;
+        B(1) = T * T / 2;
+        B(2) = T;
+        // Define Output matrix
+        C.resize(1, 3);
+        C(0, 0) = 1;
+        C(0, 1) = 0;
+        C(0, 2) = -0.71 / 9.81;                 
+        
+        W1 = 0.000001; // The term alpha in wiber's paper
+        W2 = 1.0; // The term gamma in wiber's paper
+                
+        P_zs.setZero(N,3);
+        P_zu.setZero(N,N);
+
+        for(int i = 0; i < N; i++)
+        {
+            // Define reculsive state matrix for MPC P_zs (N x 3)
+            P_zs(i,0) = 1;
+            P_zs(i,1) = (i+1)*T;
+            P_zs(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
+            
+            // Define reculsive input matrix for MPC P_zu (N x N / Lower Triangular Toeplitz matrix)
+            for(int j = 0; j < N; j++)
+            {
+                if(j >= i)
+                {
+                    P_zu(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
+                }
+            }
+        }
+
+        Eigen::MatrixXd Q_prime;
+        Eigen::MatrixXd Q;
+        Eigen::MatrixXd O_N;
+        Eigen::MatrixXd I_N(N,N);
+
+        Q_prime.setZero(N,N);
+        Q.setZero(2*N,2*N); // 2N x 2N
+        O_N.setZero(N,N); // N x N Zero matrix
+        I_N.setIdentity(); // N x N Identity matrix
+        
+        Q_prime = W1*I_N + W2*P_zu.transpose()*P_zu;
+        
+        Q.block<15, 15>(0, 0) = Q_prime; // N = 15 
+        Q.block<15, 15>(N, 0) = O_N;
+        Q.block<15, 15>(0, N) = O_N;
+        Q.block<15, 15>(N, N) = Q_prime;
+                    
+    
+    Eigen::VectorXd p_x(N);
+    Eigen::VectorXd p_y(N);
+    Eigen::VectorXd p(2*N);
+    Eigen::VectorXd Z_x_ref(N);
+    Eigen::VectorXd Z_y_ref(N);
+    
+    for(int i = 0; i < N; i ++)
+    {
+        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 0); // 200 = Control hz_/MPC_hz_
+        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 1);
+    } 
+
+    
+
+    //define cost functions
+    p_x = W2*P_zu.transpose()*(P_zs*x_hat_ - Z_x_ref);
+    p_y = W2*P_zu.transpose()*(P_zs*y_hat_ - Z_y_ref);
+    p.segment(0, N) = p_x;
+    p.segment(N, N) = p_y;  
+    
+    Eigen::VectorXd lb_b_x(N);
+    Eigen::VectorXd ub_b_x(N);
+    Eigen::VectorXd lb_b_y(N);
+    Eigen::VectorXd ub_b_y(N);
+    Eigen::VectorXd lb_b(2*N);
+    Eigen::VectorXd ub_b(2*N);
+    Eigen::VectorXd eps(N);
 
     for(int i = 0; i < N; i++)
     {
-        // Define state matrix P_zs (N x 3)
-        P_zs(i,0) = 1;
-        P_zs(i,1) = (i+1)*T;
-        P_zs(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
-        
-        // Define input matrix P_zu (N x N / Lower Triangular Toieplitz matrix)
-        for(int j = 0; j < N; j++)
-        {
-            if(j >= i)
-            {
-                P_zu(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
-            }
-        }
+        eps(i) = 5;
     }
+    
+    // lb_b_x = -Z_x_ref + eps + P_zs*x_hat_;
+    // ub_b_x = Z_x_ref + eps - P_zs*x_hat_;
+    // lb_b_y = -Z_y_ref + eps + P_zs*y_hat_;
+    // ub_b_y = Z_y_ref + eps - P_zs*y_hat_;
 
-    Eigen::MatrixXd Q_prime;
-    Eigen::MatrixXd Q;
-    Eigen::MatrixXd I_N;
-    Eigen::MatrixXd O_N;
-    
-    Q_prime.setZero(N,N);
-    Q.setZero(2*N,2*N);
-    I_N.resize(N,N);
-    I_N.setIdentity();
-    O_N.setZero(N,N); 
-    Q_prime = alpha*I_N + gamma*P_zu.transpose()*P_zu;
-    
-    Q.block<15, 15>(0, 0) = Q_prime; // N = 15 
-    Q.block<15, 15>(N, 0) = O_N;
-    Q.block<15, 15>(0, N) = O_N;
-    Q.block<15, 15>(N, N) = Q_prime;
-    
-    // Cross check using MATLAB
+    lb_b_x = Z_x_ref - eps - P_zs*x_hat_;
+    ub_b_x = Z_x_ref + eps - P_zs*x_hat_;
+    lb_b_y = Z_y_ref - eps - P_zs*y_hat_;
+    ub_b_y = Z_y_ref + eps - P_zs*y_hat_;
+
+    lb_b.segment(0, N) = lb_b_x;
+    lb_b.segment(N, N) = lb_b_y;
+    ub_b.segment(0, N) = ub_b_x;
+    ub_b.segment(N, N) = ub_b_y;
+
+    Eigen::MatrixXd A_zu(2*N, 2*N);
+
+    A_zu.block<15, 15>(0, 0) = P_zu; // N = 15 
+    A_zu.block<15, 15>(N, 0) = O_N;
+    A_zu.block<15, 15>(0, N) = O_N;
+    A_zu.block<15, 15>(N, N) = P_zu;
+
+    QP_mpc_.InitializeProblemSize(2*N, 2*N);
+    QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
+    QP_mpc_.UpdateMinProblem(Q,p);
+    QP_mpc_.DeleteSubjectToAx();      
+    QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
+    Eigen::VectorXd U_(2*N);
+
+    if (QP_mpc_.SolveQPoases(200, MPC_input_))
+    {
+        U_ = MPC_input_.segment(0, 2*N); 
+    }
+                  
+    x_hat_ = A * x_hat_ + B * U_(0);
+    y_hat_ = A * y_hat_ + B * U_(15);
+              
+    //cout << "MPC : " << U_(0) << "," << U_(15) << "," << x_hat_(0) << "," << y_hat_(0) << endl;
+
+    MJ_graph << U_(0) << "," << U_(15) << "," << x_hat_(0) << "," << y_hat_(0) << "," << ref_zmp_mj_(mpc_tick,0) << "," << ref_zmp_mj_(mpc_tick,1) << endl;
+    // Cross check using MATLAB    
  
-
-    // x_hat = zeros(3,sim_n);
-    // y_hat = zeros(3,sim_n);
     // u = zeros(2*N,sim_n);
     // for k = 1:1:sim_n
 
-    //         if k == 4.5*freq            
-    //             Z_y_ref(k+(0.5*freq):k+(1.5*freq-1)) = Z_y_ref(k+(0.5*freq):k+(1.5*freq-1))-0.1;
-    //         end
-
-    //         % Costfunctions
-    //         p_x(1:N,k) = gamma*transpose(P_zu)*(P_zs*x_hat(1:3,k) - Z_x_ref(k+1:k+N)');
-    //         p_y(1:N,k) = gamma*transpose(P_zu)*(P_zs*y_hat(1:3,k) - Z_y_ref(k+1:k+N)'); 
-    //         P(1:2*N,k) = [p_x(1:N,k) ; p_y(1:N,k)];
-            
     //         % ZMP constraints
     
     //         b_x_min(1:N,k) = -Z_x_ref(k+1:k+N)' + 0.05 + P_zs*x_hat(1:3,k);
@@ -9449,6 +9510,8 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
     //         y_hat(1:3,k+1) = A * y_hat(1:3,k) + B * u(N+1,k);
     // end
 
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
 }
 
 void AvatarController::savePreData()
@@ -11933,21 +11996,8 @@ void AvatarController::preview_Parameter(double dt, int NL, Eigen::MatrixXd &Gi,
 void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double &UX, double &UY,
                                          Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD)
 {
-
-    int zmp_size;
-    zmp_size = ref_zmp_mj_.col(1).size();
-    Eigen::VectorXd px_ref, py_ref;
-    px_ref.resize(zmp_size);
-    py_ref.resize(zmp_size);
-
-    for (int i = 0; i < zmp_size; i++)
-    {
-        px_ref(i) = ref_zmp_mj_(i, 0);
-        py_ref(i) = ref_zmp_mj_(i, 1);
-    }
-
-    ZMP_X_REF = px_ref(tick);
-    ZMP_Y_REF = py_ref(tick);
+    ZMP_X_REF = ref_zmp_mj_(tick,0);
+    ZMP_Y_REF = ref_zmp_mj_(tick,1);  
 
     Eigen::VectorXd px, py;
     px.resize(1);
@@ -11987,8 +12037,8 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
 
     for (int i = 0; i < NL; i++)
     {
-        sum_Gd_px_ref = sum_Gd_px_ref + Gd(i) * (px_ref(tick + 1 + i) - px_ref(tick + i));
-        sum_Gd_py_ref = sum_Gd_py_ref + Gd(i) * (py_ref(tick + 1 + i) - py_ref(tick + i));
+        sum_Gd_px_ref = sum_Gd_px_ref + Gd(i) * (ref_zmp_mj_(tick + 1 + i,0) - ref_zmp_mj_(tick + i,0));
+        sum_Gd_py_ref = sum_Gd_py_ref + Gd(i) * (ref_zmp_mj_(tick + 1 + i,1) - ref_zmp_mj_(tick + i,1));
     }
 
     Eigen::MatrixXd del_ux(1, 1);
@@ -12007,8 +12057,8 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
         cout << "del_zmp : " << del_zmp(0) << "," << del_zmp(1) << endl;
     }
 
-    del_ux(0, 0) = -(px(0) - px_ref(tick)) * Gi(0, 0) - GX_X(0) - sum_Gd_px_ref;
-    del_uy(0, 0) = -(py(0) - py_ref(tick)) * Gi(0, 0) - GX_Y(0) - sum_Gd_py_ref;
+    del_ux(0, 0) = -(px(0) - ref_zmp_mj_(tick,0)) * Gi(0, 0) - GX_X(0) - sum_Gd_px_ref;
+    del_uy(0, 0) = -(py(0) - ref_zmp_mj_(tick,1)) * Gi(0, 0) - GX_Y(0) - sum_Gd_py_ref;
 
     UX = UX + del_ux(0, 0);
     UY = UY + del_uy(0, 0);
@@ -12016,16 +12066,6 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     XD = A * preview_x_mj + B * UX;
     YD = A * preview_y_mj + B * UY;
     //SC_err_compen(XD(0), YD(0));
-    if (walking_tick_mj == 0)
-    {
-        zmp_err_(0) = 0;
-        zmp_err_(1) = 0;
-    }
-    else
-    {
-        zmp_err_(0) = zmp_err_(0) + (px_ref(tick) - zmp_measured_LPF_(0)) * 0.0005;
-        zmp_err_(1) = zmp_err_(1) + (py_ref(tick) - zmp_measured_LPF_(1)) * 0.0005;
-    }
 
     cp_desired_(0) = XD(0) + XD(1) / wn;
     cp_desired_(1) = YD(0) + YD(1) / wn;
@@ -12105,8 +12145,8 @@ void AvatarController::getPelvTrajectory()
 
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
-    pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0.15 * damping_x - com_support_current_(0)); //- 0.01 * zmp_err_(0) * 0;
-    pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0.6 * damping_y - com_support_current_(1));  //- 0.01 * zmp_err_(1) * 0;
+    pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0)); 
+    pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0*0.6 * damping_y - com_support_current_(1));  
     // pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_; //DG
     pelv_trajectory_support_.translation()(2) = com_desired_(2) - 0 * pelv_height_offset_;
 
@@ -12186,9 +12226,6 @@ void AvatarController::getComTrajectory()
         Gx_mj_.setZero();
         Gd_mj_.setZero();
         preview_Parameter(1.0 / hz_, 16 * hz_ / 10, Gi_mj_, Gd_mj_, Gx_mj_, A_mj_, B_mj_, C_mj_);
-        //
-        comGenerator_MPC(10.0, 1.0/10.0, 1.5);
-        //
         xs_mj_(0) = xi_mj_;
         xs_mj_(1) = 0;
         xs_mj_(2) = 0;
