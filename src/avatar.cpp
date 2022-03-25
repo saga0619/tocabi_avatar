@@ -728,6 +728,7 @@ void AvatarController::computeSlow()
             {
                 getZmpTrajectory();
                 getComTrajectory();
+                getComTrajectory_mpc();
                 // MJDG CMP control
                 CentroidalMomentCalculator();
                 // updateCMM_DG();
@@ -9361,10 +9362,9 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
         B_mpc(1) = T * T / 2;
         B_mpc(2) = T;
         // Define Output matrix
-        C_mpc.resize(1, 3);
-        C_mpc(0, 0) = 1;
-        C_mpc(0, 1) = 0;
-        C_mpc(0, 2) = -0.71 / 9.81;                 
+        C_mpc_transpose(0) = 1;
+        C_mpc_transpose(1) = 0;
+        C_mpc_transpose(2) = -0.71 / 9.81;                 
                 
         W1_mpc = 0.000001; // The term alpha in wiber's paper
         W2_mpc = 1.0; // The term gamma in wiber's paper
@@ -9392,16 +9392,16 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
         Eigen::MatrixXd Q_prime;
         
         Q_prime.setZero(N,N);
-        Q_mpc.setZero(2*N,2*N); // 2N x 2N        
-        
         Q_prime = W1_mpc*I_N + W2_mpc*P_zu_mpc.transpose()*P_zu_mpc;
         
-        Q_mpc.block<15, 15>(0, 0) = Q_prime; // N = 15 
-        Q_mpc.block<15, 15>(N, 0) = O_N;
-        Q_mpc.block<15, 15>(0, N) = O_N;
-        Q_mpc.block<15, 15>(N, N) = Q_prime;
+        Q_mpc.setZero(2*N,2*N); // 2N x 2N  
+        Q_mpc.block<75, 75>(0, 0) = Q_prime; // N = 75 
+        Q_mpc.block<75, 75>(N, 0) = O_N;
+        Q_mpc.block<75, 75>(0, N) = O_N;
+        Q_mpc.block<75, 75>(N, N) = Q_prime;
 
-        first_loop = 1; 
+        first_loop = 1;
+        cout << "Initialization of MPC parameters is complete." << endl;
     }
 
     Eigen::VectorXd p_x(N);
@@ -9412,8 +9412,8 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     
     for(int i = 0; i < N; i ++)
     {
-        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 0); // 200 = Control freq / MPC_freq
-        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 1);
+        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 40*i, 0); // 40 = Control freq (2000) / MPC_freq (50)
+        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 40*i, 1);
     }    
 
     //define cost functions
@@ -9432,7 +9432,7 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
 
     for(int i = 0; i < N; i++)
     {
-        zmp_bound(i) = 5;
+        zmp_bound(i) = 1;
     }
     
     // lb_b_x = -Z_x_ref + eps + P_zs*x_hat_;
@@ -9452,27 +9452,33 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
 
     Eigen::MatrixXd A_zu(2*N, 2*N);
 
-    A_zu.block<15, 15>(0, 0) = P_zu_mpc; // N = 15 
-    A_zu.block<15, 15>(N, 0) = O_N;
-    A_zu.block<15, 15>(0, N) = O_N;
-    A_zu.block<15, 15>(N, N) = P_zu_mpc;
+    A_zu.block<75, 75>(0, 0) = P_zu_mpc; // N = 75 
+    A_zu.block<75, 75>(N, 0) = O_N;
+    A_zu.block<75, 75>(0, N) = O_N;
+    A_zu.block<75, 75>(N, N) = P_zu_mpc;
 
     QP_mpc_.InitializeProblemSize(2*N, 2*N);
     QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
     QP_mpc_.UpdateMinProblem(Q_mpc,p);
     QP_mpc_.DeleteSubjectToAx();      
     QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
-    Eigen::VectorXd U_(2*N);
+    
+    U_mpc.setZero(2*N);
 
     if (QP_mpc_.SolveQPoases(200, MPC_input_))
     {
-        U_ = MPC_input_.segment(0, 2*N); 
+        U_mpc = MPC_input_.segment(0, 2*N); 
     }
                   
-    x_hat_ = A_mpc * x_hat_ + B_mpc * U_(0);
-    y_hat_ = A_mpc * y_hat_ + B_mpc * U_(15);
-              
-    MJ_graph << U_(0) << "," << U_(15) << "," << x_hat_(0) << "," << y_hat_(0) << "," << ref_zmp_mj_(mpc_tick,0) << "," << ref_zmp_mj_(mpc_tick,1) << endl;
+    x_hat_ = A_mpc * x_hat_ + B_mpc * U_mpc(0);
+    y_hat_ = A_mpc * y_hat_ + B_mpc * U_mpc(N);
+
+    // Eigen::Vector2d output_zmp;
+
+    // output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
+    // output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
+
+    //MJ_graph << U_(0) << "," << U_(N) << "," << x_hat_(0) << "," << y_hat_(0) << "," << ref_zmp_mj_(mpc_tick,0) << "," << ref_zmp_mj_(mpc_tick,1) << "," <<output_zmp(0) << "," << output_zmp(1) << endl;
     // Cross check using MATLAB    
 
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -10620,7 +10626,7 @@ void AvatarController::getRobotState()
     {
         zmp_measured_LPF_.setZero();
     }
-
+    
     zmp_measured_LPF_ = (2 * M_PI * 8.0 * del_t) / (1 + 2 * M_PI * 8.0 * del_t) * zmp_measured_mj_ + 1 / (1 + 2 * M_PI * 8.0 * del_t) * zmp_measured_LPF_;
 }
 
@@ -12181,6 +12187,89 @@ void AvatarController::supportToFloatPattern()
 
     rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
     lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
+}
+
+    
+void AvatarController::getComTrajectory_mpc()
+{
+    if (walking_tick_mj == 0)
+    {
+        // xs_mj_(0) = xi_mj_;
+        // xs_mj_(1) = 0;
+        // xs_mj_(2) = 0;
+        // ys_mj_(0) = yi_mj_;
+        // ys_mj_(1) = 0;
+        // xs_mj_(2) = 0;
+        // UX_mj_ = 0;
+        // UY_mj_ = 0;
+        // xd_mj_ = xs_mj_;
+        U_mpc.setZero(150);
+        x_hat_.setZero();
+        x_hat_(0) = xi_mj_;
+        y_hat_.setZero();
+        y_hat_(0) = yi_mj_;
+    }
+    // State variables x_hat_ and Control input U_mpc are updated every MPC frequency.
+    Eigen::Vector2d output_zmp;
+
+    output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
+    output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
+    
+    MJ_graph << U_mpc(0) << "," << U_mpc(75) << "," << x_hat_(0) << "," << y_hat_(0) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
+    // if (current_step_num_ == 0)
+    // {
+    //     zmp_start_time_mj_ = 0.0;
+    // }
+    // else
+    // {
+    //     zmp_start_time_mj_ = t_start_;
+    // }
+
+    // previewcontroller(0.0005, 3200, walking_tick_mj - zmp_start_time_mj_, xi_mj_, yi_mj_, xs_mj_, ys_mj_, UX_mj_, UY_mj_, Gi_mj_, Gd_mj_, Gx_mj_, A_mj_, B_mj_, C_mj_, xd_mj_, yd_mj_);
+
+    // xs_mj_ = xd_mj_;
+    // ys_mj_ = yd_mj_;
+
+    // com_desired_(0) = xd_mj_(0);
+    // com_desired_(1) = yd_mj_(0);
+    // com_desired_(2) = 0.77172;
+
+    if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
+    {
+        Eigen::Vector3d com_pos_prev;
+        Eigen::Vector3d com_pos;
+        Eigen::Vector3d com_vel_prev;
+        Eigen::Vector3d com_vel;
+        Eigen::Vector3d com_acc_prev;
+        Eigen::Vector3d com_acc;
+        Eigen::Matrix3d temp_rot;
+        Eigen::Vector3d temp_pos;
+
+        temp_rot = DyrosMath::rotateWithZ(-foot_step_support_frame_(current_step_num_, 5));
+        for (int i = 0; i < 3; i++)
+            temp_pos(i) = foot_step_support_frame_(current_step_num_, i);
+
+        com_pos_prev(0) = x_hat_(0);
+        com_pos_prev(1) = y_hat_(0);
+        com_pos = temp_rot * (com_pos_prev - temp_pos);
+
+        com_vel_prev(0) = x_hat_(1);
+        com_vel_prev(1) = y_hat_(1);
+        com_vel_prev(2) = 0.0;
+        com_vel = temp_rot * com_vel_prev;
+
+        com_acc_prev(0) = x_hat_(2);
+        com_acc_prev(1) = y_hat_(2);
+        com_acc_prev(2) = 0.0;
+        com_acc = temp_rot * com_acc_prev;
+
+        x_hat_(0) = com_pos(0);
+        y_hat_(0) = com_pos(1);
+        x_hat_(1) = com_vel(0);
+        y_hat_(1) = com_vel(1);
+        x_hat_(2) = com_acc(0);
+        y_hat_(2) = com_acc(1);
+    }
 }
 
 void AvatarController::getComTrajectory()

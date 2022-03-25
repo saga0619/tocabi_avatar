@@ -135,7 +135,7 @@ public:
 
     void computeCAMcontrol_HQP();
     void comGenerator_MPC(double MPC_freq, double T, double preview_window);
-    
+    void getComTrajectory_mpc();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
@@ -1127,10 +1127,11 @@ public:
     Eigen::VectorXd MPC_input_;
     Eigen::Matrix3d A_mpc;
     Eigen::Vector3d B_mpc;
-    Eigen::MatrixXd C_mpc;
+    Eigen::Vector3d C_mpc_transpose;
     Eigen::MatrixXd P_zs_mpc; 
     Eigen::MatrixXd P_zu_mpc;
     Eigen::MatrixXd Q_mpc;
+    Eigen::VectorXd U_mpc;
     double W1_mpc = 0, W2_mpc = 0;
     ////////////////////////////////////////////////////////////
     
