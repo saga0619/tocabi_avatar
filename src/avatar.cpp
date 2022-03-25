@@ -9330,89 +9330,80 @@ void AvatarController::computeCAMcontrol_HQP()
         MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_ang_momentum_slow_2.norm() << "," << del_tau_(1) << "," << eps(0) << endl; 
         MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
     }        
-}
-
-void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview_window)
+}   
+ 
+void AvatarController::comGenerator_MPC(double MPC_freq, double T, double preview_window)
 {    
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
+    
     int N = preview_window * MPC_freq; // N step horizon
     int mpc_tick = walking_tick_mj - zmp_start_time_mj_;
+    static int first_loop = 0;
+    Eigen::MatrixXd O_N;
+    Eigen::MatrixXd I_N(N,N);
+    O_N.setZero(N,N); // N x N Zero matrix
+    I_N.setIdentity(); // N x N Identity matrix
     
-    Eigen::MatrixXd P_zs; 
-    Eigen::MatrixXd P_zu;
-
-    static double W1 = 0, W2 = 0; 
-    static int MPC_initial_flag = 0;
-    
-    //if(MPC_initial_flag == 0)
-       
-        //MPC_initial_flag = 1;
-        Eigen::Matrix3d A;
-        Eigen::Vector3d B;
-        Eigen::MatrixXd C;
+    if(first_loop == 0)
+    {
         // Define State matrix
-        A(0, 0) = 1.0;
-        A(0, 1) = T;
-        A(0, 2) = T * T * 0.5;
-        A(1, 0) = 0;
-        A(1, 1) = 1.0;
-        A(1, 2) = T;
-        A(2, 0) = 0;
-        A(2, 1) = 0;
-        A(2, 2) = 1.0;
+        A_mpc(0, 0) = 1.0;
+        A_mpc(0, 1) = T;
+        A_mpc(0, 2) = T * T * 0.5;
+        A_mpc(1, 0) = 0;
+        A_mpc(1, 1) = 1.0;
+        A_mpc(1, 2) = T;
+        A_mpc(2, 0) = 0;
+        A_mpc(2, 1) = 0;
+        A_mpc(2, 2) = 1.0;
         // Define Input matrix
-        B.resize(3);
-        B(0) = T * T * T / 6;
-        B(1) = T * T / 2;
-        B(2) = T;
+        B_mpc(0) = T * T * T / 6;
+        B_mpc(1) = T * T / 2;
+        B_mpc(2) = T;
         // Define Output matrix
-        C.resize(1, 3);
-        C(0, 0) = 1;
-        C(0, 1) = 0;
-        C(0, 2) = -0.71 / 9.81;                 
-        
-        W1 = 0.000001; // The term alpha in wiber's paper
-        W2 = 1.0; // The term gamma in wiber's paper
+        C_mpc.resize(1, 3);
+        C_mpc(0, 0) = 1;
+        C_mpc(0, 1) = 0;
+        C_mpc(0, 2) = -0.71 / 9.81;                 
                 
-        P_zs.setZero(N,3);
-        P_zu.setZero(N,N);
+        W1_mpc = 0.000001; // The term alpha in wiber's paper
+        W2_mpc = 1.0; // The term gamma in wiber's paper
+
+        P_zs_mpc.setZero(N,3);
+        P_zu_mpc.setZero(N,N);
 
         for(int i = 0; i < N; i++)
         {
             // Define reculsive state matrix for MPC P_zs (N x 3)
-            P_zs(i,0) = 1;
-            P_zs(i,1) = (i+1)*T;
-            P_zs(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
+            P_zs_mpc(i,0) = 1;
+            P_zs_mpc(i,1) = (i+1)*T;
+            P_zs_mpc(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
             
             // Define reculsive input matrix for MPC P_zu (N x N / Lower Triangular Toeplitz matrix)
             for(int j = 0; j < N; j++)
             {
                 if(j >= i)
                 {
-                    P_zu(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
+                    P_zu_mpc(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
                 }
             }
         }
 
         Eigen::MatrixXd Q_prime;
-        Eigen::MatrixXd Q;
-        Eigen::MatrixXd O_N;
-        Eigen::MatrixXd I_N(N,N);
-
+        
         Q_prime.setZero(N,N);
-        Q.setZero(2*N,2*N); // 2N x 2N
-        O_N.setZero(N,N); // N x N Zero matrix
-        I_N.setIdentity(); // N x N Identity matrix
+        Q_mpc.setZero(2*N,2*N); // 2N x 2N        
         
-        Q_prime = W1*I_N + W2*P_zu.transpose()*P_zu;
+        Q_prime = W1_mpc*I_N + W2_mpc*P_zu_mpc.transpose()*P_zu_mpc;
         
-        Q.block<15, 15>(0, 0) = Q_prime; // N = 15 
-        Q.block<15, 15>(N, 0) = O_N;
-        Q.block<15, 15>(0, N) = O_N;
-        Q.block<15, 15>(N, N) = Q_prime;
-                    
-    
+        Q_mpc.block<15, 15>(0, 0) = Q_prime; // N = 15 
+        Q_mpc.block<15, 15>(N, 0) = O_N;
+        Q_mpc.block<15, 15>(0, N) = O_N;
+        Q_mpc.block<15, 15>(N, N) = Q_prime;
+
+        first_loop = 1; 
+    }
+
     Eigen::VectorXd p_x(N);
     Eigen::VectorXd p_y(N);
     Eigen::VectorXd p(2*N);
@@ -9421,15 +9412,13 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
     
     for(int i = 0; i < N; i ++)
     {
-        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 0); // 200 = Control hz_/MPC_hz_
+        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 0); // 200 = Control freq / MPC_freq
         Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 200*i, 1);
-    } 
-
-    
+    }    
 
     //define cost functions
-    p_x = W2*P_zu.transpose()*(P_zs*x_hat_ - Z_x_ref);
-    p_y = W2*P_zu.transpose()*(P_zs*y_hat_ - Z_y_ref);
+    p_x = W2_mpc*P_zu_mpc.transpose()*(P_zs_mpc*x_hat_ - Z_x_ref);
+    p_y = W2_mpc*P_zu_mpc.transpose()*(P_zs_mpc*y_hat_ - Z_y_ref);
     p.segment(0, N) = p_x;
     p.segment(N, N) = p_y;  
     
@@ -9439,11 +9428,11 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
     Eigen::VectorXd ub_b_y(N);
     Eigen::VectorXd lb_b(2*N);
     Eigen::VectorXd ub_b(2*N);
-    Eigen::VectorXd eps(N);
+    Eigen::VectorXd zmp_bound(N);
 
     for(int i = 0; i < N; i++)
     {
-        eps(i) = 5;
+        zmp_bound(i) = 5;
     }
     
     // lb_b_x = -Z_x_ref + eps + P_zs*x_hat_;
@@ -9451,10 +9440,10 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
     // lb_b_y = -Z_y_ref + eps + P_zs*y_hat_;
     // ub_b_y = Z_y_ref + eps - P_zs*y_hat_;
 
-    lb_b_x = Z_x_ref - eps - P_zs*x_hat_;
-    ub_b_x = Z_x_ref + eps - P_zs*x_hat_;
-    lb_b_y = Z_y_ref - eps - P_zs*y_hat_;
-    ub_b_y = Z_y_ref + eps - P_zs*y_hat_;
+    lb_b_x = Z_x_ref - zmp_bound - P_zs_mpc*x_hat_;
+    ub_b_x = Z_x_ref + zmp_bound - P_zs_mpc*x_hat_;
+    lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc*y_hat_;
+    ub_b_y = Z_y_ref + zmp_bound - P_zs_mpc*y_hat_;
 
     lb_b.segment(0, N) = lb_b_x;
     lb_b.segment(N, N) = lb_b_y;
@@ -9463,14 +9452,14 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
 
     Eigen::MatrixXd A_zu(2*N, 2*N);
 
-    A_zu.block<15, 15>(0, 0) = P_zu; // N = 15 
+    A_zu.block<15, 15>(0, 0) = P_zu_mpc; // N = 15 
     A_zu.block<15, 15>(N, 0) = O_N;
     A_zu.block<15, 15>(0, N) = O_N;
-    A_zu.block<15, 15>(N, N) = P_zu;
+    A_zu.block<15, 15>(N, N) = P_zu_mpc;
 
     QP_mpc_.InitializeProblemSize(2*N, 2*N);
     QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
-    QP_mpc_.UpdateMinProblem(Q,p);
+    QP_mpc_.UpdateMinProblem(Q_mpc,p);
     QP_mpc_.DeleteSubjectToAx();      
     QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
     Eigen::VectorXd U_(2*N);
@@ -9480,35 +9469,11 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T,double preview
         U_ = MPC_input_.segment(0, 2*N); 
     }
                   
-    x_hat_ = A * x_hat_ + B * U_(0);
-    y_hat_ = A * y_hat_ + B * U_(15);
+    x_hat_ = A_mpc * x_hat_ + B_mpc * U_(0);
+    y_hat_ = A_mpc * y_hat_ + B_mpc * U_(15);
               
-    //cout << "MPC : " << U_(0) << "," << U_(15) << "," << x_hat_(0) << "," << y_hat_(0) << endl;
-
     MJ_graph << U_(0) << "," << U_(15) << "," << x_hat_(0) << "," << y_hat_(0) << "," << ref_zmp_mj_(mpc_tick,0) << "," << ref_zmp_mj_(mpc_tick,1) << endl;
     // Cross check using MATLAB    
- 
-    // u = zeros(2*N,sim_n);
-    // for k = 1:1:sim_n
-
-    //         % ZMP constraints
-    
-    //         b_x_min(1:N,k) = -Z_x_ref(k+1:k+N)' + 0.05 + P_zs*x_hat(1:3,k);
-    //         b_x_max(1:N,k) = Z_x_ref(k+1:k+N)' + 0.05 - P_zs*x_hat(1:3,k);
-    //         b_y_min(1:N,k) = -Z_y_ref(k+1:k+N)' + 0.05 + P_zs*y_hat(1:3,k);
-    //         b_y_max(1:N,k) = Z_y_ref(k+1:k+N)' + 0.05 - P_zs*y_hat(1:3,k);
-    
-    //         A_zu = [P_zu zeros(N); zeros(N) P_zu; -P_zu zeros(N); zeros(N) -P_zu];
-    //         b1 = [b_x_max ; b_y_max];
-    //         b2 = [b_x_min ; b_y_min];
-    //         b = [ b1 ; b2 ];
-            
-    // %         u(1:2*N,k) = quadprog(Q,P(1:2*N,k));
-    //         u(1:2*N,k) = quadprog(Q,P(1:2*N,k),A_zu,b(1:4*N,k));
-            
-    //         x_hat(1:3,k+1) = A * x_hat(1:3,k) + B * u(1,k);
-    //         y_hat(1:3,k+1) = A * y_hat(1:3,k) + B * u(N+1,k);
-    // end
 
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;

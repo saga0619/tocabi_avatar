@@ -135,7 +135,6 @@ public:
 
     void computeCAMcontrol_HQP();
     void comGenerator_MPC(double MPC_freq, double T, double preview_window);
-    //void previewParam_MJ(double dt, int NL, double zc, Eigen::Matrix4d& K, Eigen::MatrixXd& Gi, Eigen::VectorXd& Gd, Eigen::MatrixXd& Gx, Eigen::MatrixXd& A, Eigen::VectorXd& B, Eigen::MatrixXd& C, Eigen::MatrixXd& D, Eigen::MatrixXd& A_bar, Eigen::VectorXd& B_bar);
     
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
@@ -1126,6 +1125,13 @@ public:
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
     Eigen::VectorXd MPC_input_;
+    Eigen::Matrix3d A_mpc;
+    Eigen::Vector3d B_mpc;
+    Eigen::MatrixXd C_mpc;
+    Eigen::MatrixXd P_zs_mpc; 
+    Eigen::MatrixXd P_zu_mpc;
+    Eigen::MatrixXd Q_mpc;
+    double W1_mpc = 0, W2_mpc = 0;
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
