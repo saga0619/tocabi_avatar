@@ -84,7 +84,8 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
-    CQuadraticProgram QP_mpc_;
+    CQuadraticProgram QP_mpc_x;
+    CQuadraticProgram QP_mpc_y;
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
@@ -1124,14 +1125,17 @@ public:
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
-    Eigen::VectorXd MPC_input_;
+    Eigen::VectorXd MPC_input_x;
+    Eigen::VectorXd MPC_input_y;
     Eigen::Matrix3d A_mpc;
     Eigen::Vector3d B_mpc;
     Eigen::Vector3d C_mpc_transpose;
     Eigen::MatrixXd P_zs_mpc; 
     Eigen::MatrixXd P_zu_mpc;
+    Eigen::MatrixXd Q_prime;
     Eigen::MatrixXd Q_mpc;
-    Eigen::VectorXd U_mpc;
+    Eigen::VectorXd U_x_mpc;
+    Eigen::VectorXd U_y_mpc;
     double W1_mpc = 0, W2_mpc = 0;
     ////////////////////////////////////////////////////////////
     

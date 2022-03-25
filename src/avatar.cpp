@@ -9387,18 +9387,19 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
                     P_zu_mpc(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
                 }
             }
-        }
-
-        Eigen::MatrixXd Q_prime;
+        }        
         
         Q_prime.setZero(N,N);
         Q_prime = W1_mpc*I_N + W2_mpc*P_zu_mpc.transpose()*P_zu_mpc;
         
-        Q_mpc.setZero(2*N,2*N); // 2N x 2N  
-        Q_mpc.block<75, 75>(0, 0) = Q_prime; // N = 75 
-        Q_mpc.block<75, 75>(N, 0) = O_N;
-        Q_mpc.block<75, 75>(0, N) = O_N;
-        Q_mpc.block<75, 75>(N, N) = Q_prime;
+        // Q_mpc.setZero(2*N,2*N); // 2N x 2N  
+        // Q_mpc.block<75, 75>(0, 0) = Q_prime; // N = 75 
+        // Q_mpc.block<75, 75>(N, 0) = O_N;
+        // Q_mpc.block<75, 75>(0, N) = O_N;
+        // Q_mpc.block<75, 75>(N, N) = Q_prime;
+
+        QP_mpc_x.InitializeProblemSize(N, N);
+        QP_mpc_y.InitializeProblemSize(N, N);
 
         first_loop = 1;
         cout << "Initialization of MPC parameters is complete." << endl;
@@ -9406,28 +9407,28 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
 
     Eigen::VectorXd p_x(N);
     Eigen::VectorXd p_y(N);
-    Eigen::VectorXd p(2*N);
+    // Eigen::VectorXd p(2*N);
     Eigen::VectorXd Z_x_ref(N);
     Eigen::VectorXd Z_y_ref(N);
     
     for(int i = 0; i < N; i ++)
     {
-        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 40*i, 0); // 40 = Control freq (2000) / MPC_freq (50)
-        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 40*i, 1);
+        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 20*i, 0); // 20 = Control freq (2000) / MPC_freq (100)
+        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 20*i, 1);
     }    
 
     //define cost functions
     p_x = W2_mpc*P_zu_mpc.transpose()*(P_zs_mpc*x_hat_ - Z_x_ref);
     p_y = W2_mpc*P_zu_mpc.transpose()*(P_zs_mpc*y_hat_ - Z_y_ref);
-    p.segment(0, N) = p_x;
-    p.segment(N, N) = p_y;  
+    // p.segment(0, N) = p_x;
+    // p.segment(N, N) = p_y;  
     
     Eigen::VectorXd lb_b_x(N);
     Eigen::VectorXd ub_b_x(N);
     Eigen::VectorXd lb_b_y(N);
     Eigen::VectorXd ub_b_y(N);
-    Eigen::VectorXd lb_b(2*N);
-    Eigen::VectorXd ub_b(2*N);
+    // Eigen::VectorXd lb_b(2*N);
+    // Eigen::VectorXd ub_b(2*N);
     Eigen::VectorXd zmp_bound(N);
 
     for(int i = 0; i < N; i++)
@@ -9445,41 +9446,52 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc*y_hat_;
     ub_b_y = Z_y_ref + zmp_bound - P_zs_mpc*y_hat_;
 
-    lb_b.segment(0, N) = lb_b_x;
-    lb_b.segment(N, N) = lb_b_y;
-    ub_b.segment(0, N) = ub_b_x;
-    ub_b.segment(N, N) = ub_b_y;
+    // lb_b.segment(0, N) = lb_b_x;
+    // lb_b.segment(N, N) = lb_b_y;
+    // ub_b.segment(0, N) = ub_b_x;
+    // ub_b.segment(N, N) = ub_b_y;
 
-    Eigen::MatrixXd A_zu(2*N, 2*N);
+    // Eigen::MatrixXd A_zu(2*N, 2*N);
 
-    A_zu.block<75, 75>(0, 0) = P_zu_mpc; // N = 75 
-    A_zu.block<75, 75>(N, 0) = O_N;
-    A_zu.block<75, 75>(0, N) = O_N;
-    A_zu.block<75, 75>(N, N) = P_zu_mpc;
+    // A_zu.block<75, 75>(0, 0) = P_zu_mpc; // N = 75 
+    // A_zu.block<75, 75>(N, 0) = O_N;
+    // A_zu.block<75, 75>(0, N) = O_N;
+    // A_zu.block<75, 75>(N, N) = P_zu_mpc;
 
-    QP_mpc_.InitializeProblemSize(2*N, 2*N);
-    QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
-    QP_mpc_.UpdateMinProblem(Q_mpc,p);
-    QP_mpc_.DeleteSubjectToAx();      
-    QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
+    // QP_mpc_.InitializeProblemSize(2*N, 2*N);
+    // QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_mpc_.UpdateMinProblem(Q_mpc,p);
+    // QP_mpc_.DeleteSubjectToAx();      
+    // QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
     
-    U_mpc.setZero(2*N);
-
-    if (QP_mpc_.SolveQPoases(200, MPC_input_))
-    {
-        U_mpc = MPC_input_.segment(0, 2*N); 
+    //QP_mpc_x.InitializeProblemSize(N, N);
+    QP_mpc_x.EnableEqualityCondition(equality_condition_eps_);
+    QP_mpc_x.UpdateMinProblem(Q_prime,p_x);
+    QP_mpc_x.DeleteSubjectToAx();      
+    QP_mpc_x.UpdateSubjectToAx(P_zu_mpc, lb_b_x, ub_b_x);
+    
+    U_x_mpc.setZero(N);
+    if (QP_mpc_x.SolveQPoases(200, MPC_input_x))
+    {    
+        U_x_mpc = MPC_input_x.segment(0, N); 
     }
-                  
-    x_hat_ = A_mpc * x_hat_ + B_mpc * U_mpc(0);
-    y_hat_ = A_mpc * y_hat_ + B_mpc * U_mpc(N);
+    
+    //QP_mpc_y.InitializeProblemSize(N, N);
+    QP_mpc_y.EnableEqualityCondition(equality_condition_eps_);
+    QP_mpc_y.UpdateMinProblem(Q_prime,p_y);
+    QP_mpc_y.DeleteSubjectToAx();      
+    QP_mpc_y.UpdateSubjectToAx(P_zu_mpc, lb_b_y, ub_b_y);
+    
+    U_y_mpc.setZero(N);
+    if (QP_mpc_y.SolveQPoases(200, MPC_input_y))
+    {    
+        U_y_mpc = MPC_input_y.segment(0, N); 
+    }
 
-    // Eigen::Vector2d output_zmp;
+    x_hat_ = A_mpc * x_hat_ + B_mpc * U_x_mpc(0);
+    y_hat_ = A_mpc * y_hat_ + B_mpc * U_y_mpc(0);
 
-    // output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
-    // output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
-
-    //MJ_graph << U_(0) << "," << U_(N) << "," << x_hat_(0) << "," << y_hat_(0) << "," << ref_zmp_mj_(mpc_tick,0) << "," << ref_zmp_mj_(mpc_tick,1) << "," <<output_zmp(0) << "," << output_zmp(1) << endl;
-    // Cross check using MATLAB    
+   // Cross check using MATLAB    
 
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
@@ -12203,7 +12215,9 @@ void AvatarController::getComTrajectory_mpc()
         // UX_mj_ = 0;
         // UY_mj_ = 0;
         // xd_mj_ = xs_mj_;
-        U_mpc.setZero(150);
+        U_x_mpc.setZero(75);
+        U_y_mpc.setZero(75);
+        // U_mpc.setZero(150);
         x_hat_.setZero();
         x_hat_(0) = xi_mj_;
         y_hat_.setZero();
@@ -12215,7 +12229,7 @@ void AvatarController::getComTrajectory_mpc()
     output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
     output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
     
-    MJ_graph << U_mpc(0) << "," << U_mpc(75) << "," << x_hat_(0) << "," << y_hat_(0) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
+    MJ_graph << U_x_mpc(0) << "," << U_y_mpc(0) << "," << x_hat_(0) << "," << y_hat_(0) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
     // if (current_step_num_ == 0)
     // {
     //     zmp_start_time_mj_ = 0.0;
