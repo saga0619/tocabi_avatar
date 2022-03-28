@@ -1136,7 +1136,17 @@ public:
     Eigen::MatrixXd Q_mpc;
     Eigen::VectorXd U_x_mpc;
     Eigen::VectorXd U_y_mpc;
+    Eigen::VectorXd U_x_mpc_i;
+    Eigen::VectorXd U_y_mpc_i;
+    Eigen::VectorXd U_x_mpc_prev;
+    Eigen::VectorXd U_y_mpc_prev;
+    Eigen::VectorXd U_x_mpc_r;
+    Eigen::VectorXd U_y_mpc_r;
+    Eigen::VectorXd U_x_mpc_r_prev;
+    Eigen::VectorXd U_y_mpc_r_prev; 
+    bool U_x_update, U_y_update, mpc_update;
     double W1_mpc = 0, W2_mpc = 0;
+    int U_x_count = 0, U_y_count = 0;
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
