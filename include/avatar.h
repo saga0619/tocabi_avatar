@@ -1127,6 +1127,8 @@ public:
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
+    Eigen::Vector3d x_hat_p_;
+    Eigen::Vector3d y_hat_p_;
     Eigen::VectorXd MPC_input_x;
     Eigen::VectorXd MPC_input_y;
     Eigen::Matrix3d A_mpc;
@@ -1138,23 +1140,17 @@ public:
     Eigen::MatrixXd Q_mpc;
     // Thread 3
     Eigen::VectorXd U_x_mpc;
-    Eigen::VectorXd U_y_mpc;
-    Eigen::VectorXd U_x_mpc_prev;
-    Eigen::VectorXd U_y_mpc_prev;
+    Eigen::VectorXd U_y_mpc; 
     // Thread 2
     Eigen::Vector3d x_hat_r;
     Eigen::Vector3d y_hat_r;
-    Eigen::Matrix3d A_mpc_r;
-    Eigen::Vector3d B_mpc_r;
-    Eigen::VectorXd U_x_r_mpc;
-    Eigen::VectorXd U_y_r_mpc;
-    Eigen::VectorXd U_x_diff;
-    Eigen::VectorXd U_y_diff;
-    Eigen::VectorXd U_x_mpc_i;
-    Eigen::VectorXd U_y_mpc_i;
-    Eigen::VectorXd U_x_r_mpc_prev;
-    Eigen::VectorXd U_y_r_mpc_prev;
-    bool U_x_update {false}, U_y_update {false} ;
+    Eigen::Vector3d x_hat_r_p;
+    Eigen::Vector3d y_hat_r_p;
+    Eigen::Vector3d x_mpc_i;
+    Eigen::Vector3d y_mpc_i;
+    Eigen::Vector3d x_diff;
+    Eigen::Vector3d y_diff;
+    bool mpc_x_update {false}, mpc_y_update {false} ;
     double W1_mpc = 0, W2_mpc = 0; 
     ////////////////////////////////////////////////////////////
     
