@@ -1136,17 +1136,26 @@ public:
     Eigen::MatrixXd P_zu_mpc;
     Eigen::MatrixXd Q_prime;
     Eigen::MatrixXd Q_mpc;
+    // Thread 3
     Eigen::VectorXd U_x_mpc;
     Eigen::VectorXd U_y_mpc;
-    Eigen::VectorXd U_x_mpc_i;
-    Eigen::VectorXd U_y_mpc_i;
-    Eigen::VectorXd U_x_mpc_i_r;
-    Eigen::VectorXd U_y_mpc_i_r;
     Eigen::VectorXd U_x_mpc_prev;
     Eigen::VectorXd U_y_mpc_prev;
-    bool U_x_update {false}, U_y_update {false}, mpc_update {false};
-    double W1_mpc = 0, W2_mpc = 0;
-    int U_x_count = 0, U_y_count = 0;
+    // Thread 2
+    Eigen::Vector3d x_hat_r;
+    Eigen::Vector3d y_hat_r;
+    Eigen::Matrix3d A_mpc_r;
+    Eigen::Vector3d B_mpc_r;
+    Eigen::VectorXd U_x_r_mpc;
+    Eigen::VectorXd U_y_r_mpc;
+    Eigen::VectorXd U_x_diff;
+    Eigen::VectorXd U_y_diff;
+    Eigen::VectorXd U_x_mpc_i;
+    Eigen::VectorXd U_y_mpc_i;
+    Eigen::VectorXd U_x_r_mpc_prev;
+    Eigen::VectorXd U_y_r_mpc_prev;
+    bool U_x_update {false}, U_y_update {false} ;
+    double W1_mpc = 0, W2_mpc = 0; 
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
