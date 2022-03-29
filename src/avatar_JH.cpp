@@ -9967,7 +9967,7 @@ void AvatarController::computeLBIKcontrol_HQP()
 //            ub_lbikhqp_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(j) - current_q_(j)), joint_vel_limit_h_(j)), joint_vel_limit_l_(j));
 //              lb_lbikhqp_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(j) - motion_q_pre_(j)), joint_vel_limit_l_(j)), joint_vel_limit_h_(j));
 //              ub_lbikhqp_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(j) - motion_q_pre_(j)), joint_vel_limit_h_(j)), joint_vel_limit_l_(j));
-              lb_lbikhqp_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(control_joint_idx_lbikhqp_[j]) - current_q_(control_joint_idx_lbikhqp_[j])), joint_vel_limit_l_(control_joint_idx_camhqp_[j])), joint_vel_limit_h_(control_joint_idx_lbikhqp_[j]));
+              lb_lbikhqp_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(control_joint_idx_lbikhqp_[j]) - current_q_(control_joint_idx_lbikhqp_[j])), joint_vel_limit_l_(control_joint_idx_lbikhqp_[j])), joint_vel_limit_h_(control_joint_idx_lbikhqp_[j]));
               ub_lbikhqp_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(control_joint_idx_lbikhqp_[j]) - current_q_(control_joint_idx_lbikhqp_[j])), joint_vel_limit_h_(control_joint_idx_lbikhqp_[j])), joint_vel_limit_l_(control_joint_idx_lbikhqp_[j]));
         }
         cout << "test 15" << endl;
