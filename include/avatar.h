@@ -105,6 +105,8 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
+    std::atomic<bool> atb_mpc_x_update_{false};
+    std::atomic<bool> atb_mpc_y_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
@@ -1138,13 +1140,11 @@ public:
     Eigen::VectorXd U_y_mpc;
     Eigen::VectorXd U_x_mpc_i;
     Eigen::VectorXd U_y_mpc_i;
+    Eigen::VectorXd U_x_mpc_i_r;
+    Eigen::VectorXd U_y_mpc_i_r;
     Eigen::VectorXd U_x_mpc_prev;
     Eigen::VectorXd U_y_mpc_prev;
-    Eigen::VectorXd U_x_mpc_r;
-    Eigen::VectorXd U_y_mpc_r;
-    Eigen::VectorXd U_x_mpc_r_prev;
-    Eigen::VectorXd U_y_mpc_r_prev; 
-    bool U_x_update, U_y_update, mpc_update;
+    bool U_x_update {false}, U_y_update {false}, mpc_update {false};
     double W1_mpc = 0, W2_mpc = 0;
     int U_x_count = 0, U_y_count = 0;
     ////////////////////////////////////////////////////////////
