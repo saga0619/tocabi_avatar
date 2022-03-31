@@ -9459,7 +9459,7 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     // QP_mpc_.DeleteSubjectToAx();      
     // QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
     
-    //QP_mpc_x.InitializeProblemSize(N, N);
+    QP_mpc_x.InitializeProblemSize(N, N);
     QP_mpc_x.EnableEqualityCondition(equality_condition_eps_);
     QP_mpc_x.UpdateMinProblem(Q_prime,p_x);
     QP_mpc_x.DeleteSubjectToAx();      
@@ -9474,10 +9474,12 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
         // x_hat_p_(2) = x_hat_(2) - U_x_mpc(0)*T;
         U_x_mpc = MPC_input_x.segment(0, N);
         x_hat_ = A_mpc * x_hat_ + B_mpc * U_x_mpc(0);
+        x_hat_r_p = x_hat_p_;
+        x_hat_r = x_hat_;        
         mpc_x_update = true;
     }
         
-    //QP_mpc_y.InitializeProblemSize(N, N);
+    QP_mpc_y.InitializeProblemSize(N, N);
     QP_mpc_y.EnableEqualityCondition(equality_condition_eps_);
     QP_mpc_y.UpdateMinProblem(Q_prime,p_y);
     QP_mpc_y.DeleteSubjectToAx();      
@@ -9492,6 +9494,8 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
         // y_hat_p_(2) = y_hat_(2) - U_y_mpc(0)*T;
         U_y_mpc = MPC_input_y.segment(0, N);
         y_hat_ = A_mpc * y_hat_ + B_mpc * U_y_mpc(0);
+        y_hat_r_p = y_hat_p_;
+        y_hat_r = y_hat_;
         mpc_y_update = true;  
     }
 
@@ -12253,10 +12257,10 @@ void AvatarController::getComTrajectory_mpc()
         if(atb_mpc_x_update_ == false)
         {
             atb_mpc_x_update_ = true;
-            x_hat_r = x_hat_;
-            x_hat_r_p = x_hat_p_;
+            // x_hat_r = x_hat_;
+            // x_hat_r_p = x_hat_p_;
             x_diff = x_hat_r - x_hat_r_p;
-            x_mpc_i = x_hat_r_p;    
+            x_mpc_i = x_hat_p_;    
             atb_mpc_x_update_ = false;
         }
         mpc_x_update = false;
@@ -12268,10 +12272,10 @@ void AvatarController::getComTrajectory_mpc()
         if(atb_mpc_y_update_ == false)
         {
             atb_mpc_y_update_ = true;
-            y_hat_r = y_hat_;
-            y_hat_r_p = y_hat_p_;
+            // y_hat_r_p = y_hat_p_;
+            // y_hat_r = y_hat_;
             y_diff = y_hat_r - y_hat_r_p;
-            y_mpc_i = y_hat_r_p; 
+            y_mpc_i = y_hat_p_; 
             atb_mpc_y_update_ = false;
         }
         mpc_y_update = false;
@@ -12279,7 +12283,8 @@ void AvatarController::getComTrajectory_mpc()
     y_mpc_i = 0.05*y_diff + y_mpc_i;
     
     //MJ_graph << x_hat_r(1) << "," << y_hat_r(1) << "," <<  x_mpc_i(1) << "," << y_mpc_i(1) << "," << xd_mj_(1) << "," << yd_mj_(1) << endl;
-    MJ_graph << x_mpc_i(0) << "," <<x_mpc_i(1) << "," << y_mpc_i(0) << "," << y_mpc_i(1) << endl;
+    MJ_graph << x_mpc_i(0) << "," << x_hat_r_p(0) << "," << x_hat_r(0) << "," << y_mpc_i(0) << "," << y_hat_r_p(0) << "," << y_hat_r(0) << endl;
+    
     com_desired_(0) = x_mpc_i(0);
     com_desired_(1) = y_mpc_i(0);
     com_desired_(2) = 0.77172;
