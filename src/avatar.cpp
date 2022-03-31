@@ -727,7 +727,7 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory();
-                getComTrajectory();
+                // getComTrajectory();
                 getComTrajectory_mpc();
                 // MJDG CMP control
                 CentroidalMomentCalculator();
@@ -9413,8 +9413,8 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     
     for(int i = 0; i < N; i ++)
     {
-        Z_x_ref(i) = ref_zmp_mj_(mpc_tick + 20*i, 0); // 20 = Control freq (2000) / MPC_freq (100)
-        Z_y_ref(i) = ref_zmp_mj_(mpc_tick + 20*i, 1);
+        Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + 20*i, 0); // 20 = Control freq (2000) / MPC_freq (100)
+        Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + 20*i, 1);
     }    
 
     //define cost functions
@@ -9431,16 +9431,11 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     // Eigen::VectorXd ub_b(2*N);
     Eigen::VectorXd zmp_bound(N);
 
-    for(int i = 0; i < N; i++)
+    for(int i = 0; i < N; i++)  
     {
-        zmp_bound(i) = 1;
+        zmp_bound(i) = 0.05;
     }
     
-    // lb_b_x = -Z_x_ref + eps + P_zs*x_hat_;
-    // ub_b_x = Z_x_ref + eps - P_zs*x_hat_;
-    // lb_b_y = -Z_y_ref + eps + P_zs*y_hat_;
-    // ub_b_y = Z_y_ref + eps - P_zs*y_hat_;
-
     lb_b_x = Z_x_ref - zmp_bound - P_zs_mpc*x_hat_;
     ub_b_x = Z_x_ref + zmp_bound - P_zs_mpc*x_hat_;
     lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc*y_hat_;
@@ -9473,7 +9468,10 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     //U_x_mpc.setZero(N);  
     if (QP_mpc_x.SolveQPoases(200, MPC_input_x))
     {   
-        x_hat_p_ = x_hat_;
+        x_hat_p_ = x_hat_;    
+        // x_hat_p_(0) = x_hat_(0) - x_hat_(1)*T;
+        // x_hat_p_(1) = x_hat_(1) - x_hat_(2)*T;
+        // x_hat_p_(2) = x_hat_(2) - U_x_mpc(0)*T;
         U_x_mpc = MPC_input_x.segment(0, N);
         x_hat_ = A_mpc * x_hat_ + B_mpc * U_x_mpc(0);
         mpc_x_update = true;
@@ -9489,11 +9487,21 @@ void AvatarController::comGenerator_MPC(double MPC_freq, double T, double previe
     if (QP_mpc_y.SolveQPoases(200, MPC_input_y))
     {             
         y_hat_p_ = y_hat_;
+        // y_hat_p_(0) = y_hat_(0) - y_hat_(1)*T;
+        // y_hat_p_(1) = y_hat_(1) - y_hat_(2)*T;
+        // y_hat_p_(2) = y_hat_(2) - U_y_mpc(0)*T;
         U_y_mpc = MPC_input_y.segment(0, N);
         y_hat_ = A_mpc * y_hat_ + B_mpc * U_y_mpc(0);
         mpc_y_update = true;  
     }
-     
+
+    Eigen::Vector2d output_zmp;
+
+    output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
+    output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
+
+    // MJ_graph << xd_mj_(0) << "," << x_hat_(0) << "," << xd_mj_(1) << "," << x_hat_(1) << "," << Z_x_ref(0) << "," << output_zmp(0) << endl;
+    // MJ_graph << yd_mj_(0) << "," << y_hat_(0) << "," << yd_mj_(1) << "," << y_hat_(1) << "," << Z_y_ref(1) << "," << output_zmp(1) << endl;
     // Cross check using MATLAB    
 
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -11557,6 +11565,7 @@ void AvatarController::getZmpTrajectory()
         norm_size = norm_size + t_temp_ + 1;
     addZmpOffset();
     zmpGenerator(norm_size, planning_step_number);
+    ref_zmp_mpc_.resize(norm_size, 2);
 }
 
 void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num)
@@ -12057,9 +12066,11 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_desired_(1) = YD(0) + YD(1) / wn;
 
     SC_err_compen(com_support_current_(0), com_support_current_(1));
-
+    
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
+
+    //MJ_graph << YD(0) << "," << ref_zmp_mj_(tick,1) << endl;
 }
 
 void AvatarController::SC_err_compen(double x_des, double y_des)
@@ -12230,14 +12241,13 @@ void AvatarController::getComTrajectory_mpc()
     else
     {
         zmp_start_time_mj_ = t_start_;
-    }
+    }    
+
+    ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
+    ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
 
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
-    // Eigen::Vector2d output_zmp;
-
-    // output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
-    // output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
-
+ 
     if(mpc_x_update == true) // 0.011 ~ 0.012 주기로 업데이트
     {   
         if(atb_mpc_x_update_ == false)
@@ -12245,14 +12255,13 @@ void AvatarController::getComTrajectory_mpc()
             atb_mpc_x_update_ = true;
             x_hat_r = x_hat_;
             x_hat_r_p = x_hat_p_;
-            x_diff(0) = x_hat_r(0) - x_hat_r_p(0);
-            x_mpc_i(0) = x_hat_r_p(0);    
+            x_diff = x_hat_r - x_hat_r_p;
+            x_mpc_i = x_hat_r_p;    
             atb_mpc_x_update_ = false;
         }
         mpc_x_update = false;
-    }
-        
-    x_mpc_i(0) = 0.05*x_diff(0) + x_mpc_i(0);
+    }        
+    x_mpc_i = 0.05*x_diff + x_mpc_i;
       
     if(mpc_y_update == true) // 0.011 ~ 0.012 주기로 업데이트
     {   
@@ -12261,22 +12270,41 @@ void AvatarController::getComTrajectory_mpc()
             atb_mpc_y_update_ = true;
             y_hat_r = y_hat_;
             y_hat_r_p = y_hat_p_;
-            y_diff(0) = y_hat_r(0) - y_hat_r_p(0);
-            y_mpc_i(0) = y_hat_r_p(0); 
+            y_diff = y_hat_r - y_hat_r_p;
+            y_mpc_i = y_hat_r_p; 
             atb_mpc_y_update_ = false;
         }
         mpc_y_update = false;
     } 
-    y_mpc_i(0) = 0.05*y_diff(0) + y_mpc_i(0);
+    y_mpc_i = 0.05*y_diff + y_mpc_i;
     
-    MJ_graph << x_mpc_i(0) << "," << y_mpc_i(0) << "," <<  x_hat_(0) << "," << y_hat_(0) << "," << xd_mj_(0) << "," << yd_mj_(0) << endl;
- 
+    //MJ_graph << x_hat_r(1) << "," << y_hat_r(1) << "," <<  x_mpc_i(1) << "," << y_mpc_i(1) << "," << xd_mj_(1) << "," << yd_mj_(1) << endl;
+    MJ_graph << x_mpc_i(0) << "," <<x_mpc_i(1) << "," << y_mpc_i(0) << "," << y_mpc_i(1) << endl;
     com_desired_(0) = x_mpc_i(0);
     com_desired_(1) = y_mpc_i(0);
     com_desired_(2) = 0.77172;
 
-    if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
+    cp_desired_(0) = x_mpc_i(0) + x_mpc_i(1) / wn;
+    cp_desired_(1) = y_mpc_i(0) + y_mpc_i(1) / wn;
+
+    SC_err_compen(com_support_current_(0), com_support_current_(1));
+    
+    cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
+    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
+
+    if(atb_mpc_update_ == false)
     {
+        atb_mpc_update_ = true;
+        ref_zmp_mpc_ = ref_zmp_mj_;
+        y_hat_ = y_hat_r;
+        y_hat_p_ = y_hat_r_p;
+        x_hat_ = x_hat_r;
+        x_hat_p_ = x_hat_r_p;   
+        atb_mpc_update_ = false;
+    }
+
+    if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
+    {        
         Eigen::Vector3d com_pos_prev;
         Eigen::Vector3d com_pos;
         Eigen::Vector3d com_vel_prev;
@@ -12284,40 +12312,55 @@ void AvatarController::getComTrajectory_mpc()
         Eigen::Vector3d com_acc_prev;
         Eigen::Vector3d com_acc;
         Eigen::Matrix3d temp_rot;
-        Eigen::Vector3d temp_pos;
+        Eigen::Vector3d temp_pos; 
 
         temp_rot = DyrosMath::rotateWithZ(-foot_step_support_frame_(current_step_num_, 5));
         for (int i = 0; i < 3; i++)
             temp_pos(i) = foot_step_support_frame_(current_step_num_, i);
 
-        com_pos_prev(0) = x_hat_(0);
-        com_pos_prev(1) = y_hat_(0);
+        com_pos_prev(0) = x_hat_r(0);
+        com_pos_prev(1) = y_hat_r(0);
         com_pos = temp_rot * (com_pos_prev - temp_pos);
-
-        com_vel_prev(0) = x_hat_(1);
-        com_vel_prev(1) = y_hat_(1);
+        
+        com_vel_prev(0) = x_hat_r(1);
+        com_vel_prev(1) = y_hat_r(1);
         com_vel_prev(2) = 0.0;
         com_vel = temp_rot * com_vel_prev;
 
-        com_acc_prev(0) = x_hat_(2);
-        com_acc_prev(1) = y_hat_(2);
+        com_acc_prev(0) = x_hat_r(2);
+        com_acc_prev(1) = y_hat_r(2);
         com_acc_prev(2) = 0.0;
         com_acc = temp_rot * com_acc_prev;
 
-        x_hat_(0) = com_pos(0);
-        y_hat_(0) = com_pos(1);
-        x_hat_(1) = com_vel(0);
-        y_hat_(1) = com_vel(1);
-        x_hat_(2) = com_acc(0);
-        y_hat_(2) = com_acc(1);
- 
+        x_hat_r(0) = com_pos(0);
+        y_hat_r(0) = com_pos(1);
+        x_hat_r(1) = com_vel(0);
+        y_hat_r(1) = com_vel(1);
+        x_hat_r(2) = com_acc(0);
+        y_hat_r(2) = com_acc(1);
+   
         com_pos_prev(0) = x_mpc_i(0);
         com_pos_prev(1) = y_mpc_i(0);
         com_pos = temp_rot * (com_pos_prev - temp_pos);
- 
+
+        com_vel_prev(0) = x_mpc_i(1);
+        com_vel_prev(1) = y_mpc_i(1);
+        com_vel_prev(2) = 0.0;
+        com_vel = temp_rot * com_vel_prev;
+
+        com_acc_prev(0) = x_mpc_i(2);
+        com_acc_prev(1) = y_mpc_i(2);
+        com_acc_prev(2) = 0.0;
+        com_acc = temp_rot * com_acc_prev;
+
         x_mpc_i(0) = com_pos(0);
-        y_mpc_i(0) = com_pos(1); 
+        y_mpc_i(0) = com_pos(1);
+        x_mpc_i(1) = com_vel(0);
+        y_mpc_i(1) = com_vel(1); 
+        x_mpc_i(2) = com_acc(0);
+        y_mpc_i(2) = com_acc(1);  
     }
+
 }
 
 void AvatarController::getComTrajectory()

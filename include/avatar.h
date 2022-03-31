@@ -107,6 +107,7 @@ public:
     std::atomic<bool> atb_walking_traj_update_{false};
     std::atomic<bool> atb_mpc_x_update_{false};
     std::atomic<bool> atb_mpc_y_update_{false};
+    std::atomic<bool> atb_mpc_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
@@ -1375,6 +1376,7 @@ public:
     Eigen::Vector6d swingfoot_support_init_;
 
     Eigen::MatrixXd ref_zmp_mj_;
+    Eigen::MatrixXd ref_zmp_mpc_;
 
     Eigen::Vector3d xs_mj_;
     Eigen::Vector3d ys_mj_;
