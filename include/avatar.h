@@ -98,6 +98,7 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
+    std::vector<CQuadraticProgram> QP_leg_hqpik_;
 
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
@@ -152,6 +153,8 @@ public:
     Eigen::VectorQd jointLimit();
     Eigen::VectorQd ikBalanceControlCompute();
 
+    void computeLeg_HQPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
+
     ////// external torque estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
@@ -201,7 +204,7 @@ public:
     void getMatrix3dDataFromText(std::ifstream &text_file, Eigen::Matrix3d &mat);
     void getIsometry3dDataFromText(std::ifstream &text_file, Eigen::Isometry3d &isom);
 
-    //preview related functions
+    // preview related functions
     void getComTrajectory_Preview();
     void modifiedPreviewControl_MJ();
     void previewParam_MJ(double dt, int NL, double zc, Eigen::Matrix4d &K, Eigen::MatrixXd &Gi, Eigen::VectorXd &Gd, Eigen::MatrixXd &Gx, Eigen::MatrixXd &A, Eigen::VectorXd &B, Eigen::MatrixXd &C, Eigen::MatrixXd &D, Eigen::MatrixXd &A_bar, Eigen::VectorXd &B_bar);
@@ -307,7 +310,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = true;                          // For data collection in the air
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -1194,6 +1197,25 @@ public:
     int last_solved_hierarchy_num_camhqp_;
     ///////////////////////////////////////////////////
 
+    /////////////LEG-HQPIK//////////////////////////
+    const int hierarchy_num_leg_hqpik_ = 2;
+    const int variable_size_leg_hqpik_ = 12;            // original number -> 6 (DG)
+    const int constraint_size1_leg_hqpik_ = 12;         //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
+    const int constraint_size2_leg_hqpik_[2] = {12, 18}; //[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_leg_hqpik_[2] = {6, 6};     //1: leg position control, 2: leg orientation control
+
+    double w1_leg_hqpik_[2];
+    double w2_leg_hqpik_[2];
+    double w3_leg_hqpik_[2];
+
+    Eigen::MatrixXd H_leg_hqpik_[2], A_leg_hqpik_[2];
+    Eigen::MatrixXd J_leg_hqpik_[2];
+    Eigen::VectorXd g_leg_hqpik_[2], u_dot_leg_hqpik_[2], qpres_leg_hqpik_, ub_leg_hqpik_[2], lb_leg_hqpik_[2], ubA_leg_hqpik_[2], lbA_leg_hqpik_[2];
+    Eigen::VectorXd q_dot_leg_hqpik_[2];
+
+    int last_solved_hierarchy_num_leg_hqpik_;
+    ///////////////////////////////////////////////////
+
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
     Eigen::VectorXd mob_integral_internal_;
     Eigen::VectorXd mob_residual_internal_;
@@ -1329,9 +1351,10 @@ private:
     bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
 
-    int printout_cnt_ = 0;
-
     bool first_loop_camhqp_;
+    bool first_loop_leg_hqpik_;
+
+    int printout_cnt_ = 0;
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1407,7 +1430,6 @@ public:
 
     Eigen::Isometry3d lfoot_trajectory_float_fast_;
     Eigen::Isometry3d lfoot_trajectory_float_slow_;
-
     Eigen::Isometry3d rfoot_trajectory_float_fast_;
     Eigen::Isometry3d rfoot_trajectory_float_slow_;
 
