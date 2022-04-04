@@ -1205,7 +1205,7 @@ void AvatarController::computeFast()
     {
         if (initial_flag == 1)
         {
-            WBC::SetContact(rd_, 1, 1);
+            // WBC::SetContact(rd_, 1, 1);
 
             VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             if(float_data_collect_mode_ == true)
@@ -14747,6 +14747,18 @@ void AvatarController::GravityCalculate_MJ()
         Gravity_SSP_.setZero();
     }
 
+    //     Gravity_SSP_.setZero();
+    //     if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+    //     {
+    //         Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
+    //     }
+    //     else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+    //     {
+    //         Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
+    //     }
+    // }
+    Gravity_SSP_.setZero();
+    Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
     if (atb_grav_update_ == false)
     {
         atb_grav_update_ = true;
