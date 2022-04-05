@@ -15475,12 +15475,7 @@ void AvatarController::calculateFootStepTotal_MJoy()
     }
 
     foot_step_joy_temp_.resize(joy_index_ + index, 7);
-    foot_step_joy_temp_.setZero();
-    foot_step_joy_temp_ = foot_step_;
-}
-
-void AvatarController::calculateFootStepTotal_MJoy_End()
-{
+    foot_step_joy_temp_.setZero();Mar/31/2022 on progress
     double width = 0.1225;
     double temp;
     int index = 1;
