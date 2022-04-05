@@ -535,8 +535,8 @@ void AvatarController::setGains()
     joint_limit_h_(1) = 90 * DEG2RAD;
     joint_limit_l_(2) = -80 * DEG2RAD;
     joint_limit_h_(2) = 80 * DEG2RAD;
-    joint_limit_l_(3) = -180 * DEG2RAD;
-    joint_limit_h_(3) = 180 * DEG2RAD;
+    joint_limit_l_(3) = 5 * DEG2RAD;
+    joint_limit_h_(3) = 150 * DEG2RAD;
     joint_limit_l_(4) = -80 * DEG2RAD;
     joint_limit_h_(4) = 80 * DEG2RAD;
     joint_limit_l_(5) = -80 * DEG2RAD;
@@ -548,8 +548,8 @@ void AvatarController::setGains()
     joint_limit_h_(7) = 45 * DEG2RAD;
     joint_limit_l_(8) = -80 * DEG2RAD;
     joint_limit_h_(8) = 80 * DEG2RAD;
-    joint_limit_l_(9) = -180 * DEG2RAD;
-    joint_limit_h_(9) = 180 * DEG2RAD;
+    joint_limit_l_(9) = 5 * DEG2RAD;
+    joint_limit_h_(9) = 150 * DEG2RAD;
     joint_limit_l_(10) = -80 * DEG2RAD;
     joint_limit_h_(10) = 80 * DEG2RAD;
     joint_limit_l_(11) = -80 * DEG2RAD;
@@ -679,6 +679,10 @@ void AvatarController::computeSlow()
             desired_q_fast_ = rd_.q_;
             desired_q_dot_.setZero();
 
+            //float_data_collect
+            pelv_pos_init_global_ = rd_.link_[Pelvis].xpos;
+            pelv_rot_init_global_ = rd_.link_[Pelvis].rotm;
+
             walking_tick_mj = 0;
             walking_end_flag = 0;
             parameterSetting();
@@ -735,6 +739,29 @@ void AvatarController::computeSlow()
     }
     else if (rd_.tc_.mode == 11)
     {
+                //float_data_collect
+        Vector3d desired_pelv_pos_traj, pelv_ext_force, pelv_ext_torque;
+        Matrix3d desired_pelv_rot_traj;
+        desired_pelv_pos_traj = pelv_pos_init_global_;
+        desired_pelv_pos_traj(2) = DyrosMath::cubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_pos_init_global_(2), 1.5, 0.0, 0.0);
+        desired_pelv_rot_traj = DyrosMath::rotationCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_rot_init_global_, Eigen::Matrix3d::Identity());
+
+        pelv_ext_force = 10000*(desired_pelv_pos_traj - rd_.link_[Pelvis].xpos) - 200*rd_.link_[Pelvis].v;
+        pelv_ext_force(2) += rd_.link_[COM_id].mass * 9.81;
+        Vector3d error_w_pelv = -DyrosMath::getPhi(rd_.link_[Pelvis].rotm, Matrix3d::Identity());
+        pelv_ext_torque = 10000*error_w_pelv - 200*rd_.link_[Pelvis].w;
+
+        mujoco_applied_ext_force_.data[0] = pelv_ext_force(0); //x-axis linear force
+        mujoco_applied_ext_force_.data[1] = pelv_ext_force(1);  //y-axis linear force
+        mujoco_applied_ext_force_.data[2] = pelv_ext_force(2);  //z-axis linear force
+        mujoco_applied_ext_force_.data[3] = pelv_ext_torque(0);  //x-axis angular moment
+        mujoco_applied_ext_force_.data[4] = pelv_ext_torque(1);  //y-axis angular moment
+        mujoco_applied_ext_force_.data[5] = pelv_ext_torque(2);  //z-axis angular moment
+
+        mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:plevis
+
+        mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
