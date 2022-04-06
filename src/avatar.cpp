@@ -44,14 +44,19 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     waist_pd_gain_sub = nh_avatar_.subscribe("/tocabi/dg/waistpdgain", 100, &AvatarController::WaistJointGainCallback, this);
 
     hmd_posture_sub = nh_avatar_.subscribe("/HMD", 100, &AvatarController::HmdCallback, this);
-    lhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER3", 100, &AvatarController::LeftHandTrackerCallback, this);
-    rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightHandTrackerCallback, this);
+    // lhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER3", 100, &AvatarController::LeftHandTrackerCallback, this);
+    // rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightHandTrackerCallback, this);
     lelbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER2", 100, &AvatarController::LeftElbowTrackerCallback, this);
     relbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER4", 100, &AvatarController::RightElbowTrackerCallback, this);
     chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER1", 100, &AvatarController::ChestTrackerCallback, this);
     pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER0", 100, &AvatarController::PelvisTrackerCallback, this);
     tracker_status_sub = nh_avatar_.subscribe("/TRACKERSTATUS", 100, &AvatarController::TrackerStatusCallback, this);
-
+    
+    lhand_tracker_posture_sub = nh_avatar_.subscribe("/LEFTCONTROLLER", 100, &AvatarController::LeftHandTrackerCallback, this);
+    rhand_tracker_posture_sub = nh_avatar_.subscribe("/RIGHTCONTROLLER", 100, &AvatarController::RightHandTrackerCallback, this);
+    lfoot_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER3", 100, &AvatarController::LeftFootTrackerCallback, this);
+    rfoot_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightFootTrackerCallback, this);
+  
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
 
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
@@ -651,7 +656,7 @@ void AvatarController::computeSlow()
         {
             Joint_gain_set_MJ();
             cout << "mode10 check 1" << endl;
-            walking_enable_ = true;
+            walking_enable_ = false;
             // Initial pose
             ref_q_ = rd_.q_;
             for (int i = 0; i < 12; i++)
@@ -918,8 +923,8 @@ void AvatarController::computeSlow()
             {
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
-                initial_flag = 0;
-                rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
+                // initial_flag = 0;
+                // rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             for (int i = 0; i < 12; i++)
@@ -947,7 +952,7 @@ void AvatarController::computeSlow()
 
         for (int i = 0; i < 12; i++)
         {
-            torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+            torque_lower_(i) = Kp(i) * (desired_q_fast_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
             // torque_lower_(i) -= 1.0*estimated_model_unct_torque_slow_(i);
             // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
         }
@@ -1287,13 +1292,12 @@ void AvatarController::computeFast()
                     if (atb_walking_traj_update_ == false)
                     {
                         atb_walking_traj_update_ = true;
-                        lfoot_trajectory_float_slow_ = lfoot_trajectory_float_fast_;
-                        rfoot_trajectory_float_slow_ = rfoot_trajectory_float_fast_;
+                        // lfoot_trajectory_float_slow_ = lfoot_trajectory_float_fast_;
+                        // rfoot_trajectory_float_slow_ = rfoot_trajectory_float_fast_;
                         del_ang_momentum_slow_ = del_ang_momentum_fast_;
                         atb_walking_traj_update_ = false;
                     }
                 }
-                computeLeg_HQPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
             }
         }
         else
@@ -1874,10 +1878,10 @@ void AvatarController::getRobotData()
     pelv_vel_current_.segment(3, 3) = rd_.link_[Pelvis].w;
 
     pelv_rot_current_ = rd_.link_[Pelvis].rotm;
-    pelv_rpy_current_ = DyrosMath::rot2Euler(pelv_rot_current_); //ZYX multiply
-    // pelv_rpy_current_ = (pelv_rot_current_).eulerAngles(2, 1, 0);
-    // pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
-    pelv_yaw_rot_current_from_global_ = pelv_rot_current_;
+    // pelv_rpy_current_ = DyrosMath::rot2Euler(pelv_rot_current_); //ZYX multiply
+    pelv_rpy_current_ = (pelv_rot_current_).eulerAngles(2, 1, 0);
+    pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
+    // pelv_yaw_rot_current_from_global_ = pelv_rot_current_;
     pelv_rot_current_yaw_aline_ = pelv_yaw_rot_current_from_global_.transpose() * pelv_rot_current_;
     // pelv_pos_current_ = pelv_yaw_rot_current_from_global_.transpose() * pelv_pos_current_;
 
@@ -3078,6 +3082,10 @@ void AvatarController::getProcessedRobotData()
         relbow_vel_error_.setZero();
         lacromion_vel_error_.setZero();
         racromion_vel_error_.setZero();
+
+        robot_leg_len_ = ((lfoot_transform_start_from_global_).translation().norm() + (rfoot_transform_start_from_global_).translation().norm())/2;
+
+        cout<<"robot_leg_len_: "<<robot_leg_len_<<endl;
     }
     bool robot_goes_into_stance_phase = (current_time_ == stance_start_time_);
     bool robot_start_walking = ((start_walking_trigger_ == true) && (current_time_ == start_time_));
@@ -3201,14 +3209,13 @@ void AvatarController::motionGenerator()
     //////LEFT LEG///////0 0 0.02 0.15 -0.17 0
     motion_q_(0) = 0;
     motion_q_(1) = 0;
-    motion_q_(2) = 0.02;
-    // motion_q_(3)   = DyrosMath::cubic(walking_phase_, 0.7, 1, knee_target_angle_, 2*knee_target_angle_, 0, 0); //0.1
-    motion_q_(3) = knee_target_angle_;
-    motion_q_(4) = -0.12;
+    motion_q_(2) = -0.24;
+    motion_q_(3) = 0.6;
+    motion_q_(4) = -0.36;
     motion_q_(5) = 0;
     pd_control_mask_(0) = 1;
-    pd_control_mask_(1) = 0;
-    pd_control_mask_(2) = 0;
+    pd_control_mask_(1) = 1;
+    pd_control_mask_(2) = 1;
     pd_control_mask_(3) = 1;
     pd_control_mask_(4) = 1;
     pd_control_mask_(5) = 1;
@@ -3216,14 +3223,13 @@ void AvatarController::motionGenerator()
     /////RIFHT LEG////////0 0 0.02 0.15 -0.17 0
     motion_q_(6) = 0;
     motion_q_(7) = 0;
-    motion_q_(8) = 0.02;
-    // motion_q_(9)   = DyrosMath::cubic(walking_phase_, 0.7, 1, knee_target_angle_, 2*knee_target_angle_, 0, 0); //0.1
-    motion_q_(9) = knee_target_angle_;
-    motion_q_(10) = -0.12;
+    motion_q_(8) = -0.24;
+    motion_q_(9) = 0.6;
+    motion_q_(10) = -0.36;
     motion_q_(11) = 0;
     pd_control_mask_(6) = 1;
-    pd_control_mask_(7) = 0;
-    pd_control_mask_(8) = 0;
+    pd_control_mask_(7) = 1;
+    pd_control_mask_(8) = 1;
     pd_control_mask_(9) = 1;
     pd_control_mask_(10) = 1;
     pd_control_mask_(11) = 1;
@@ -3297,7 +3303,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 0; i < 32; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -3365,7 +3371,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 0; i < 32; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -3388,7 +3394,7 @@ void AvatarController::motionGenerator()
             calibration_state_gui_log_pub.publish(msg);
         }
 
-        for (int i = 12; i < MODEL_DOF; i++)
+        for (int i = 0; i < MODEL_DOF; i++)
         {
             motion_q_(i) = upperbody_mode_q_init_(i);
             pd_control_mask_(i) = 1;
@@ -3464,7 +3470,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 0; i < 32; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -3473,7 +3479,7 @@ void AvatarController::motionGenerator()
     {
         if (still_pose_cali_flag_ == false)
         {
-            cout << " WARNING: Calibration[STILL POSE] is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred<<" WARNING: Calibration[STILL POSE] is not completed! Upperbody returns to the init pose" <<creset<< endl;
             upper_body_mode_ = 3;
             upperbody_mode_recieved_ = true;
             upperbody_command_time_ = current_time_;
@@ -3496,7 +3502,7 @@ void AvatarController::motionGenerator()
                 calibration_state_gui_log_pub.publish(msg);
             }
 
-            for (int i = 12; i < MODEL_DOF; i++)
+            for (int i = 0; i < MODEL_DOF; i++)
             {
                 motion_q_(i) = upperbody_mode_q_init_(i);
                 pd_control_mask_(i) = 1;
@@ -3541,7 +3547,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout <<cred<< " WARNING: Calibration is not completed! Upperbody returns to the init pose" <<creset<<endl;
             upper_body_mode_ = 3;
             upperbody_mode_recieved_ = true;
             upperbody_command_time_ = current_time_;
@@ -3566,6 +3572,7 @@ void AvatarController::motionGenerator()
 
             rawMasterPoseProcessing();
             motionRetargeting_HQPIK();
+            computeLeg_HQPIK(master_lfoot_pose_, master_rfoot_pose_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
             // motionRetargeting_HQPIK_lexls();
             // motionRetargeting_QPIK_upperbody();
             // if (int(current_time_ * 10000) % 10000 == 0)
@@ -5131,10 +5138,10 @@ void AvatarController::motionRetargeting_HQPIK()
                 ubA_hqpik_[i](higher_task_equality_num + j + 6) = 2;
 
                 //angular velocity limit
-                lbA_hqpik_[i](higher_task_equality_num + j + 3) = -6;
-                ubA_hqpik_[i](higher_task_equality_num + j + 3) = 6;
-                lbA_hqpik_[i](higher_task_equality_num + j + 9) = -6;
-                ubA_hqpik_[i](higher_task_equality_num + j + 9) = 6;
+                lbA_hqpik_[i](higher_task_equality_num + j + 3) = -2* M_PI;
+                ubA_hqpik_[i](higher_task_equality_num + j + 3) = 2* M_PI;
+                lbA_hqpik_[i](higher_task_equality_num + j + 9) = -2* M_PI;
+                ubA_hqpik_[i](higher_task_equality_num + j + 9) = 2* M_PI;
             }
         }
 
@@ -5168,7 +5175,7 @@ void AvatarController::motionRetargeting_HQPIK()
             {
                 if (int(current_time_ * 2000) % 1000 == 0)
                 {
-                    std::cout << "Error hierarchy: " << i << std::endl;
+                    std::cout << "Error hierarchy Avatar HQPIK1: " << i << std::endl;
                     std::cout << "last solved q_dot: " << q_dot_hqpik_[last_solved_hierarchy_num_].transpose() << std::endl;
                 }
             }
@@ -5796,7 +5803,10 @@ void AvatarController::poseCalibration()
         hmd_chest_pose_ = hmd_chest_pose_raw_;
         hmd_pelv_pose_ = hmd_pelv_pose_raw_;
 
-        if (current_time_ - tracker_status_changed_time_ <= 5)
+        hmd_lfoot_pose_ = hmd_lfoot_pose_raw_;
+        hmd_rfoot_pose_ = hmd_rfoot_pose_raw_;
+
+        if ((current_time_ - tracker_status_changed_time_ <= 5)&&(tracker_first_recieve_flag_ == false))
         {
             // double w = DyrosMath::cubic(current_time_, tracker_status_changed_time_, tracker_status_changed_time_+5, 0, 1, 0, 0);
             double w = (current_time_ - tracker_status_changed_time_) / 5;
@@ -5809,6 +5819,8 @@ void AvatarController::poseCalibration()
             hmd_rhand_pose_.translation() = w * hmd_rhand_pose_raw_.translation() + (1 - w) * hmd_rhand_pose_raw_last_.translation();
             hmd_chest_pose_.translation() = w * hmd_chest_pose_raw_.translation() + (1 - w) * hmd_chest_pose_raw_last_.translation();
             hmd_pelv_pose_.translation() = w * hmd_pelv_pose_raw_.translation() + (1 - w) * hmd_pelv_pose_raw_last_.translation();
+            hmd_lfoot_pose_.translation() = w * hmd_lfoot_pose_raw_.translation() + (1 - w) * hmd_lfoot_pose_raw_last_.translation();
+            hmd_rfoot_pose_.translation() = w * hmd_rfoot_pose_raw_.translation() + (1 - w) * hmd_rfoot_pose_raw_last_.translation();
 
             Eigen::AngleAxisd head_ang_diff(hmd_head_pose_raw_.linear() * hmd_head_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd lelbow_ang_diff(hmd_lupperarm_pose_raw_.linear() * hmd_lupperarm_pose_raw_last_.linear().transpose());
@@ -5817,8 +5829,10 @@ void AvatarController::poseCalibration()
             Eigen::AngleAxisd rhand_ang_diff(hmd_rhand_pose_raw_.linear() * hmd_rhand_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd upperbody_ang_diff(hmd_chest_pose_raw_.linear() * hmd_chest_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd pelv_ang_diff(hmd_pelv_pose_raw_.linear() * hmd_pelv_pose_raw_last_.linear().transpose());
+            Eigen::AngleAxisd lfoot_ang_diff(hmd_lfoot_pose_raw_.linear() * hmd_lfoot_pose_raw_last_.linear().transpose());
+            Eigen::AngleAxisd rfoot_ang_diff(hmd_rfoot_pose_raw_.linear() * hmd_rfoot_pose_raw_last_.linear().transpose());
 
-            Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, head_diff_m, upperbody_diff_m, pelv_diff_m;
+            Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, head_diff_m, upperbody_diff_m, pelv_diff_m, lfoot_diff_m, rfoot_diff_m;
             lhand_diff_m = Eigen::AngleAxisd(lhand_ang_diff.angle() * w, lhand_ang_diff.axis());
             rhand_diff_m = Eigen::AngleAxisd(rhand_ang_diff.angle() * w, rhand_ang_diff.axis());
             lelbow_diff_m = Eigen::AngleAxisd(lelbow_ang_diff.angle() * w, lelbow_ang_diff.axis());
@@ -5826,6 +5840,8 @@ void AvatarController::poseCalibration()
             head_diff_m = Eigen::AngleAxisd(head_ang_diff.angle() * w, head_ang_diff.axis());
             upperbody_diff_m = Eigen::AngleAxisd(upperbody_ang_diff.angle() * w, upperbody_ang_diff.axis());
             pelv_diff_m = Eigen::AngleAxisd(pelv_ang_diff.angle() * w, pelv_ang_diff.axis());
+            lfoot_diff_m = Eigen::AngleAxisd(lfoot_ang_diff.angle() * w, lfoot_ang_diff.axis());
+            rfoot_diff_m = Eigen::AngleAxisd(rfoot_ang_diff.angle() * w, rfoot_ang_diff.axis());
 
             hmd_lupperarm_pose_.linear() = lelbow_diff_m * hmd_lupperarm_pose_raw_last_.linear();
             hmd_lhand_pose_.linear() = lhand_diff_m * hmd_lhand_pose_raw_last_.linear();
@@ -5834,13 +5850,17 @@ void AvatarController::poseCalibration()
             hmd_head_pose_.linear() = head_diff_m * hmd_head_pose_raw_last_.linear();
             hmd_chest_pose_.linear() = upperbody_diff_m * hmd_chest_pose_raw_last_.linear();
             hmd_pelv_pose_.linear() = pelv_diff_m * hmd_pelv_pose_raw_last_.linear();
+            hmd_lfoot_pose_.linear() = lfoot_diff_m * hmd_lfoot_pose_raw_last_.linear();
+            hmd_rfoot_pose_.linear() = rfoot_diff_m * hmd_rfoot_pose_raw_last_.linear();
 
             if (int((current_time_ - tracker_status_changed_time_) * 2000) % 1000 == 0)
                 cout << "Motion Tracking Resume!" << int((current_time_ - tracker_status_changed_time_) / 5 * 100) << "%" << endl;
         }
         else
         {
+    
         }
+
     }
     else //false
     {
@@ -5863,6 +5883,13 @@ void AvatarController::poseCalibration()
             hmd_rhand_pose_raw_last_ = hmd_rhand_pose_raw_;
             hmd_chest_pose_raw_last_ = hmd_chest_pose_raw_;
             hmd_pelv_pose_raw_last_ = hmd_pelv_pose_raw_;
+            hmd_lfoot_pose_raw_last_ = hmd_lfoot_pose_raw_;
+            hmd_rfoot_pose_raw_last_ = hmd_rfoot_pose_raw_;
+
+            if(tracker_first_recieve_flag_ == true)
+            {
+                tracker_first_recieve_flag_ = false;
+            }
         }
 
         hmd_head_pose_ = hmd_head_pose_raw_last_;
@@ -5872,6 +5899,8 @@ void AvatarController::poseCalibration()
         hmd_rhand_pose_ = hmd_rhand_pose_raw_last_;
         hmd_chest_pose_ = hmd_chest_pose_raw_last_;
         hmd_pelv_pose_ = hmd_pelv_pose_raw_last_;
+        hmd_lfoot_pose_ = hmd_lfoot_pose_raw_last_;
+        hmd_rfoot_pose_ = hmd_rfoot_pose_raw_last_;
     }
 
     if (int(current_time_ * 1e4) % int(1e3) == 0)
@@ -5913,33 +5942,45 @@ void AvatarController::poseCalibration()
     Eigen::Matrix3d hmd_pelv_yaw_rot;
     Eigen::Isometry3d hmd_pelv_pose_yaw_only;
 
-    if ((hmd_check_pose_calibration_[0] == true) && (still_pose_cali_flag_ == false))
-    {
-        hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
-    }
-    else
-    {
-        hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_init_.translation();
-    }
+    // if ((hmd_check_pose_calibration_[0] == true) && (still_pose_cali_flag_ == false))
+    // {
+    //     hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
 
-    // hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+    //     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
+    //     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
+    //     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
+    // }
+    // else
+    // {
+    //     hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+
+    //     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
+    //     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
+    //     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
+    // }
+    hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+
     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
+    // hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+
 
     //coordinate conversion
-
     hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
     hmd_lupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lupperarm_pose_;
     hmd_lhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lhand_pose_;
     hmd_rupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rupperarm_pose_;
     hmd_rhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rhand_pose_;
     hmd_chest_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_chest_pose_;
+    hmd_lfoot_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lfoot_pose_;
+    hmd_rfoot_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rfoot_pose_;
     // hmd_pelv_pose_.linear().setIdentity();
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.08, 0, -0.04; //senseglove
+    // tracker_offset << -0.08, 0, -0.04; //senseglove
+    tracker_offset.setZero();
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
@@ -5966,8 +6007,8 @@ void AvatarController::poseCalibration()
         calibration_state_pub.publish(msg);
         calibration_state_gui_log_pub.publish(msg);
 
-        cout << "hmd_still_cali_lhand_pos_: " << hmd_still_cali_lhand_pos_ << endl;
-        cout << "hmd_still_cali_rhand_pos_: " << hmd_still_cali_rhand_pos_ << endl;
+        cout << "hmd_still_cali_lhand_pos_: " << hmd_still_cali_lhand_pos_.transpose() << endl;
+        cout << "hmd_still_cali_rhand_pos_: " << hmd_still_cali_rhand_pos_.transpose() << endl;
 
         calibration_log_file_ofstream_[0].open(calibration_folder_dir_ + "/still_pose_.txt");
         calibration_log_file_ofstream_[0] << hmd_still_cali_lhand_pos_ << endl;
@@ -5981,6 +6022,8 @@ void AvatarController::poseCalibration()
         hmd_rhand_pose_init_ = hmd_rhand_pose_;
         hmd_pelv_pose_init_ = hmd_pelv_pose_;
         hmd_chest_pose_init_ = hmd_chest_pose_;
+        hmd_lfoot_pose_init_ = hmd_lfoot_pose_;
+        hmd_rfoot_pose_init_ = hmd_rfoot_pose_;
 
         // hmd_head_pose_init_ 	<<  -0.13517, 0.289845, -0.259223;
         // hmd_lupperarm_pose_init_<<  -0.13517, 0.289845, -0.259223;
@@ -5990,13 +6033,15 @@ void AvatarController::poseCalibration()
         // hmd_pelv_pose_init_ 	<<  -0.13517, 0.289845, -0.259223;
         // hmd_chest_pose_init_ 	<<  -0.13517, 0.289845, -0.259223;
 
-        cout << "hmd_head_pose_init_: " << hmd_head_pose_init_.translation() << endl;
-        cout << "hmd_lupperarm_pose_init_: " << hmd_lupperarm_pose_init_.translation() << endl;
-        cout << "hmd_lhand_pose_init_: " << hmd_lhand_pose_init_.translation() << endl;
-        cout << "hmd_rupperarm_pose_init_: " << hmd_rupperarm_pose_init_.translation() << endl;
-        cout << "hmd_rhand_pose_init_: " << hmd_rhand_pose_init_.translation() << endl;
-        cout << "hmd_pelv_pose_init_: " << hmd_pelv_pose_init_.translation() << endl;
-        cout << "hmd_chest_pose_init_: " << hmd_chest_pose_init_.translation() << endl;
+        cout << "hmd_head_pose_init_: " << hmd_head_pose_init_.translation().transpose() << endl;
+        cout << "hmd_lupperarm_pose_init_: " << hmd_lupperarm_pose_init_.translation().transpose() << endl;
+        cout << "hmd_lhand_pose_init_: " << hmd_lhand_pose_init_.translation().transpose() << endl;
+        cout << "hmd_rupperarm_pose_init_: " << hmd_rupperarm_pose_init_.translation().transpose() << endl;
+        cout << "hmd_rhand_pose_init_: " << hmd_rhand_pose_init_.translation().transpose() << endl;
+        cout << "hmd_pelv_pose_init_: " << hmd_pelv_pose_init_.translation().transpose() << endl;
+        cout << "hmd_chest_pose_init_: " << hmd_chest_pose_init_.translation().transpose() << endl;
+        cout << "hmd_chest_pose_init_: " << hmd_chest_pose_init_.translation().transpose() << endl;
+        cout << "hmd_chest_pose_init_: " << hmd_chest_pose_init_.translation().transpose() << endl;
 
         calibration_log_file_ofstream_[3].open(calibration_folder_dir_ + "/hmd_pose_init_.txt");
         calibration_log_file_ofstream_[3] << hmd_head_pose_init_.translation() << "\n"
@@ -6013,6 +6058,10 @@ void AvatarController::poseCalibration()
                                           << hmd_pelv_pose_init_.linear() << endl;
         calibration_log_file_ofstream_[3] << hmd_chest_pose_init_.translation() << "\n"
                                           << hmd_chest_pose_init_.linear() << endl;
+        calibration_log_file_ofstream_[3] << hmd_lfoot_pose_init_.translation() << "\n"
+                                          << hmd_lfoot_pose_init_.linear() << endl;
+        calibration_log_file_ofstream_[3] << hmd_rfoot_pose_init_.translation() << "\n"
+                                          << hmd_rfoot_pose_init_.linear() << endl;
         calibration_log_file_ofstream_[3].close();
         still_pose_cali_flag_ = true;
     }
@@ -6045,8 +6094,8 @@ void AvatarController::poseCalibration()
         calibration_state_pub.publish(msg);
         calibration_state_gui_log_pub.publish(msg);
 
-        cout << "hmd_tpose_cali_lhand_pos_: " << hmd_tpose_cali_lhand_pos_ << endl;
-        cout << "hmd_tpose_cali_rhand_pos_: " << hmd_tpose_cali_rhand_pos_ << endl;
+        cout << "hmd_tpose_cali_lhand_pos_: " << hmd_tpose_cali_lhand_pos_.transpose() << endl;
+        cout << "hmd_tpose_cali_rhand_pos_: " << hmd_tpose_cali_rhand_pos_.transpose() << endl;
 
         calibration_log_file_ofstream_[1].open(calibration_folder_dir_ + "/t_pose_.txt");
         calibration_log_file_ofstream_[1] << hmd_tpose_cali_lhand_pos_ << endl;
@@ -6086,8 +6135,8 @@ void AvatarController::poseCalibration()
         calibration_state_pub.publish(msg);
         calibration_state_gui_log_pub.publish(msg);
 
-        cout << "hmd_forward_cali_lhand_pos_: " << hmd_forward_cali_lhand_pos_ << endl;
-        cout << "hmd_forward_cali_rhand_pos_: " << hmd_forward_cali_rhand_pos_ << endl;
+        cout << "hmd_forward_cali_lhand_pos_: " << hmd_forward_cali_lhand_pos_.transpose() << endl;
+        cout << "hmd_forward_cali_rhand_pos_: " << hmd_forward_cali_rhand_pos_.transpose() << endl;
 
         calibration_log_file_ofstream_[2].open(calibration_folder_dir_ + "/forward_pose_.txt");
         calibration_log_file_ofstream_[2] << hmd_forward_cali_lhand_pos_ << endl;
@@ -6149,6 +6198,8 @@ void AvatarController::poseCalibration()
             getIsometry3dDataFromText(calibration_log_file_ifstream_[3], hmd_rhand_pose_init_);
             getIsometry3dDataFromText(calibration_log_file_ifstream_[3], hmd_pelv_pose_init_);
             getIsometry3dDataFromText(calibration_log_file_ifstream_[3], hmd_chest_pose_init_);
+            getIsometry3dDataFromText(calibration_log_file_ifstream_[3], hmd_lfoot_pose_init_);
+            getIsometry3dDataFromText(calibration_log_file_ifstream_[3], hmd_rfoot_pose_init_);
             calibration_log_file_ifstream_[3].close();
 
             cout << "hmd_head_pose_init_: " << hmd_head_pose_init_.translation().transpose() << endl;
@@ -6158,7 +6209,10 @@ void AvatarController::poseCalibration()
             cout << "hmd_rhand_pose_init_: " << hmd_rhand_pose_init_.translation().transpose() << endl;
             cout << "hmd_pelv_pose_init_: " << hmd_pelv_pose_init_.translation().transpose() << endl;
             cout << "hmd_chest_pose_init_: " << hmd_chest_pose_init_.translation().transpose() << endl;
-            cout << "hmd_chest_pose_init_.linear(): " << hmd_chest_pose_init_.linear() << endl;
+            cout << "hmd_chest_pose_init_.linear(): \n" << hmd_chest_pose_init_.linear() << endl;
+            cout << "hmd_lfoot_pose_init_: " << hmd_lfoot_pose_init_.translation().transpose() << endl;
+            cout << "hmd_rfoot_pose_init_: " << hmd_rfoot_pose_init_.translation().transpose() << endl;
+
         }
         else
         {
@@ -6221,7 +6275,8 @@ void AvatarController::poseCalibration()
 
         hmd_shoulder_width_ = (hmd_lshoulder_center_pos_ - hmd_rshoulder_center_pos_).norm();
         // hmd_shoulder_width_ = 0.521045;
-
+        human_leg_len_ = (hmd_lfoot_pose_init_.translation().norm() + hmd_rfoot_pose_init_.translation().norm())/2;
+        cout << "human_leg_len_: " << human_leg_len_ << endl;
         // hmd_rarm_max_l_ = 0.54;
         Eigen::Vector3d l_still_basis = hmd_still_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
         Eigen::Vector3d l_tpose_basis = hmd_tpose_cali_lhand_pos_ - hmd_lshoulder_center_pos_;
@@ -6324,6 +6379,8 @@ void AvatarController::poseCalibration()
         hmd_rshoulder_vel_.segment(0, 3) = (hmd_rshoulder_pose_.translation() - hmd_rshoulder_pose_pre_.translation()) / dt_hmd_vel;
         hmd_rupperarm_vel_.segment(0, 3) = (hmd_rupperarm_pose_.translation() - hmd_rupperarm_pose_pre_.translation()) / dt_hmd_vel;
         hmd_rhand_vel_.segment(0, 3) = (hmd_rhand_pose_.translation() - hmd_rhand_pose_pre_.translation()) / dt_hmd_vel;
+        hmd_lfoot_vel_.segment(0, 3) = (hmd_lfoot_pose_.translation() - hmd_lfoot_pose_pre_.translation()) / dt_hmd_vel;
+        hmd_rfoot_vel_.segment(0, 3) = (hmd_rfoot_pose_.translation() - hmd_rfoot_pose_pre_.translation()) / dt_hmd_vel;
 
         hmd_chest_vel_.segment(0, 3) = (hmd_chest_pose_.translation() - hmd_chest_pose_pre_.translation()) / dt_hmd_vel;
         // float data collect
@@ -6338,6 +6395,9 @@ void AvatarController::poseCalibration()
         Eigen::AngleAxisd ang_temp_6(hmd_rupperarm_pose_.linear() * hmd_rupperarm_pose_pre_.linear().transpose());
         Eigen::AngleAxisd ang_temp_7(hmd_rhand_pose_.linear() * hmd_rhand_pose_pre_.linear().transpose());
         Eigen::AngleAxisd ang_temp_8(hmd_chest_pose_.linear() * hmd_chest_pose_pre_.linear().transpose());
+        Eigen::AngleAxisd ang_temp_9(hmd_lfoot_pose_.linear() * hmd_lfoot_pose_pre_.linear().transpose());
+        Eigen::AngleAxisd ang_temp_10(hmd_rfoot_pose_.linear() * hmd_rfoot_pose_pre_.linear().transpose());
+
 
         hmd_head_vel_.segment(3, 3) = ang_temp_1.axis() * ang_temp_1.angle() / dt_hmd_vel;
         hmd_lshoulder_vel_.segment(3, 3) = ang_temp_2.axis() * ang_temp_2.angle() / dt_hmd_vel;
@@ -6347,10 +6407,12 @@ void AvatarController::poseCalibration()
         hmd_rupperarm_vel_.segment(3, 3) = ang_temp_6.axis() * ang_temp_6.angle() / dt_hmd_vel;
         hmd_rhand_vel_.segment(3, 3) = ang_temp_7.axis() * ang_temp_7.angle() / dt_hmd_vel;
         hmd_chest_vel_.segment(3, 3) = ang_temp_8.axis() * ang_temp_8.angle() / dt_hmd_vel;
+        hmd_lfoot_vel_.segment(3, 3) = ang_temp_10.axis() * ang_temp_10.angle() / dt_hmd_vel;
+        hmd_rfoot_vel_.segment(3, 3) = ang_temp_10.axis() * ang_temp_10.angle() / dt_hmd_vel;
 
         // float data collect
-        hmd_chest_vel_(3) = -hmd_chest_vel_(3);
-        hmd_chest_vel_(4) = -hmd_chest_vel_(4);
+        // hmd_chest_vel_(3) = -hmd_chest_vel_(3);
+        // hmd_chest_vel_(4) = -hmd_chest_vel_(4);
 
         last_hmd_vel_calc_time_ = rd_.control_time_;
     }
@@ -6406,7 +6468,7 @@ void AvatarController::getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, 
     double k_threshold = 0.1;
     if ((abs(k1 - k2) > k_threshold) || (abs(k2 - k3) > k_threshold) || (abs(k1 - k3) > k_threshold))
     {
-        cout << "WARNING: Re-Calibration is REQUIRED!" << endl;
+        cout << cred <<"WARNING: Re-Calibration is REQUIRED!" << creset << endl;
     }
     CenterOfShoulder_cali = center_of_cali_plane1 - normal_to_cali_plane.normalized() * k_star;
 }
@@ -6586,6 +6648,8 @@ void AvatarController::rawMasterPoseProcessing()
         master_rshoulder_pose_pre_ = racromion_transform_pre_desired_from_;
         master_head_pose_pre_ = head_transform_pre_desired_from_;
         master_upperbody_pose_pre_ = upperbody_transform_pre_desired_from_;
+        master_lfoot_pose_pre_ = lfoot_transform_pre_desired_from_;
+        master_lfoot_pose_pre_ = rfoot_transform_pre_desired_from_;
 
         master_lhand_pose_ppre_ = lhand_transform_pre_desired_from_;
         master_rhand_pose_ppre_ = rhand_transform_pre_desired_from_;
@@ -6595,6 +6659,8 @@ void AvatarController::rawMasterPoseProcessing()
         master_lshoulder_pose_ppre_ = lacromion_transform_pre_desired_from_;
         master_rshoulder_pose_ppre_ = racromion_transform_pre_desired_from_;
         master_upperbody_pose_ppre_ = upperbody_transform_pre_desired_from_;
+        master_lfoot_pose_ppre_ = lfoot_transform_pre_desired_from_;
+        master_lfoot_pose_ppre_ = rfoot_transform_pre_desired_from_;
 
         master_relative_lhand_pos_pre_ = lhand_transform_current_from_global_.translation() - rhand_transform_current_from_global_.translation();
         master_relative_rhand_pos_pre_ = rhand_transform_current_from_global_.translation() - lhand_transform_current_from_global_.translation();
@@ -6665,6 +6731,9 @@ void AvatarController::rawMasterPoseProcessing()
 
             master_relative_lhand_pos_raw_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, lhand_transform_pre_desired_from_.translation()(i) - rhand_transform_pre_desired_from_.translation()(i), 0, 0, master_relative_lhand_pos_raw_(i), 0, 0)(0);
             master_relative_rhand_pos_raw_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, rhand_transform_pre_desired_from_.translation()(i) - lhand_transform_pre_desired_from_.translation()(i), 0, 0, master_relative_rhand_pos_raw_(i), 0, 0)(0);
+             
+            master_lfoot_pose_raw_.translation()(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, lfoot_transform_pre_desired_from_.translation()(i), 0, 0, master_lfoot_pose_raw_.translation()(i), 0, 0)(0);
+            master_rfoot_pose_raw_.translation()(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, rfoot_transform_pre_desired_from_.translation()(i), 0, 0, master_rfoot_pose_raw_.translation()(i), 0, 0)(0);
         }
 
         master_lhand_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, lhand_transform_pre_desired_from_.linear(), master_lhand_pose_raw_.linear());
@@ -6675,6 +6744,9 @@ void AvatarController::rawMasterPoseProcessing()
         master_rshoulder_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, racromion_transform_pre_desired_from_.linear(), master_rshoulder_pose_raw_.linear());
         master_head_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, head_transform_pre_desired_from_.linear(), master_head_pose_raw_.linear());
         master_upperbody_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_raw_.linear());
+  
+        master_lfoot_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, lfoot_transform_pre_desired_from_.linear(), master_lfoot_pose_raw_.linear());
+        master_rfoot_pose_raw_.linear() = DyrosMath::rotationCubic(current_time_, upperbody_command_time_, upperbody_command_time_ + 5, rfoot_transform_pre_desired_from_.linear(), master_rfoot_pose_raw_.linear());
     }
 
     // master_lhand_pose_.translation() = DyrosMath::lpf<3>(master_lhand_pose_raw_.translation(), master_lhand_pose_pre_.translation(), 1 / dt_, fc_filter);
@@ -6698,6 +6770,9 @@ void AvatarController::rawMasterPoseProcessing()
     master_relative_lhand_pos_ = DyrosMath::lpf<3>(master_relative_lhand_pos_raw_, master_relative_lhand_pos_pre_, 1 / dt_, fc_filter);
     master_relative_rhand_pos_ = DyrosMath::lpf<3>(master_relative_rhand_pos_raw_, master_relative_rhand_pos_pre_, 1 / dt_, fc_filter);
 
+    master_lfoot_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_lfoot_pose_raw_.translation(), master_lfoot_pose_raw_pre_.translation(), master_lfoot_pose_raw_ppre_.translation(), master_lfoot_pose_pre_.translation(), master_lfoot_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+    master_rfoot_pose_.translation() = DyrosMath::secondOrderLowPassFilter<3>(master_rfoot_pose_raw_.translation(), master_rfoot_pose_raw_pre_.translation(), master_rfoot_pose_raw_ppre_.translation(), master_rfoot_pose_pre_.translation(), master_rfoot_pose_ppre_.translation(), fc_filter, 1, 1 / dt_);
+
     Eigen::AngleAxisd lhand_ang_diff(master_lhand_pose_raw_.linear() * master_lhand_pose_pre_.linear().transpose());
     Eigen::AngleAxisd rhand_ang_diff(master_rhand_pose_raw_.linear() * master_rhand_pose_pre_.linear().transpose());
     Eigen::AngleAxisd lelbow_ang_diff(master_lelbow_pose_raw_.linear() * master_lelbow_pose_pre_.linear().transpose());
@@ -6706,8 +6781,10 @@ void AvatarController::rawMasterPoseProcessing()
     Eigen::AngleAxisd rshoulder_ang_diff(master_rshoulder_pose_raw_.linear() * master_rshoulder_pose_pre_.linear().transpose());
     Eigen::AngleAxisd head_ang_diff(master_head_pose_raw_.linear() * master_head_pose_pre_.linear().transpose());
     Eigen::AngleAxisd upperbody_ang_diff(master_upperbody_pose_raw_.linear() * master_upperbody_pose_pre_.linear().transpose());
+    Eigen::AngleAxisd lfoot_ang_diff(master_lfoot_pose_raw_.linear() * master_lfoot_pose_pre_.linear().transpose());
+    Eigen::AngleAxisd rfoot_ang_diff(master_rfoot_pose_raw_.linear() * master_rfoot_pose_pre_.linear().transpose());
 
-    Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, lshoulder_diff_m, rshoulder_diff_m, head_diff_m, upperbody_diff_m;
+    Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, lshoulder_diff_m, rshoulder_diff_m, head_diff_m, upperbody_diff_m, lfoot_diff_m, rfoot_diff_m;
     double temp_ang_diff_filtered;
     // lhand_ang_diff.angle() = DyrosMath::lpf(lhand_ang_diff.angle(), 0, 2000, fc_filter);
     // lhand_diff_m = Eigen::AngleAxisd( temp_ang_diff_filtered, fc_filter), lhand_ang_diff.axis());
@@ -6719,6 +6796,8 @@ void AvatarController::rawMasterPoseProcessing()
     rshoulder_diff_m = Eigen::AngleAxisd(DyrosMath::lpf(rshoulder_ang_diff.angle(), 0, 1 / dt_, fc_filter), rshoulder_ang_diff.axis());
     head_diff_m = Eigen::AngleAxisd(DyrosMath::lpf(head_ang_diff.angle(), 0, 1 / dt_, fc_filter), head_ang_diff.axis());
     upperbody_diff_m = Eigen::AngleAxisd(DyrosMath::lpf(upperbody_ang_diff.angle(), 0, 1 / dt_, fc_filter), upperbody_ang_diff.axis());
+    lfoot_diff_m = Eigen::AngleAxisd(DyrosMath::lpf(lfoot_ang_diff.angle(), 0, 1 / dt_, fc_filter), lfoot_ang_diff.axis());
+    rfoot_diff_m = Eigen::AngleAxisd(DyrosMath::lpf(rfoot_ang_diff.angle(), 0, 1 / dt_, fc_filter), rfoot_ang_diff.axis());
 
     master_lhand_pose_.linear() = lhand_diff_m * master_lhand_pose_pre_.linear();
     master_rhand_pose_.linear() = rhand_diff_m * master_rhand_pose_pre_.linear();
@@ -6728,6 +6807,8 @@ void AvatarController::rawMasterPoseProcessing()
     master_rshoulder_pose_.linear() = rshoulder_diff_m * master_rshoulder_pose_pre_.linear();
     master_head_pose_.linear() = head_diff_m * master_head_pose_pre_.linear();
     master_upperbody_pose_.linear() = upperbody_diff_m * master_upperbody_pose_pre_.linear();
+    master_lfoot_pose_.linear() = lfoot_diff_m * master_lfoot_pose_pre_.linear();
+    master_rfoot_pose_.linear() = rfoot_diff_m * master_rfoot_pose_pre_.linear();
 
     // for print
     master_lhand_rqy_ = DyrosMath::rot2Euler_tf(master_lhand_pose_.linear());
@@ -7251,11 +7332,13 @@ void AvatarController::hmdRawDataProcessing()
 
     master_lhand_pose_raw_.translation() = larmbase_transform_pre_desired_from_.translation() + upperbody_transform_pre_desired_from_.linear() * (robot_init_lshoulder_pos + hmd2robot_lhand_pos_mapping_);
     // master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear()*hmd_lhand_pose_init_.linear().transpose()*robot_lhand_ori_init;	//relative orientation
-    master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear() * DyrosMath::rotateWithZ(M_PI / 2); //absolute orientation
+    // master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear() * DyrosMath::rotateWithZ(M_PI / 2); //absolute orientation
+    master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear() * DyrosMath::rotateWithZ(-M_PI); //absolute orientation controller version
 
     master_rhand_pose_raw_.translation() = rarmbase_transform_pre_desired_from_.translation() + upperbody_transform_pre_desired_from_.linear() * (robot_init_rshoulder_pos + hmd2robot_rhand_pos_mapping_);
     // master_rhand_pose_raw_.linear() = hmd_rhand_pose_.linear()*hmd_rhand_pose_init_.linear().transpose()*robot_rhand_ori_init;	//relative orientation
-    master_rhand_pose_raw_.linear() = hmd_rhand_pose_.linear() * DyrosMath::rotateWithZ(-M_PI / 2); //absolute orientation
+    // master_rhand_pose_raw_.linear() = hmd_rhand_pose_.linear() * DyrosMath::rotateWithZ(-M_PI / 2); //absolute orientation
+    master_rhand_pose_raw_.linear() = hmd_rhand_pose_.linear() * DyrosMath::rotateWithZ(M_PI); //absolute orientation controller version
 
     // master_lelbow_pose_raw_.translation() = lshoulder_transform_pre_desired_from_.translation() + hmd2robot_lelbow_pos_mapping_;
     master_lelbow_pose_raw_.translation().setZero();
@@ -7290,6 +7373,17 @@ void AvatarController::hmdRawDataProcessing()
     master_relative_lhand_pos_raw_ = master_relative_lhand_pos_raw_ * (robot_shoulder_width_) / (hmd_shoulder_width_);
     master_relative_rhand_pos_raw_ = master_relative_lhand_pos_raw_ * (robot_shoulder_width_) / (hmd_shoulder_width_);
 
+
+    //// leg proportional mapping
+    master_lfoot_pose_raw_.linear() = hmd_lfoot_pose_.linear()*hmd_lfoot_pose_init_.linear().transpose();
+    master_rfoot_pose_raw_.linear() = hmd_rfoot_pose_.linear()*hmd_rfoot_pose_init_.linear().transpose();
+
+    master_lfoot_pose_raw_.translation() = lfoot_transform_start_from_global_.translation() + robot_leg_len_/human_leg_len_*(hmd_lfoot_pose_.translation() - hmd_lfoot_pose_init_.translation());
+    master_rfoot_pose_raw_.translation() = rfoot_transform_start_from_global_.translation() + robot_leg_len_/human_leg_len_*(hmd_rfoot_pose_.translation() - hmd_rfoot_pose_init_.translation());
+
+    master_lfoot_pose_raw_.translation()(2) += -0.01;
+    master_rfoot_pose_raw_.translation()(2) += -0.01;
+
     if (int(current_time_ * 1e4) % int(2e4) == 0)
     {
         // cout<<"master_lelbow_pose_raw_.linear(): \n"<<master_lelbow_pose_raw_.linear()<<endl;
@@ -7304,6 +7398,10 @@ void AvatarController::hmdRawDataProcessing()
         // cout<<"command arm length: "<<(lshoulder_transform_current_from_global_.translation() - master_lhand_pose_.translation()).norm() <<endl;
         // cout<<"lhand_mapping_vector: "<<lhand_mapping_vector<<endl;
         // cout<<"rhand_mapping_vector: "<<rhand_mapping_vector<<endl;
+
+        cout<<"master_lfoot_pose_raw_.linear(): \n"<<master_lfoot_pose_raw_.linear()<<endl;
+        cout<<"master_rfoot_pose_raw_.linear(): \n"<<master_rfoot_pose_raw_.linear()<<endl;
+
     }
 }
 
@@ -10382,7 +10480,7 @@ void AvatarController::computeLeg_HQPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Is
             {
                 if (int(current_time_ * 2000) % 1000 == 0)
                 {
-                    std::cout << "Error hierarchy: " << i << std::endl;
+                    std::cout << "Error hierarchy of LEG-HQPIK: " << i << std::endl;
                     std::cout << "last solved q_dot: " << q_dot_leg_hqpik_[last_solved_hierarchy_num_leg_hqpik_].transpose() << std::endl;
                 }
             }
@@ -10486,7 +10584,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: W_ih has NaN value! ("<< temp <<") at"+W_ih_path<<endl;
+                cout<< cred <<"WARNING: W_ih has NaN value! ("<< temp <<") at"+W_ih_path<< creset <<endl;
             }
         }
     }
@@ -10509,7 +10607,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: W_hh has NaN value!"<<endl;
+                cout<< cred <<"WARNING: W_hh has NaN value!"<< creset << endl;
             }
         }
     }
@@ -10532,7 +10630,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: b_ih has NaN value!"<<endl;
+                cout<<cred<<"WARNING: b_ih has NaN value!"<<creset <<endl;
             }
         }
     }
@@ -10555,7 +10653,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: b_hh has NaN value!"<<endl;
+                cout<<cred<<"WARNING: b_hh has NaN value!"<<creset <<endl;
             }
         }
     }
@@ -10578,7 +10676,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: W_linear has NaN value!"<<endl;
+                cout<<cred<<"WARNING: W_linear has NaN value!"<<creset<<endl;
             }
         }
     }
@@ -10601,7 +10699,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
             }
             else
             {
-                cout<<"WARNING: b_linear has NaN value!"<<endl;
+                cout<<cred<<"WARNING: b_linear has NaN value!"<<creset<<endl;
             }
         }
     }
@@ -10648,7 +10746,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
                 }
                 else
                 {
-                    cout<<"WARNING: input_mean has NaN value!"<<endl;
+                    cout<<cred<<"WARNING: input_mean has NaN value!"<<creset<<endl;
                 }
             }
         }
@@ -10673,7 +10771,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
                 }
                 else
                 {
-                    cout<<"WARNING: input_std has NaN value!"<<endl;
+                    cout<<cred<<"WARNING: input_std has NaN value!"<<creset<<endl;
                 }
             }
         }
@@ -10698,7 +10796,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
                 }
                 else
                 {
-                    cout<<"WARNING: output_mean has NaN value!"<<endl;
+                    cout<<cred<<"WARNING: output_mean has NaN value!"<<creset<<endl;
                 }
             }
         }
@@ -10723,7 +10821,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
                 }
                 else
                 {
-                    cout<<"WARNING: output_std has NaN value!"<<endl;
+                    cout<<cred<<"WARNING: output_std has NaN value!"<<creset<<endl;
                 }
             }
         }
@@ -11009,7 +11107,9 @@ void AvatarController::savePreData()
     master_lshoulder_pose_raw_ppre_ = master_lshoulder_pose_raw_pre_;
     master_rshoulder_pose_raw_ppre_ = master_rshoulder_pose_raw_pre_;
     master_upperbody_pose_raw_ppre_ = master_upperbody_pose_raw_pre_;
-
+    master_lfoot_pose_raw_ppre_ = master_lfoot_pose_raw_pre_;
+    master_rfoot_pose_raw_ppre_ = master_rfoot_pose_raw_pre_;
+   
     master_lhand_pose_raw_pre_ = master_lhand_pose_raw_;
     master_rhand_pose_raw_pre_ = master_rhand_pose_raw_;
     master_head_pose_raw_pre_ = master_head_pose_raw_;
@@ -11018,6 +11118,8 @@ void AvatarController::savePreData()
     master_lshoulder_pose_raw_pre_ = master_lshoulder_pose_raw_;
     master_rshoulder_pose_raw_pre_ = master_rshoulder_pose_raw_;
     master_upperbody_pose_raw_pre_ = master_upperbody_pose_raw_;
+    master_lfoot_pose_raw_pre_ = master_lfoot_pose_raw_;
+    master_rfoot_pose_raw_pre_ = master_rfoot_pose_raw_;
 
     master_lhand_pose_ppre_ = master_lhand_pose_pre_;
     master_rhand_pose_ppre_ = master_rhand_pose_pre_;
@@ -11027,6 +11129,8 @@ void AvatarController::savePreData()
     master_lshoulder_pose_ppre_ = master_lshoulder_pose_pre_;
     master_rshoulder_pose_ppre_ = master_rshoulder_pose_pre_;
     master_upperbody_pose_ppre_ = master_upperbody_pose_pre_;
+    master_lfoot_pose_ppre_ = master_lfoot_pose_pre_;
+    master_rfoot_pose_ppre_ = master_rfoot_pose_pre_;
 
     master_lhand_pose_pre_ = master_lhand_pose_;
     master_rhand_pose_pre_ = master_rhand_pose_;
@@ -11036,6 +11140,8 @@ void AvatarController::savePreData()
     master_rshoulder_pose_pre_ = master_rshoulder_pose_;
     master_head_pose_pre_ = master_head_pose_;
     master_upperbody_pose_pre_ = master_upperbody_pose_;
+    master_lfoot_pose_pre_ = master_lfoot_pose_;
+    master_rfoot_pose_pre_ = master_rfoot_pose_;
 
     master_relative_lhand_pos_pre_ = master_relative_lhand_pos_;
     master_relative_rhand_pos_pre_ = master_relative_rhand_pos_;
@@ -11051,6 +11157,8 @@ void AvatarController::savePreData()
     hmd_rhand_pose_pre_ = hmd_rhand_pose_;
     hmd_chest_pose_pre_ = hmd_chest_pose_;
     hmd_pelv_pose_pre_ = hmd_pelv_pose_;
+    hmd_lfoot_pose_pre_ = hmd_lfoot_pose_;
+    hmd_rfoot_pose_pre_ = hmd_rfoot_pose_;
 
     lhand_mapping_vector_pre_ = lhand_mapping_vector_;
     rhand_mapping_vector_pre_ = rhand_mapping_vector_;
@@ -11446,12 +11554,50 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
 
-    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
+    // hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
 {
     hmd_tracker_status_raw_ = msg.data;
+}
+
+////// FOOT
+void AvatarController::LeftFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
+{
+    hmd_lfoot_pose_raw_.linear()(0, 0) = msg.firstRow[0];
+    hmd_lfoot_pose_raw_.linear()(0, 1) = msg.firstRow[1];
+    hmd_lfoot_pose_raw_.linear()(0, 2) = msg.firstRow[2];
+
+    hmd_lfoot_pose_raw_.linear()(1, 0) = msg.secondRow[0];
+    hmd_lfoot_pose_raw_.linear()(1, 1) = msg.secondRow[1];
+    hmd_lfoot_pose_raw_.linear()(1, 2) = msg.secondRow[2];
+
+    hmd_lfoot_pose_raw_.linear()(2, 0) = msg.thirdRow[0];
+    hmd_lfoot_pose_raw_.linear()(2, 1) = msg.thirdRow[1];
+    hmd_lfoot_pose_raw_.linear()(2, 2) = msg.thirdRow[2];
+
+    hmd_lfoot_pose_raw_.translation()(0) = msg.firstRow[3];
+    hmd_lfoot_pose_raw_.translation()(1) = msg.secondRow[3];
+    hmd_lfoot_pose_raw_.translation()(2) = msg.thirdRow[3];
+}
+void AvatarController::RightFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
+{
+    hmd_rfoot_pose_raw_.linear()(0, 0) = msg.firstRow[0];
+    hmd_rfoot_pose_raw_.linear()(0, 1) = msg.firstRow[1];
+    hmd_rfoot_pose_raw_.linear()(0, 2) = msg.firstRow[2];
+
+    hmd_rfoot_pose_raw_.linear()(1, 0) = msg.secondRow[0];
+    hmd_rfoot_pose_raw_.linear()(1, 1) = msg.secondRow[1];
+    hmd_rfoot_pose_raw_.linear()(1, 2) = msg.secondRow[2];
+
+    hmd_rfoot_pose_raw_.linear()(2, 0) = msg.thirdRow[0];
+    hmd_rfoot_pose_raw_.linear()(2, 1) = msg.thirdRow[1];
+    hmd_rfoot_pose_raw_.linear()(2, 2) = msg.thirdRow[2];
+
+    hmd_rfoot_pose_raw_.translation()(0) = msg.firstRow[3];
+    hmd_rfoot_pose_raw_.translation()(1) = msg.secondRow[3];
+    hmd_rfoot_pose_raw_.translation()(2) = msg.thirdRow[3];
 }
 
 /////////////////////////////////////PREVIEW CONTROL RELATED FUNCTION////////////////////////////////////

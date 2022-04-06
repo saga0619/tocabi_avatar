@@ -253,6 +253,8 @@ public:
     ros::Subscriber chest_tracker_posture_sub;
     ros::Subscriber pelvis_tracker_posture_sub;
     ros::Subscriber tracker_status_sub;
+    ros::Subscriber lfoot_tracker_posture_sub;
+    ros::Subscriber rfoot_tracker_posture_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
@@ -294,9 +296,10 @@ public:
     void PoseCalibrationCallback(const std_msgs::Int8 &msg);
     void TrackerStatusCallback(const std_msgs::Bool &msg);
 
-    void ExosuitCallback(const geometry_msgs::PoseArray &msg);
+    // Controller callback
+    void LeftFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
+    void RightFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
 
-    void AzureKinectCallback(const visualization_msgs::MarkerArray &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -858,6 +861,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_raw_;
     Eigen::Isometry3d master_rshoulder_pose_raw_;
     Eigen::Isometry3d master_upperbody_pose_raw_;
+    Eigen::Isometry3d master_lfoot_pose_raw_;
+    Eigen::Isometry3d master_rfoot_pose_raw_;
 
     Eigen::Isometry3d master_lhand_pose_raw_pre_;
     Eigen::Isometry3d master_rhand_pose_raw_pre_;
@@ -867,6 +872,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_raw_pre_;
     Eigen::Isometry3d master_rshoulder_pose_raw_pre_;
     Eigen::Isometry3d master_upperbody_pose_raw_pre_;
+    Eigen::Isometry3d master_lfoot_pose_raw_pre_;
+    Eigen::Isometry3d master_rfoot_pose_raw_pre_;
 
     Eigen::Isometry3d master_lhand_pose_raw_ppre_;
     Eigen::Isometry3d master_rhand_pose_raw_ppre_;
@@ -876,6 +883,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_raw_ppre_;
     Eigen::Isometry3d master_rshoulder_pose_raw_ppre_;
     Eigen::Isometry3d master_upperbody_pose_raw_ppre_;
+    Eigen::Isometry3d master_lfoot_pose_raw_ppre_;
+    Eigen::Isometry3d master_rfoot_pose_raw_ppre_;
 
     Eigen::Isometry3d master_lhand_pose_;
     Eigen::Isometry3d master_rhand_pose_;
@@ -885,6 +894,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_;
     Eigen::Isometry3d master_rshoulder_pose_;
     Eigen::Isometry3d master_upperbody_pose_;
+    Eigen::Isometry3d master_lfoot_pose_;
+    Eigen::Isometry3d master_rfoot_pose_;
 
     Eigen::Isometry3d master_lhand_pose_pre_;
     Eigen::Isometry3d master_rhand_pose_pre_;
@@ -894,6 +905,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_pre_;
     Eigen::Isometry3d master_rshoulder_pose_pre_;
     Eigen::Isometry3d master_upperbody_pose_pre_;
+    Eigen::Isometry3d master_lfoot_pose_pre_;
+    Eigen::Isometry3d master_rfoot_pose_pre_;
 
     Eigen::Isometry3d master_lhand_pose_ppre_;
     Eigen::Isometry3d master_rhand_pose_ppre_;
@@ -903,6 +916,8 @@ public:
     Eigen::Isometry3d master_lshoulder_pose_ppre_;
     Eigen::Isometry3d master_rshoulder_pose_ppre_;
     Eigen::Isometry3d master_upperbody_pose_ppre_;
+    Eigen::Isometry3d master_lfoot_pose_ppre_;
+    Eigen::Isometry3d master_rfoot_pose_ppre_;
 
     Eigen::Vector6d master_lhand_vel_;
     Eigen::Vector6d master_rhand_vel_;
@@ -912,6 +927,8 @@ public:
     Eigen::Vector6d master_lshoulder_vel_;
     Eigen::Vector6d master_rshoulder_vel_;
     Eigen::Vector6d master_upperbody_vel_;
+    Eigen::Vector6d master_lfoot_vel_;
+    Eigen::Vector6d master_rfoot_vel_;
 
     Eigen::Vector3d master_lhand_rqy_;
     Eigen::Vector3d master_rhand_rqy_;
@@ -919,6 +936,8 @@ public:
     Eigen::Vector3d master_relbow_rqy_;
     Eigen::Vector3d master_lshoulder_rqy_;
     Eigen::Vector3d master_rshoulder_rqy_;
+    Eigen::Vector3d master_lfoot_rpy_;
+    Eigen::Vector3d master_rfoot_rpy_;
 
     Eigen::Vector3d master_head_rqy_;
 
@@ -933,6 +952,9 @@ public:
     double robot_upperarm_max_l_;
     double robot_lowerarm_max_l_;
     double robot_shoulder_width_;
+
+    double robot_leg_len_;
+    double human_leg_len_;
     ////////////HMD + VIVE TRACKER////////////
     bool hmd_init_pose_calibration_;
     // double hmd_init_pose_cali_time_;
@@ -942,13 +964,8 @@ public:
     bool hmd_tracker_status_pre_; //1: good, 0: bad
 
     double tracker_status_changed_time_;
-    double calibration_x_l_scale_;
-    double calibration_x_r_scale_;
-    double calibration_y_l_scale_;
-    double calibration_y_r_scale_;
-    double calibration_z_l_scale_;
-    double calibration_z_r_scale_;
 
+    bool tracker_first_recieve_flag_ = true;
     double hmd_larm_max_l_;
     double hmd_rarm_max_l_;
     double hmd_shoulder_width_;
@@ -968,6 +985,8 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_raw_;
     Eigen::Isometry3d hmd_chest_pose_raw_;
     Eigen::Isometry3d hmd_pelv_pose_raw_;
+    Eigen::Isometry3d hmd_lfoot_pose_raw_;
+    Eigen::Isometry3d hmd_rfoot_pose_raw_;
 
     Eigen::Isometry3d hmd_head_pose_raw_last_;
     Eigen::Isometry3d hmd_lshoulder_pose_raw_last_;
@@ -978,6 +997,8 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_raw_last_;
     Eigen::Isometry3d hmd_chest_pose_raw_last_;
     Eigen::Isometry3d hmd_pelv_pose_raw_last_;
+    Eigen::Isometry3d hmd_lfoot_pose_raw_last_;
+    Eigen::Isometry3d hmd_rfoot_pose_raw_last_;
 
     Eigen::Isometry3d hmd_head_pose_;
     Eigen::Isometry3d hmd_lshoulder_pose_;
@@ -988,6 +1009,8 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_;
     Eigen::Isometry3d hmd_chest_pose_;
     Eigen::Isometry3d hmd_pelv_pose_;
+    Eigen::Isometry3d hmd_lfoot_pose_;
+    Eigen::Isometry3d hmd_rfoot_pose_;
 
     Eigen::Isometry3d hmd_head_pose_pre_;
     Eigen::Isometry3d hmd_lshoulder_pose_pre_;
@@ -998,6 +1021,8 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_pre_;
     Eigen::Isometry3d hmd_chest_pose_pre_;
     Eigen::Isometry3d hmd_pelv_pose_pre_;
+    Eigen::Isometry3d hmd_lfoot_pose_pre_;
+    Eigen::Isometry3d hmd_rfoot_pose_pre_;
 
     Eigen::Isometry3d hmd_head_pose_init_;
     Eigen::Isometry3d hmd_lshoulder_pose_init_;
@@ -1008,6 +1033,8 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_init_;
     Eigen::Isometry3d hmd_chest_pose_init_;
     Eigen::Isometry3d hmd_pelv_pose_init_;
+    Eigen::Isometry3d hmd_lfoot_pose_init_;
+    Eigen::Isometry3d hmd_rfoot_pose_init_;
 
     Eigen::Vector3d hmd2robot_lhand_pos_mapping_;
     Eigen::Vector3d hmd2robot_rhand_pos_mapping_;
@@ -1048,7 +1075,10 @@ public:
     Eigen::Vector6d hmd_rupperarm_vel_;
     Eigen::Vector6d hmd_rhand_vel_;
     Eigen::Vector6d hmd_chest_vel_;
-    Eigen::Vector6d hmd_pelv_vel_; 
+    Eigen::Vector6d hmd_pelv_vel_;
+    Eigen::Vector6d hmd_lfoot_vel_;
+    Eigen::Vector6d hmd_rfoot_vel_;
+
     
     Eigen::Vector6d hmd_chest_vel_thread_;
     Eigen::Vector6d hmd_chest_vel_slow_;
