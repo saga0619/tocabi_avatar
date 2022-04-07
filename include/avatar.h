@@ -62,7 +62,7 @@ const std::string FILE_NAMES[FILE_CNT] =
         // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg"; //tocabi
+const std::string calibration_folder_dir_ = "/home/dyrosavatar/data/vive_tracker/calibration_log/dg"; //tocabi
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu
 
@@ -956,7 +956,6 @@ public:
     double robot_leg_len_;
     double human_leg_len_;
     ////////////HMD + VIVE TRACKER////////////
-    bool hmd_init_pose_calibration_;
     // double hmd_init_pose_cali_time_;
 
     bool hmd_tracker_status_raw_; //1: good, 0: bad
