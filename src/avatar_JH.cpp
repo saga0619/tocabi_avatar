@@ -12,12 +12,12 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
-ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
-ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
-ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
+//ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+//// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+//ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
+//ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
+//ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt");
+//ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
 ofstream JH_lf("/home/dyros/hqp_jh/data/JH_lf.txt");
 ofstream JH_rf("/home/dyros/hqp_jh/data/JH_rf.txt");
 ofstream JH_rf_act("/home/dyros/hqp_jh/data/JH_rf_act.txt");
@@ -34,7 +34,7 @@ ofstream JH_time_2("/home/dyros/hqp_jh/data/JH_time_2.txt");
 ofstream JH_pelv_bf("/home/dyros/hqp_jh/data/JH_pelv_bf.txt");
 ofstream JH_rf_bf("/home/dyros/hqp_jh/data/JH_rf_bf.txt");
 ofstream JH_lf_bf("/home/dyros/hqp_jh/data/JH_lf_bf.txt");
-
+ofstream JH_q_ik_orig("/home/dyros/hqp_jh/data/JH_q_ik_orig.txt");
 
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
@@ -543,7 +543,7 @@ void AvatarController::setGains()
 
     //LEG
     ///LEFT LEG
-    joint_limit_l_(0) = -20 * DEG2RAD;//right hip yaw
+    joint_limit_l_(0) = -20 * DEG2RAD;//left hip yaw
     joint_limit_h_(0) = 20 * DEG2RAD;
     joint_limit_l_(1) = -45 * DEG2RAD;//left hip roll
     joint_limit_h_(1) = 90 * DEG2RAD;
@@ -812,10 +812,21 @@ void AvatarController::computeSlow()
                 JH_pelv_bf << pelv_trajectory_float_.translation()(0) << " , " << pelv_trajectory_float_.translation()(1) << " , " << pelv_trajectory_float_.translation()(2) << endl;
                 JH_lf_bf << lfoot_trajectory_float_.translation()(0) << " , " << lfoot_trajectory_float_.translation()(1) << " , " << lfoot_trajectory_float_.translation()(2) << endl;
                 JH_rf_bf << rfoot_trajectory_float_.translation()(0) << " , " << rfoot_trajectory_float_.translation()(1) << " , " << rfoot_trajectory_float_.translation()(2) << endl;
-//                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_2);
 
                 /////////////////////////////////used for analytic IK/////////////////////////////////
-
+                JH_q_ik_orig << q_des_2(0)* RAD2DEG << ","
+                     << q_des_2(1)* RAD2DEG << ","
+                     << q_des_2(2)* RAD2DEG << ","
+                     << q_des_2(3)* RAD2DEG << ","
+                     << q_des_2(4)* RAD2DEG << ","
+                     << q_des_2(5)* RAD2DEG << ","
+                     << q_des_2(6)* RAD2DEG << ","
+                     << q_des_2(7)* RAD2DEG << ","
+                     << q_des_2(8)* RAD2DEG << ","
+                     << q_des_2(9)* RAD2DEG << ","
+                     << q_des_2(10)* RAD2DEG << ","
+                     << q_des_2(11)* RAD2DEG << endl;
                 //--------------------------------------------------------------
                 // STEP5-1: update q_des_slow from slow thred
                 if (atb_desired_q_update_ == false)
@@ -9597,10 +9608,12 @@ void AvatarController::computeLBIKcontrol_HQP(Eigen::Isometry3d lfoot_t_des, Eig
 
             //gain 수정해야됨--------------------------------------->
             w1_lbikhqp_[0] = 1;  // |A*qdot - h|
-            w2_lbikhqp_[0] = 1e-6;    //|q_dot|
+//            w2_lbikhqp_[0] = 1e-6;    //|q_dot| //pitch difference 때문에0으로바꾼뒤실험
+            w2_lbikhqp_[0] = 0;    //|q_dot|
             w3_lbikhqp_[0] = 0.000; //acceleration (0.000)
             w1_lbikhqp_[1] = 1;  // |q_dot - q_dot_zero|
-            w2_lbikhqp_[1] = 1e-6;    //|q_dot|
+//            w2_lbikhqp_[1] = 1e-6;    //|q_dot|
+            w2_lbikhqp_[1] = 0;    //|q_dot|
             w3_lbikhqp_[1] = 0.000; //acceleration (0.000)
 
         }
@@ -9932,7 +9945,7 @@ void AvatarController::computeLBIKcontrol_HQP(Eigen::Isometry3d lfoot_t_des, Eig
         int higher_task_equality_num_lbikhqp_ = 0;
         A_lbikhqp_[i].setZero(constraint_size2_lbikhqp_[i], variable_size_lbikhqp_); // 12, 18 x 12
 
-        for (int h = 0; h < i; h++) // 0 1
+        for (int h = 0; h < i; h++) // i = 0 1
         {
             A_lbikhqp_[i].block(higher_task_equality_num_lbikhqp_, 0, control_size_lbikhqp_[h], variable_size_lbikhqp_) = J_lbikhqp_[h];//J --> A b --> u // 6 x 12
             ubA_lbikhqp_[i].segment(higher_task_equality_num_lbikhqp_, control_size_lbikhqp_[h]) = J_lbikhqp_[h] * q_dot_lbikhqp_[i - 1]; //upper
@@ -10415,10 +10428,10 @@ void AvatarController::computeCAMcontrol_HQP()
    
     //if((walking_tick_mj % 100) == 0 )
     {
-        MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
-        MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
-        MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << torque_flag_y << "," << torque_flag_x << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl; 
-        MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+//        MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
+//        MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
+//        MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << torque_flag_y << "," << torque_flag_x << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_tau_(0) << "," << del_tau_(1) << endl;
+//        MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
     }    
     
 }
@@ -15475,7 +15488,12 @@ void AvatarController::calculateFootStepTotal_MJoy()
     }
 
     foot_step_joy_temp_.resize(joy_index_ + index, 7);
-    foot_step_joy_temp_.setZero();Mar/31/2022 on progress
+    foot_step_joy_temp_.setZero();
+    foot_step_joy_temp_ = foot_step_;
+}
+
+void AvatarController::calculateFootStepTotal_MJoy_End()
+{
     double width = 0.1225;
     double temp;
     int index = 1;
