@@ -48,8 +48,8 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightHandTrackerCallback, this);
     lelbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER2", 100, &AvatarController::LeftElbowTrackerCallback, this);
     relbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER4", 100, &AvatarController::RightElbowTrackerCallback, this);
-    chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER1", 100, &AvatarController::ChestTrackerCallback, this);
-    pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER0", 100, &AvatarController::PelvisTrackerCallback, this);
+    chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI1", 100, &AvatarController::ChestTrackerCallback, this);
+    pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI0", 100, &AvatarController::PelvisTrackerCallback, this);
     tracker_status_sub = nh_avatar_.subscribe("/TRACKERSTATUS", 100, &AvatarController::TrackerStatusCallback, this);
 
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
@@ -728,7 +728,7 @@ void AvatarController::computeSlow()
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
                 
                 // float data collect
-                hmd_check_pose_calibration_[0] = true;
+                // hmd_check_pose_calibration_[0] = true;
 
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
@@ -759,11 +759,19 @@ void AvatarController::computeSlow()
 
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
                 Compliant_control(q_des_);
+
+                // q_des_(2) += 0.12;  //data shift
+                // q_des_(4) += -0.10;  //data shift
+
+                // q_des_(8) += 0.12;  //
+                // q_des_(10) += -0.10;  //data shift
+
                 for (int i = 0; i < 12; i++)
                 {
                     ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
                 }
+
                 //hip_compensator();
                 // GravityCalculate_MJ();
 
@@ -801,7 +809,7 @@ void AvatarController::computeSlow()
 
                 for (int i = 0; i < 12; i++)
                 {
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) -= 1.0*estimated_model_unct_torque_slow_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
@@ -818,8 +826,10 @@ void AvatarController::computeSlow()
 
                 // std::chrono::steady_clock::time_point t14 = std::chrono::steady_clock::now();
 
-                // if (int(walking_tick_mj) % 500 == 0)
-                // {
+                if (int(walking_tick_mj) % 1000 == 0)
+                {
+                    cout<<"quaternion y: "<<q_virtual_Xd_global_(5)<<endl;
+                    cout<<"pelv v: "<<q_dot_virtual_Xd_global_.segment(0, 3).transpose()<<endl;
                 //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
                 //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
                 //     cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
@@ -834,7 +844,7 @@ void AvatarController::computeSlow()
                 //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t13 - t12).count() <<endl;
                 //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t13).count() <<endl;
                 //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t1).count() <<endl;
-                // }
+                }
 
                 ////mujoco ext wrench publish////(dg add)
                 // if( (walking_tick_mj >= 10*hz_)&&(walking_tick_mj < 11*hz_) )
@@ -1773,7 +1783,7 @@ void AvatarController::initWalkingParameter()
     hmd_chest_pose_pre_.setIdentity();
     hmd_pelv_pose_pre_.setIdentity();
 
-    hmd_pelv_pose_init_.setIdentity();
+    // hmd_pelv_pose_init_.setIdentity();
     tracker_status_changed_time_ = current_time_;
     hmd_tracker_status_ = false;
     hmd_tracker_status_raw_ = false;
@@ -5866,16 +5876,22 @@ void AvatarController::poseCalibration()
     if ((hmd_check_pose_calibration_[0] == true) && (still_pose_cali_flag_ == false))
     {
         hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+        hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
+        hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
+        hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
     }
     else
     {
         hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_init_.translation();
+        hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_init_.linear());
+        hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
+        hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
     }
 
     // hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
-    hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
-    hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
-    hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
+    // hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
+    // hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
+    // hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
 
     //coordinate conversion
 
@@ -12991,18 +13007,18 @@ void AvatarController::calculateFootStepTotal_MJ()
     initial_rot = atan2(target_y_, target_x_);
 
     if (initial_rot > 0.0)
-        initial_drot = 20 * DEG2RAD;
+        initial_drot = 15 * DEG2RAD;
     else
-        initial_drot = -20 * DEG2RAD;
+        initial_drot = -15 * DEG2RAD;
 
     unsigned int initial_total_step_number = initial_rot / initial_drot;
     double initial_residual_angle = initial_rot - initial_total_step_number * initial_drot;
 
     final_rot = target_theta_ - initial_rot;
     if (final_rot > 0.0)
-        final_drot = 20 * DEG2RAD;
+        final_drot = 15 * DEG2RAD;
     else
-        final_drot = -20 * DEG2RAD;
+        final_drot = -15 * DEG2RAD;
 
     unsigned int final_total_step_number = final_rot / final_drot;
     double final_residual_angle = final_rot - final_total_step_number * final_drot;
@@ -14564,45 +14580,45 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     // random walking setting////
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+    target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
 
-    // // t_rest_init_ = 0.27*hz_;
-    // // t_rest_last_ = 0.27*hz_;
-    // // t_double1_ = 0.03*hz_;
-    // // t_double2_ = 0.03*hz_;
-    // // t_total_= 1.3*hz_;
-    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    // target_x_ = 1.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.2*hz_;
-    t_rest_last_ = 0.2*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 1.1*hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.2*hz_;
+    // t_rest_last_ = 0.2*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.1*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     // 0.9s walking
@@ -14623,7 +14639,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.055;      // 0.9 sec 0.05
     /////////////////////////////////
 
-    t_temp_ = 3.0 * hz_;
+    t_temp_ = 2.0 * hz_;
     t_last_ = t_total_ + t_temp_;
     t_start_ = t_temp_ + 1;
     t_start_real_ = t_start_ + t_rest_init_;
