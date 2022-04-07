@@ -538,12 +538,12 @@ void AvatarController::setGains()
     joint_limit_h_(0) = 20 * DEG2RAD;
     joint_limit_l_(1) = -45 * DEG2RAD;
     joint_limit_h_(1) = 90 * DEG2RAD;
-    joint_limit_l_(2) = -80 * DEG2RAD;
-    joint_limit_h_(2) = 80 * DEG2RAD;
+    joint_limit_l_(2) = -90 * DEG2RAD;
+    joint_limit_h_(2) = 90 * DEG2RAD;
     joint_limit_l_(3) = 5 * DEG2RAD;
     joint_limit_h_(3) = 150 * DEG2RAD;
-    joint_limit_l_(4) = -80 * DEG2RAD;
-    joint_limit_h_(4) = 80 * DEG2RAD;
+    joint_limit_l_(4) = -90 * DEG2RAD;
+    joint_limit_h_(4) = 90 * DEG2RAD;
     joint_limit_l_(5) = -80 * DEG2RAD;
     joint_limit_h_(5) = 80 * DEG2RAD;
 
@@ -551,12 +551,12 @@ void AvatarController::setGains()
     joint_limit_h_(6) = 20 * DEG2RAD;
     joint_limit_l_(7) = -90 * DEG2RAD;
     joint_limit_h_(7) = 45 * DEG2RAD;
-    joint_limit_l_(8) = -80 * DEG2RAD;
-    joint_limit_h_(8) = 80 * DEG2RAD;
+    joint_limit_l_(8) = -90 * DEG2RAD;
+    joint_limit_h_(8) = 90 * DEG2RAD;
     joint_limit_l_(9) = 5 * DEG2RAD;
     joint_limit_h_(9) = 150 * DEG2RAD;
-    joint_limit_l_(10) = -80 * DEG2RAD;
-    joint_limit_h_(10) = 80 * DEG2RAD;
+    joint_limit_l_(10) = -90 * DEG2RAD;
+    joint_limit_h_(10) = 90 * DEG2RAD;
     joint_limit_l_(11) = -80 * DEG2RAD;
     joint_limit_h_(11) = 80 * DEG2RAD;
 
@@ -770,7 +770,9 @@ void AvatarController::computeSlow()
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
-
+        updateInitialState();
+        getRobotState();
+        
         if (walking_enable_ == true) //31~180us
         {
             if (walking_tick_mj == 0)
@@ -859,9 +861,9 @@ void AvatarController::computeSlow()
 
 
                 desired_q_not_compensated_ = ref_q_;
-                printOutTextFile();
+                // printOutTextFile();
 
-                updateNextStepTime();
+                // updateNextStepTime();
 
                 q_prev_MJ_ = rd_.q_;
                 pre_time_computeslow_ = current_time_computeslow_;
@@ -932,6 +934,11 @@ void AvatarController::computeSlow()
                 Tau_CP(i) = 0.99*Tau_CP(i); // decreasing to zero
             }
         }
+
+        // float data collect
+        printOutTextFile();
+        walking_tick_mj ++;
+
         /////////////////////////////////////////////////////////////////////////////////////////
         if (atb_desired_q_update_ == false)
         {
@@ -7409,8 +7416,30 @@ void AvatarController::hmdRawDataProcessing()
     master_lfoot_pose_raw_.translation() = lfoot_transform_start_from_global_.translation() + (hmd_lfoot_pose_.translation() - hmd_lfoot_pose_init_.translation());
     master_rfoot_pose_raw_.translation() = rfoot_transform_start_from_global_.translation() + (hmd_rfoot_pose_.translation() - hmd_rfoot_pose_init_.translation());
 
-    master_lfoot_pose_raw_.translation()(2) += -0.01;
-    master_rfoot_pose_raw_.translation()(2) += -0.01;
+    master_lfoot_pose_raw_.translation()(2) += -0.02;
+    master_rfoot_pose_raw_.translation()(2) += -0.02;
+    
+    master_lfoot_pose_raw_.translation()(0) += -0.07;
+    master_rfoot_pose_raw_.translation()(0) += -0.07;
+
+    // clipping leg length
+    Vector3d pelv_to_lhipjoint, pelv_to_rhipjoint, lhipjoint_to_lfoot, rhipjoint_to_rfoot;
+    pelv_to_lhipjoint << 0.11, 0.1025, -0.1025;
+    pelv_to_rhipjoint << 0.11, -0.1025, -0.1025;
+    
+    lhipjoint_to_lfoot = master_lfoot_pose_raw_.translation() - pelv_to_lhipjoint;
+    rhipjoint_to_rfoot = master_rfoot_pose_raw_.translation() - pelv_to_rhipjoint;
+
+    double max_leg_len = 0.98*sqrt(0.35*0.35 + 0.35*0.35 + 2*0.35*0.35*cos( joint_limit_l_(3)));
+    if(lhipjoint_to_lfoot.norm() > max_leg_len)
+    {
+        master_lfoot_pose_raw_.translation() = pelv_to_lhipjoint + max_leg_len*lhipjoint_to_lfoot.normalized();
+    }
+
+    if(rhipjoint_to_rfoot.norm() > max_leg_len)
+    {
+        master_rfoot_pose_raw_.translation() = pelv_to_rhipjoint + max_leg_len*rhipjoint_to_rfoot.normalized();
+    }
 
     // master_lfoot_pose_raw_.translation()(2) = DyrosMath::minmax_cut(master_lfoot_pose_raw_.translation()(2), -0.75, -0.3);
     // master_rfoot_pose_raw_.translation()(2) = DyrosMath::minmax_cut(master_rfoot_pose_raw_.translation()(2), -0.75, -0.3);
