@@ -38,17 +38,17 @@ const int FILE_CNT = 4;
 const int n_input_ = 22;
 const int n_sequence_length_ = 1;
 const int n_output_ = 6;
-const int n_hidden_ = 64;
+const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dg/data/mob/random_walking_.txt",
-        "/home/dg/data/mob/1_foot_.txt",
-        "/home/dg/data/mob/2_zmp_.txt",
-        "/home/dg/data/mob/3_lstm_.txt"
+        "/home/dyros/data/dg/random_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -62,8 +62,8 @@ const std::string FILE_NAMES[FILE_CNT] =
         // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyrosavatar/data/vive_tracker/calibration_log/dg"; //tocabi
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/mj";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/mj/mj_leg_cali"; //tocabi
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/mj";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu
 
 class AvatarController
@@ -255,6 +255,8 @@ public:
     ros::Subscriber tracker_status_sub;
     ros::Subscriber lfoot_tracker_posture_sub;
     ros::Subscriber rfoot_tracker_posture_sub;
+    ros::Subscriber tcb_chest_tracker_posture_sub;
+    ros::Subscriber tcb_pelv_tracker_posture_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
@@ -299,6 +301,11 @@ public:
     // Controller callback
     void LeftFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
     void RightFootTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
+
+    // TOCABI TRAKER callback
+    void TcbChestTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
+    void TcbPelvTrackerCallback(const tocabi_msgs::matrix_3_4 &msg);
+    
 
     ///////////////////////////////
 
@@ -986,6 +993,8 @@ public:
     Eigen::Isometry3d hmd_pelv_pose_raw_;
     Eigen::Isometry3d hmd_lfoot_pose_raw_;
     Eigen::Isometry3d hmd_rfoot_pose_raw_;
+    Eigen::Isometry3d tcb_chest_pose_raw_;
+    Eigen::Isometry3d tcb_pelv_pose_raw_;
 
     Eigen::Isometry3d hmd_head_pose_raw_last_;
     Eigen::Isometry3d hmd_lshoulder_pose_raw_last_;
@@ -998,6 +1007,8 @@ public:
     Eigen::Isometry3d hmd_pelv_pose_raw_last_;
     Eigen::Isometry3d hmd_lfoot_pose_raw_last_;
     Eigen::Isometry3d hmd_rfoot_pose_raw_last_;
+    Eigen::Isometry3d tcb_chest_pose_raw_last_;
+    Eigen::Isometry3d tcb_pelv_pose_raw_last_;
 
     Eigen::Isometry3d hmd_head_pose_;
     Eigen::Isometry3d hmd_lshoulder_pose_;
@@ -1010,6 +1021,8 @@ public:
     Eigen::Isometry3d hmd_pelv_pose_;
     Eigen::Isometry3d hmd_lfoot_pose_;
     Eigen::Isometry3d hmd_rfoot_pose_;
+    Eigen::Isometry3d tcb_chest_pose_;
+    Eigen::Isometry3d tcb_pelv_pose_;
 
     Eigen::Isometry3d hmd_head_pose_pre_;
     Eigen::Isometry3d hmd_lshoulder_pose_pre_;
@@ -1022,6 +1035,8 @@ public:
     Eigen::Isometry3d hmd_pelv_pose_pre_;
     Eigen::Isometry3d hmd_lfoot_pose_pre_;
     Eigen::Isometry3d hmd_rfoot_pose_pre_;
+    Eigen::Isometry3d tcb_chest_pose_pre_;
+    Eigen::Isometry3d tcb_pelv_pose_pre_;
 
     Eigen::Isometry3d hmd_head_pose_init_;
     Eigen::Isometry3d hmd_lshoulder_pose_init_;
@@ -1034,6 +1049,8 @@ public:
     Eigen::Isometry3d hmd_pelv_pose_init_;
     Eigen::Isometry3d hmd_lfoot_pose_init_;
     Eigen::Isometry3d hmd_rfoot_pose_init_;
+    Eigen::Isometry3d tcb_chest_pose_init_;
+    Eigen::Isometry3d tcb_pelv_pose_init_;
 
     Eigen::Vector3d hmd2robot_lhand_pos_mapping_;
     Eigen::Vector3d hmd2robot_rhand_pos_mapping_;
@@ -1077,11 +1094,12 @@ public:
     Eigen::Vector6d hmd_pelv_vel_;
     Eigen::Vector6d hmd_lfoot_vel_;
     Eigen::Vector6d hmd_rfoot_vel_;
-
+    Eigen::Vector6d tcb_chest_vel_;
+    Eigen::Vector6d tcb_pelv_vel_;
     
-    Eigen::Vector6d hmd_chest_vel_thread_;
-    Eigen::Vector6d hmd_chest_vel_slow_;
-    Eigen::Vector6d hmd_chest_vel_slow_lpf_;
+    Eigen::Vector6d tcb_pelv_vel_slow_;
+    Eigen::Vector6d tcb_pelv_vel_slow_lpf_;
+    Eigen::Vector6d tcb_pelv_vel_thread_;
 
     int hmd_head_abrupt_motion_count_;
     int hmd_lupperarm_abrupt_motion_count_;

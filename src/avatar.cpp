@@ -52,11 +52,14 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER0", 100, &AvatarController::PelvisTrackerCallback, this);
     tracker_status_sub = nh_avatar_.subscribe("/TRACKERSTATUS", 100, &AvatarController::TrackerStatusCallback, this);
     
-    lhand_tracker_posture_sub = nh_avatar_.subscribe("/LEFTCONTROLLER", 100, &AvatarController::LeftHandTrackerCallback, this);
-    rhand_tracker_posture_sub = nh_avatar_.subscribe("/RIGHTCONTROLLER", 100, &AvatarController::RightHandTrackerCallback, this);
+    // lhand_tracker_posture_sub = nh_avatar_.subscribe("/LEFTCONTROLLER", 100, &AvatarController::LeftHandTrackerCallback, this);
+    // rhand_tracker_posture_sub = nh_avatar_.subscribe("/RIGHTCONTROLLER", 100, &AvatarController::RightHandTrackerCallback, this);
     lfoot_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER1", 100, &AvatarController::LeftFootTrackerCallback, this);
     rfoot_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER2", 100, &AvatarController::RightFootTrackerCallback, this);
-  
+
+    tcb_chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI0", 100, &AvatarController::TcbChestTrackerCallback, this);
+    tcb_pelv_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI1", 100, &AvatarController::TcbPelvTrackerCallback, this);
+
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
 
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
@@ -538,27 +541,27 @@ void AvatarController::setGains()
     joint_limit_h_(0) = 20 * DEG2RAD;
     joint_limit_l_(1) = -45 * DEG2RAD;
     joint_limit_h_(1) = 90 * DEG2RAD;
-    joint_limit_l_(2) = -90 * DEG2RAD;
-    joint_limit_h_(2) = 90 * DEG2RAD;
+    joint_limit_l_(2) = -80 * DEG2RAD;
+    joint_limit_h_(2) = 65 * DEG2RAD;
     joint_limit_l_(3) = 5 * DEG2RAD;
     joint_limit_h_(3) = 150 * DEG2RAD;
-    joint_limit_l_(4) = -90 * DEG2RAD;
-    joint_limit_h_(4) = 90 * DEG2RAD;
-    joint_limit_l_(5) = -80 * DEG2RAD;
-    joint_limit_h_(5) = 80 * DEG2RAD;
+    joint_limit_l_(4) = -60 * DEG2RAD;
+    joint_limit_h_(4) = 30 * DEG2RAD;
+    joint_limit_l_(5) = -35 * DEG2RAD;
+    joint_limit_h_(5) = 35 * DEG2RAD;
 
     joint_limit_l_(6) = -20 * DEG2RAD;
     joint_limit_h_(6) = 20 * DEG2RAD;
     joint_limit_l_(7) = -90 * DEG2RAD;
     joint_limit_h_(7) = 45 * DEG2RAD;
-    joint_limit_l_(8) = -90 * DEG2RAD;
-    joint_limit_h_(8) = 90 * DEG2RAD;
+    joint_limit_l_(8) = -80 * DEG2RAD;
+    joint_limit_h_(8) = 65 * DEG2RAD;
     joint_limit_l_(9) = 5 * DEG2RAD;
     joint_limit_h_(9) = 150 * DEG2RAD;
-    joint_limit_l_(10) = -90 * DEG2RAD;
-    joint_limit_h_(10) = 90 * DEG2RAD;
-    joint_limit_l_(11) = -80 * DEG2RAD;
-    joint_limit_h_(11) = 80 * DEG2RAD;
+    joint_limit_l_(10) = -60 * DEG2RAD;
+    joint_limit_h_(10) = 30 * DEG2RAD;
+    joint_limit_l_(11) = -35 * DEG2RAD;
+    joint_limit_h_(11) = 35 * DEG2RAD;
 
     //WAIST
     joint_limit_l_(12) = -30 * DEG2RAD;
@@ -744,28 +747,28 @@ void AvatarController::computeSlow()
     }
     else if (rd_.tc_.mode == 11)
     {
-                //float_data_collect
-        Vector3d desired_pelv_pos_traj, pelv_ext_force, pelv_ext_torque;
-        Matrix3d desired_pelv_rot_traj;
-        desired_pelv_pos_traj = pelv_pos_init_global_;
-        desired_pelv_pos_traj(2) = DyrosMath::cubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_pos_init_global_(2), 1.5, 0.0, 0.0);
-        desired_pelv_rot_traj = DyrosMath::rotationCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_rot_init_global_, Eigen::Matrix3d::Identity());
+        // float_data_collect simulation
+        // Vector3d desired_pelv_pos_traj, pelv_ext_force, pelv_ext_torque;
+        // Matrix3d desired_pelv_rot_traj;
+        // desired_pelv_pos_traj = pelv_pos_init_global_;
+        // desired_pelv_pos_traj(2) = DyrosMath::cubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_pos_init_global_(2), 1.5, 0.0, 0.0);
+        // desired_pelv_rot_traj = DyrosMath::rotationCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_rot_init_global_, Eigen::Matrix3d::Identity());
 
-        pelv_ext_force = 10000*(desired_pelv_pos_traj - rd_.link_[Pelvis].xpos) - 200*rd_.link_[Pelvis].v;
-        pelv_ext_force(2) += rd_.link_[COM_id].mass * 9.81;
-        Vector3d error_w_pelv = -DyrosMath::getPhi(rd_.link_[Pelvis].rotm, Matrix3d::Identity());
-        pelv_ext_torque = 10000*error_w_pelv - 200*rd_.link_[Pelvis].w;
+        // pelv_ext_force = 10000*(desired_pelv_pos_traj - rd_.link_[Pelvis].xpos) - 200*rd_.link_[Pelvis].v;
+        // pelv_ext_force(2) += rd_.link_[COM_id].mass * 9.81;
+        // Vector3d error_w_pelv = -DyrosMath::getPhi(rd_.link_[Pelvis].rotm, Matrix3d::Identity());
+        // pelv_ext_torque = 10000*error_w_pelv - 200*rd_.link_[Pelvis].w;
 
-        mujoco_applied_ext_force_.data[0] = pelv_ext_force(0); //x-axis linear force
-        mujoco_applied_ext_force_.data[1] = pelv_ext_force(1);  //y-axis linear force
-        mujoco_applied_ext_force_.data[2] = pelv_ext_force(2);  //z-axis linear force
-        mujoco_applied_ext_force_.data[3] = pelv_ext_torque(0);  //x-axis angular moment
-        mujoco_applied_ext_force_.data[4] = pelv_ext_torque(1);  //y-axis angular moment
-        mujoco_applied_ext_force_.data[5] = pelv_ext_torque(2);  //z-axis angular moment
+        // mujoco_applied_ext_force_.data[0] = pelv_ext_force(0); //x-axis linear force
+        // mujoco_applied_ext_force_.data[1] = pelv_ext_force(1);  //y-axis linear force
+        // mujoco_applied_ext_force_.data[2] = pelv_ext_force(2);  //z-axis linear force
+        // mujoco_applied_ext_force_.data[3] = pelv_ext_torque(0);  //x-axis angular moment
+        // mujoco_applied_ext_force_.data[4] = pelv_ext_torque(1);  //y-axis angular moment
+        // mujoco_applied_ext_force_.data[5] = pelv_ext_torque(2);  //z-axis angular moment
 
-        mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:plevis
+        // mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:plevis
 
-        mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+        // mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
 
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
@@ -1805,6 +1808,8 @@ void AvatarController::initWalkingParameter()
     hmd_rupperarm_pose_.setIdentity();
     hmd_rhand_pose_.setIdentity();
     hmd_chest_pose_.setIdentity();
+    tcb_chest_pose_.setIdentity();
+    tcb_pelv_pose_.setIdentity();
 
     hmd_pelv_pose_raw_.setIdentity();
     hmd_lshoulder_pose_raw_.setIdentity();
@@ -1813,6 +1818,8 @@ void AvatarController::initWalkingParameter()
     hmd_rupperarm_pose_raw_.setIdentity();
     hmd_rhand_pose_raw_.setIdentity();
     hmd_chest_pose_raw_.setIdentity();
+    tcb_chest_pose_raw_.setIdentity();
+    tcb_pelv_pose_raw_.setIdentity();
 
     hmd_pelv_pose_raw_last_.setIdentity();
     hmd_lshoulder_pose_raw_last_.setIdentity();
@@ -1821,6 +1828,8 @@ void AvatarController::initWalkingParameter()
     hmd_rupperarm_pose_raw_last_.setIdentity();
     hmd_rhand_pose_raw_last_.setIdentity();
     hmd_chest_pose_raw_last_.setIdentity();
+    tcb_chest_pose_raw_last_.setIdentity();
+    tcb_pelv_pose_raw_last_.setIdentity();
 
     hmd_head_pose_pre_.setIdentity();
     hmd_lshoulder_pose_pre_.setIdentity();
@@ -1831,6 +1840,8 @@ void AvatarController::initWalkingParameter()
     hmd_rhand_pose_pre_.setIdentity();
     hmd_chest_pose_pre_.setIdentity();
     hmd_pelv_pose_pre_.setIdentity();
+    tcb_chest_pose_pre_.setIdentity();
+    tcb_pelv_pose_pre_.setIdentity();
 
     hmd_pelv_pose_init_.setIdentity();
     tracker_status_changed_time_ = current_time_;
@@ -1847,10 +1858,12 @@ void AvatarController::initWalkingParameter()
     hmd_rhand_vel_.setZero();
     hmd_chest_vel_.setZero();
     hmd_pelv_vel_.setZero();
+    tcb_chest_vel_.setZero();
+    tcb_pelv_vel_.setZero();
 
-    hmd_chest_vel_thread_.setZero();
-    hmd_chest_vel_slow_.setZero();
-    hmd_chest_vel_slow_lpf_.setZero();
+    tcb_pelv_vel_thread_.setZero();
+    tcb_pelv_vel_slow_.setZero();
+    tcb_pelv_vel_slow_lpf_.setZero();
     // hmd_tracker_status_ = true;
     // hmd_tracker_status_raw_ = true;
     // hmd_tracker_status_pre_ = true;
@@ -5827,6 +5840,9 @@ void AvatarController::poseCalibration()
         hmd_lfoot_pose_ = hmd_lfoot_pose_raw_;
         hmd_rfoot_pose_ = hmd_rfoot_pose_raw_;
 
+        tcb_chest_pose_ = tcb_chest_pose_raw_;
+        tcb_pelv_pose_ = tcb_pelv_pose_raw_;
+
         if ((current_time_ - tracker_status_changed_time_ <= 5)&&(tracker_first_recieve_flag_ == false))
         {
             // double w = DyrosMath::cubic(current_time_, tracker_status_changed_time_, tracker_status_changed_time_+5, 0, 1, 0, 0);
@@ -5843,6 +5859,9 @@ void AvatarController::poseCalibration()
             hmd_lfoot_pose_.translation() = w * hmd_lfoot_pose_raw_.translation() + (1 - w) * hmd_lfoot_pose_raw_last_.translation();
             hmd_rfoot_pose_.translation() = w * hmd_rfoot_pose_raw_.translation() + (1 - w) * hmd_rfoot_pose_raw_last_.translation();
 
+            tcb_chest_pose_.translation() = w * tcb_chest_pose_raw_.translation() + (1 - w) * tcb_chest_pose_raw_last_.translation();
+            tcb_pelv_pose_.translation() = w * tcb_pelv_pose_raw_.translation() + (1 - w) * tcb_pelv_pose_raw_last_.translation();
+
             Eigen::AngleAxisd head_ang_diff(hmd_head_pose_raw_.linear() * hmd_head_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd lelbow_ang_diff(hmd_lupperarm_pose_raw_.linear() * hmd_lupperarm_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd lhand_ang_diff(hmd_lhand_pose_raw_.linear() * hmd_lhand_pose_raw_last_.linear().transpose());
@@ -5852,8 +5871,11 @@ void AvatarController::poseCalibration()
             Eigen::AngleAxisd pelv_ang_diff(hmd_pelv_pose_raw_.linear() * hmd_pelv_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd lfoot_ang_diff(hmd_lfoot_pose_raw_.linear() * hmd_lfoot_pose_raw_last_.linear().transpose());
             Eigen::AngleAxisd rfoot_ang_diff(hmd_rfoot_pose_raw_.linear() * hmd_rfoot_pose_raw_last_.linear().transpose());
+            
+            Eigen::AngleAxisd tcb_chest_ang_diff(tcb_chest_pose_raw_.linear() * tcb_chest_pose_raw_last_.linear().transpose());
+            Eigen::AngleAxisd tcb_pelv_ang_diff(tcb_pelv_pose_raw_.linear() * tcb_pelv_pose_raw_last_.linear().transpose());
 
-            Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, head_diff_m, upperbody_diff_m, pelv_diff_m, lfoot_diff_m, rfoot_diff_m;
+            Eigen::Matrix3d lhand_diff_m, rhand_diff_m, lelbow_diff_m, relbow_diff_m, head_diff_m, upperbody_diff_m, pelv_diff_m, lfoot_diff_m, rfoot_diff_m, tcb_chest_diff_m, tcb_pelv_diff_m;
             lhand_diff_m = Eigen::AngleAxisd(lhand_ang_diff.angle() * w, lhand_ang_diff.axis());
             rhand_diff_m = Eigen::AngleAxisd(rhand_ang_diff.angle() * w, rhand_ang_diff.axis());
             lelbow_diff_m = Eigen::AngleAxisd(lelbow_ang_diff.angle() * w, lelbow_ang_diff.axis());
@@ -5864,6 +5886,9 @@ void AvatarController::poseCalibration()
             lfoot_diff_m = Eigen::AngleAxisd(lfoot_ang_diff.angle() * w, lfoot_ang_diff.axis());
             rfoot_diff_m = Eigen::AngleAxisd(rfoot_ang_diff.angle() * w, rfoot_ang_diff.axis());
 
+            tcb_chest_diff_m = Eigen::AngleAxisd(tcb_chest_ang_diff.angle() * w, tcb_chest_ang_diff.axis());
+            tcb_pelv_diff_m = Eigen::AngleAxisd(tcb_pelv_ang_diff.angle() * w, tcb_pelv_ang_diff.axis());
+
             hmd_lupperarm_pose_.linear() = lelbow_diff_m * hmd_lupperarm_pose_raw_last_.linear();
             hmd_lhand_pose_.linear() = lhand_diff_m * hmd_lhand_pose_raw_last_.linear();
             hmd_rupperarm_pose_.linear() = relbow_diff_m * hmd_rupperarm_pose_raw_last_.linear();
@@ -5873,6 +5898,9 @@ void AvatarController::poseCalibration()
             hmd_pelv_pose_.linear() = pelv_diff_m * hmd_pelv_pose_raw_last_.linear();
             hmd_lfoot_pose_.linear() = lfoot_diff_m * hmd_lfoot_pose_raw_last_.linear();
             hmd_rfoot_pose_.linear() = rfoot_diff_m * hmd_rfoot_pose_raw_last_.linear();
+
+            tcb_chest_pose_.linear() = tcb_chest_diff_m * tcb_chest_pose_raw_last_.linear();
+            tcb_pelv_pose_.linear() = tcb_pelv_diff_m * tcb_pelv_pose_raw_last_.linear();
 
             if (int((current_time_ - tracker_status_changed_time_) * 2000) % 1000 == 0)
                 cout << "Motion Tracking Resume!" << int((current_time_ - tracker_status_changed_time_) / 5 * 100) << "%" << endl;
@@ -5906,7 +5934,9 @@ void AvatarController::poseCalibration()
             hmd_pelv_pose_raw_last_ = hmd_pelv_pose_raw_;
             hmd_lfoot_pose_raw_last_ = hmd_lfoot_pose_raw_;
             hmd_rfoot_pose_raw_last_ = hmd_rfoot_pose_raw_;
-
+            
+            tcb_chest_pose_raw_last_ = tcb_chest_pose_raw_;
+            tcb_pelv_pose_raw_last_ = tcb_pelv_pose_raw_;
             if(tracker_first_recieve_flag_ == true)
             {
                 tracker_first_recieve_flag_ = false;
@@ -5922,6 +5952,9 @@ void AvatarController::poseCalibration()
         hmd_pelv_pose_ = hmd_pelv_pose_raw_last_;
         hmd_lfoot_pose_ = hmd_lfoot_pose_raw_last_;
         hmd_rfoot_pose_ = hmd_rfoot_pose_raw_last_;
+        
+        tcb_chest_pose_ = tcb_chest_pose_raw_last_;
+        tcb_pelv_pose_ = tcb_pelv_pose_raw_last_;
     }
 
     if (int(current_time_ * 1e4) % int(1e3) == 0)
@@ -5959,26 +5992,26 @@ void AvatarController::poseCalibration()
         // }
     }
 
-    Eigen::Vector3d hmd_pelv_rpy;
-    Eigen::Matrix3d hmd_pelv_yaw_rot;
-    Eigen::Isometry3d hmd_pelv_pose_yaw_only;
+    Eigen::Vector3d hmd_pelv_rpy, tcb_chest_rpy;
+    Eigen::Matrix3d hmd_pelv_yaw_rot, tcb_chest_yaw_rot;
+    Eigen::Isometry3d hmd_pelv_pose_yaw_only, tcb_chest_pose_yaw_only;
 
-    // if ((hmd_check_pose_calibration_[0] == true) && (still_pose_cali_flag_ == false))
-    // {
-    //     hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+    if (hmd_check_pose_calibration_[3] == true) //calibration done
+    {
+        tcb_chest_pose_yaw_only.translation() = tcb_chest_pose_.translation();
 
-    //     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
-    //     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
-    //     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
-    // }
-    // else
-    // {
-    //     hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
+        tcb_chest_rpy = DyrosMath::rot2Euler(tcb_chest_pose_.linear());
+        tcb_chest_yaw_rot = DyrosMath::rotateWithZ(tcb_chest_rpy(2));
+        tcb_chest_pose_yaw_only.linear() = tcb_chest_yaw_rot;
+    }
+    else
+    {
+        tcb_chest_pose_yaw_only.translation() = tcb_chest_pose_init_.translation();
 
-    //     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
-    //     hmd_pelv_yaw_rot = DyrosMath::rotateWithZ(hmd_pelv_rpy(2));
-    //     hmd_pelv_pose_yaw_only.linear() = hmd_pelv_yaw_rot;
-    // }
+        tcb_chest_rpy = DyrosMath::rot2Euler(tcb_chest_pose_init_.linear());
+        tcb_chest_yaw_rot = DyrosMath::rotateWithZ(tcb_chest_rpy(2));
+        tcb_chest_pose_yaw_only.linear() = tcb_chest_yaw_rot;
+    }
     hmd_pelv_pose_yaw_only.translation() = hmd_pelv_pose_.translation();
 
     hmd_pelv_rpy = DyrosMath::rot2Euler(hmd_pelv_pose_.linear());
@@ -5997,6 +6030,9 @@ void AvatarController::poseCalibration()
     hmd_lfoot_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lfoot_pose_;
     hmd_rfoot_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rfoot_pose_;
     // hmd_pelv_pose_.linear().setIdentity();
+
+    tcb_pelv_pose_ = tcb_chest_pose_yaw_only.inverse() * tcb_pelv_pose_;
+
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0;  //bebop
@@ -6046,6 +6082,8 @@ void AvatarController::poseCalibration()
         hmd_lfoot_pose_init_ = hmd_lfoot_pose_;
         hmd_rfoot_pose_init_ = hmd_rfoot_pose_;
 
+        tcb_chest_pose_init_ = tcb_chest_pose_;
+        tcb_pelv_pose_init_ = tcb_pelv_pose_;
         // hmd_head_pose_init_ 	<<  -0.13517, 0.289845, -0.259223;
         // hmd_lupperarm_pose_init_<<  -0.13517, 0.289845, -0.259223;
         // hmd_lhand_pose_init_ 	<<  -0.13517, 0.289845, -0.259223;
@@ -6387,7 +6425,7 @@ void AvatarController::poseCalibration()
     hmd_rshoulder_pose_.linear() = hmd_chest_pose_.linear();
 
     //HMD Velocity
-    if(hmd_chest_pose_.translation() != hmd_chest_pose_pre_.translation())
+    if(tcb_pelv_pose_.translation() != tcb_pelv_pose_pre_.translation())
     {
         double dt_hmd_vel;
         dt_hmd_vel = rd_.control_time_-last_hmd_vel_calc_time_;
@@ -6404,9 +6442,11 @@ void AvatarController::poseCalibration()
         hmd_rfoot_vel_.segment(0, 3) = (hmd_rfoot_pose_.translation() - hmd_rfoot_pose_pre_.translation()) / dt_hmd_vel;
 
         hmd_chest_vel_.segment(0, 3) = (hmd_chest_pose_.translation() - hmd_chest_pose_pre_.translation()) / dt_hmd_vel;
+
+        tcb_pelv_vel_.segment(0, 3) = (tcb_pelv_pose_.translation() - tcb_pelv_pose_pre_.translation()) / dt_hmd_vel; 
         // float data collect
-        hmd_chest_vel_(0) = -hmd_chest_vel_(0);
-        hmd_chest_vel_(1) = -hmd_chest_vel_(1);
+        // hmd_chest_vel_(0) = -hmd_chest_vel_(0);
+        // hmd_chest_vel_(1) = -hmd_chest_vel_(1);
 
         Eigen::AngleAxisd ang_temp_1(hmd_head_pose_.linear() * hmd_head_pose_pre_.linear().transpose());
         Eigen::AngleAxisd ang_temp_2(hmd_lshoulder_pose_.linear() * hmd_lshoulder_pose_pre_.linear().transpose());
@@ -6418,6 +6458,8 @@ void AvatarController::poseCalibration()
         Eigen::AngleAxisd ang_temp_8(hmd_chest_pose_.linear() * hmd_chest_pose_pre_.linear().transpose());
         Eigen::AngleAxisd ang_temp_9(hmd_lfoot_pose_.linear() * hmd_lfoot_pose_pre_.linear().transpose());
         Eigen::AngleAxisd ang_temp_10(hmd_rfoot_pose_.linear() * hmd_rfoot_pose_pre_.linear().transpose());
+            
+        Eigen::AngleAxisd ang_temp_11(tcb_pelv_pose_.linear() * tcb_pelv_pose_pre_.linear().transpose());
 
 
         hmd_head_vel_.segment(3, 3) = ang_temp_1.axis() * ang_temp_1.angle() / dt_hmd_vel;
@@ -6430,6 +6472,8 @@ void AvatarController::poseCalibration()
         hmd_chest_vel_.segment(3, 3) = ang_temp_8.axis() * ang_temp_8.angle() / dt_hmd_vel;
         hmd_lfoot_vel_.segment(3, 3) = ang_temp_10.axis() * ang_temp_10.angle() / dt_hmd_vel;
         hmd_rfoot_vel_.segment(3, 3) = ang_temp_10.axis() * ang_temp_10.angle() / dt_hmd_vel;
+        
+        tcb_pelv_vel_.segment(3, 3) = ang_temp_11.axis() * ang_temp_11.angle() / dt_hmd_vel;
 
         // float data collect
         // hmd_chest_vel_(3) = -hmd_chest_vel_(3);
@@ -6441,7 +6485,7 @@ void AvatarController::poseCalibration()
     if(atb_hmd_vel_update_ == false)
     {
         atb_hmd_vel_update_ = true;
-        hmd_chest_vel_thread_ = hmd_chest_vel_;
+        tcb_pelv_vel_thread_ = tcb_pelv_vel_;
         atb_hmd_vel_update_ = false;
     }
 }
@@ -11219,6 +11263,9 @@ void AvatarController::savePreData()
     hmd_lfoot_pose_pre_ = hmd_lfoot_pose_;
     hmd_rfoot_pose_pre_ = hmd_rfoot_pose_;
 
+    tcb_pelv_pose_pre_ = tcb_pelv_pose_;
+    tcb_chest_pose_pre_ = tcb_chest_pose_;
+
     lhand_mapping_vector_pre_ = lhand_mapping_vector_;
     rhand_mapping_vector_pre_ = rhand_mapping_vector_;
 }
@@ -11658,6 +11705,43 @@ void AvatarController::RightFootTrackerCallback(const tocabi_msgs::matrix_3_4 &m
     hmd_rfoot_pose_raw_.translation()(2) = msg.thirdRow[3];
 }
 
+//////TOCABI
+void AvatarController::TcbChestTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
+{
+    tcb_chest_pose_raw_.linear()(0, 0) = msg.firstRow[0];
+    tcb_chest_pose_raw_.linear()(0, 1) = msg.firstRow[1];
+    tcb_chest_pose_raw_.linear()(0, 2) = msg.firstRow[2];
+
+    tcb_chest_pose_raw_.linear()(1, 0) = msg.secondRow[0];
+    tcb_chest_pose_raw_.linear()(1, 1) = msg.secondRow[1];
+    tcb_chest_pose_raw_.linear()(1, 2) = msg.secondRow[2];
+
+    tcb_chest_pose_raw_.linear()(2, 0) = msg.thirdRow[0];
+    tcb_chest_pose_raw_.linear()(2, 1) = msg.thirdRow[1];
+    tcb_chest_pose_raw_.linear()(2, 2) = msg.thirdRow[2];
+
+    tcb_chest_pose_raw_.translation()(0) = msg.firstRow[3];
+    tcb_chest_pose_raw_.translation()(1) = msg.secondRow[3];
+    tcb_chest_pose_raw_.translation()(2) = msg.thirdRow[3];
+}
+void AvatarController::TcbPelvTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
+{
+    tcb_pelv_pose_raw_.linear()(0, 0) = msg.firstRow[0];
+    tcb_pelv_pose_raw_.linear()(0, 1) = msg.firstRow[1];
+    tcb_pelv_pose_raw_.linear()(0, 2) = msg.firstRow[2];
+
+    tcb_pelv_pose_raw_.linear()(1, 0) = msg.secondRow[0];
+    tcb_pelv_pose_raw_.linear()(1, 1) = msg.secondRow[1];
+    tcb_pelv_pose_raw_.linear()(1, 2) = msg.secondRow[2];
+
+    tcb_pelv_pose_raw_.linear()(2, 0) = msg.thirdRow[0];
+    tcb_pelv_pose_raw_.linear()(2, 1) = msg.thirdRow[1];
+    tcb_pelv_pose_raw_.linear()(2, 2) = msg.thirdRow[2];
+
+    tcb_pelv_pose_raw_.translation()(0) = msg.firstRow[3];
+    tcb_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
+    tcb_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
+}
 /////////////////////////////////////PREVIEW CONTROL RELATED FUNCTION////////////////////////////////////
 void AvatarController::getComTrajectory_Preview()
 {
@@ -12537,7 +12621,7 @@ void AvatarController::printOutTextFile()
             }
             for(int i = 0; i <3 ; i++) 
             {
-                file[3]<< hmd_chest_vel_slow_lpf_(i) << "\t";
+                file[3]<< tcb_pelv_vel_slow_lpf_(i) << "\t";
             }
             file[3]<<endl;
 
@@ -12845,23 +12929,27 @@ void AvatarController::getRobotState()
     if(atb_hmd_vel_update_ == false)
     {
         atb_hmd_vel_update_ = true;
-        hmd_chest_vel_slow_ = hmd_chest_vel_thread_;
+        tcb_pelv_vel_slow_ = tcb_pelv_vel_thread_;
         atb_hmd_vel_update_ = false;
     }
 
 
-    hmd_chest_vel_slow_(0) = DyrosMath::minmax_cut(hmd_chest_vel_slow_(0), -1.5, 1.5);
-    hmd_chest_vel_slow_(1) = DyrosMath::minmax_cut(hmd_chest_vel_slow_(1), -1.5, 1.5);
-    hmd_chest_vel_slow_(2) = DyrosMath::minmax_cut(hmd_chest_vel_slow_(2), -0.4, 0.4);
+    // tcb_pelv_vel_slow_(0) = DyrosMath::minmax_cut(tcb_pelv_vel_slow_(0), -1.5, 1.5);
+    // tcb_pelv_vel_slow_(1) = DyrosMath::minmax_cut(tcb_pelv_vel_slow_(1), -1.5, 1.5);
+    // tcb_pelv_vel_slow_(2) = DyrosMath::minmax_cut(tcb_pelv_vel_slow_(2), -0.4, 0.4);
     
 
-    hmd_chest_vel_slow_lpf_ = DyrosMath::lpf<6>(hmd_chest_vel_slow_, hmd_chest_vel_slow_lpf_, hz_, 6);
+    tcb_pelv_vel_slow_lpf_ = DyrosMath::lpf<6>(tcb_pelv_vel_slow_, tcb_pelv_vel_slow_lpf_, hz_, 6);
 
+    // if(walking_tick_mj%1000==0)
+    // {
+    //     cout<<"tcb_pelv_vel_slow_lpf_: "<<tcb_pelv_vel_slow_lpf_.transpose()<<endl;
+    // }
     // Base frame is global
     if (walking_tick_mj == 0)
         q_dot_virtual_Xd_global_pre_ = rd_.q_dot_virtual_;
     q_dot_virtual_Xd_global_ = rd_.q_dot_virtual_;
-    // q_dot_virtual_Xd_global_.segment(0, 3) = hmd_chest_vel_slow_lpf_.segment(0, 3);  //tracker
+    q_dot_virtual_Xd_global_.segment(0, 3) = tcb_pelv_vel_slow_lpf_.segment(0, 3);  //tracker
     q_virtual_Xd_global_ = rd_.q_virtual_;
     q_ddot_virtual_Xd_global_ = (q_dot_virtual_Xd_global_ - q_dot_virtual_Xd_global_pre_) * hz_;
     q_ddot_virtual_Xd_global_.segment(0, 6) = rd_.q_ddot_virtual_.segment(0, 6);
