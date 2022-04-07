@@ -38,7 +38,7 @@ const int FILE_CNT = 4;
 const int n_input_ = 22;
 const int n_sequence_length_ = 1;
 const int n_output_ = 6;
-const int n_hidden_ = 64;
+const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
 
@@ -307,7 +307,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = true;                          // For data collection in the air
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
