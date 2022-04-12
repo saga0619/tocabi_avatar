@@ -842,6 +842,8 @@ void AvatarController::computeSlow()
             // torque_upper_(i) = 1.0 * Gravity_MJ_fast_(i);
         }
 
+        processObservation();
+        feedforwardPolicy();
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         // rd_.torque_desired = torque_lower_ + torque_upper_;
         rd_.torque_desired = rl_action_.cast <double> ();
@@ -911,11 +913,11 @@ void AvatarController::computeFast()
             std::cout << "Target Velocity: " << target_data_body_vel_ << std::endl;
 		}
 
-		if (round((current_time_)*1000)/1000 >= policy_eval_dt)
-		{
-			processObservation();
-			feedforwardPolicy();
-        }
+		// if (round((current_time_)*1000)/1000 >= policy_eval_dt)
+		// {
+		// 	processObservation();
+		// 	feedforwardPolicy();
+        // }
         /////////////////////////////////////////////////////////////////////////////////////////
 
         if (rd_.tc_init == true)
@@ -4405,11 +4407,16 @@ void AvatarController::copyRobotData(RobotData &rd_l)
 void AvatarController::processObservation()
 {
     int data_idx = 0;
-    for (int i = 3; i < MODEL_DOF_QVIRTUAL; i++)
+
+    state_(data_idx) = rd_.q_virtual_rl_(MODEL_DOF_QVIRTUAL-1);
+    data_idx++;
+
+    for (int i = 3; i < MODEL_DOF_QVIRTUAL-1; i++)
     {
         state_(data_idx) = rd_.q_virtual_rl_(i);
         data_idx++;
     }
+
     for (int i = 6; i < MODEL_DOF_VIRTUAL; i++)
     {
         state_(data_idx) = rd_.q_dot_virtual_rl_(i);
@@ -4445,6 +4452,7 @@ void AvatarController::feedforwardPolicy()
     {
         rl_action_(i) = DyrosMath::minmax_cut(rl_action_(i), -300., 300.);
     }
+    
 }
 
 void AvatarController::reflectRLAction(bool updata_phase, bool update_traj)
