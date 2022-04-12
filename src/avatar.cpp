@@ -843,7 +843,8 @@ void AvatarController::computeSlow()
         }
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
-        rd_.torque_desired = torque_lower_ + torque_upper_;
+        // rd_.torque_desired = torque_lower_ + torque_upper_;
+        rd_.torque_desired = rl_action_.cast <double> ();
         /////////////////////////////////////////////////////////////////////////////// 
     }
 }
@@ -4404,37 +4405,16 @@ void AvatarController::copyRobotData(RobotData &rd_l)
 void AvatarController::processObservation()
 {
     int data_idx = 0;
-    for (int i = 2; i < MODEL_DOF_QVIRTUAL; i++)
+    for (int i = 3; i < MODEL_DOF_QVIRTUAL; i++)
     {
         state_(data_idx) = rd_.q_virtual_rl_(i);
         data_idx++;
     }
-    for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
+    for (int i = 6; i < MODEL_DOF_VIRTUAL; i++)
     {
         state_(data_idx) = rd_.q_dot_virtual_rl_(i);
         data_idx++;
     }
-    for (int i = 0; i < 6; i++)
-    {
-        state_(data_idx) = rd_.left_foot_pose_lipm_[i];
-        data_idx++;
-    }
-    for (int i = 0; i < 6; i++)
-    {
-        state_(data_idx) = rd_.right_foot_pose_lipm_[i];
-        data_idx++;
-    }    
-    for (int i = 0; i < 6; i++)
-    {
-        state_(data_idx) = rd_.left_foot_pose_rl_[i];
-        data_idx++;
-    }
-    for (int i = 0; i < 6; i++)
-    {
-        state_(data_idx) = rd_.right_foot_pose_rl_[i];
-        data_idx++;
-    }
-    state_(data_idx) = target_data_body_vel_;
 }
 
 
@@ -4461,41 +4441,10 @@ void AvatarController::feedforwardPolicy()
 
     rl_action_ = action_net_w_ * hidden_layer2_ + action_net_b_;
 
-    rl_action_(0) = DyrosMath::minmax_cut(rl_action_(0), 0.0, 0.1);
-    for (int i = 0; i <3; i++)
+    for (int i = 0; i < MODEL_DOF; i++)
     {
-        rl_action_(1+i) = DyrosMath::minmax_cut(rl_action_(1+i), -0.1, 0.1);
-        rl_action_(7+i) = DyrosMath::minmax_cut(rl_action_(7+i), -0.1, 0.1);
+        rl_action_(i) = DyrosMath::minmax_cut(rl_action_(i), -300., 300.);
     }
-    for (int i = 0; i <3; i++)
-    {
-        rl_action_(4+i) = DyrosMath::minmax_cut(rl_action_(4+i), -3.14/3, 3.14/3);
-        rl_action_(10+i) = DyrosMath::minmax_cut(rl_action_(10+i), -3.14/3, 3.14/3);
-    }
-
-    while (rd_.is_action_writing_)
-    {
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &t_u10, NULL);
-    }
-
-    rd_.is_action_writing_ = true;
-    int data_idx = 0;
-
-    rd_.rl_action_phase_ = rl_action_(data_idx);
-    data_idx++;
-
-    for (int i = 0; i <6; i++)
-    {
-        rd_.rl_action_left_foot_[i] = rl_action_(data_idx);
-        data_idx++;
-    }
-
-    for (int i = 0; i <6; i++)
-    {
-        rd_.rl_action_right_foot_[i] = rl_action_(data_idx);
-        data_idx++;
-    }
-    rd_.is_action_writing_ = false;
 }
 
 void AvatarController::reflectRLAction(bool updata_phase, bool update_traj)

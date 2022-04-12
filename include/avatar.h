@@ -706,9 +706,9 @@ public:
     void processObservation();
     void feedforwardPolicy();
 
-    static const int num_state = 102;
+    static const int num_state = 70;
     static const int num_hidden = 256;
-    static const int num_action = 13;
+    static const int num_action = 33;
 
     Eigen::Matrix<float, num_hidden, num_state> policy_net_w0_;
     Eigen::Matrix<float, num_hidden, 1> policy_net_b0_;
