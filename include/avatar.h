@@ -45,10 +45,10 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/random_walking_.txt",
-        "/home/dyros/data/dg/1_foot_.txt",
-        "/home/dyros/data/dg/2_zmp_.txt",
-        "/home/dyros/data/dg/3_lstm_.txt"
+        "/ssd2/fb_mob_learning/data/sim_mass_error/random_walking_.txt",
+        "/ssd2/fb_mob_learning/data/sim_mass_error/1_foot_.txt",
+        "/ssd2/fb_mob_learning/data/sim_mass_error/2_zmp_.txt",
+        "/ssd2/fb_mob_learning/data/sim_mass_error/3_lstm_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -119,8 +119,6 @@ public:
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
     std::atomic<bool> atb_hmd_vel_update_{false};
-
-
 
     RigidBodyDynamics::Model model_d_;      //updated by desired q
     RigidBodyDynamics::Model model_local_;  //updated by local q

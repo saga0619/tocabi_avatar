@@ -2140,16 +2140,6 @@ void AvatarController::floatingBaseMOB()
     Eigen::VectorXd nonlinear_torque_temp, gravity_torque_temp;
     nonlinear_torque_temp.setZero(MODEL_DOF_VIRTUAL, 1);
     gravity_torque_temp.setZero(MODEL_DOF_VIRTUAL, 1);
-    // inv_dya_temp.setZero(MODEL_DOF_VIRTUAL, 1);
-    // VectorXd q_ddot_virtual_c, q_dot_virtual_c, q_virtual_c;
-    // q_ddot_virtual_c = rd_.q_ddot_virtual_;
-    // q_ddot_virtual_c.segment(0, 6).setZero();
-    // q_dot_virtual_c = rd_.q_dot_virtual_;
-    // q_dot_virtual_c.segment(0, 6).setZero();
-    // q_virtual_c = rd_.q_virtual_;
-    // q_virtual_c.segment(0, 6).setZero();
-    // q_virtual_c(39) = 1;
-    // RigidBodyDynamics::UpdateKinematicsCustom(model_local_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c); // global frame is fixed to the pelvis frame
 
     A_mat_pre_ = A_mat_;
 
@@ -2159,38 +2149,9 @@ void AvatarController::floatingBaseMOB()
     A_mat_ = A_temp;
 
     A_dot_mat_ = (A_mat_ - A_mat_pre_) * hz_;
-    // A_dot_mat_.setZero();
-    // A_dot_mat_ = getAdotMatrix(q_virtual_c,  q_dot_virtual_c);
-    // C_mat_temp = getCMatrix(q_virtual_c, q_dot_virtual_c);    //>1ms... too slow
-    // C_mat_ = C_mat_temp.block(0, 0, MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
-
-    // RigidBodyDynamics::NonlinearEffects(model_local_, q_virtual_c, q_dot_virtual_c, nonlinear_torque_temp);
-    // RigidBodyDynamics::NonlinearEffects(model_local_, q_virtual_c, Eigen::VectorXd::Zero(MODEL_DOF_VIRTUAL, 1), gravity_torque_temp);
-    // nonlinear_torque_ = nonlinear_torque_temp - gravity_torque_temp; // get Centrifual Corioli force in base frame
-    // nonlinear_torque_ = nonlinear_torque_temp;
-    // nonlinear_torque_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(0, 3);
-    // nonlinear_torque_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(3, 3);
-    ////
-    // std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
-    // q_ddot_virtual_c = rd_.q_ddot_virtual_;
-    // q_dot_virtual_c = rd_.q_dot_virtual_;
-    // q_virtual_c = rd_.q_virtual_;
-    // q_virtual_c.segment(0, 3).setZero();
-    // RigidBodyDynamics::UpdateKinematicsCustom(model_global_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c);
 
     RigidBodyDynamics::NonlinearEffects(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, nonlinear_torque_temp);
 
-    // nonlinear_torque_.segment(0, 3) += rd_.link_[Pelvis].rotm.transpose()*gravity_torque_temp.segment(0, 3);
-    // nonlinear_torque_.segment(3, 3) += rd_.link_[Pelvis].rotm.transpose()*gravity_torque_temp.segment(3, 3);
-    // nonlinear_torque_.segment(6, MODEL_DOF) += gravity_torque_temp.segment(6, MODEL_DOF);
-
-    // Eigen::Quaterniond q_pelv;
-    // q_pelv.x() = q_virtual_c(3);
-    // q_pelv.y() = q_virtual_c(4);
-    // q_pelv.z() = q_virtual_c(5);
-    // q_pelv.w() = q_virtual_c(MODEL_DOF_VIRTUAL);
-
-    // Eigen::Matrix3d pelv_rotm = q_pelv.normalized().toRotationMatrix();
     Eigen::Vector6d base_velocity;
     Eigen::Matrix6d adjt_global2pelv;
     adjt_global2pelv.setZero();
@@ -2199,115 +2160,21 @@ void AvatarController::floatingBaseMOB()
 
     nonlinear_torque_ = nonlinear_torque_temp;
     nonlinear_torque_.segment(0, 6) = adjt_global2pelv * nonlinear_torque_.segment(0, 6);
-    // nonlinear_torque_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(0, 3);
-    // nonlinear_torque_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * nonlinear_torque_.segment(3, 3);
-    // q_ddot_virtual_c = rd_.q_ddot_virtual_;
-    // q_ddot_virtual_c.segment(0, 6).setZero();
-    // q_dot_virtual_c = rd_.q_dot_virtual_;
-    // q_dot_virtual_c.segment(0, 6).setZero();
-    // q_virtual_c = rd_.q_virtual_;
-    // q_virtual_c.segment(0, 6).setZero();
-    // q_virtual_c(39) = 1;
-    // RigidBodyDynamics::UpdateKinematicsCustom(model_local_, &q_virtual_c, &q_dot_virtual_c, &q_ddot_virtual_c); // global frame is fixed to the pelvis frame
-
-    // std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
-    // cout<<"NonlinearEffects time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(t6 - t5).count() <<endl;
-
-    // RigidBodyDynamics::NonlinearEffects(model_local_, q_virtual_c, Eigen::VectorXd::Zero(MODEL_DOF_VIRTUAL, 1), gravity_torque_temp);
-
-    // nonlinear_torque_.segment(0, 6) = nonlinear_torque_temp.segment(0, 6) - gravity_torque_temp.segment(0, 6);
-
-    // RigidBodyDynamics::Math::Vector3d com_pos_test, com_vel_test, com_accel_test, com_ang_momentum_test, com_ang_moment_test;
-    // Eigen::VectorXd q_test, q_dot_test, q_ddot_test;
-    // q_test = rd_.q_virtual_;
-    // //// modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame
-
-    // adjt.block(3, 0, 3, 3) = DyrosMath::skm(-rd_.link_[Pelvis].rotm.transpose()*rd_.q_virtual_.segment(0, 3)) * rd_.link_[Pelvis].rotm.transpose();
 
     base_velocity = adjt_global2pelv * q_dot_virtual_Xd_global_.segment(0, 6);
-    // base_velocity.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(0, 3);
-    // base_velocity.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(3, 3);
 
-    // q_test.segment(0, 6).setZero();
-    // q_test(39) = 1;
-    // q_dot_test = rd_.q_dot_virtual_;
-    // q_dot_test.segment(0, 6) = base_velocity;
-    // ///////////////////////////////////////////
-
-    // q_ddot_test.setZero(MODEL_DOF_VIRTUAL);
-
-    // RigidBodyDynamics::Utils::CalcCenterOfMass(model_global_, q_test, q_dot_test, &q_ddot_test, rd_.link_[COM_id].mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
-
-    // std::chrono::steady_clock::time_point cmm1 = std::chrono::steady_clock::now();
-    // Eigen::MatrixXd mass_matrix_temp;
-    // Eigen::MatrixXd cmm;
-    // mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
-    // cmm.setZero(3, MODEL_DOF);
-    // RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_global_, q_test, mass_matrix_temp, true);
-    // std::chrono::steady_clock::time_point cmm2 = std::chrono::steady_clock::now();
-    // getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
-    // std::chrono::steady_clock::time_point cmm3 = std::chrono::steady_clock::now();
-
-    // if( int( (current_time_)*2000)%2000 == 0)
-    // {
-    // cout<<"com_ang_momentum_temp: "<<com_ang_momentum_test.transpose()<<endl;
-    // cout<<"IC*wb + CMM*qdot: "<< ( mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3)+ cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
-    // cout<<"AM error: " << (com_ang_momentum_test - mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) - cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
-
-    // cout<<"com_lin_vel: "<<com_vel_test.transpose()<<endl;
-    // cout<<"J_com*qdot: " << (mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) + base_velocity.segment(0, 3)).transpose() <<endl; // <- this is not correct. Shoud consider ang vel of base frame
-    // cout<<"LM error: " << (com_vel_test - mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) - base_velocity.segment(0, 3)).transpose() <<endl;
-
-    // cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() <<endl;
-    // // cout<<"nonlinear_torque:" << nonlinear_torque_temp.transpose() <<endl;
-    // cout<<"gravity_torque_temp:" << gravity_torque_temp.transpose() <<endl;
-
-    // cout<<"corioli from rbdl:" << nonlinear_torque_temp.transpose() - gravity_torque_temp.transpose() <<endl;
-    // cout<<"corioli from dg:" << (C_mat_*rd_.q_dot_virtual_).transpose() << endl;
-    // cout<<"q_virtual_c:" << q_virtual_c.transpose() <<endl;
-    // cout<<"q_dot_virtual_c:" << q_dot_virtual_c.transpose() <<endl;
-    // cout<<"q_ddot_virtual_c:" << q_ddot_virtual_c.transpose() <<endl;
-    // cout<<"getCmatrix error: "<< (C_mat_*rd_.q_dot_virtual_ - (nonlinear_torque_temp - gravity_torque_temp)).transpose()<<endl;
-    // cout<<"Adot error: "<< (A_dot_mat_*rd_.q_dot_virtual_ - (nonlinear_torque_temp - gravity_torque_temp + C_T_mat_*rd_.q_dot_virtual_)).transpose() <<endl;
-    // cout<<"A_mat_: \n" << A_mat_ <<endl;
-    // cout<<"COM_pos * mass: " << 94.7113*com_pos_current_ << endl;
-    // cout<<"A_dot_mat q derivative: \n" << A_dot_mat_ <<endl;
-    // cout<<"A_dot_mat time derivative: \n" << (A_mat_ - A_mat_pre_)/dt_ <<endl;
-
-    // cout<<"C_mat_: \n" << C_mat_ <<endl;
-
-    // }
-
-    // A_inv_mat_ = rd_.A_matrix_inverse;
-    // motor_inertia_mat_ = rd_.Motor_inertia;
-    // motor_inertia_inv_mat_ = rd_.Motor_inertia_inverse;
-
-    // Eigen::Vector3d zmp_local_both_foot;
-    // rd_.ZMP_ft = wc_.GetZMPpos(rd_);
-
-    // zmp_local_both_foot = wc.GetZMPpos_fromFT(rd_).segment(0, 2);  //get zmp using f/t sensors on both foot
-    Eigen::VectorXd current_torque, mob_residual_pre_internal, mob_residual_pre_external, mob_residual_pre_jts, mob_residual_pre_wholebody;
+    Eigen::VectorXd current_torque, mob_residual_pre_jts, mob_residual_pre_wholebody;
     // Eigen::VectorXd rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g;
     // current_torque.setZero(MODEL_DOF_VIRTUAL, 1);
     // current_torque.segment(6, MODEL_DOF) = rd_.torque_desired;
     // current_torque = rd_.torque_desired;
     current_torque = torque_lower_ + torque_upper_;
-    // rd_q_virtual = rd_.q_virtual_;
-    // rd_q_dot_virtual = rd_.q_dot_virtual_;
-    // nonlinear_torque_g.setZero(MODEL_DOF_VIRTUAL, 1);
-    // nonlinear_torque_g = A_dot_mat_*rd_.q_dot_virtual_ - (nonlinear_torque_);
-    // RigidBodyDynamics::NonlinearEffects(rd_.model_, rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g);
-    mob_residual_pre_external = mob_residual_external_;
-    mob_residual_pre_internal = mob_residual_internal_;
+
     mob_residual_pre_wholebody = mob_residual_wholebody_;
 
     mob_residual_pre_jts = mob_residual_jts_;
 
-    // VectorQd inertia_term, nonlinear_term_for_mob_jts;
-    // inertia_term = (rd_.A_*rd_.q_ddot_virtual_).segment(6, MODEL_DOF);
-    // nonlinear_term_for_mob_jts = nonlinear_torque_g.segment(6, MODEL_DOF);
-    // mob_residual_jts_.segment(0, MODEL_DOF) = torque_sim_jts_ - inertia_term - nonlinear_term_for_mob_jts;
-
+ 
     Eigen::MatrixXd R_temp_lfoot, R_temp_rfoot, J_temp;
     // lfoot_ft_sensor_offset_ << 0.03, 0, -0.145;
     // lfoot_ft_sensor_offset_(2) += -0.0135;
@@ -2348,49 +2215,6 @@ void AvatarController::floatingBaseMOB()
 
     if (current_torque == current_torque)
     {
-
-        // using FT sensor version
-        // nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) + l_cf_ft_local_ + r_cf_ft_local_;
-
-        std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
-        mob_residual_external_ = momentumObserverFbExternal(A_mat_, A_dot_mat_, rd_.q_dot_, base_velocity, nonlinear_torque_, mob_residual_pre_external, mob_integral_external_, 1 / hz_, 100);
-        std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
-
-        if (mob_residual_external_ != mob_residual_external_)
-        {
-            mob_residual_external_ = mob_residual_pre_external;
-            cout << "!!!!!!!!!!! ERROR: Floating Base MOB External Residual is NaN !!!!!!!!!!!!" << endl;
-            cout << "walking_tick: " << walking_tick_mj << endl;
-        }
-
-        // without FT sensor version
-        nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) - mob_residual_external_.segment(0, 6);
-
-        //using FT sensor version
-        // current_torque.segment(0, MODEL_DOF) = current_torque.segment(0, MODEL_DOF) + torque_from_l_ft_ + torque_from_r_ft_;
-
-        // mob_residual_ = momentumObserver(current_momentum, current_torque, nonlinear_torque_g, mob_residual_pre, dt_, 50);
-        std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
-        mob_residual_internal_ = momentumObserverFbInternal(A_mat_, A_dot_mat_, current_torque, rd_.q_dot_, nonlinear_torque_, mob_residual_pre_internal, mob_integral_internal_, 1 / hz_, 100);
-        // mob_residual_internal_ = momentumObserverFbInternal(A_mat_.block(0,0,18,18), A_dot_mat_.block(0,0,18,18), current_torque.block(0,0,18,1), current_q_dot_.block(0,0,18,1), nonlinear_torque_.block(0,0,18,1), mob_residual_pre_internal, dt_, 100);
-
-        // mob_residual_jts_ = momentumObserverFbInternal(A_mat_, A_dot_mat_, torque_sim_jts_, rd_.q_dot_, nonlinear_torque_, mob_residual_pre_jts, mob_integral_jts_, dt_computeslow_, 100);
-        // mob_residual_jts_ = torque_sim_jts_;
-        std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
-
-        if (mob_residual_internal_ != mob_residual_internal_)
-        {
-            mob_residual_internal_ = mob_residual_pre_internal;
-            cout << "!!!!!!!!!!! ERROR: Floating Base MOB Internal Residual is NaN !!!!!!!!!!!!" << endl;
-            cout << "walking_tick: " << walking_tick_mj << endl;
-        }
-
-        // A_mat_global_pre_ = A_mat_global_;
-        // A_mat_global_ = rd_.A_;
-        // A_dot_mat_global_ = (A_mat_global_- A_mat_global_pre_)*hz_;
-
-        // without FT sensor version
-        nonlinear_torque_.segment(0, 6) = nonlinear_torque_.segment(0, 6) + mob_residual_external_.segment(0, 6);
 
         VectorXd momentum_virtual, current_torque_virtual, nonlinear_term_virtual;
         momentum_virtual.setZero(MODEL_DOF_VIRTUAL);
