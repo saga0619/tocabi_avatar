@@ -38,7 +38,7 @@ const int FILE_CNT = 4;
 const int n_input_ = 22;
 const int n_sequence_length_ = 1;
 const int n_output_ = 6;
-const int n_hidden_ = 64;
+const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
 
