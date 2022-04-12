@@ -2214,7 +2214,7 @@ void AvatarController::floatingBaseMOB()
 
     // adjt.block(3, 0, 3, 3) = DyrosMath::skm(-rd_.link_[Pelvis].rotm.transpose()*rd_.q_virtual_.segment(0, 3)) * rd_.link_[Pelvis].rotm.transpose();
 
-    base_velocity = adjt_global2pelv * q_virtual_Xd_global_.segment(0, 6);
+    base_velocity = adjt_global2pelv * q_dot_virtual_Xd_global_.segment(0, 6);
     // base_velocity.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(0, 3);
     // base_velocity.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * base_velocity.segment(3, 3);
 
