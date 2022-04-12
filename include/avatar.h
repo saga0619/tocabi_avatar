@@ -45,7 +45,7 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/random_walking_.txt",
+        "/home/dyros/data/dg/random_walking_lleg_.txt",
         "/home/dyros/data/dg/1_foot_.txt",
         "/home/dyros/data/dg/2_zmp_.txt",
         "/home/dyros/data/dg/3_lstm_.txt"
@@ -62,7 +62,7 @@ const std::string FILE_NAMES[FILE_CNT] =
         // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/mj/mj_leg_cali"; //tocabi
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg"; //tocabi
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/mj";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu
 

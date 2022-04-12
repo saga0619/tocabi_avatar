@@ -542,7 +542,7 @@ void AvatarController::setGains()
     joint_limit_l_(1) = -45 * DEG2RAD;
     joint_limit_h_(1) = 90 * DEG2RAD;
     joint_limit_l_(2) = -80 * DEG2RAD;
-    joint_limit_h_(2) = 65 * DEG2RAD;
+    joint_limit_h_(2) = 55 * DEG2RAD;
     joint_limit_l_(3) = 5 * DEG2RAD;
     joint_limit_h_(3) = 150 * DEG2RAD;
     joint_limit_l_(4) = -60 * DEG2RAD;
@@ -555,7 +555,7 @@ void AvatarController::setGains()
     joint_limit_l_(7) = -90 * DEG2RAD;
     joint_limit_h_(7) = 45 * DEG2RAD;
     joint_limit_l_(8) = -80 * DEG2RAD;
-    joint_limit_h_(8) = 65 * DEG2RAD;
+    joint_limit_h_(8) = 55 * DEG2RAD;
     joint_limit_l_(9) = 5 * DEG2RAD;
     joint_limit_h_(9) = 150 * DEG2RAD;
     joint_limit_l_(10) = -60 * DEG2RAD;
@@ -613,8 +613,8 @@ void AvatarController::setGains()
     //LEG
     for (int i = 0; i < 12; i++)
     {
-        joint_vel_limit_l_(i) = -2 * M_PI;
-        joint_vel_limit_h_(i) = 2 * M_PI;
+        joint_vel_limit_l_(i) = -1 * M_PI;
+        joint_vel_limit_h_(i) = 1 * M_PI;
     }
 
     //UPPERBODY
@@ -3590,6 +3590,7 @@ void AvatarController::motionGenerator()
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
                 upperbody_mode_q_init_ = motion_q_pre_;
+                upperbody_command_time_ = current_time_;
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
                 upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)";
@@ -3608,11 +3609,19 @@ void AvatarController::motionGenerator()
             //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
             // }
 
+            // right leg hold
+            motion_q_.segment(6, 6) = upperbody_mode_q_init_.segment(6, 6);
+
+            motion_q_(7) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(7), 0, 0, -0.2, 0, 0)(0);
+            motion_q_(8) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(8), 0, 0, 0.2, 0, 0)(0);
+
             for (int i = 12; i < MODEL_DOF; i++)
             {
                 motion_q_(i) = upperbody_mode_q_init_(i);
                 pd_control_mask_(i) = 1;
             }
+            motion_q_(17) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(17), 0, 0, 0*DEG2RAD, 0, 0)(0);
+            motion_q_(19) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(19), 0, 0, 0*DEG2RAD, 0, 0)(0);
         }
     }
     else if (upper_body_mode_ == 7) //HQPIK ver2
@@ -7454,18 +7463,21 @@ void AvatarController::hmdRawDataProcessing()
 
 
     //// leg proportional mapping
-    master_lfoot_pose_raw_.linear() = hmd_lfoot_pose_.linear()*hmd_lfoot_pose_init_.linear().transpose();
-    master_rfoot_pose_raw_.linear() = hmd_rfoot_pose_.linear()*hmd_rfoot_pose_init_.linear().transpose();
+    master_lfoot_pose_raw_.linear() = hmd_lfoot_pose_.linear()*hmd_lfoot_pose_init_.linear().transpose()*DyrosMath::rotateWithX(12*DEG2RAD);
+    master_rfoot_pose_raw_.linear() = hmd_rfoot_pose_.linear()*hmd_rfoot_pose_init_.linear().transpose()*DyrosMath::rotateWithX(-12*DEG2RAD);
 
     master_lfoot_pose_raw_.translation() = lfoot_transform_start_from_global_.translation() + (hmd_lfoot_pose_.translation() - hmd_lfoot_pose_init_.translation());
     master_rfoot_pose_raw_.translation() = rfoot_transform_start_from_global_.translation() + (hmd_rfoot_pose_.translation() - hmd_rfoot_pose_init_.translation());
 
-    master_lfoot_pose_raw_.translation()(2) += -0.02;
-    master_rfoot_pose_raw_.translation()(2) += -0.02;
+    master_lfoot_pose_raw_.translation()(2) += -0.01;
+    master_rfoot_pose_raw_.translation()(2) += -0.01;
     
-    master_lfoot_pose_raw_.translation()(0) += -0.07;
-    master_rfoot_pose_raw_.translation()(0) += -0.07;
+    master_lfoot_pose_raw_.translation()(0) += -0.03;
+    master_rfoot_pose_raw_.translation()(0) += -0.03;
 
+    master_lfoot_pose_raw_.translation()(1) += -0.02;
+    master_lfoot_pose_raw_.translation()(1) += +0.02;
+    
     // clipping leg length
     Vector3d pelv_to_lhipjoint, pelv_to_rhipjoint, lhipjoint_to_lfoot, rhipjoint_to_rfoot;
     pelv_to_lhipjoint << 0.11, 0.1025, -0.1025;
