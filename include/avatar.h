@@ -1279,6 +1279,9 @@ public:
     Eigen::VectorXd mob_integral_jts_;
 
     Eigen::VectorQd torque_sim_jts_;       //external torque obtained from mujoco FT sensors at each joints
+    Eigen::VectorQd torque_current_elmo_;
+    Eigen::VectorQd torque_nm2cnt_;
+
     Eigen::VectorQd torque_from_l_ft_;     //J^T*FT_F
     Eigen::VectorQd torque_from_r_ft_;     //J^T*FT_F
     Eigen::VectorQd torque_from_l_ft_lpf_; //J^T*FT_F
