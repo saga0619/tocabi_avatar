@@ -45,10 +45,10 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/sim_mass_error/random_walking_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error/3_lstm_.txt"
+        "/home/dyros/data/dg/random_walking_float.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -305,7 +305,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = false;                          // For data collection in the air
+    bool float_data_collect_mode_ = true;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -1208,6 +1208,9 @@ public:
     Eigen::VectorXd mob_integral_jts_;
 
     Eigen::VectorQd torque_sim_jts_;       //external torque obtained from mujoco FT sensors at each joints
+    Eigen::VectorQd torque_current_elmo_;
+    Eigen::VectorQd torque_nm2cnt_;
+
     Eigen::VectorQd torque_from_l_ft_;     //J^T*FT_F
     Eigen::VectorQd torque_from_r_ft_;     //J^T*FT_F
     Eigen::VectorQd torque_from_l_ft_lpf_; //J^T*FT_F
