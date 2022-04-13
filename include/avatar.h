@@ -305,7 +305,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = true;                          // For data collection in the air
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -419,6 +419,9 @@ public:
     Eigen::Matrix3d pelv_rot_init_yaw_aline_;
     Eigen::Isometry3d pelv_transform_init_from_global_;
     Eigen::Isometry3d pelv_trajectory_support_init_;
+
+    Eigen::Vector3d pelv_pos_init_global_;
+    Eigen::Matrix3d pelv_rot_init_global_;
 
     Eigen::Vector3d phi_pelv_;
     Eigen::Vector3d torque_pelv_;
