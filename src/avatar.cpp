@@ -1847,7 +1847,7 @@ void AvatarController::initWalkingParameter()
     tracker_status_changed_time_ = current_time_;
     hmd_tracker_status_ = false;
     hmd_tracker_status_raw_ = false;
-    hmd_tracker_status_pre_ = false;
+    hmd_tracker_status_pre_ = true;
     
     hmd_head_vel_.setZero();
     hmd_lshoulder_vel_.setZero();
