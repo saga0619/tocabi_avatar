@@ -844,6 +844,7 @@ void AvatarController::computeSlow()
 
         processObservation();
         feedforwardPolicy();
+
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         // rd_.torque_desired = torque_lower_ + torque_upper_;
         rd_.torque_desired = rl_action_.cast <double> ();
