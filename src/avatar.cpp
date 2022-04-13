@@ -807,7 +807,6 @@ void AvatarController::computeSlow()
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
                 
                 // float data collect
-                // hmd_check_pose_calibration_[0] = true;
 
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
@@ -11144,7 +11143,7 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
 
-    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
+    // hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
@@ -12355,7 +12354,7 @@ void AvatarController::getRobotState()
     if (walking_tick_mj == 0)
         q_dot_virtual_Xd_global_pre_ = rd_.q_dot_virtual_;
     q_dot_virtual_Xd_global_ = rd_.q_dot_virtual_;
-    // q_dot_virtual_Xd_global_.segment(0, 3) = hmd_chest_vel_slow_lpf_.segment(0, 3);  //tracker
+    q_dot_virtual_Xd_global_.segment(0, 3) = hmd_chest_vel_slow_lpf_.segment(0, 3);  //tracker
     q_virtual_Xd_global_ = rd_.q_virtual_;
     q_ddot_virtual_Xd_global_ = (q_dot_virtual_Xd_global_ - q_dot_virtual_Xd_global_pre_) * hz_;
     q_ddot_virtual_Xd_global_.segment(0, 6) = rd_.q_ddot_virtual_.segment(0, 6);
