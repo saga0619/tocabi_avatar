@@ -305,7 +305,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = false;                          // For data collection in the air
+    bool float_data_collect_mode_ = true;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -953,6 +953,8 @@ public:
     bool t_pose_cali_flag_;
     bool forward_pose_cali_flag_;
     bool read_cali_log_flag_;
+
+    bool triger_still_pose_cali_once_ = true;   //for random walking data collection for mob learning
 
     Eigen::Isometry3d hmd_head_pose_raw_;
     Eigen::Isometry3d hmd_lshoulder_pose_raw_;

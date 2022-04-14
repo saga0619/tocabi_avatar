@@ -960,7 +960,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                // rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
+                rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -1349,11 +1349,18 @@ void AvatarController::computeFast()
             }
         }
         /////////////////////////////////////////////////////////////////////////////////////////
+        
 
         if (rd_.tc_init == true)
         {
             initWalkingParameter();
             rd_.tc_init = false;
+        }
+
+        if( (triger_still_pose_cali_once_ == true) && (walking_tick_mj == 10) )
+        {
+            hmd_check_pose_calibration_[0] = true;
+            triger_still_pose_cali_once_ = false;
         }
         //data process//
         getRobotData();
@@ -5775,6 +5782,8 @@ void AvatarController::poseCalibration()
     Eigen::Vector3d hmd_pelv_rpy;
     Eigen::Matrix3d hmd_pelv_yaw_rot;
     Eigen::Isometry3d hmd_pelv_pose_yaw_only;
+
+
 
     if ((hmd_check_pose_calibration_[0] == true) && (still_pose_cali_flag_ == false))
     {
@@ -11969,7 +11978,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 6; i < 18; i++) // left + right leg
             {
-                file[0] << mob_residual_wholebody_(i) << "\t"; //mob_residual_internal_
+                file[0] << mob_residual_wholebody_(i) << "\t"; 
             }
             for (int i = 0; i < 12; i++)
             {
@@ -11992,14 +12001,6 @@ void AvatarController::printOutTextFile()
                 file[0] << torque_from_r_ft_lpf_(6 + i) << "\t";
             }
             file[0] << lfoot_support_current_.translation()(2) << "\t" << rfoot_support_current_.translation()(2);
-            // for(int i = 0; i <6 ; i++)
-            // {
-            //     file[0]<< mob_residual_external_(i) << "\t";
-            // }
-            // for(int i = 0; i <12 ; i++)
-            // {
-            //     file[0]<< mob_residual_wholebody_(i) << "\t";
-            // }
             file[0] << endl;
 
             //// lstm file
@@ -12354,7 +12355,7 @@ void AvatarController::getRobotState()
     if (walking_tick_mj == 0)
         q_dot_virtual_Xd_global_pre_ = rd_.q_dot_virtual_;
     q_dot_virtual_Xd_global_ = rd_.q_dot_virtual_;
-    // q_dot_virtual_Xd_global_.segment(0, 3) = hmd_chest_vel_slow_lpf_.segment(0, 3);  //tracker
+    q_dot_virtual_Xd_global_.segment(0, 3) = hmd_chest_vel_slow_lpf_.segment(0, 3);  //tracker
     q_virtual_Xd_global_ = rd_.q_virtual_;
     q_ddot_virtual_Xd_global_ = (q_dot_virtual_Xd_global_ - q_dot_virtual_Xd_global_pre_) * hz_;
     q_ddot_virtual_Xd_global_.segment(0, 6) = rd_.q_ddot_virtual_.segment(0, 6);
@@ -14212,10 +14213,10 @@ void AvatarController::supportToFloatPattern()
 
     if(float_data_collect_mode_ == true)
     {
-        lfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(2.5*DEG2RAD)*lfoot_trajectory_float_.linear();
-        rfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(-2.5*DEG2RAD)*rfoot_trajectory_float_.linear();
+        lfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(3*DEG2RAD)*lfoot_trajectory_float_.linear();
+        rfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(-3*DEG2RAD)*rfoot_trajectory_float_.linear();
         
-        F_F_input = 0.02*sin(2*M_PI*walking_tick_mj/2000/(M_PI/2));
+        F_F_input = 0.02*sin(2*M_PI*walking_tick_mj/2000/(M_PI/1));
     }
     rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
     lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
@@ -14497,46 +14498,46 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     ////// random walking setting///////
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+    target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.8 * hz_ + (std::rand() % 6) * 0.1 * hz_;
 
-    // // t_rest_init_ = 0.27*hz_;
-    // // t_rest_last_ = 0.27*hz_;
-    // // t_double1_ = 0.03*hz_;
-    // // t_double2_ = 0.03*hz_;
-    // // t_total_= 1.3*hz_;
-    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
     //// 1.1s walking
-    target_x_ = 0.7;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 45*DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    // target_x_ = 0.7;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 45*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.2*hz_;
-    t_rest_last_ = 0.2*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 1.1*hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.2*hz_;
+    // t_rest_last_ = 0.2*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.1*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     //// 0.9s walking
