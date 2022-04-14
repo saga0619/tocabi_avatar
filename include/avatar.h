@@ -150,6 +150,7 @@ public:
     Eigen::VectorQd jointLimit();
     Eigen::VectorQd ikBalanceControlCompute();
 
+    Eigen::VectorQd floatGravityTorque(Eigen::VectorQVQd q);
     ////// external torque estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);

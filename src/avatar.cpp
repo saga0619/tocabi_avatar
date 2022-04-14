@@ -701,7 +701,7 @@ void AvatarController::computeSlow()
             Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             if(float_data_collect_mode_ == true)
             {
-                Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
+                Gravity_MJ_ = floatGravityTorque(rd_.q_virtual_);
             }
             // Gravity_MJ_.setZero();            
             atb_grav_update_ = false;
@@ -887,7 +887,8 @@ void AvatarController::computeSlow()
 
                 for (int i = 0; i < 12; i++)
                 {
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    // torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) -= 1.0*estimated_model_unct_torque_slow_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
@@ -895,7 +896,7 @@ void AvatarController::computeSlow()
                 desired_q_not_compensated_ = ref_q_;
                 printOutTextFile();
 
-                updateNextStepTime();
+                // updateNextStepTime();
 
                 q_prev_MJ_ = rd_.q_;
                 pre_time_computeslow_ = current_time_computeslow_;
@@ -960,7 +961,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
+                // rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -1279,7 +1280,7 @@ void AvatarController::computeFast()
             VectorQd Gravity_MJ_local= WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             if(float_data_collect_mode_ == true)
             {
-                Gravity_MJ_local= WBC::GravityCompensationTorque(rd_);
+                Gravity_MJ_local= floatGravityTorque(rd_.q_virtual_);
             }
 
             if (atb_grav_update_ == false)
@@ -1292,8 +1293,8 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            // loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/");
-            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
             // loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/");
@@ -2386,8 +2387,10 @@ void AvatarController::floatingBaseMOB()
     if (walking_tick_mj%200 == 0)
     {
         // cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 12).transpose() <<endl;
-        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 12).transpose() <<endl;
-        // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 12).transpose() <<endl;
+        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_ext_force_lfoot_lstm_: \n"<<estimated_ext_force_lfoot_lstm_.transpose() <<endl;
+        // cout<<"l_ft_: \n"<<l_ft_.transpose() <<endl;
         // cout<<"base_velocity: "<<base_velocity.transpose() <<endl;
         // cout<<"mob_residual_external_: "<<mob_residual_external_.transpose() <<endl;
         // cout<<"torque_from_l_ft_: \n"<< (torque_from_l_ft_).segment(0, 12).transpose() <<endl;
@@ -12576,8 +12579,8 @@ void AvatarController::getRobotState()
     // MOB-LSTM INFERENCE
 
     
-    // collectRobotInputData_acc_version();  //1us
-    // calculateLstmInput(left_leg_mob_lstm_); //1us
+    collectRobotInputData_acc_version();  //1us
+    calculateLstmInput(left_leg_mob_lstm_); //1us
     // calculateLstmInput(right_leg_mob_lstm_); //1us
     floatingBaseMOB(); //created by DG
 
@@ -14213,10 +14216,12 @@ void AvatarController::supportToFloatPattern()
 
     if(float_data_collect_mode_ == true)
     {
-        lfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(3*DEG2RAD)*lfoot_trajectory_float_.linear();
-        rfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(-3*DEG2RAD)*rfoot_trajectory_float_.linear();
+        double foot_roll;
+        foot_roll = 2.0*DEG2RAD*sin(2*M_PI*walking_tick_mj/2000/(M_PI/7)) + 1.5*DEG2RAD;
+        lfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(foot_roll)*lfoot_trajectory_float_.linear();
+        rfoot_trajectory_float_.linear() = DyrosMath::rotateWithX(-foot_roll)*rfoot_trajectory_float_.linear();
         
-        F_F_input = 0.02*sin(2*M_PI*walking_tick_mj/2000/(M_PI/1));
+        F_F_input = 0.02*sin(2*M_PI*walking_tick_mj/2000/(M_PI/2));
     }
     rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
     lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
@@ -14480,7 +14485,8 @@ void AvatarController::GravityCalculate_MJ()
     }
     else
     {
-        Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+        // Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+        Gravity_DSP_ = floatGravityTorque(q_virtual_Xd_global_);
 
         Gravity_SSP_.setZero();
     }
@@ -14491,6 +14497,17 @@ void AvatarController::GravityCalculate_MJ()
         Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_; // + contact_torque_MJ;
         atb_grav_update_ = false;
     }
+}
+Eigen::VectorQd AvatarController::floatGravityTorque(Eigen::VectorQVQd q)
+{
+    Eigen::VectorXd gravity_torque_temp, qdot_zero;
+    gravity_torque_temp.setZero(MODEL_DOF_VIRTUAL, 1);
+    qdot_zero.setZero(MODEL_DOF_VIRTUAL, 1);
+
+    RigidBodyDynamics::NonlinearEffects(model_global_, q, qdot_zero, gravity_torque_temp);
+
+    Eigen::VectorQd gravity_torque = gravity_torque_temp;
+    return gravity_torque;
 }
 
 void AvatarController::parameterSetting()
@@ -14511,7 +14528,7 @@ void AvatarController::parameterSetting()
     t_rest_last_ = 0.12 * hz_;
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
-    t_total_ = 0.8 * hz_ + (std::rand() % 6) * 0.1 * hz_;
+    t_total_ = 0.9 * hz_ + (std::rand() % 6) * 0.1 * hz_;
 
     // t_rest_init_ = 0.27*hz_;
     // t_rest_last_ = 0.27*hz_;
