@@ -45,7 +45,7 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/random_walking_float.txt",
+        "/home/dyros/data/dg/random_walking_float_.txt",
         "/home/dyros/data/dg/1_foot_.txt",
         "/home/dyros/data/dg/2_zmp_.txt",
         "/home/dyros/data/dg/3_lstm_.txt"
@@ -1027,6 +1027,9 @@ public:
 
     Eigen::Vector3d hmd_chest_2_lshoulder_center_pos_;
     Eigen::Vector3d hmd_chest_2_rshoulder_center_pos_;
+
+    Eigen::Isometry3d tracker2origin_init_[5];
+    Eigen::Vector3d tocabi_pelv_tracker_estimation_[5];
 
     //global frame of vive tracker
     Eigen::Vector6d hmd_head_vel_global_;
