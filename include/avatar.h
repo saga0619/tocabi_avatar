@@ -138,7 +138,8 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     void computeCAMcontrol_HQP();
-    void comGenerator_MPC(double MPC_freq, double T, double preview_window);
+    void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window);
+    void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window);
     void getComTrajectory_mpc();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
@@ -746,6 +747,8 @@ public:
     double zc_;
     double gi_;
     double zmp_start_time_; //원래 코드에서는 start_time, zmp_ref 시작되는 time같음
+    double mpc_start_time_;
+    
     Eigen::Matrix4d k_;
     Eigen::Matrix4d K_act_;
     Eigen::VectorXd gp_l_;
@@ -1152,7 +1155,11 @@ public:
     Eigen::Vector3d x_diff;
     Eigen::Vector3d y_diff;
     bool mpc_x_update {false}, mpc_y_update {false} ;
-    double W1_mpc = 0, W2_mpc = 0; 
+    double W1_mpc = 0, W2_mpc = 0, W3_mpc = 0;
+    int alpha_step_mpc = 0;
+    Eigen::VectorXd alpha_mpc_;
+    Eigen::VectorXd F_diff_mpc_;
+    double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0; 
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
@@ -1435,6 +1442,7 @@ public:
     double foot_height_;
     int total_step_num_;
     int current_step_num_;
+    int current_step_num_mpc_;
 
     double step_length_x_;
     double step_length_y_;
@@ -1505,6 +1513,7 @@ public:
 private:    
     //////////////////////////////// Myeong-Ju
     unsigned int walking_tick_mj = 0;
+    unsigned int walking_tick_mpc_mj = 0;
     unsigned int initial_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  
