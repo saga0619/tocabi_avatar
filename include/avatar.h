@@ -1146,6 +1146,7 @@ public:
     Eigen::VectorXd U_x_mpc;
     Eigen::VectorXd U_y_mpc; 
     // Thread 2
+    double del_F_x, del_F_y = 0;
     Eigen::Vector3d x_hat_r;
     Eigen::Vector3d y_hat_r;
     Eigen::Vector3d x_hat_r_p;
@@ -1159,7 +1160,13 @@ public:
     int alpha_step_mpc = 0;
     Eigen::VectorXd alpha_mpc_;
     Eigen::VectorXd F_diff_mpc_;
-    double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0; 
+    double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0;
+
+    Eigen::Vector6d target_swing_foot;
+    Eigen::Vector6d desired_swing_foot;
+    Eigen::Vector6d fixed_swing_foot;
+    Eigen::Vector2d modified_del_zmp_;
+    Eigen::Vector2d m_del_zmp;
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
@@ -1246,6 +1253,7 @@ public:
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
     void getComTrajectory();
     void getFootTrajectory();
+    void getFootTrajectory_stepping();
     void getPelvTrajectory();
     void previewcontroller(double dt, int NL, int tick, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double& UX, double& UY, 
     Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD);  
