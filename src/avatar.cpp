@@ -748,44 +748,44 @@ void AvatarController::computeSlow()
     else if (rd_.tc_.mode == 11)
     {   
         //// simulation float mode
-        // if(float_data_collect_mode_ == true)
-        // {
-        //     //float_data_collect
-        //     Vector3d desired_pelv_pos_traj, pelv_ext_force, pelv_ext_torque;
-        //     Matrix3d desired_pelv_rot_traj;
-        //     desired_pelv_pos_traj = pelv_pos_init_global_;
-        //     desired_pelv_pos_traj(2) = DyrosMath::cubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_pos_init_global_(2), 2.0, 0.0, 0.0);
-        //     desired_pelv_rot_traj = DyrosMath::rotationCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_rot_init_global_, Eigen::Matrix3d::Identity());
+        if(float_data_collect_mode_ == true)
+        {
+            //float_data_collect
+            Vector3d desired_pelv_pos_traj, pelv_ext_force, pelv_ext_torque;
+            Matrix3d desired_pelv_rot_traj;
+            desired_pelv_pos_traj = pelv_pos_init_global_;
+            desired_pelv_pos_traj(2) = DyrosMath::cubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_pos_init_global_(2), 2.0, 0.0, 0.0);
+            desired_pelv_rot_traj = DyrosMath::rotationCubic(rd_.control_time_, rd_.tc_time_, rd_.tc_time_+3.0, pelv_rot_init_global_, Eigen::Matrix3d::Identity());
 
-        //     pelv_ext_force = 400*(desired_pelv_pos_traj - rd_.link_[Pelvis].xpos) - 40*rd_.link_[Pelvis].v;
-        //     pelv_ext_force(2) += rd_.link_[COM_id].mass * 9.81;
-        //     Vector3d error_w_pelv = -DyrosMath::getPhi(rd_.link_[Pelvis].rotm, Matrix3d::Identity());
-        //     pelv_ext_torque = 400*error_w_pelv - 40*rd_.link_[Pelvis].w;
+            pelv_ext_force = 400*(desired_pelv_pos_traj - rd_.link_[Pelvis].xpos) - 40*rd_.link_[Pelvis].v;
+            pelv_ext_force(2) += rd_.link_[COM_id].mass * 9.81;
+            Vector3d error_w_pelv = -DyrosMath::getPhi(rd_.link_[Pelvis].rotm, Matrix3d::Identity());
+            pelv_ext_torque = 400*error_w_pelv - 40*rd_.link_[Pelvis].w;
             
-        //     if( (walking_tick_mj%2000 >= 0)&&(walking_tick_mj%2000 < 100))
-        //     {
-        //         //random perturbation
-        //         std::srand(std::time(nullptr));
-        //         pelv_ext_force(0) += (float(std::rand()) / float(RAND_MAX))*100 -50;
-        //         pelv_ext_force(1) += (float(std::rand()) / float(RAND_MAX))*100 -50;
-        //         pelv_ext_force(2) += (float(std::rand()) / float(RAND_MAX))*100 -50;
+            if( (walking_tick_mj%2000 >= 0)&&(walking_tick_mj%2000 < 100))
+            {
+                //random perturbation
+                std::srand(std::time(nullptr));
+                // pelv_ext_force(0) += (float(std::rand()) / float(RAND_MAX))*100 -50;
+                // pelv_ext_force(1) += (float(std::rand()) / float(RAND_MAX))*100 -50;
+                // pelv_ext_force(2) += (float(std::rand()) / float(RAND_MAX))*100 -50;
 
-        //         pelv_ext_torque(0) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
-        //         pelv_ext_torque(1) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
-        //         pelv_ext_torque(2) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
-        //     }
+                // pelv_ext_torque(0) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
+                // pelv_ext_torque(1) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
+                // pelv_ext_torque(2) += (float(std::rand()) / float(RAND_MAX))*60 - 30;
+            }
             
-        //     mujoco_applied_ext_force_.data[0] = pelv_ext_force(0); //x-axis linear force
-        //     mujoco_applied_ext_force_.data[1] = pelv_ext_force(1);  //y-axis linear force
-        //     mujoco_applied_ext_force_.data[2] = pelv_ext_force(2);  //z-axis linear force
-        //     mujoco_applied_ext_force_.data[3] = pelv_ext_torque(0);  //x-axis angular moment
-        //     mujoco_applied_ext_force_.data[4] = pelv_ext_torque(1);  //y-axis angular moment
-        //     mujoco_applied_ext_force_.data[5] = pelv_ext_torque(2);  //z-axis angular moment
+            mujoco_applied_ext_force_.data[0] = pelv_ext_force(0); //x-axis linear force
+            mujoco_applied_ext_force_.data[1] = pelv_ext_force(1);  //y-axis linear force
+            mujoco_applied_ext_force_.data[2] = pelv_ext_force(2);  //z-axis linear force
+            mujoco_applied_ext_force_.data[3] = pelv_ext_torque(0);  //x-axis angular moment
+            mujoco_applied_ext_force_.data[4] = pelv_ext_torque(1);  //y-axis angular moment
+            mujoco_applied_ext_force_.data[5] = pelv_ext_torque(2);  //z-axis angular moment
 
-        //     mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:plevis
+            mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:plevis
 
-        //     mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
-        // }
+            mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+        }
 
         ////////////////////////////////////////////////////////////////////////////
         /////////////////// Biped Walking Controller made by MJ ////////////////////
@@ -1293,8 +1293,8 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/");
+            // loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/");
+            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
             // loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/");
@@ -14506,7 +14506,7 @@ Eigen::VectorQd AvatarController::floatGravityTorque(Eigen::VectorQVQd q)
 
     RigidBodyDynamics::NonlinearEffects(model_global_, q, qdot_zero, gravity_torque_temp);
 
-    Eigen::VectorQd gravity_torque = gravity_torque_temp;
+    Eigen::VectorQd gravity_torque = gravity_torque_temp.segment(6, MODEL_DOF);
     return gravity_torque;
 }
 
