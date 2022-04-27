@@ -139,7 +139,7 @@ public:
 
     void computeCAMcontrol_HQP();
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window);
-    void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window);
+    void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void getComTrajectory_mpc();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
@@ -1160,6 +1160,8 @@ public:
     int alpha_step_mpc = 0;
     Eigen::VectorXd alpha_mpc_;
     Eigen::VectorXd F_diff_mpc_;
+    double alpha_LPF = 0;
+    double temp_pos_y = 0;
     double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0;
 
     Eigen::Vector6d target_swing_foot;
