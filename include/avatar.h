@@ -1146,7 +1146,7 @@ public:
     Eigen::VectorXd U_x_mpc;
     Eigen::VectorXd U_y_mpc; 
     // Thread 2
-    double del_F_x, del_F_y = 0;
+    double del_F_x = 0, del_F_y = 0;
     Eigen::Vector3d x_hat_r;
     Eigen::Vector3d y_hat_r;
     Eigen::Vector3d x_hat_r_p;
@@ -1159,7 +1159,8 @@ public:
     double W1_mpc = 0, W2_mpc = 0, W3_mpc = 0;
     int alpha_step_mpc = 0;
     Eigen::VectorXd alpha_mpc_;
-    Eigen::VectorXd F_diff_mpc_;
+    Eigen::VectorXd F_diff_mpc_x;
+    Eigen::VectorXd F_diff_mpc_y;
     double alpha_LPF = 0;
     double temp_pos_y = 0;
     double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0;
@@ -1168,7 +1169,8 @@ public:
     Eigen::Vector6d desired_swing_foot;
     Eigen::Vector6d fixed_swing_foot;
     Eigen::Vector2d modified_del_zmp_;
-    Eigen::Vector2d m_del_zmp;
+    Eigen::Vector2d m_del_zmp_x;
+    Eigen::Vector2d m_del_zmp_y;
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
