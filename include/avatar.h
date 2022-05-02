@@ -1147,6 +1147,7 @@ public:
     Eigen::VectorXd U_y_mpc; 
     // Thread 2
     double del_F_x = 0, del_F_y = 0;
+    Eigen::Vector2d del_F_;
     Eigen::Vector3d x_hat_r;
     Eigen::Vector3d y_hat_r;
     Eigen::Vector3d x_hat_r_p;
@@ -1169,7 +1170,8 @@ public:
     Eigen::Vector6d desired_swing_foot;
     Eigen::Vector6d fixed_swing_foot;
     Eigen::Vector2d modified_del_zmp_;
-    Eigen::Vector2d m_del_zmp_x;
+    Eigen::MatrixXd modified_del_zmp__;
+    Eigen::MatrixXd m_del_zmp_x;
     Eigen::Vector2d m_del_zmp_y;
     ////////////////////////////////////////////////////////////
     
@@ -1471,7 +1473,7 @@ public:
     Eigen::MatrixXd foot_step_;
     Eigen::MatrixXd foot_step_support_frame_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
-
+    
     // Com damping control - ZMP tracking controller
     Eigen::MatrixXd A_y_ssp;
     Eigen::MatrixXd B_y_ssp;
