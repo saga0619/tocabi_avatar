@@ -1169,10 +1169,9 @@ public:
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
     Eigen::Vector6d fixed_swing_foot;
-    Eigen::Vector2d modified_del_zmp_;
-    Eigen::MatrixXd modified_del_zmp__;
+    Eigen::MatrixXd modified_del_zmp_; 
     Eigen::MatrixXd m_del_zmp_x;
-    Eigen::Vector2d m_del_zmp_y;
+    Eigen::MatrixXd m_del_zmp_y; 
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
