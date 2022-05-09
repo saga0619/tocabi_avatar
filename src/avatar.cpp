@@ -9345,7 +9345,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     
     int r_current = 0.0, r_next = 0.0, r_n_next = 0.0, except_dsp1 = 0.0, except_dsp2 = 0.0 ;
 
-    if(current_step_num_mpc_ > 0) // To define selection matrix for swingfoot adjustment
+    if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_-1 ) // To define selection matrix for swingfoot adjustment
     {
         r_current = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining time in one step // 109~0
 
@@ -9389,10 +9389,10 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
             alpha_mpc_ = -alpha_mpc_;
             alpha_mpc_.segment(r_current, r_next).setOnes(); 
         } 
-
+        // cout << current_step_num_mpc_ << "," << r_current << "," << r_next << "," << r_n_next << endl;
         F_diff_mpc_x.setZero(N);
         F_diff_mpc_y.setZero(N);
-
+        
         Eigen::VectorXd A;
         A.setZero(r_current);
         F_diff_mpc_x.segment(0,r_current) =  A.Constant(r_current,1,F0_F1_mpc_x);
@@ -11207,7 +11207,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 20; //total foot step number
+        middle_total_step_number = 8; //total foot step number
         dlength = 0;
     }
 
