@@ -887,11 +887,27 @@ void AvatarController::computeSlow()
 
                 torque_lower_.setZero();
 
+                Vector12d p_gaussian;
+                double first_smoothing_gain;
+                first_smoothing_gain = DyrosMath::cubic(walking_tick_mj, 3.0*hz_, 5.0*hz_, 0.0, 1.0, 0.0, 0.0);
                 for (int i = 0; i < 12; i++)
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
-                    // torque_lower_(i) -= 1.0*estimated_model_unct_torque_slow_(i);
+
+
+
+                    if( estimated_model_unct_torque_variance_slow_(i) == 0 )
+                    {
+                        p_gaussian(i) = 1.0;
+                        cout<<"WARNING: model uncertainty torque variance is zero!" << endl;
+                    }
+                    else
+                    {
+                        p_gaussian(i) = 0.4/std::sqrt( 2*M_PI*estimated_model_unct_torque_variance_slow_(i) );
+                        p_gaussian(i) = DyrosMath::minmax_cut(p_gaussian(i), 0.0, 0.99);
+                    }
+                    // torque_lower_(i) -= first_smoothing_gain*0.3*estimated_model_unct_torque_slow_lpf_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
 
@@ -973,7 +989,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
+                // rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -1299,12 +1315,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_tracker_vel_ft_mix1/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_tracker_vel_ft_mix1/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_tracker_vel_des_torque_mob_sub_ft_mix1_gaussian/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_tracker_vel_des_torque_mob_sub_ft_mix1_gaussian/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_tracker_vel_ft_mix1/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_tracker_vel_ft_mix1/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_tracker_vel_des_torque_mob_sub_ft_mix1_gaussian/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_tracker_vel_des_torque_mob_sub_ft_mix1_gaussian/");
             initial_flag = 2;
         }
     }
@@ -1384,13 +1400,20 @@ void AvatarController::computeFast()
         // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
         estimated_model_unct_torque_fast_.setZero();
-        estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output;
-        estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output;
+        estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
+        estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
+
+
+        // gaussian model
+        estimated_model_unct_torque_variance_fast_.setZero();
+        estimated_model_unct_torque_variance_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(6, 6);
+        estimated_model_unct_torque_variance_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(6, 6);
 
         if(left_leg_mob_lstm_.atb_lstm_output_update_ == false)
         {
             left_leg_mob_lstm_.atb_lstm_output_update_ = true;
             estimated_model_unct_torque_thread_ = estimated_model_unct_torque_fast_;
+            estimated_model_unct_torque_variance_thread_ = estimated_model_unct_torque_variance_fast_;
             left_leg_mob_lstm_.atb_lstm_output_update_ = false;
         }
 
@@ -2364,9 +2387,15 @@ void AvatarController::floatingBaseMOB()
     {
         left_leg_mob_lstm_.atb_lstm_output_update_ = true;
         estimated_model_unct_torque_slow_ = estimated_model_unct_torque_thread_;
+        estimated_model_unct_torque_variance_slow_ = estimated_model_unct_torque_variance_thread_;
         left_leg_mob_lstm_.atb_lstm_output_update_ = false;
     }
 
+    if(walking_tick_mj == 0)
+    {
+        estimated_model_unct_torque_slow_lpf_ = estimated_model_unct_torque_slow_;
+    }
+    estimated_model_unct_torque_slow_lpf_.segment(0, 12) = DyrosMath::lpf<12>(estimated_model_unct_torque_slow_.segment(0, 12), estimated_model_unct_torque_slow_lpf_.segment(0, 12), hz_, 10);
     estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF) - estimated_model_unct_torque_slow_;
     // estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF);
     estimated_ext_force_lfoot_lstm_ = R_temp_lfoot.transpose()*(jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse()*estimated_ext_torque_lstm_.segment(0, 6);
@@ -2401,7 +2430,7 @@ void AvatarController::floatingBaseMOB()
     if (walking_tick_mj%200 == 0)
     {
         // cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 12).transpose() <<endl;
-        cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
         // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
         // cout<<"estimated_ext_force_lfoot_lstm_: \n"<<estimated_ext_force_lfoot_lstm_.transpose() <<endl;
         // cout<<"l_ft_: \n"<<l_ft_.transpose() <<endl;
@@ -10493,10 +10522,19 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
     }
     mean_std_file_[3].close();
 
+
+    if( gaussian_mode_)
+    {
+        for(int i = int(lstm.n_output/2); i < lstm.n_output; i++)
+        {
+            lstm.output_std(i) = 1.0;
+            lstm.output_mean(i) = 0.0;
+        }
+    }
     // cout<<"lstm.input_mean: \n"<<lstm.input_mean<<endl;
     // cout<<"lstm.input_std: \n"<<lstm.input_std<<endl;
-    // cout<<"lstm.output_mean: \n"<<lstm.output_mean<<endl;
-    // cout<<"lstm.output_std: \n"<<lstm.output_std<<endl;
+    cout<<"lstm.output_mean: \n"<<lstm.output_mean<<endl;
+    cout<<"lstm.output_std: \n"<<lstm.output_std<<endl;
 
 }
 void AvatarController::collectRobotInputData_acc_version()
@@ -10706,6 +10744,26 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
     for (int joint = 0; joint < lstm.n_output; joint++)
     {
         lstm.real_output(joint) = lstm.output(joint)*lstm.output_std(joint) + lstm.output_mean(joint);
+    }
+
+    if(gaussian_mode_)
+    {
+        double beta = 1;
+        double threashold = 20;
+        for(int i = int(lstm.n_output/2); i < lstm.n_output; i++)
+        {
+            double input;
+            input = beta*lstm.real_output(i);
+            if(input> threashold)
+            {
+                lstm.real_output(i) = lstm.real_output(i);//*lstm.output_std(i-int(lstm.n_output/2))*lstm.output_std(i-int(lstm.n_output/2));
+            }
+            else
+            {
+                lstm.real_output(i) = std::log( 1 + std::exp(input) )/beta;  // softplus 
+                // lstm.real_output(i) = lstm.real_output(i)*lstm.output_std(i-int(lstm.n_output/2))*lstm.output_std(i-int(lstm.n_output/2));    // variance unnormalize
+            }
+        }
     }
 }
 void AvatarController::savePreData()
@@ -12004,17 +12062,19 @@ void AvatarController::printOutTextFile()
     //         << rfoot_transform_current_from_support_.translation()(0) << "\t" << rfoot_transform_current_from_support_.translation()(1) << "\t" << rfoot_transform_current_from_support_.translation()(2) << "\t" //7
     //         << swing_foot_pos_trajectory_from_support_(0) << "\t" << swing_foot_pos_trajectory_from_support_(1) << "\t" << swing_foot_pos_trajectory_from_support_(2) << endl;                                    //28
     
-    // file[1] << rd_.control_time_ << "\t" << lfoot_local_current_.translation()(0) << "\t" << lfoot_local_current_.translation()(1) << "\t" << lfoot_local_current_.translation()(2) << "\t";
-    // file[1] << rfoot_local_current_.translation()(0) << "\t" << rfoot_local_current_.translation()(1) << "\t" << rfoot_local_current_.translation()(2) << "\t";
-    // file[1] << lfoot_trajectory_float_.translation()(0) << "\t" << lfoot_trajectory_float_.translation()(1) << "\t" << lfoot_trajectory_float_.translation()(2) << "\t";
-    // file[1] << rfoot_trajectory_float_.translation()(0) << "\t" << rfoot_trajectory_float_.translation()(1) << "\t" << rfoot_trajectory_float_.translation()(2) <<endl;
-
-    // file[2] << zmp_measured_FT_(0) << "\t" << zmp_measured_FT_(1) << "\t" << (ZMP_X_REF + del_zmp(0)) << "\t" << (ZMP_Y_REF_alpha + del_zmp(1)) << endl;
-
+  
     if (walking_tick_mj % 20 == 0)
     {
         if (printout_cnt_ <= 100 * 60 * 60 * 1) //3h
         {
+            file[1] << rd_.control_time_ << "\t" << lfoot_local_current_.translation()(0) << "\t" << lfoot_local_current_.translation()(1) << "\t" << lfoot_local_current_.translation()(2) << "\t";
+            file[1] << rfoot_local_current_.translation()(0) << "\t" << rfoot_local_current_.translation()(1) << "\t" << rfoot_local_current_.translation()(2) << "\t";
+            file[1] << lfoot_trajectory_float_.translation()(0) << "\t" << lfoot_trajectory_float_.translation()(1) << "\t" << lfoot_trajectory_float_.translation()(2) << "\t";
+            file[1] << rfoot_trajectory_float_.translation()(0) << "\t" << rfoot_trajectory_float_.translation()(1) << "\t" << rfoot_trajectory_float_.translation()(2) <<endl;
+
+            file[2] << zmp_measured_FT_(0) << "\t" << zmp_measured_FT_(1) << "\t" << (ZMP_X_REF + del_zmp(0)) << "\t" << (ZMP_Y_REF_alpha + del_zmp(1)) << endl;
+
+
             file[0] << rd_.control_time_ << "\t" << foot_step_(current_step_num_, 6) << "\t";
             // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
             // file[4] << torque_grav_(0) << "\t" << torque_grav_(1) << "\t" << torque_grav_(2) << "\t" << torque_grav_(3) << "\t" << torque_grav_(4) << "\t" << torque_grav_(5) << "\t" << torque_grav_(6) << "\t" << torque_grav_(7) << "\t" << torque_grav_(8) << "\t" << torque_grav_(9) << "\t" << torque_grav_(10) << "\t" << torque_grav_(11) << endl;
@@ -12074,7 +12134,11 @@ void AvatarController::printOutTextFile()
             file[3]<<rd_.control_time_<<"\t";
             for (int i = 0; i < 12; i++)
             {
-                file[3] << estimated_ext_torque_lstm_(i) << "\t";
+                file[3] << estimated_model_unct_torque_slow_(i) << "\t";
+            }
+            for (int i = 0; i < 12; i++)
+            {
+                file[3] << estimated_model_unct_torque_variance_slow_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
@@ -12090,7 +12154,7 @@ void AvatarController::printOutTextFile()
             }
             for(int i = 0; i <6 ; i++) 
             {
-                file[3]<< r_ft_LPF(6+i) << "\t";
+                file[3]<< r_ft_LPF(i) << "\t";
             }
             for(int i = 0; i <3 ; i++) 
             {
@@ -14616,7 +14680,7 @@ void AvatarController::parameterSetting()
 
     //// Normal walking setting ////
     //// 1.1s walking
-    target_x_ = 0.7;
+    target_x_ = 0.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;

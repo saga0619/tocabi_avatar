@@ -37,18 +37,19 @@ const int FILE_CNT = 4;
 // mob lstm
 const int n_input_ = 28;
 const int n_sequence_length_ = 1;
-const int n_output_ = 6;
+const int n_output_ = 12;
 const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
+const bool gaussian_mode_ = true;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/random_walking_float_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/3_lstm_float_.txt"
+        "/home/dyros/data/dg/straight_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -1292,6 +1293,11 @@ public:
     Eigen::VectorQd estimated_model_unct_torque_fast_;
     Eigen::VectorQd estimated_model_unct_torque_slow_;
     Eigen::VectorQd estimated_model_unct_torque_thread_;
+    Eigen::VectorQd estimated_model_unct_torque_slow_lpf_;
+
+    Eigen::VectorQd estimated_model_unct_torque_variance_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_thread_;
 
     //TO DO LISTS
     // - Weight import
