@@ -775,6 +775,7 @@ public:
     double UX_, UY_;
 
     int zmp_size_;
+
     Eigen::MatrixXd ref_zmp_;
     Eigen::Vector3d com_pos_desired_preview_;
     Eigen::Vector3d com_vel_desired_preview_;
@@ -1149,13 +1150,20 @@ public:
     double del_F_x = 0, del_F_y = 0;
     Eigen::Vector2d del_F_;
     Eigen::Vector3d x_hat_r;
+    Eigen::Vector3d x_hat_r_sc;
+    Eigen::Vector3d x_hat_r_p_sc;
     Eigen::Vector3d y_hat_r;
+    Eigen::Vector3d y_hat_r_sc;    
+    Eigen::Vector3d y_hat_r_p_sc;
     Eigen::Vector3d x_hat_r_p;
     Eigen::Vector3d y_hat_r_p;
     Eigen::Vector3d x_mpc_i;
-    Eigen::Vector3d y_mpc_i;
+    Eigen::Vector3d y_mpc_i; 
     Eigen::Vector3d x_diff;
     Eigen::Vector3d y_diff;
+
+    int interpol_cnt_x = 0;
+    int interpol_cnt_y = 0;
     bool mpc_x_update {false}, mpc_y_update {false} ;
     double W1_mpc = 0, W2_mpc = 0, W3_mpc = 0;
     int alpha_step_mpc = 0;
@@ -1396,6 +1404,7 @@ public:
     Eigen::Vector6d swingfoot_support_init_;
 
     Eigen::MatrixXd ref_zmp_mj_;
+    Eigen::MatrixXd ref_zmp_mj_p_;
     Eigen::MatrixXd ref_zmp_mpc_;
 
     Eigen::Vector3d xs_mj_;
@@ -1454,9 +1463,9 @@ public:
     double t_total_;
     double foot_height_;
     int total_step_num_;
+    int total_step_num_mpc_;
     int current_step_num_;
-    int current_step_num_mpc_;
-
+    int current_step_num_mpc_;    
     double step_length_x_;
     double step_length_y_;
     double target_theta_;
