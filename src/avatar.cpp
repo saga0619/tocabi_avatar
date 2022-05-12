@@ -801,7 +801,7 @@ void AvatarController::computeSlow()
                 if( (walking_tick_mj >= 5.6*hz_)&&(walking_tick_mj < 5.65*hz_))
                 { // -170,175 // -350 7.5 - 7.6
                     mujoco_applied_ext_force_.data[0] = 0*-350.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = 0*400.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[1] = 400.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -814,7 +814,7 @@ void AvatarController::computeSlow()
                 else if((walking_tick_mj >= 8.8*hz_)&&(walking_tick_mj < 8.85*hz_)) // 8.6 8.9 9.7 10.0
                 {
                     mujoco_applied_ext_force_.data[0] = 0*-354.0; //x-axis linear force -92  
-                    mujoco_applied_ext_force_.data[1] = 0*-400.0;  //y-axis linear force
+                    mujoco_applied_ext_force_.data[1] = -400.0;  //y-axis linear force
                     mujoco_applied_ext_force_.data[2] = 0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0;  //y-axis angular moment
@@ -9266,8 +9266,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     O_N_2.setZero(N,2); // N x 2 Zero matrix
     O_2_1.setZero(2,1); // 2 x 1 Zero matrix
     I_N.setIdentity(); // N x N Identity matrix
-    I_2.setIdentity(); // 2 x 2 Identity matrix
-    // int MPC_synchro_hz_ = 20; // 40 = Control freq (2000) / MPC_freq (100)  
+    I_2.setIdentity(); // 2 x 2 Identity matrix 
 
     if(MPC_first_loop == 0)
     {
@@ -9388,8 +9387,8 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
             alpha_mpc_.segment(r_current + r_next, r_n_next).setOnes();
             alpha_mpc_ = -alpha_mpc_;
             alpha_mpc_.segment(r_current, r_next).setOnes(); 
-        } 
-        // cout << current_step_num_mpc_ << "," << r_current << "," << r_next << "," << r_n_next << endl;
+        }  
+
         F_diff_mpc_x.setZero(N);
         F_diff_mpc_y.setZero(N);
         
@@ -9411,8 +9410,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
         // define the selection matrix for kinematic constraints
         P_sel_k.setZero(N,future_step_num_); // N x 2  
         P_sel_k.block(r_current,0,r_next,1) = sel_swingfoot_; // dynamic-size block expression
-        P_sel_alpha = alpha_step_mpc * P_sel_k; // 왜 alpha_mpc_(0)이 한 tick 더 빨리 바뀔까? 
-        //cout << alpha_step_mpc << "," << alpha_mpc_(0) << endl; // 왜 alpha_mpc_(0)이 한 tick 더 빨리 바뀔까?
+        P_sel_alpha = alpha_step_mpc * P_sel_k; // 왜 alpha_mpc_(0)이 한 tick 더 빨리 바뀔까?  
     }
     else
     {       
@@ -9565,19 +9563,20 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
 }
 
-/*
-void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window)
+
+void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
 {    
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     
     int N = preview_window * MPC_freq; // N step horizon (1.5s x 100)
     int mpc_tick = walking_tick_mpc_mj - mpc_start_time_;
     static int MPC_first_loop = 0;
+    int state_num_ = 3;
     Eigen::MatrixXd O_N;
     Eigen::MatrixXd I_N(N,N);
     O_N.setZero(N,N); // N x N Zero matrix
     I_N.setIdentity(); // N x N Identity matrix
-    int MPC_synchro_hz_ = 20; // 20 = Control freq (2000) / MPC_freq (100)
+    //int MPC_synchro_hz_ = 20; // 20 = Control freq (2000) / MPC_freq (100)
 
     if(MPC_first_loop == 0)
     {
@@ -9603,7 +9602,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         W1_mpc = 0.000001; // The term alpha in wiber's paper
         W2_mpc = 1.0; // The term gamma in wiber's paper
 
-        P_zs_mpc.setZero(N,3);
+        P_zs_mpc.setZero(N,state_num_);
         P_zu_mpc.setZero(N,N);
 
         for(int i = 0; i < N; i++)
@@ -9667,31 +9666,13 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     for(int i = 0; i < N; i++)  
     {
-        zmp_bound(i) = 0.05;
+        zmp_bound(i) = 0.03;
     }
     
     lb_b_x = Z_x_ref - zmp_bound - P_zs_mpc*x_hat_;
     ub_b_x = Z_x_ref + zmp_bound - P_zs_mpc*x_hat_;
     lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc*y_hat_;
     ub_b_y = Z_y_ref + zmp_bound - P_zs_mpc*y_hat_;
-
-    // lb_b.segment(0, N) = lb_b_x;
-    // lb_b.segment(N, N) = lb_b_y;
-    // ub_b.segment(0, N) = ub_b_x;
-    // ub_b.segment(N, N) = ub_b_y;
-
-    // Eigen::MatrixXd A_zu(2*N, 2*N);
-
-    // A_zu.block<75, 75>(0, 0) = P_zu_mpc; // N = 75 
-    // A_zu.block<75, 75>(N, 0) = O_N;
-    // A_zu.block<75, 75>(0, N) = O_N;
-    // A_zu.block<75, 75>(N, N) = P_zu_mpc;
-
-    // QP_mpc_.InitializeProblemSize(2*N, 2*N);
-    // QP_mpc_.EnableEqualityCondition(equality_condition_eps_);
-    // QP_mpc_.UpdateMinProblem(Q_mpc,p);
-    // QP_mpc_.DeleteSubjectToAx();      
-    // QP_mpc_.UpdateSubjectToAx(A_zu, lb_b, ub_b);
     
     QP_mpc_x.InitializeProblemSize(N, N);
     QP_mpc_x.EnableEqualityCondition(equality_condition_eps_);
@@ -9741,11 +9722,11 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     // MJ_graph << xd_mj_(0) << "," << x_hat_(0) << "," << xd_mj_(1) << "," << x_hat_(1) << "," << Z_x_ref(0) << "," << output_zmp(0) << endl;
     // MJ_graph << y_hat_(0) << "," << Z_y_ref(1) << "," << output_zmp(1) << endl;
     // Cross check using MATLAB    
-    MJ_graph << y_hat_(0) << "," << Z_y_ref(1) << "," << output_zmp(1) << endl;
+    // MJ_graph << y_hat_(0) << "," << Z_y_ref(1) << "," << output_zmp(1) << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
 }
-*/
+
 
 void AvatarController::savePreData()
 {
@@ -12762,8 +12743,8 @@ void AvatarController::getComTrajectory_mpc()
         atb_mpc_update_ = false;
     }    
 
-    x_mpc_i = 50/hz_*x_diff*interpol_cnt_x + x_hat_r_p;
-    y_mpc_i = 50/hz_*y_diff*interpol_cnt_y + y_hat_r_p;
+    x_mpc_i = (50/hz_)*x_diff*interpol_cnt_x + x_hat_r_p;
+    y_mpc_i = (50/hz_)*y_diff*interpol_cnt_y + y_hat_r_p;
 
     interpol_cnt_x ++;
     interpol_cnt_y ++;
