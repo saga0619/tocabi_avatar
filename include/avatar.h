@@ -31,6 +31,7 @@
 #include <ctime>
 
 #include <cmath> /* isnan, sqrt */
+#include <random>
 
 const int FILE_CNT = 4;
 
@@ -45,10 +46,10 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/random_walking_float_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/sim_mass_error_stiffness/3_lstm_float_.txt"
+        "/ssd2/fb_mob_learning/data/float_random_walking_.txt",
+        "/ssd2/fb_mob_learning/data/1_foot_.txt",
+        "/ssd2/fb_mob_learning/data/2_zmp_.txt",
+        "/ssd2/fb_mob_learning/data/3_lstm_float_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -156,6 +157,11 @@ public:
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
+    void collisionEstimation();
+    void collisionCheck();
+    void collisionIsolation();
+    void collisionIdentification();
+
 
     void computeCAMcontrol_HQP();
 
@@ -448,6 +454,8 @@ public:
 
     Eigen::VectorXd q_ddot_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_dot_virtual_Xd_global_pre_, q_virtual_Xd_global_; // for model_global_ update
     Eigen::VectorXd q_ddot_virtual_Xd_local_, q_dot_virtual_Xd_local_, q_dot_virtual_Xd_local_pre_, q_virtual_Xd_local_;
+    
+    Eigen::VectorXd q_ddot_virtual_Xd_global_noise_, q_dot_virtual_Xd_global_noise_, q_virtual_Xd_global_noise_;
 
     Eigen::VectorQd desired_q_fast_;
     Eigen::VectorQd desired_q_dot_fast_;

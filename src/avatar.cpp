@@ -973,7 +973,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
+                // rd_.tc_.mode = 10;  // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -2252,7 +2252,9 @@ void AvatarController::floatingBaseMOB()
 
     A_dot_mat_ = (A_mat_ - A_mat_pre_) * hz_;
 
-    RigidBodyDynamics::NonlinearEffects(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, nonlinear_torque_temp);
+    // RigidBodyDynamics::NonlinearEffects(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, nonlinear_torque_temp);
+    //noise version
+    RigidBodyDynamics::NonlinearEffects(model_global_, q_virtual_Xd_global_noise_, q_dot_virtual_Xd_global_noise_, nonlinear_torque_temp);
 
     Eigen::Vector6d base_velocity;
     Eigen::Matrix6d adjt_global2pelv;
@@ -2318,7 +2320,9 @@ void AvatarController::floatingBaseMOB()
         VectorXd momentum_virtual, current_torque_virtual, nonlinear_term_virtual;
         momentum_virtual.setZero(MODEL_DOF_VIRTUAL);
         // momentum_virtual.segment(0, MODEL_DOF_VIRTUAL) = A_mat_.block(0, 0, MODEL_DOF_VIRTUAL, 6) * base_velocity + A_mat_.block(0, 6, MODEL_DOF_VIRTUAL, MODEL_DOF) * rd_.q_dot_;  //local frame
-        momentum_virtual = A_mat_*q_dot_virtual_Xd_global_;
+        // momentum_virtual = A_mat_*q_dot_virtual_Xd_global_;
+        //noise version
+        momentum_virtual = A_mat_*q_dot_virtual_Xd_global_noise_;
         current_torque_virtual.setZero(MODEL_DOF_VIRTUAL);
         current_torque_virtual.segment(6, MODEL_DOF) = current_torque.segment(0, MODEL_DOF);
         nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
@@ -2401,7 +2405,7 @@ void AvatarController::floatingBaseMOB()
     if (walking_tick_mj%200 == 0)
     {
         // cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 12).transpose() <<endl;
-        cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
         // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
         // cout<<"estimated_ext_force_lfoot_lstm_: \n"<<estimated_ext_force_lfoot_lstm_.transpose() <<endl;
         // cout<<"l_ft_: \n"<<l_ft_.transpose() <<endl;
@@ -2433,6 +2437,24 @@ void AvatarController::floatingBaseMOB()
         // cout<<"jac_rfoot_: \n"<< jac_rfoot_ <<endl;
         // cout<<"A_mat_: \n"<< A_mat_ <<endl;
     }
+}
+void AvatarController::collisionEstimation()
+{
+    collisionCheck();
+    collisionIsolation();
+    collisionIdentification();
+}
+void AvatarController::collisionCheck()
+{
+    
+}
+void AvatarController::collisionIsolation()
+{
+    
+}
+void AvatarController::collisionIdentification()
+{
+    
 }
 void AvatarController::walkingStateManager()
 {
@@ -12013,19 +12035,19 @@ void AvatarController::printOutTextFile()
 
     if (walking_tick_mj % 20 == 0)
     {
-        if (printout_cnt_ <= 100 * 60 * 60 * 1) //3h
+        if (printout_cnt_ <= 100 * 60 * 60 * 1) //1h
         {
             file[0] << rd_.control_time_ << "\t" << foot_step_(current_step_num_, 6) << "\t";
             // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
             // file[4] << torque_grav_(0) << "\t" << torque_grav_(1) << "\t" << torque_grav_(2) << "\t" << torque_grav_(3) << "\t" << torque_grav_(4) << "\t" << torque_grav_(5) << "\t" << torque_grav_(6) << "\t" << torque_grav_(7) << "\t" << torque_grav_(8) << "\t" << torque_grav_(9) << "\t" << torque_grav_(10) << "\t" << torque_grav_(11) << endl;
-            file[0]<< q_virtual_Xd_global_(39) << "\t";       //w of quaternion
+            file[0]<< q_virtual_Xd_global_noise_(39) << "\t";       //w of quaternion
             for(int i = 0; i <18 ; i++) 
             {
-                file[0]<< q_virtual_Xd_global_(i) << "\t";
+                file[0]<< q_virtual_Xd_global_noise_(i) << "\t";
             }
             for (int i = 0; i < 18; i++)
             {
-                file[0]<< q_dot_virtual_Xd_global_(i) << "\t";
+                file[0]<< q_dot_virtual_Xd_global_noise_(i) << "\t";
             }
             for(int i = 0; i <18 ; i++) 
             {
@@ -12033,7 +12055,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 3; i++)
             {
-                file[0] << rd_.q_ddot_virtual_(i) << "\t";
+                file[0] << q_dot_virtual_Xd_global_noise_(i) << "\t";
             }
             for (int i = 0; i < 12; i++)
             {
@@ -12106,7 +12128,7 @@ void AvatarController::printOutTextFile()
         }
         else
         {
-            cout << "WARNING: Logging for 9h" << endl;
+            cout << "WARNING: Logging for 1h" << endl;
         }
     }
     // file[5] << current_time_ - upperbody_command_time_ << "\t" << walking_phase_ << "\t" << foot_contact_ << "\t"
@@ -12430,6 +12452,42 @@ void AvatarController::getRobotState()
     q_ddot_virtual_Xd_global_ = (q_dot_virtual_Xd_global_ - q_dot_virtual_Xd_global_pre_) * hz_;
     q_ddot_virtual_Xd_global_.segment(0, 6) = rd_.q_ddot_virtual_.segment(0, 6);
 
+    q_virtual_Xd_global_noise_ = q_virtual_Xd_global_;
+    q_dot_virtual_Xd_global_noise_ = q_dot_virtual_Xd_global_;
+    q_ddot_virtual_Xd_global_noise_ = q_ddot_virtual_Xd_global_;
+    // std::mt19937 generator(std::random_device{}());
+    // auto dist_1 = std::bind(std::normal_distribution<double>{0.0, 0.1}, std::mt19937(std::random_device{}()));
+    auto dist_2 = std::bind(std::normal_distribution<double>{0.0, 0.01}, std::mt19937(std::random_device{}()));
+    auto dist_3 = std::bind(std::normal_distribution<double>{0.0, 0.001}, std::mt19937(std::random_device{}()));
+    auto dist_4 = std::bind(std::normal_distribution<double>{0.0, 0.0001}, std::mt19937(std::random_device{}()));
+    auto dist_5 = std::bind(std::normal_distribution<double>{0.0, 0.00001}, std::mt19937(std::random_device{}()));
+
+    // std::default_random_engine generator;
+    // std::normal_distribution<double> dist(0.0, 0.1);
+
+    // for (int i = 6; i<39; i++)
+    // {
+    //     q_virtual_Xd_global_noise_(i) = q_virtual_Xd_global_noise_(i) + dist_5();
+    // }
+    // // cout<<"q_noise - q = "<<(q_virtual_Xd_global_noise_ - q_virtual_Xd_global_).transpose() << endl;
+    
+    // for (int i = 0; i<3; i++)
+    // {
+    //     q_dot_virtual_Xd_global_noise_(i) = q_dot_virtual_Xd_global_noise_(i) + dist_2();
+    // }
+    // for (int i = 3; i<6; i++)
+    // {
+    //     q_dot_virtual_Xd_global_noise_(i) = q_dot_virtual_Xd_global_noise_(i) + dist_3();
+    // }
+    // for (int i = 6; i<MODEL_DOF_VIRTUAL; i++)
+    // {
+    //     q_dot_virtual_Xd_global_noise_(i) = q_dot_virtual_Xd_global_noise_(i) + dist_2();
+    // }
+
+    // for (int i = 0; i<MODEL_DOF_VIRTUAL; i++)
+    // {
+    //     q_ddot_virtual_Xd_global_noise_(i) = q_ddot_virtual_Xd_global_noise_(i) + dist_4();
+    // }
     // q_virtual_c.segment(0, 3).setZero();
     RigidBodyDynamics::UpdateKinematicsCustom(model_global_, &q_virtual_Xd_global_, &q_dot_virtual_Xd_global_, &q_ddot_virtual_Xd_global_);
     //////////////////////////////////////////////
@@ -12650,7 +12708,7 @@ void AvatarController::getRobotState()
     calculateLstmInput(left_leg_mob_lstm_); //1us
     calculateLstmInput(right_leg_mob_lstm_); //1us
     floatingBaseMOB(); //created by DG
-
+    collisionEstimation();
 
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
