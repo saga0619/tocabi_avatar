@@ -89,6 +89,7 @@ public:
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
+    CQuadraticProgram QP_stepping;
 
     Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
@@ -140,6 +141,7 @@ public:
     void computeCAMcontrol_HQP();
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
+    void steppingController_MJ();
     void getComTrajectory_mpc();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
@@ -1129,6 +1131,9 @@ public:
     const double w_dot_max_ = 30;
 
     ////////////////////////////////////////////////////////////
+    Eigen::VectorXd stepping_input;
+    Eigen::VectorXd stepping_input__;
+
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
