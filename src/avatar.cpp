@@ -698,8 +698,6 @@ void AvatarController::computeSlow()
         /////////////////// Biped Walking Controller made by MJ ////////////////////
         ////////////////////////////////////////////////////////////////////////////
 
-
-
         /////////////////////////////////
         if (walking_enable_ == true)
         {
@@ -719,6 +717,7 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
+        
             updateInitialState();
             getRobotState();
             floatToSupportFootstep();
@@ -793,9 +792,8 @@ void AvatarController::computeSlow()
                 }
 
                 desired_q_not_compensated_ = ref_q_;
-
+                
                 updateNextStepTime();
-
                 q_prev_MJ_ = rd_.q_;
 
                 
@@ -9570,16 +9568,15 @@ void AvatarController::steppingController_MJ()
 {   
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     //Setting up nominal values w.r.t current footstep
-
-    // L : 현재 지지발 기준으로 다음 step 길이 
+ 
     // l_p : 현재 지지발 기준으로 plan된 발 위치 (y 방향) (Bolt 입장에서 그냥 Pelvis 너비임)
-    // W : 현재 지지발 기준에서 plane된 y방향 발 위치에서 추가로 얼마나 더 step했는지 / 여기서 step width라고 부름/ 로봇이 얼마나 옆으로 이동했는지를 보여주는 value
+    // W : 현재 지지발 기준에서 plan된 y방향 발 위치에서 추가로 얼마나 더 step했는지 / 여기서 step width라고 부름/ 로봇이 얼마나 옆으로 이동했는지를 보여주는 value
 
     // L : del_F_x , W : del_F_y 
 
     double L_nom = 0;
-    double L_min = -0.15;
-    double L_max = +0.15;
+    double L_min = -0.15; // min value of del_F_x
+    double L_max = +0.15; // max value of del_F_x
 
     double W_nom = 0;
     double W_min = -0.15;
@@ -9653,6 +9650,7 @@ void AvatarController::steppingController_MJ()
     }    
 
     double support_flag = 0;
+
     if (foot_step_(current_step_num_, 6) == 1)
     {
         support_flag = 1;
@@ -9707,7 +9705,7 @@ void AvatarController::steppingController_MJ()
     stepping_input__.setZero(5);
 
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
-    {
+    {   // Solving the QP problem in only SSP
         if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
         {
             QP_stepping.InitializeProblemSize(5, 7);
@@ -9720,22 +9718,15 @@ void AvatarController::steppingController_MJ()
             {   
                 stepping_input__ = stepping_input.segment(0, 5);
             }
-        }
-        
+        }        
     }        
 
     del_F_(0) = stepping_input__(0);
     del_F_(1) = 0*stepping_input__(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf
-    // if((walking_tick_mj % 100) == 0)
-    // {
-    //     // cout << stepping_input__(0) << "," << stepping_input__(1) << "," << stepping_input__(2) << "," << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
-    //     cout << stepping_input__(0) << "," << stepping_input__(1) << "," << stepping_input__(2) << "," << stepping_input__(3) << "," << stepping_input__(4) << endl;
-    // }
-    // MJ_graph << x_mpc_i(0) << "," << ZMP_X_REF << "," << cp_desired_(0) << "," << support_flag << endl;
-    //MJ_graph << stepping_input__(0) << "," << stepping_input__(1) << "," << stepping_input__(2) << "," << stepping_input__(3) << "," << stepping_input__(4) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << support_flag << endl;
-    MJ_graph1 << stepping_input__(0) << "," << desired_swing_foot(0) <<  "," << cp_measured_(0) << "," << u0_x << "," << stepping_input__(3) << endl;//"," << cp_measured_(1) << "," << support_flag << endl;
+    
+    MJ_graph1 << stepping_input__(0) << "," << desired_swing_foot(0) <<  "," << cp_measured_(0) << "," << u0_x << "," << stepping_input__(3) << endl;
     
 }
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
@@ -11927,35 +11918,17 @@ void AvatarController::addZmpOffset()
     else
     {
         supportfoot_support_init_offset_(1) = supportfoot_support_init_(1) + lfoot_zmp_offset_; 
-    }
-    
-    if(current_step_num_ > 0)
-    {
-        if(foot_step_(current_step_num_, 6) == 1) // left support foot
-        {  
-            m_del_zmp_x(current_step_num_,0) = modified_del_zmp_(current_step_num_,0); // 왼발 지지때 생성된 오른 스윙 발 변위만큼 오른발 ZMP를 바꾸기 위해 저장한 val
-            m_del_zmp_y(current_step_num_,0) = modified_del_zmp_(current_step_num_,1);      
-        }
-        else // right support foot
-        {              
-            m_del_zmp_x(current_step_num_,1) = modified_del_zmp_(current_step_num_,0); // 오른발 지지때 생성된 왼 스윙 발 변위만큼 왼발 ZMP를 바꾸기 위해 저장한 val
-            m_del_zmp_y(current_step_num_,1) = modified_del_zmp_(current_step_num_,1); 
-        }
-
-    }     
+    }       
 
     for (int i = 0; i < total_step_num_; i++)
     {
         if (foot_step_(i, 6) == 0) // left support foot 
         {
-            foot_step_support_frame_offset_(i, 0) += 0*m_del_zmp_x(i,1); 
-            // 이전 오른발 지지 스텝의 왼 스윙발이 이동한 만큼 현재 왼발 지지의 ZMP를 바꿔줌. 단, m_del_zmp_x의 i번째는 foot_step_support- 의 i-1번째
-            foot_step_support_frame_offset_(i, 1) += lfoot_zmp_offset_ + m_del_zmp_y(i,1) ;
+            foot_step_support_frame_offset_(i, 1) += lfoot_zmp_offset_;
         }
         else // right support foot
         {
-            foot_step_support_frame_offset_(i, 0) += 0*m_del_zmp_x(i,0); // 오른발 지지때 이전 왼발 지지 스텝의 오른 스윙발이 이동한 만큼 현재 ZMP를 바꿔줌.
-            foot_step_support_frame_offset_(i, 1) += rfoot_zmp_offset_ + m_del_zmp_y(i,0) ;
+            foot_step_support_frame_offset_(i, 1) += rfoot_zmp_offset_;
         }
     }
 }
@@ -12115,32 +12088,32 @@ void AvatarController::onestepZmp(unsigned int current_step_number, Eigen::Vecto
 
         for (int i = 0; i < t_total_; i++)
         {   
-            int a = 0;
-            int b = 0;
-            if(foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+            int current_stepping_flag_ = 0;
+            int prev_stepping_flag_ = 0;
+            if(foot_step_(current_step_num_, 6) == 1) // left foot support
             {
-                a = 1; //m_del_zmp_x(i,1)
-                b = 0;
+                current_stepping_flag_ = 1; // Current first DSP (스테핑 이후 + Step change 이후)에서 이전 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그    
+                prev_stepping_flag_ = 0; // Previous second DSP (스테핑 이후 + Step change 이전)에서 다음 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그 
             }
-            else // 오른발 지지
+            else // right foot support
             {
-                a = 0;
-                b = 1;
+                current_stepping_flag_ = 0; // First DSP (스테핑 이후 + Step change 이후)에서 이전 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그 
+                prev_stepping_flag_ = 1; // Previous second DSP (스테핑 이후 + Step change 이전)에서 다음 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그
             }
 
             if (i < t_rest_init_ + t_double1_)  
             {
-                temp_px(i) = (foot_step_support_frame_offset_(current_step_number - 2, 0) - m_del_zmp_x(current_step_number -1,a) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2 + (Kx + m_del_zmp_x(current_step_number -1,a)/2) / (t_rest_init_ + t_double1_) * (i + 1);
+                temp_px(i) = (foot_step_support_frame_offset_(current_step_number - 2, 0) - m_del_zmp_x(current_step_number -1,current_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2 + (Kx + m_del_zmp_x(current_step_number -1, current_stepping_flag_)/2) / (t_rest_init_ + t_double1_) * (i + 1);
                 temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2 + Ky / (t_rest_init_ + t_double1_) * (i + 1);
             }
-            else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_) //0.15 ~ 1.05초 , 30 ~ 210 tick
+            else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
             {   
                 temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0);
                 temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1);
             }
-            else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_) //1.05 ~ 1.2초 , 210 ~ 240 tick
+            else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_)  
             {
-                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + (Kx2 + m_del_zmp_x(current_step_number,b)/2) / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) ;
+                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + (Kx2 + m_del_zmp_x(current_step_number, prev_stepping_flag_)/2) / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) ;
                 temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
             }
         } 
@@ -12301,22 +12274,37 @@ void AvatarController::getFootTrajectory_stepping()
         modified_del_zmp_(current_step_num_,0) = del_F_(0);
         modified_del_zmp_(current_step_num_,1) = del_F_(1);
     }
+
+    if(current_step_num_ > 0)
+    {
+        if(foot_step_(current_step_num_, 6) == 1) // left support foot
+        {    
+            m_del_zmp_x(current_step_num_,0) = modified_del_zmp_(current_step_num_,0); // 왼발 지지때 생성된 오른 스윙 발 변위만큼 오른발 ZMP를 바꾸기 위해 저장한 val
+            m_del_zmp_y(current_step_num_,0) = modified_del_zmp_(current_step_num_,1);      
+        }
+        else // right support foot
+        {              
+            m_del_zmp_x(current_step_num_,1) = modified_del_zmp_(current_step_num_,0); // 오른발 지지때 생성된 왼 스윙 발 변위만큼 왼발 ZMP를 바꾸기 위해 저장한 val
+            m_del_zmp_y(current_step_num_,1) = modified_del_zmp_(current_step_num_,1); 
+        }
+
+    } 
     
-    double a = 0;
-    if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
+    double stepping_foot_init_pos = 0;
+
+    if(foot_step_(current_step_num_,6) == 1) // left foot support
     {
-        a = rfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos = rfoot_trajectory_support_.translation()(0);
     }
-    else
+    else // right foot support
     {
-        a = lfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos = lfoot_trajectory_support_.translation()(0);
     }
     
     if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_)
     {
-        desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, a , target_swing_foot(0) + del_F_(0), 0.0, 0.0);
-       // desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, foot_step_support_frame_(current_step_num_-1, 1) , target_swing_foot(1) + del_F_(1), 0.0, 0.0);
-        // desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); 
+        desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos, target_swing_foot(0) + del_F_(0), 0.0, 0.0);
+        //desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); // joe's MPC
         desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
     }
     else
@@ -13318,7 +13306,7 @@ void AvatarController::GravityCalculate_MJ()
 }
 
 void AvatarController::parameterSetting()
-{
+{       
     target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
@@ -13339,7 +13327,7 @@ void AvatarController::parameterSetting()
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
     t_total_ = 0.9 * hz_;
-
+ 
     // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
     // t_rest_last_ = 0.02 * hz_;
     // t_double1_ = 0.03 * hz_;
