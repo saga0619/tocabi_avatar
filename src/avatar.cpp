@@ -1559,6 +1559,7 @@ void AvatarController::computeFast()
             // desired_q_(i) = init_q_(i); //for test, delete later
             // desired_q_dot_(i) = 0;
         }
+
         if (atb_desired_q_update_ == false)
         {
             atb_desired_q_update_ = true;
@@ -14097,11 +14098,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    // lfoot_zmp_offset_ = -0.025; // 0.9 초
-    // rfoot_zmp_offset_ = 0.025;
+    lfoot_zmp_offset_ = -0.025; // 0.9 초
+    rfoot_zmp_offset_ = 0.025;
 
-    lfoot_zmp_offset_ = -0.02; // 1.1 초
-    rfoot_zmp_offset_ = 0.02;
+    // lfoot_zmp_offset_ = -0.02; // 1.1 초
+    // rfoot_zmp_offset_ = 0.02;
 
     // lfoot_zmp_offset_ = -0.015; // 1.3 초
     // rfoot_zmp_offset_ = 0.015;
@@ -15175,23 +15176,6 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
 
-    //// 0.9s walking
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-
-    t_rest_init_ = 0.12*hz_;
-    t_rest_last_ = 0.12*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.9*hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
-
     //// 0.7s walking
     // target_x_ = 1.0;
     // target_y_ = 0;
@@ -15206,8 +15190,43 @@ void AvatarController::parameterSetting()
     // t_rest_last_ = 0.08*hz_;
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
+    // t_total_= 0.9*hz_;
+    // foot_height_ = 0.07;      // 0.9 sec 0.05
+
+
+    //// 0.7s walking
+    // target_x_ = 0.7;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+
+    // t_rest_init_ = 0.08*hz_;
+    // t_rest_last_ = 0.08*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
     // t_total_= 0.7*hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
+    // foot_height_ = 0.070;      // 0.9 sec 0.05
+
+    //// 0.6s walking
+    target_x_ = 0.7;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+
+    t_rest_init_ = 0.04*hz_;
+    t_rest_last_ = 0.04*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 0.6*hz_;
+    foot_height_ = 0.050;      // 0.9 sec 0.05
     /////////////////////////////////
 
     t_temp_ = 2.0 * hz_;
@@ -16163,8 +16182,8 @@ void AvatarController::CP_compen_MJ_FT()
   double zmp_offset = 0;
   double alpha_new = 0;
  
-//   zmp_offset = 0.025; // 0.9초
-  zmp_offset = 0.02; // 1.1초 
+  zmp_offset = 0.025; // 0.9초
+//   zmp_offset = 0.02; // 1.1초 
     // zmp_offset = 0.015; // 1.3초
 
   // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
