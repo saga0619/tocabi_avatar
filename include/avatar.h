@@ -42,6 +42,7 @@ const int n_output_ = 6;
 const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
+const bool gaussian_mode_ = false;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
@@ -1292,6 +1293,11 @@ public:
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
 
+    Eigen::VectorQd threashold_joint_torque_collision_;
+    int left_leg_collision_detected_link_;
+    int left_leg_collision_cnt_[3];  //0: thigh, 1: lower leg, 2: foot 
+    int right_leg_collision_detected_link_;
+
     Eigen::Vector6d estimated_ext_force_lfoot_lstm_;
     Eigen::Vector6d estimated_ext_force_rfoot_lstm_;
     Eigen::Vector6d estimated_ext_force_lhand_lstm_;
@@ -1300,6 +1306,11 @@ public:
     Eigen::VectorQd estimated_model_unct_torque_fast_;
     Eigen::VectorQd estimated_model_unct_torque_slow_;
     Eigen::VectorQd estimated_model_unct_torque_thread_;
+    Eigen::VectorQd estimated_model_unct_torque_slow_lpf_;
+
+    Eigen::VectorQd estimated_model_unct_torque_variance_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_thread_;
 
     //TO DO LISTS
     // - Weight import
@@ -1364,6 +1375,7 @@ public:
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
+    void calculateFootStepTotal_reactive(double target_x, double target_y, double target_theta, bool is_right_foot_swing);
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
@@ -1404,6 +1416,9 @@ public:
     Eigen::Vector12d DOB_IK_output_;
     Eigen::VectorQd ref_q_;
     Eigen::VectorQd ref_q_fast_;
+
+    Eigen::VectorQd ref_q_pre_;
+    Eigen::VectorQd ref_q_dot_;
     Eigen::VectorQd Kp;
     Eigen::VectorQd Kd;
     Eigen::VectorQd desired_q_not_compensated_;
@@ -1411,6 +1426,8 @@ public:
     Eigen::VectorQd q_prev_MJ_;
 
     Eigen::Vector12d q_des_;
+    Eigen::Vector12d q_des_pre_;
+    Eigen::Vector12d q_dot_des_;
 
     Eigen::Isometry3d pelv_trajectory_support_; //local frame
 
