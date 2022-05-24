@@ -795,7 +795,7 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.6*hz_)&&(walking_tick_mj < 5.7*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = -370.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[0] = 0*-340.0; //x-axis linear force 
                     mujoco_applied_ext_force_.data[1] = 0*200.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
@@ -9556,7 +9556,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     //MJ_graph1 << y_hat_(0) << "," << y_hat_r(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << del_F_(0) << "," << del_F_(1) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
     // Cross check using MATLAB    
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
+    // cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
 }
 
 void AvatarController::BoltController_MJ()
@@ -9573,8 +9573,8 @@ void AvatarController::BoltController_MJ()
     double L_max = +0.15; // max value of del_F_x
 
     double W_nom = 0;
-    double W_min = -0.15;
-    double W_max = +0.15;
+    double W_min = -0.1;
+    double W_max = +0.1;
 
     double T_nom = 0;
     double T_min = 0;
@@ -9605,7 +9605,7 @@ void AvatarController::BoltController_MJ()
     }    
 
     T_gap = 0.05*hz_;
-    T_nom = 0.5; // 0.6하면 370 못버팀.
+    T_nom = 0.6; // 0.6하면 370 못버팀.
     T_min = T_nom - 0.3; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
     T_max = T_nom + 0.3;
     tau_nom = exp(wn_*T_nom); 
@@ -9618,17 +9618,17 @@ void AvatarController::BoltController_MJ()
     
     H_step.setZero(5,5);
     H_step(0,0) = w1_step; // U_T,x (step position in x-direction)
-    H_step(1,1) = w1_step; // U_T,y (step position in y-direction)
+    H_step(1,1) = 200.0*w1_step; // U_T,y (step position in y-direction)
     H_step(2,2) = w2_step; // tau (step timing)
     H_step(3,3) = w3_step; // DCM offset in x
-    H_step(4,4) = w3_step; // DCM offset in y
+    H_step(4,4) = 0.01*w3_step; // DCM offset in y
     
     g_step.setZero(5);
     g_step(0) = -w1_step * (u0_x + L_nom);
-    g_step(1) = -w1_step * (u0_y + W_nom);
+    g_step(1) = -200.0*w1_step * (u0_y + W_nom);
     g_step(2) = -w2_step * tau_nom;
     g_step(3) = -w3_step * b_nom_x;  
-    g_step(4) = -w3_step * b_nom_y;  
+    g_step(4) = -0.01*w3_step * b_nom_y;  
 
     Eigen::VectorXd lb_step;
     Eigen::VectorXd ub_step;
@@ -9676,16 +9676,16 @@ void AvatarController::BoltController_MJ()
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
     lb_step(4) = exp(wn_*T_min);
-    lb_step(5) = b_nom_x - 0.15;
-    lb_step(6) = b_nom_y - 0.15;
+    lb_step(5) = b_nom_x - 0.1;
+    lb_step(6) = b_nom_y - 0.1;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn_*T_max);
-    ub_step(5) = b_nom_x + 0.15;
-    ub_step(6) = b_nom_y + 0.15;    
+    ub_step(5) = b_nom_x + 0.1;
+    ub_step(6) = b_nom_y + 0.1;    
 
     if(walking_tick_mj == 0)
     {
@@ -9723,13 +9723,10 @@ void AvatarController::BoltController_MJ()
         }
     }        
  
-    MJ_graph1 << t_total_/hz_ << "," << stepping_input_(0) << "," << cp_measured_(0) << "," << stepping_input_(2) << "," << stepping_input_(3) << endl;
     del_F_(0) = stepping_input_(0);
-    del_F_(1) = 0*stepping_input_(1);
+    del_F_(1) = stepping_input_(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // Log 함수 쓸때 주의 -> log(0) -> inf
-    
-    //MJ_graph1 << stepping_input_(0) << "," << desired_swing_foot(0) <<  "," << cp_measured_(0) << "," << u0_x << "," << stepping_input_(3) << endl;
+    // Log 함수 쓸때 주의 -> log(0) -> inf  
     
 }
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
@@ -12104,7 +12101,7 @@ void AvatarController::onestepZmp(unsigned int current_step_number, Eigen::Vecto
             if (i < t_rest_init_ + t_double1_)  
             {
                 temp_px(i) = (foot_step_support_frame_offset_(current_step_number - 2, 0) - m_del_zmp_x(current_step_number -1,current_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2 + (Kx + m_del_zmp_x(current_step_number -1, current_stepping_flag_)/2) / (t_rest_init_ + t_double1_) * (i + 1);
-                temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2 + Ky / (t_rest_init_ + t_double1_) * (i + 1);
+                temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) - m_del_zmp_y(current_step_number -1,current_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2 + (Ky + m_del_zmp_y(current_step_number -1, current_stepping_flag_)/2) / (t_rest_init_ + t_double1_) * (i + 1);
             }
             else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
             {   
@@ -12113,8 +12110,8 @@ void AvatarController::onestepZmp(unsigned int current_step_number, Eigen::Vecto
             }
             else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_)  
             {
-                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + (Kx2 + m_del_zmp_x(current_step_number, prev_stepping_flag_)/2) / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) ;
-                temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + (Kx2 + m_del_zmp_x(current_step_number, prev_stepping_flag_)/2) / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + (Ky2 + m_del_zmp_y(current_step_number, prev_stepping_flag_)/2) / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
             }
         }
     }
@@ -12290,22 +12287,26 @@ void AvatarController::getFootTrajectory_stepping()
 
     } 
     
-    double stepping_foot_init_pos = 0;
+    Eigen::Vector2d stepping_foot_init_pos;
+    stepping_foot_init_pos.setZero();
 
     if(foot_step_(current_step_num_,6) == 1) // left foot support
     {
-        stepping_foot_init_pos = rfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos(0) = rfoot_support_init_.translation()(0); //rfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos(1) = rfoot_support_init_.translation()(1); //rfoot_trajectory_support_.translation()(1);
     }
     else // right foot support
     {
-        stepping_foot_init_pos = lfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos(0) = lfoot_support_init_.translation()(0); //lfoot_trajectory_support_.translation()(0);
+        stepping_foot_init_pos(1) = lfoot_support_init_.translation()(1); //lfoot_trajectory_support_.translation()(1);
     }
     
     if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_)
     {
-        desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos, target_swing_foot(0) + del_F_(0), 0.0, 0.0);
-        //desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); // joe's MPC
-        desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
+        desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(0), target_swing_foot(0) + del_F_(0), 0.0, 0.0);
+        desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(1), target_swing_foot(1) + del_F_(1), 0.0, 0.0);
+        // desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); // joe's MPC
+        // desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
     }
     else
     {
@@ -12313,7 +12314,7 @@ void AvatarController::getFootTrajectory_stepping()
         desired_swing_foot(1) = fixed_swing_foot(1);
     }    
         
-
+    
     if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
         if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
@@ -13333,38 +13334,7 @@ void AvatarController::parameterSetting()
 }
 
 void AvatarController::updateNextStepTime()
-{   
-    // if(current_step_num_ > 0)
-    // {   
-    //     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 0.1*hz_)
-    //     {   
-    //         std::srand(std::time(nullptr));
-    //         double a = 0;
-    //         double b = 0;
-    //         a = (std::rand() % 2);
-    //         if(a == 0)
-    //         {
-    //             b = 1;
-    //         }
-    //         else
-    //         {
-    //             b = -1;
-    //         }
-    //         t_total_ = 0.9 * hz_ + b*(std::rand() % 30) * 0.01 * hz_ ;//- 0.1 * hz_;
-            
-    //         t_last_ = t_start_ + t_total_ - 1;
-
-    //         if(t_total_ > 2800)
-    //         {
-    //             t_total_ = 2800;
-    //         }
-    //         else if(t_total_ < 1000)
-    //         {
-    //             t_total_ = 1000;
-    //         }
-    //     }
-    // }
-    
+{       
     if (walking_tick_mj == t_last_)
     {
         if (current_step_num_ != total_step_num_ - 1)
