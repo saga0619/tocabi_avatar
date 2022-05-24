@@ -141,7 +141,7 @@ public:
     void computeCAMcontrol_HQP();
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
-    void steppingController_MJ();
+    void BoltController_MJ();
     void getComTrajectory_mpc();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
@@ -1132,7 +1132,7 @@ public:
 
     ////////////////////////////////////////////////////////////
     Eigen::VectorXd stepping_input;
-    Eigen::VectorXd stepping_input__;
+    Eigen::VectorXd stepping_input_;
 
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
@@ -1466,6 +1466,7 @@ public:
     double t_double1_;
     double t_double2_;
     double t_total_;
+    double t_total_prev_;
     double foot_height_;
     int total_step_num_;
     int total_step_num_mpc_;
