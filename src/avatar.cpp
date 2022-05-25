@@ -725,9 +725,9 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
+                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc();
-                BoltController_MJ();
+                // BoltController_MJ();
                 // MJDG CMP control
                 CentroidalMomentCalculator(); 
 
@@ -12938,8 +12938,8 @@ void AvatarController::getComTrajectory_mpc()
     interpol_cnt_y ++;
 
     // Reference COM, CP position 
-    cp_desired_(0) = x_mpc_i(0) + x_mpc_i(1) / wn;
-    cp_desired_(1) = y_mpc_i(0) + y_mpc_i(1) / wn;
+    // cp_desired_(0) = x_mpc_i(0) + x_mpc_i(1) / wn;
+    // cp_desired_(1) = y_mpc_i(0) + y_mpc_i(1) / wn;
 
     com_desired_(0) = x_mpc_i(0);
     com_desired_(1) = y_mpc_i(0);
