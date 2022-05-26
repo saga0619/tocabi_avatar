@@ -725,7 +725,7 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
+                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc();
                 // BoltController_MJ();
                 // MJDG CMP control
@@ -9552,8 +9552,6 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
     output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
 
-    // MJ_graph << Z_x_ref(0) << "," << x_hat_(0) << "," << output_zmp(0) << endl;
-    //MJ_graph1 << y_hat_(0) << "," << y_hat_r(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << del_F_(0) << "," << del_F_(1) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
     // Cross check using MATLAB    
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
@@ -9608,10 +9606,10 @@ void AvatarController::BoltController_MJ()
     T_nom = 0.6; // 0.6하면 370 못버팀.
     T_min = T_nom - 0.3; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
     T_max = T_nom + 0.3;
-    tau_nom = exp(wn_*T_nom); 
+    tau_nom = exp(wn*T_nom); 
 
-    b_nom_x = L_nom/(exp(wn_*T_nom)-1);
-    b_nom_y = l_p/(1 + exp(wn_*T_nom)) - W_nom/(1 - exp(wn_*T_nom));
+    b_nom_x = L_nom/(exp(wn*T_nom)-1);
+    b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
 
     Eigen::MatrixXd H_step;
     Eigen::VectorXd g_step; 
@@ -9649,13 +9647,13 @@ void AvatarController::BoltController_MJ()
 
     A_step(0,0) = 1; // U_T,x
     A_step(0,1) = 0; // U_T,y
-    A_step(0,2) = -(cp_measured_(0)-u0_x)*exp(-wn_*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(0,2) = -(cp_measured_(0)-u0_x)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
     A_step(0,3) = 1; // b_x
     A_step(0,4) = 0; // b_y
 
     A_step(1,0) = 0; // U_T,x
     A_step(1,1) = 1; // U_T,y 
-    A_step(1,2) = -(cp_measured_(1)-u0_y)*exp(-wn_*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(1,2) = -(cp_measured_(1)-u0_y)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
     A_step(1,3) = 0; // b_x
     A_step(1,4) = 1; // b_y
 
@@ -9675,7 +9673,7 @@ void AvatarController::BoltController_MJ()
     lb_step(1) = u0_y;
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
-    lb_step(4) = exp(wn_*T_min);
+    lb_step(4) = exp(wn*T_min);
     lb_step(5) = b_nom_x - 0.1;
     lb_step(6) = b_nom_y - 0.1;
     
@@ -9683,7 +9681,7 @@ void AvatarController::BoltController_MJ()
     ub_step(1) = u0_y;
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
-    ub_step(4) = exp(wn_*T_max);
+    ub_step(4) = exp(wn*T_max);
     ub_step(5) = b_nom_x + 0.1;
     ub_step(6) = b_nom_y + 0.1;    
 
@@ -9712,7 +9710,7 @@ void AvatarController::BoltController_MJ()
             //if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
             //{
             t_total_prev_ = t_total_;
-            t_total_ = round(log(stepping_input_(2))/wn_*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+            t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
             t_last_ = t_start_ + t_total_ - 1;                
             //} 
         }
@@ -9733,7 +9731,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 {    
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     
-    int N = preview_window * MPC_freq; // N step horizon (1.5s x 50)
+    int N = preview_window * MPC_freq; // N step horizon (2.7s x 50)
     int mpc_tick = walking_tick_mpc_mj - mpc_start_time_;
     static int MPC_first_loop = 0;
     int state_num_ = 3;
@@ -9767,12 +9765,32 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         W1_mpc = 0.000001; // The term alpha in wiber's paper
         W2_mpc = 1.0; // The term gamma in wiber's paper
 
+        P_ps_mpc_.setZero(N,state_num_);
+        P_pu_mpc_.setZero(N,N);
+        P_vs_mpc_.setZero(N,state_num_);
+        P_vu_mpc_.setZero(N,N);
         P_zs_mpc.setZero(N,state_num_);
         P_zu_mpc.setZero(N,N);
 
+        x_com_pos_recur_.setZero(N);
+        x_com_vel_recur_.setZero(N);
+        x_zmp_recur_.setZero(N);
+
+        y_com_pos_recur_.setZero(N);
+        y_com_vel_recur_.setZero(N);
+        y_zmp_recur_.setZero(N);
+
         for(int i = 0; i < N; i++)
-        {
+        {   
             // Define reculsive state matrix for MPC P_zs (N x 3)
+            P_ps_mpc_(i,0) = 1;
+            P_ps_mpc_(i,1) = (i+1)*T;
+            P_ps_mpc_(i,2) = ((i+1)*(i+1)*T*T)*0.5;
+
+            P_vs_mpc_(i,0) = 0;
+            P_vs_mpc_(i,1) = 1;
+            P_vs_mpc_(i,2) = (i+1)*T;
+
             P_zs_mpc(i,0) = 1;
             P_zs_mpc(i,1) = (i+1)*T;
             P_zs_mpc(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
@@ -9782,11 +9800,13 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
             {
                 if(j >= i)
                 {
+                    P_pu_mpc_(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6;
+                    P_vu_mpc_(j,i) = (1 + 2*(j-i))*(T*T)/2;
                     P_zu_mpc(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
                 }
             }
         }        
-        
+
         Q_prime.setZero(N,N);
         Q_prime = W1_mpc*I_N + W2_mpc*P_zu_mpc.transpose()*P_zu_mpc;
         
@@ -9848,9 +9868,12 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     //U_x_mpc.setZero(N);  
     if (QP_mpc_x.SolveQPoases(200, MPC_input_x))
     {   
-        x_hat_p_ = x_hat_;            
+        x_hat_p_ = x_hat_;        
+
         U_x_mpc = MPC_input_x.segment(0, N);
+
         x_hat_ = A_mpc * x_hat_ + B_mpc * U_x_mpc(0);
+
         x_hat_r_p = x_hat_p_;
         x_hat_r = x_hat_;        
         mpc_x_update = true;
@@ -9866,20 +9889,124 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     if (QP_mpc_y.SolveQPoases(200, MPC_input_y))
     {             
         y_hat_p_ = y_hat_;
-        U_y_mpc = MPC_input_y.segment(0, N);
+        
+        U_y_mpc = MPC_input_y.segment(0, N);       
+
+        y_com_pos_recur_ = P_ps_mpc_ * y_hat_ + P_pu_mpc_* U_y_mpc;
+        y_com_vel_recur_ = P_vs_mpc_ * y_hat_ + P_vu_mpc_* U_y_mpc;
+        y_zmp_recur_ = P_zs_mpc * y_hat_ + P_zu_mpc* U_y_mpc;
+
         y_hat_ = A_mpc * y_hat_ + B_mpc * U_y_mpc(0);
+
         y_hat_r_p = y_hat_p_;
         y_hat_r = y_hat_;
         mpc_y_update = true;  
     }
+    
 
-    Eigen::Vector2d output_zmp;
+    ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
+    static int CP_MPC_first_loop = 0;
+    int N_cp = 1.8 * MPC_freq; // N step 2.7 x 50, N_cp step = 1.8 * 50
+    Eigen::VectorXd cp_x_ref(N_cp);
+    Eigen::VectorXd cp_y_ref(N_cp);
+    Eigen::Vector2d cp_measured_mpc;
+    
+    cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn; // 1.8 s
 
-    output_zmp(0) = C_mpc_transpose.transpose()*x_hat_;
-    output_zmp(1) = C_mpc_transpose.transpose()*y_hat_;
+    if(atb_cpmpc_update_ == false)
+    {
+        atb_cpmpc_update_ = true;
+        cp_measured_mpc = cp_measured_thread_; 
+        atb_cpmpc_update_ = false;
+    }
+     
+    if(CP_MPC_first_loop == 0)
+    {
+        // Define State matrix
+        Eigen::MatrixXd A_cp_mpc;
+        A_cp_mpc.setZero(1,1);
+        A_cp_mpc(0, 0) = exp(wn*T); 
 
+        // Define Input matrix
+        Eigen::VectorXd B_cp_mpc(1);
+        B_cp_mpc(0) = 1 - exp(wn*T); 
+        
+        F_cp_mpc_.setZero(N_cp, 1);
+        F_zmp_mpc_.setZero(N_cp, N_cp);
+        
+        for(int i = 0; i < N_cp; i++)
+        {   
+            // Define reculsive state matrix 
+            F_cp_mpc_(i,0) = exp(wn*T*i);
+            
+            // Define reculsive input matrix 
+            for(int j = 0; j < N_cp; j++)
+            {
+                if(j >= i)
+                {
+                    F_zmp_mpc_(j,i) = exp(wn*T*(j-i))*B_cp_mpc(0);
+                }
+            }
+        }        
+
+        theta_cp_mpc_.setIdentity(N_cp,N_cp);
+
+        for(int i = 0; i < N_cp-1; i ++)
+        {
+            theta_cp_mpc_(i+1, i) = -1.0;
+        }
+        
+        Eigen::MatrixXd I_N_cp;
+        I_N_cp.setIdentity(N_cp, N_cp);
+
+        e1_cp_mpc_.setZero(N_cp);
+        e1_cp_mpc_(0) = 1.0;
+
+        Q_cp_ = 0.5 * I_N_cp;
+        R_cp_ = 1.0 * I_N_cp;
+
+        H_cp_mpc_ = theta_cp_mpc_.transpose()*R_cp_*theta_cp_mpc_ +  F_zmp_mpc_.transpose()*Q_cp_*F_zmp_mpc_;
+        
+
+        QP_CP_mpc_y_.InitializeProblemSize(N_cp, 0);        
+         
+        CP_MPC_P_y_.setZero(N_cp); 
+        CP_MPC_P_y_(0) = yi_mj_;
+
+        CP_MPC_first_loop = 1;
+        cout << "Initialization of CP_MPC parameters is complete." << endl;
+    } 
+    
+    
+    if(current_step_num_mpc_prev_ != current_step_num_mpc_) // step change in mpc loop 
+    {      
+        CP_MPC_P_y_(0) = CP_MPC_P_y_(0) - stepchange_pos_;
+    }
+    else
+    {
+        stepchange_pos_ =  foot_step_support_frame_(current_step_num_mpc_, 1);
+    }
+
+    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_mpc(1) - cp_y_ref) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*CP_MPC_P_y_(0); 
+    
+    
+    QP_CP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
+    QP_CP_mpc_y_.UpdateMinProblem(H_cp_mpc_,g_cp_mpc_);
+    QP_CP_mpc_y_.DeleteSubjectToAx();      
+    //CP_mpc_y.UpdateSubjectToAx(P_zu_mpc, lb_b_y, ub_b_y);    
+    
+    if (QP_CP_mpc_y_.SolveQPoases(200, CP_MPC_input_y_))
+    {             
+        CP_MPC_P_y_ = CP_MPC_input_y_.segment(0, N_cp);       
+    }
+
+    MJ_graph << mpc_tick << "," << current_step_num_mpc_ << "," << current_step_num_mpc_prev_ << endl;
+    
+    current_step_num_mpc_prev_ = current_step_num_mpc_;
+
+    MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref(0) << "," << cp_measured_mpc(1) << "," << del_zmp(1) << "," << CP_MPC_P_y_(0) << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+    cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
 }
 
 
@@ -12736,7 +12863,6 @@ void AvatarController::getPelvTrajectory()
     // pelv_trajectory_support_.translation()(2) = com_desired_(2) + pelv_height_offset_; //DG
     pelv_trajectory_support_.translation()(2) = com_desired_(2) - 0*pelv_height_offset_;
 
-    // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
     Eigen::Vector3d Trunk_trajectory_euler;
     Trunk_trajectory_euler.setZero();
 
@@ -12887,7 +13013,7 @@ void AvatarController::getComTrajectory_mpc()
         mpc_start_time_ = zmp_start_time_mj_;
         ref_zmp_mpc_ = ref_zmp_mj_;        
         alpha_step_mpc = alpha_step;
-        
+        cp_measured_thread_ = cp_measured_;
         // F0 - F1 수정
 
         if(current_step_num_ < total_step_num_ - 2)
@@ -12938,15 +13064,16 @@ void AvatarController::getComTrajectory_mpc()
     interpol_cnt_y ++;
 
     // Reference COM, CP position 
-    // cp_desired_(0) = x_mpc_i(0) + x_mpc_i(1) / wn;
-    // cp_desired_(1) = y_mpc_i(0) + y_mpc_i(1) / wn;
+    cp_desired_(0) = x_mpc_i(0) + x_mpc_i(1) / wn;
+    cp_desired_(1) = y_mpc_i(0) + y_mpc_i(1) / wn;
 
     com_desired_(0) = x_mpc_i(0);
     com_desired_(1) = y_mpc_i(0);
     com_desired_(2) = 0.77172;     
  
-    MJ_graph << x_mpc_i(0) << "," << y_mpc_i(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
-    
+    //MJ_graph << x_mpc_i(0) << "," << y_mpc_i(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
+    //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << endl;
+
     if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
     {        
         Eigen::Vector3d com_pos_prev;
@@ -13289,7 +13416,7 @@ void AvatarController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.1;
+    step_length_x_ = 0.10;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -13740,7 +13867,7 @@ void AvatarController::CP_compen_MJ_FT()
     double alpha_new = 0;
 
     zmp_offset = 0.01; // zmp_offset 함수 참고
-
+            
     // Preview를 이용한 COM 생성시 ZMP offset을 x cm 안쪽으로 넣었지만, alpha 계산은 x cm 넣으면 안되기 때문에 조정해주는 코드
     // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
     if (walking_tick_mj > t_temp_)
