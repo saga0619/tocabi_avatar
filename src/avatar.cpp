@@ -9905,21 +9905,16 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     
 
     ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
+    // https://doi.org/10.3182/20120905-3-HR-2030.00165
     static int CP_MPC_first_loop = 0;
     int N_cp = 1.8 * MPC_freq; // N step 2.7 x 50, N_cp step = 1.8 * 50
+
     Eigen::VectorXd cp_x_ref(N_cp);
     Eigen::VectorXd cp_y_ref(N_cp);
     Eigen::Vector2d cp_measured_mpc;
     
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn; // 1.8 s
-
-    if(atb_cpmpc_update_ == false)
-    {
-        atb_cpmpc_update_ = true;
-        cp_measured_mpc = cp_measured_thread_; 
-        atb_cpmpc_update_ = false;
-    }
-     
+    
     if(CP_MPC_first_loop == 0)
     {
         // Define State matrix
@@ -9931,15 +9926,14 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         Eigen::VectorXd B_cp_mpc(1);
         B_cp_mpc(0) = 1 - exp(wn*T); 
         
+        // Define recursive state, input matrix
         F_cp_mpc_.setZero(N_cp, 1);
         F_zmp_mpc_.setZero(N_cp, N_cp);
         
         for(int i = 0; i < N_cp; i++)
         {   
-            // Define reculsive state matrix 
             F_cp_mpc_(i,0) = exp(wn*T*i);
-            
-            // Define reculsive input matrix 
+
             for(int j = 0; j < N_cp; j++)
             {
                 if(j >= i)
@@ -9948,7 +9942,8 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
                 }
             }
         }        
-
+        
+        // Define ZMP diffence matrix
         theta_cp_mpc_.setIdentity(N_cp,N_cp);
 
         for(int i = 0; i < N_cp-1; i ++)
@@ -9957,54 +9952,67 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         }
         
         Eigen::MatrixXd I_N_cp;
-        I_N_cp.setIdentity(N_cp, N_cp);
+        I_N_cp.setIdentity(N_cp, N_cp); // N_cp x N_cp Identity matrix
 
         e1_cp_mpc_.setZero(N_cp);
         e1_cp_mpc_(0) = 1.0;
 
+        // Weighting parameter
         Q_cp_ = 0.5 * I_N_cp;
         R_cp_ = 1.0 * I_N_cp;
 
-        H_cp_mpc_ = theta_cp_mpc_.transpose()*R_cp_*theta_cp_mpc_ +  F_zmp_mpc_.transpose()*Q_cp_*F_zmp_mpc_;
-        
+        // Hessian matrix
+        H_cp_mpc_ = theta_cp_mpc_.transpose()*R_cp_*theta_cp_mpc_ +  F_zmp_mpc_.transpose()*Q_cp_*F_zmp_mpc_;        
 
         QP_CP_mpc_y_.InitializeProblemSize(N_cp, 0);        
          
-        CP_MPC_P_y_.setZero(N_cp); 
-        CP_MPC_P_y_(0) = yi_mj_;
+        cp_mpc_des_zmp_y_.setZero(N_cp);
+        cp_mpc_des_zmp_y_(0) = yi_mj_;
 
         CP_MPC_first_loop = 1;
         cout << "Initialization of CP_MPC parameters is complete." << endl;
-    } 
-    
-    
-    if(current_step_num_mpc_prev_ != current_step_num_mpc_) // step change in mpc loop 
-    {      
-        CP_MPC_P_y_(0) = CP_MPC_P_y_(0) - stepchange_pos_;
-    }
-    else
+    }    
+
+    if(atb_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
     {
-        stepchange_pos_ =  foot_step_support_frame_(current_step_num_mpc_, 1);
+        atb_cpmpc_rcv_update_ = true;
+        
+        cp_measured_mpc = cp_measured_thread_; 
+
+        if(current_step_num_mpc_prev_ != current_step_num_mpc_) // step change in mpc loop 
+        {      
+            cp_mpc_des_zmp_y_(0) = cp_mpc_des_zmp_y_thread2_;
+        }
+
+        atb_cpmpc_rcv_update_ = false;        
     }
 
-    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_mpc(1) - cp_y_ref) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*CP_MPC_P_y_(0); 
-    
-    
+    // gradient vector
+    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_mpc(1) - cp_y_ref) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*cp_mpc_des_zmp_y_(0); 
+        
     QP_CP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
     QP_CP_mpc_y_.UpdateMinProblem(H_cp_mpc_,g_cp_mpc_);
     QP_CP_mpc_y_.DeleteSubjectToAx();      
     //CP_mpc_y.UpdateSubjectToAx(P_zu_mpc, lb_b_y, ub_b_y);    
     
-    if (QP_CP_mpc_y_.SolveQPoases(200, CP_MPC_input_y_))
+    if (QP_CP_mpc_y_.SolveQPoases(200, cp_mpc_input_y_))
     {             
-        CP_MPC_P_y_ = CP_MPC_input_y_.segment(0, N_cp);       
-    }
+        cp_mpc_des_zmp_y_ = cp_mpc_input_y_.segment(0, N_cp);
 
-    MJ_graph << mpc_tick << "," << current_step_num_mpc_ << "," << current_step_num_mpc_prev_ << endl;
-    
+        if(atb_cpmpc_y_update_ == false)
+        {
+            atb_cpmpc_y_update_ = true;
+            
+            cp_mpc_des_zmp_y_thread_ = cp_mpc_des_zmp_y_(0);
+
+            atb_cpmpc_y_update_ = false;
+        }       
+        cp_mpc_y_update_ = true;
+    }
+        
     current_step_num_mpc_prev_ = current_step_num_mpc_;
 
-    MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref(0) << "," << cp_measured_mpc(1) << "," << del_zmp(1) << "," << CP_MPC_P_y_(0) << endl;
+    MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref(0) << "," << cp_measured_mpc(1) << "," << del_cmp(1) << "," << cp_mpc_des_zmp_y_(0) << "," << cp_desired_(1) << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
 }
@@ -12780,8 +12788,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     UY = UY + del_uy(0, 0);
 
     XD = A * preview_x_mj + B * UX;
-    YD = A * preview_y_mj + B * UY;
-    
+    YD = A * preview_y_mj + B * UY;    
 
     cp_desired_(0) = XD(0) + XD(1) / wn;
     cp_desired_(1) = YD(0) + YD(1) / wn; 
@@ -12953,7 +12960,10 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_p.setZero();
         y_hat_r(0) = yi_mj_;
         y_hat_r_p(0) = yi_mj_;
-        y_mpc_i(0) = yi_mj_;
+        y_mpc_i(0) = yi_mj_;    
+
+        cp_mpc_des_zmp_y_thread_ = yi_mj_;
+        cp_mpc_des_zmp_y_thread2_ = yi_mj_;
     }
 
     if (current_step_num_ == 0)
@@ -13002,8 +13012,9 @@ void AvatarController::getComTrajectory_mpc()
     else
     {
         alpha_step = -1;
-    }   
-
+    }       
+   
+    
     if(atb_mpc_update_ == false)  
     {
         atb_mpc_update_ = true;
@@ -13053,7 +13064,18 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_p_ = y_hat_r_p; 
         x_hat_ = x_hat_r;
         y_hat_ = y_hat_r; // 이것만 쓰면 mpc안에서 덮어 씌워져버려서 따로 Step change 변수 만들어야함.                
-        
+                        
+
+        if(walking_tick_mj == t_start_ && current_step_num_ > 0)
+        {
+            cp_des_zmp_y_ = des_zmp_y_stepchange_;
+            cp_mpc_des_zmp_y_thread2_ = cp_des_zmp_y_;
+        }
+        else
+        {
+            cp_mpc_des_zmp_y_thread2_ = cp_des_zmp_y_;
+        }        
+
         atb_mpc_update_ = false;
     }    
 
@@ -13070,10 +13092,25 @@ void AvatarController::getComTrajectory_mpc()
     com_desired_(0) = x_mpc_i(0);
     com_desired_(1) = y_mpc_i(0);
     com_desired_(2) = 0.77172;     
- 
+    
+    if(cp_mpc_y_update_ == true)
+    {
+        if(atb_cpmpc_y_update_ == false) // 여기서 cp_des_zmp_y를 step change 시키고 cp_mpc_des_zmp_y_thread_에 담아서 전달.
+        {
+            atb_cpmpc_y_update_ = true;
+
+            if(current_step_num_ == current_step_num_mpc_)        
+            {
+                cp_des_zmp_y_ = cp_mpc_des_zmp_y_thread_;
+            }
+            atb_cpmpc_y_update_ = false;
+        }
+        cp_mpc_y_update_ = false;
+    }
+        
     //MJ_graph << x_mpc_i(0) << "," << y_mpc_i(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << endl;
-
+      
     if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
     {        
         Eigen::Vector3d com_pos_prev;
@@ -13089,6 +13126,7 @@ void AvatarController::getComTrajectory_mpc()
         x_hat_r_sc = x_hat_r;
         y_hat_r_p_sc = y_hat_r_p;
         y_hat_r_sc = y_hat_r; 
+        des_zmp_y_stepchange_ = cp_des_zmp_y_;
 
         temp_rot = DyrosMath::rotateWithZ(-foot_step_support_frame_(current_step_num_, 5));
         for (int i = 0; i < 3; i++)
@@ -13138,7 +13176,14 @@ void AvatarController::getComTrajectory_mpc()
         x_hat_r_p_sc(1) = com_vel(0);
         y_hat_r_p_sc(1) = com_vel(1); 
         x_hat_r_p_sc(2) = com_acc(0);
-        y_hat_r_p_sc(2) = com_acc(1);  
+        y_hat_r_p_sc(2) = com_acc(1);
+
+        //com_pos_prev(0) = x_hat_r_p_sc(0);
+        com_pos_prev(1) = des_zmp_y_stepchange_;
+        com_pos = temp_rot * (com_pos_prev - temp_pos);        
+
+        //x_hat_r_p_sc(0) = com_pos(0);
+        des_zmp_y_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change        
     }    
     
 }
@@ -14097,8 +14142,11 @@ void AvatarController::CP_compen_MJ_FT()
     else if (F_T_R_y_input < -0.15)
     {
         F_T_R_y_input = -0.15;
-    }
- 
+    }    
+
+    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << endl;
+    
+    
 }
 
 void AvatarController::CentroidalMomentCalculator()

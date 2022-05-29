@@ -110,7 +110,8 @@ public:
     std::atomic<bool> atb_mpc_x_update_{false};
     std::atomic<bool> atb_mpc_y_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
-    std::atomic<bool> atb_cpmpc_update_{false};
+    std::atomic<bool> atb_cpmpc_rcv_update_{false};
+    std::atomic<bool> atb_cpmpc_y_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
@@ -1169,10 +1170,13 @@ public:
     Eigen::MatrixXd Q_cp_;
     Eigen::MatrixXd R_cp_;
     Eigen::VectorXd e1_cp_mpc_;
-    Eigen::VectorXd CP_MPC_input_y_;
-    Eigen::VectorXd CP_MPC_P_y_;
+    Eigen::VectorXd cp_mpc_input_y_;
+    Eigen::VectorXd cp_mpc_des_zmp_y_;
+    double cp_mpc_des_zmp_y_thread_ = 0;
+    double cp_mpc_des_zmp_y_thread2_ = 0;
+    double cp_des_zmp_y_ = 0;
     double stepchange_pos_ = 0;
-    
+    double des_zmp_y_stepchange_ = 0;
     // Thread 3
     Eigen::VectorXd U_x_mpc;
     Eigen::VectorXd U_y_mpc; 
@@ -1195,6 +1199,7 @@ public:
     int interpol_cnt_x = 0;
     int interpol_cnt_y = 0;
     bool mpc_x_update {false}, mpc_y_update {false} ;
+    bool cp_mpc_x_update_ {false}, cp_mpc_y_update_ {false} ;
     double W1_mpc = 0, W2_mpc = 0, W3_mpc = 0;
     int alpha_step_mpc = 0;
     Eigen::VectorXd alpha_mpc_;
