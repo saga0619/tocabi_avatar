@@ -1174,6 +1174,8 @@ public:
     Eigen::VectorXd y_com_vel_recur_;
     Eigen::VectorXd y_zmp_recur_;
     
+    Eigen::VectorXd y_cp_recur_;
+
     Eigen::MatrixXd F_cp_mpc_;
     Eigen::MatrixXd theta_cp_mpc_;
     Eigen::MatrixXd F_zmp_mpc_;
@@ -1182,13 +1184,25 @@ public:
     Eigen::MatrixXd Q_cp_;
     Eigen::MatrixXd R_cp_;
     Eigen::VectorXd e1_cp_mpc_;
-    Eigen::VectorXd cp_mpc_input_y_;
-    Eigen::VectorXd cp_mpc_des_zmp_y_;
-    double cp_mpc_des_zmp_y_thread_ = 0;
-    double cp_mpc_des_zmp_y_thread2_ = 0;
+    Eigen::VectorXd cpmpc_input_y_;
+    Eigen::VectorXd cpmpc_deszmp_y_;
+    Eigen::VectorXd cpmpc_deszmp_y_prev_;
+    Eigen::Vector2d cp_measured_mpc_;
+    Eigen::Vector2d cp_measured_prev_mpc_;
+    double cpmpc_des_zmp_y_thread_ = 0;
+    double cpmpc_des_zmp_y_thread2_ = 0;
+    double cpmpc_des_zmp_y_prev_thread_ = 0;
+    
+    Eigen::VectorXd cp_x_ref_;
+    Eigen::VectorXd cp_y_ref_;
+    Eigen::VectorXd cp_y_ref_prev_;
     double cp_des_zmp_y_ = 0;
+    double cp_des_zmp_y_prev_ = 0;
     double stepchange_pos_ = 0;
     double des_zmp_y_stepchange_ = 0;
+    double des_zmp_y_prev_stepchange_ = 0;
+
+    Eigen::Vector2d des_zmp_interpol_;
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
     Eigen::VectorXd U_y_mpc_; 
@@ -1207,9 +1221,12 @@ public:
     Eigen::Vector3d y_mpc_i_; 
     Eigen::Vector3d x_diff_;
     Eigen::Vector3d y_diff_;
+    Eigen::Vector2d cpmpc_diff_;
 
-    int interpol_cnt_x_ = 0;
-    int interpol_cnt_y_ = 0;
+    int wieber_interpol_cnt_x_ = 0;
+    int wieber_interpol_cnt_y_ = 0;
+    int cpmpc_interpol_cnt_x_ = 0;
+    int cpmpc_interpol_cnt_y_ = 0;
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     bool cp_mpc_x_update_ {false}, cp_mpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
