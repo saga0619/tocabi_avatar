@@ -84,12 +84,12 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
-    CQuadraticProgram QP_mpc_x;
-    CQuadraticProgram QP_mpc_y;
+    CQuadraticProgram QP_mpc_x_;
+    CQuadraticProgram QP_mpc_y_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
-    CQuadraticProgram QP_stepping;
+    CQuadraticProgram QP_stepping_;
     CQuadraticProgram QP_CP_mpc_y_;
 
     Eigen::VectorQd CAM_upper_init_q_; 
@@ -1138,30 +1138,42 @@ public:
     Eigen::VectorXd stepping_input_;
 
     /////////////MPC-MJ//////////////////////////
+    Eigen::Vector3d x_hat_;
+    Eigen::Vector3d y_hat_;
+    Eigen::Vector3d x_hat_p_;
+    Eigen::Vector3d y_hat_p_;
+
+    Eigen::Vector3d x_hat_thread_;
+    Eigen::Vector3d y_hat_thread_;
+    Eigen::Vector3d x_hat_p_thread_;
+    Eigen::Vector3d y_hat_p_thread_;
+
+    Eigen::Vector3d x_hat_thread2_;
+    Eigen::Vector3d y_hat_thread2_;
+    Eigen::Vector3d x_hat_p_thread2_;
+    Eigen::Vector3d y_hat_p_thread2_;
+
+    Eigen::VectorXd MPC_input_x_;
+    Eigen::VectorXd MPC_input_y_;
+    Eigen::Matrix3d A_mpc_;
+    Eigen::Vector3d B_mpc_;
+    Eigen::Vector3d C_mpc_transpose_;
+    Eigen::MatrixXd P_ps_mpc_; 
+    Eigen::MatrixXd P_pu_mpc_;
+    Eigen::MatrixXd P_vs_mpc_; 
+    Eigen::MatrixXd P_vu_mpc_;
+    Eigen::MatrixXd P_zs_mpc_; 
+    Eigen::MatrixXd P_zu_mpc_;
+    Eigen::MatrixXd Q_prime_;
+    Eigen::MatrixXd Q_mpc_;
+
     Eigen::VectorXd x_com_pos_recur_;
     Eigen::VectorXd x_com_vel_recur_;
     Eigen::VectorXd x_zmp_recur_;
     Eigen::VectorXd y_com_pos_recur_;
     Eigen::VectorXd y_com_vel_recur_;
     Eigen::VectorXd y_zmp_recur_;
-    Eigen::Vector3d x_hat_;
-    Eigen::Vector3d y_hat_;
-    Eigen::Vector3d x_hat_p_;
-    Eigen::Vector3d y_hat_p_;
-    Eigen::VectorXd MPC_input_x;
-    Eigen::VectorXd MPC_input_y;
-    Eigen::Matrix3d A_mpc;
-    Eigen::Vector3d B_mpc;
-    Eigen::Vector3d C_mpc_transpose;
-    Eigen::MatrixXd P_ps_mpc_; 
-    Eigen::MatrixXd P_pu_mpc_;
-    Eigen::MatrixXd P_vs_mpc_; 
-    Eigen::MatrixXd P_vu_mpc_;
-    Eigen::MatrixXd P_zs_mpc; 
-    Eigen::MatrixXd P_zu_mpc;
-    Eigen::MatrixXd Q_prime;
-    Eigen::MatrixXd Q_mpc;
-
+    
     Eigen::MatrixXd F_cp_mpc_;
     Eigen::MatrixXd theta_cp_mpc_;
     Eigen::MatrixXd F_zmp_mpc_;
@@ -1178,36 +1190,38 @@ public:
     double stepchange_pos_ = 0;
     double des_zmp_y_stepchange_ = 0;
     // Thread 3
-    Eigen::VectorXd U_x_mpc;
-    Eigen::VectorXd U_y_mpc; 
+    Eigen::VectorXd U_x_mpc_;
+    Eigen::VectorXd U_y_mpc_; 
     // Thread 2
-    double del_F_x = 0, del_F_y = 0;
+    
     Eigen::Vector2d del_F_;
-    Eigen::Vector3d x_hat_r;
-    Eigen::Vector3d x_hat_r_sc;
-    Eigen::Vector3d x_hat_r_p_sc;
-    Eigen::Vector3d y_hat_r;
-    Eigen::Vector3d y_hat_r_sc;    
-    Eigen::Vector3d y_hat_r_p_sc;
-    Eigen::Vector3d x_hat_r_p;
-    Eigen::Vector3d y_hat_r_p;
-    Eigen::Vector3d x_mpc_i;
-    Eigen::Vector3d y_mpc_i; 
-    Eigen::Vector3d x_diff;
-    Eigen::Vector3d y_diff;
+    Eigen::Vector3d x_hat_r_;
+    Eigen::Vector3d x_hat_r_sc_;
+    Eigen::Vector3d x_hat_r_p_sc_;
+    Eigen::Vector3d y_hat_r_;
+    Eigen::Vector3d y_hat_r_sc_;    
+    Eigen::Vector3d y_hat_r_p_sc_;
+    Eigen::Vector3d x_hat_r_p_;
+    Eigen::Vector3d y_hat_r_p_;
+    Eigen::Vector3d x_mpc_i_;
+    Eigen::Vector3d y_mpc_i_; 
+    Eigen::Vector3d x_diff_;
+    Eigen::Vector3d y_diff_;
 
-    int interpol_cnt_x = 0;
-    int interpol_cnt_y = 0;
-    bool mpc_x_update {false}, mpc_y_update {false} ;
+    int interpol_cnt_x_ = 0;
+    int interpol_cnt_y_ = 0;
+    bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     bool cp_mpc_x_update_ {false}, cp_mpc_y_update_ {false} ;
-    double W1_mpc = 0, W2_mpc = 0, W3_mpc = 0;
-    int alpha_step_mpc = 0;
+    double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
+    int alpha_step_mpc_ = 0;
+    int alpha_step_mpc_thread_ = 0;
+
     Eigen::VectorXd alpha_mpc_;
-    Eigen::VectorXd F_diff_mpc_x;
-    Eigen::VectorXd F_diff_mpc_y;
-    double alpha_LPF = 0;
-    double temp_pos_y = 0;
-    double F0_F1_mpc_x = 0, F1_F2_mpc_x = 0, F2_F3_mpc_x = 0, F0_F1_mpc_y = 0, F1_F2_mpc_y = 0, F2_F3_mpc_y = 0;
+    Eigen::VectorXd F_diff_mpc_x_;
+    Eigen::VectorXd F_diff_mpc_y_;
+    double alpha_lpf_ = 0;
+    double temp_pos_y_ = 0;
+    double F0_F1_mpc_x_ = 0, F1_F2_mpc_x_ = 0, F2_F3_mpc_x_ = 0, F0_F1_mpc_y_ = 0, F1_F2_mpc_y_ = 0, F2_F3_mpc_y_ = 0;
 
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
@@ -1442,6 +1456,7 @@ public:
     Eigen::MatrixXd ref_zmp_mj_;
     Eigen::MatrixXd ref_zmp_mj_p_;
     Eigen::MatrixXd ref_zmp_mpc_;
+    Eigen::MatrixXd ref_zmp_thread_;
 
     Eigen::Vector3d xs_mj_;
     Eigen::Vector3d ys_mj_;
@@ -1501,8 +1516,11 @@ public:
     double foot_height_;
     int total_step_num_;
     int total_step_num_mpc_;
+    int total_step_num_thread_;
     int current_step_num_;
     int current_step_num_mpc_;
+    int current_step_num_thread_;
+    int current_step_num_thread2_;
     int current_step_num_mpc_prev_;      
     double step_length_x_;
     double step_length_y_;
@@ -1514,6 +1532,8 @@ public:
     int is_right_foot_swing_;
 
     double zmp_start_time_mj_;
+    double zmp_start_time_mj_mpc_;
+    double zmp_start_time_mj_thread_;
     double UX_mj_, UY_mj_; 
     Eigen::Vector3d com_desired_;
     Eigen::MatrixXd foot_step_;
@@ -1573,7 +1593,8 @@ public:
 private:    
     //////////////////////////////// Myeong-Ju
     unsigned int walking_tick_mj = 0;
-    unsigned int walking_tick_mpc_mj = 0;
+    unsigned int walking_tick_mj_mpc_ = 0;
+    unsigned int walking_tick_mj_thread_ = 0;
     unsigned int initial_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  
