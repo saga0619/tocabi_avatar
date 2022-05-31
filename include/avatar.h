@@ -1402,6 +1402,8 @@ public:
     Eigen::Vector12d DOB_IK_output_;
     Eigen::VectorQd ref_q_;
     Eigen::VectorQd ref_q_fast_;
+    Eigen::VectorQd ref_q_pre_;
+    Eigen::VectorQd ref_q_dot_;
     Eigen::VectorQd Kp;
     Eigen::VectorQd Kd;
     Eigen::VectorQd desired_q_not_compensated_;

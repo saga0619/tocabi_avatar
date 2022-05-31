@@ -667,7 +667,7 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-
+            ref_q_pre_ = ref_q_;
             // Saving for initial upper body pose
             // edited by MJ (Initial upper body trajectory generation for CAM control /220110)
             CAM_upper_init_q_.setZero();
@@ -892,7 +892,7 @@ void AvatarController::computeSlow()
                 first_smoothing_gain = DyrosMath::cubic(walking_tick_mj, 3.0*hz_, 5.0*hz_, 0.0, 1.0, 0.0, 0.0);
                 for (int i = 0; i < 12; i++)
                 {
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0*Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
 
 
@@ -2431,7 +2431,7 @@ void AvatarController::floatingBaseMOB()
     if (walking_tick_mj%200 == 0)
     {
         // cout<<"mob_residual_wholebody_: \n"<<mob_residual_wholebody_.segment(6, 12).transpose() <<endl;
-        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 6).transpose() <<endl;
+        // cout<<"estimated_model_unct_torque_slow_: \n"<<estimated_model_unct_torque_slow_.segment(0, 12).transpose() <<endl;
         // cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(0, 6).transpose() <<endl;
         // cout<<"estimated_ext_force_lfoot_lstm_: \n"<<estimated_ext_force_lfoot_lstm_.transpose() <<endl;
         // cout<<"l_ft_: \n"<<l_ft_.transpose() <<endl;
@@ -10543,28 +10543,28 @@ void AvatarController::collectRobotInputData_acc_version()
 
 
     /////////left leg mob lstm//////////////////
-    left_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39);   //quat
-    left_leg_mob_lstm_.robot_input_data(1) = rd_.q_virtual_(3);
-    left_leg_mob_lstm_.robot_input_data(2) = rd_.q_virtual_(4);
-    left_leg_mob_lstm_.robot_input_data(3) = rd_.q_virtual_(5);
+    left_leg_mob_lstm_.robot_input_data(0) = 1;   //quat
+    left_leg_mob_lstm_.robot_input_data(1) = 0;
+    left_leg_mob_lstm_.robot_input_data(2) = 0;
+    left_leg_mob_lstm_.robot_input_data(3) = 0;
 
-    left_leg_mob_lstm_.robot_input_data(4) = rd_.q_virtual_(6);    //q
-    left_leg_mob_lstm_.robot_input_data(5) = rd_.q_virtual_(7);
-    left_leg_mob_lstm_.robot_input_data(6) = rd_.q_virtual_(8);
-    left_leg_mob_lstm_.robot_input_data(7) = rd_.q_virtual_(9);
-    left_leg_mob_lstm_.robot_input_data(8) = rd_.q_virtual_(10);
-    left_leg_mob_lstm_.robot_input_data(9) = rd_.q_virtual_(11);
+    left_leg_mob_lstm_.robot_input_data(4) = ref_q_(0);    //q
+    left_leg_mob_lstm_.robot_input_data(5) = ref_q_(1);
+    left_leg_mob_lstm_.robot_input_data(6) = ref_q_(2);
+    left_leg_mob_lstm_.robot_input_data(7) = ref_q_(3);
+    left_leg_mob_lstm_.robot_input_data(8) = ref_q_(4);
+    left_leg_mob_lstm_.robot_input_data(9) = ref_q_(5);
     
-    left_leg_mob_lstm_.robot_input_data(10) = rd_.q_dot_virtual_(3);    //pelv ang vel
-    left_leg_mob_lstm_.robot_input_data(11) = rd_.q_dot_virtual_(4);
-    left_leg_mob_lstm_.robot_input_data(12) = rd_.q_dot_virtual_(5);
+    left_leg_mob_lstm_.robot_input_data(10) = 0;    //pelv ang vel
+    left_leg_mob_lstm_.robot_input_data(11) = 0;
+    left_leg_mob_lstm_.robot_input_data(12) = 0;
 
-    left_leg_mob_lstm_.robot_input_data(13) = rd_.q_dot_virtual_(6);   // qdot
-    left_leg_mob_lstm_.robot_input_data(14) = rd_.q_dot_virtual_(7);
-    left_leg_mob_lstm_.robot_input_data(15) = rd_.q_dot_virtual_(8);
-    left_leg_mob_lstm_.robot_input_data(16) = rd_.q_dot_virtual_(9);
-    left_leg_mob_lstm_.robot_input_data(17) = rd_.q_dot_virtual_(10);
-    left_leg_mob_lstm_.robot_input_data(18) = rd_.q_dot_virtual_(11);
+    left_leg_mob_lstm_.robot_input_data(13) = ref_q_dot_(0);   // qdot
+    left_leg_mob_lstm_.robot_input_data(14) = ref_q_dot_(1);
+    left_leg_mob_lstm_.robot_input_data(15) = ref_q_dot_(2);
+    left_leg_mob_lstm_.robot_input_data(16) = ref_q_dot_(3);
+    left_leg_mob_lstm_.robot_input_data(17) = ref_q_dot_(4);
+    left_leg_mob_lstm_.robot_input_data(18) = ref_q_dot_(5);
 
     left_leg_mob_lstm_.robot_input_data(19) = rd_.torque_desired(0);   // desired torque
     left_leg_mob_lstm_.robot_input_data(20) = rd_.torque_desired(1);
@@ -10573,9 +10573,9 @@ void AvatarController::collectRobotInputData_acc_version()
     left_leg_mob_lstm_.robot_input_data(23) = rd_.torque_desired(4);
     left_leg_mob_lstm_.robot_input_data(24) = rd_.torque_desired(5);
 
-    left_leg_mob_lstm_.robot_input_data(25) = rd_.q_ddot_virtual_(0);    //lin acc
-    left_leg_mob_lstm_.robot_input_data(26) = rd_.q_ddot_virtual_(1);
-    left_leg_mob_lstm_.robot_input_data(27) = rd_.q_ddot_virtual_(2);
+    left_leg_mob_lstm_.robot_input_data(25) = xd_mj_(2);    //lin acc
+    left_leg_mob_lstm_.robot_input_data(26) = yd_mj_(2);
+    left_leg_mob_lstm_.robot_input_data(27) = 0;
     
     /////////right leg mob lstm//////////////////
     right_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39);   //quat
@@ -12648,8 +12648,8 @@ void AvatarController::getRobotState()
     lfoot_acceleration_temp = RigidBodyDynamics::CalcPointAcceleration6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_ddot_virtual_Xd_global_, rd_.link_[Left_Foot].id, LF_com, false);
     lfoot_acceleration.segment(0, 3) = lfoot_acceleration_temp.segment(3, 3); //translation
     lfoot_acceleration.segment(3, 3) = lfoot_acceleration_temp.segment(0, 3); //rotation
-    l_ft_wo_fw_ = l_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * lfoot_acceleration);
-    // l_ft_wo_fw_ = l_ft_; // tocabi
+    // l_ft_wo_fw_ = l_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * lfoot_acceleration);
+    l_ft_wo_fw_ = l_ft_; // tocabi
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100/(2* M_PI));
 
     // l_ft_wo_fw_ = l_ft_ + adt2*(rotrf.transpose()*Wrench_foot_plate);
@@ -12675,8 +12675,8 @@ void AvatarController::getRobotState()
     rfoot_acceleration_temp = RigidBodyDynamics::CalcPointAcceleration6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_ddot_virtual_Xd_global_, rd_.link_[Right_Foot].id, RF_com, false);
     rfoot_acceleration.segment(0, 3) = rfoot_acceleration_temp.segment(3, 3); //translation
     rfoot_acceleration.segment(3, 3) = rfoot_acceleration_temp.segment(0, 3); //rotation
-    r_ft_wo_fw_ = r_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * rfoot_acceleration);
-    // r_ft_wo_fw_ = r_ft_;    //tocabi
+    // r_ft_wo_fw_ = r_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * rfoot_acceleration);
+    r_ft_wo_fw_ = r_ft_;    //tocabi
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100/(2* M_PI));
 
     if (walking_tick_mj == 0)
@@ -12708,6 +12708,8 @@ void AvatarController::getRobotState()
         dt_computeslow_ = current_time_computeslow_ - pre_time_computeslow_;
     }
     
+    ref_q_dot_ = (ref_q_ - ref_q_pre_)*hz_;
+    ref_q_pre_ = ref_q_;
     // MOB-LSTM INFERENCE
 
     
@@ -14699,7 +14701,7 @@ void AvatarController::parameterSetting()
 
 
     //// 0.9s walking
-    // target_x_ = 1.0;
+    // target_x_ = 0.0;
     // target_y_ = 0;
     // target_z_ = 0.0;
     // com_height_ = 0.71;
@@ -14713,7 +14715,7 @@ void AvatarController::parameterSetting()
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
     // t_total_= 0.9*hz_;
-    // foot_height_ = 0.07;      // 0.9 sec 0.05
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     //// 0.7s walking
@@ -14731,7 +14733,7 @@ void AvatarController::parameterSetting()
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
     // t_total_= 0.7*hz_;
-    // foot_height_ = 0.070;      // 0.9 sec 0.05
+    // foot_height_ = 0.040;      // 0.9 sec 0.05
 
     //// 0.6s walking
     target_x_ = 0.7;
@@ -14747,7 +14749,7 @@ void AvatarController::parameterSetting()
     t_rest_last_ = 0.04*hz_;
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 0.6*hz_;
+    t_total_ = 0.6*hz_;
     foot_height_ = 0.050;      // 0.9 sec 0.05
     /////////////////////////////////
 
