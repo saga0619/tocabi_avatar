@@ -47,10 +47,10 @@ const bool gaussian_mode_ = false;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/float_random_walking_.txt",
-        "/ssd2/fb_mob_learning/data/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/3_lstm_float_.txt"
+        "/home/dyros/data/dg/float_random_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_float_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -100,6 +100,9 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
+    std::vector<CQuadraticProgram> QP_leg_hqpik_;
+    CQuadraticProgram QP_leg_qpik_;
+
     CQuadraticProgram QP_mpc_x_;
     CQuadraticProgram QP_mpc_y_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
@@ -168,6 +171,8 @@ public:
     void collisionIsolation();
     void collisionIdentification();
 
+    void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
+    void computeLeg_HQPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
 
     void computeCAMcontrol_HQP();
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
@@ -1292,6 +1297,43 @@ public:
     int last_solved_hierarchy_num_camhqp_;
     unsigned int torque_flag_x = 0, torque_flag_y = 0; 
     ///////////////////////////////////////////////////
+    
+    /////////////LEG-QPIK//////////////////////////
+    const int hierarchy_num_leg_qpik_ = 1;
+    const int variable_size_leg_qpik_ = 12;            // original number -> 6 (DG)
+    const int constraint_size1_leg_qpik_ = 12;         //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
+    const int constraint_size2_leg_qpik_ = 12; //[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_leg_qpik_ = 12;     //
+
+    double w1_leg_qpik_;
+    double w2_leg_qpik_;
+    double w3_leg_qpik_;
+
+    Eigen::MatrixXd H_leg_qpik_, A_leg_qpik_;
+    Eigen::MatrixXd J_leg_qpik_;
+    Eigen::VectorXd g_leg_qpik_, u_dot_leg_qpik_, qpres_leg_qpik_, ub_leg_qpik_, lb_leg_qpik_, ubA_leg_qpik_, lbA_leg_qpik_;
+    Eigen::VectorXd q_dot_leg_qpik_;
+
+    ///////////////////////////////////////////////////
+
+    /////////////LEG-HQPIK//////////////////////////
+    const int hierarchy_num_leg_hqpik_ = 2;
+    const int variable_size_leg_hqpik_ = 12;            // original number -> 6 (DG)
+    const int constraint_size1_leg_hqpik_ = 12;         //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
+    const int constraint_size2_leg_hqpik_[2] = {12, 12}; //[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_leg_hqpik_[2] = {6, 6};     //1: leg position control, 2: leg orientation control
+
+    double w1_leg_hqpik_[2];
+    double w2_leg_hqpik_[2];
+    double w3_leg_hqpik_[2];
+
+    Eigen::MatrixXd H_leg_hqpik_[2], A_leg_hqpik_[2];
+    Eigen::MatrixXd J_leg_hqpik_[2];
+    Eigen::VectorXd g_leg_hqpik_[2], u_dot_leg_hqpik_[2], qpres_leg_hqpik_, ub_leg_hqpik_[2], lb_leg_hqpik_[2], ubA_leg_hqpik_[2], lbA_leg_hqpik_[2];
+    Eigen::VectorXd q_dot_leg_hqpik_[2];
+
+    int last_solved_hierarchy_num_leg_hqpik_;
+    ///////////////////////////////////////////////////
 
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
     Eigen::VectorXd mob_integral_internal_;
@@ -1377,9 +1419,13 @@ public:
     Eigen::VectorQd estimated_ext_torque_lstm_;
 
     Eigen::VectorQd threashold_joint_torque_collision_;
+    Eigen::VectorQd ext_torque_compensation_;
+
     int left_leg_collision_detected_link_;
     int left_leg_collision_cnt_[3];  //0: thigh, 1: lower leg, 2: foot 
+    bool collision_detection_flag_ = false;
     int right_leg_collision_detected_link_;
+    int right_leg_collision_cnt_[3];  //0: thigh, 1: lower leg, 2: foot 
 
     Eigen::Vector6d estimated_ext_force_lfoot_lstm_;
     Eigen::Vector6d estimated_ext_force_rfoot_lstm_;
@@ -1440,6 +1486,8 @@ private:
     bool first_loop_hqpik_;
     bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
+    bool first_loop_leg_hqpik_;
+    bool first_loop_leg_qpik_;
 
     int printout_cnt_ = 0;
 
@@ -1458,7 +1506,7 @@ public:
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
-    void calculateFootStepTotal_reactive(double target_x, double target_y, double target_theta, bool is_right_foot_swing);
+    void calculateFootStepTotal_reactive(double target_x, bool is_right_foot_swing);
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
@@ -1500,10 +1548,6 @@ public:
     Eigen::Vector12d DOB_IK_output_;
     Eigen::VectorQd ref_q_;
     Eigen::VectorQd ref_q_fast_;
-<<<<<<< HEAD
-=======
-
->>>>>>> b07e0baf7859092cd295f0c90a5b331217c66ac7
     Eigen::VectorQd ref_q_pre_;
     Eigen::VectorQd ref_q_dot_;
     Eigen::VectorQd Kp;
