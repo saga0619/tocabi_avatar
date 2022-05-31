@@ -13195,7 +13195,7 @@ void AvatarController::getComTrajectory_mpc()
         {
             atb_cpmpc_y_update_ = true;
 
-            if(current_step_num_thread2_ == current_step_num_mpc_)        
+            if(current_step_num_thread2_ == current_step_num_)        
             {
                 cp_des_zmp_y_prev_ = cp_des_zmp_y_;//cpmpc_des_zmp_y_prev_thread_; 
                 cp_des_zmp_y_ = cpmpc_des_zmp_y_thread_;
@@ -14278,7 +14278,7 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.15;
     }    
 
-    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << endl;    
+    MJ_graph << ZMP_Y_REF_alpha << "," << des_zmp_interpol_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << endl;    
     
 }
 
