@@ -9832,9 +9832,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
         QP_mpc_x_.InitializeProblemSize(N, N);
         QP_mpc_y_.InitializeProblemSize(N, N);
-
-        cp_y_ref_prev_.setZero(90);
-        cp_y_ref_.setZero(90);
+ 
         MPC_first_loop = 1;
         cout << "Initialization of MPC parameters is complete." << endl;
     }
@@ -9929,16 +9927,23 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         }
         mpc_y_update_ = true;  
     }
-   
+    
+    Eigen::Vector2d output_zmp;
+
+    output_zmp(0) = C_mpc_transpose_.transpose()*x_hat_;
+    output_zmp(1) = C_mpc_transpose_.transpose()*y_hat_;
+
+    
    ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
     //// https://doi.org/10.3182/20120905-3-HR-2030.00165
     static int CP_MPC_first_loop = 0;
     int N_cp = 1.8 * MPC_freq; // N step 2.7 x 50, N_cp step = 1.8 * 50
-
    
     // Eigen::Vector2d cp_measured_mpc;
     
-    cp_y_ref_ = y_com_pos_recur_.segment(0, 90) + y_com_vel_recur_.segment(0, 90)/wn; // 1.8 s
+    
+    cp_y_ref_ = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn; // 1.8 s
+     
     
     if(CP_MPC_first_loop == 0)
     {
@@ -9996,37 +10001,51 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         cpmpc_deszmp_y_(0) = yi_mj_;
         cpmpc_deszmp_y_prev_(0) = yi_mj_;
 
+        // for(int i=0; i<N_cp; i++)
+        // {
+        //     cpmpc_deszmp_y_(i) = yi_mj_;
+        //     cpmpc_deszmp_y_prev_(i) = yi_mj_;
+        // }
+        
+        cp_measured_prev_mpc_(1) = yi_mj_;
+        cp_measured_mpc_(1) = yi_mj_;
+
         y_cp_recur_.setZero(N_cp);
 
         CP_MPC_first_loop = 1;
         cout << "Initialization of CP_MPC parameters is complete." << endl;
     }    
-   
-    // MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) <<  endl;
-    
+       
     if(atb_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
     {
         atb_cpmpc_rcv_update_ = true;
         
-        cp_measured_prev_mpc_ = cp_measured_mpc_;
-        cp_measured_mpc_ = cp_measured_thread_;
-                    
+        // cp_measured_prev_mpc_ = cp_measured_mpc_;
+        // cp_measured_mpc_ = cp_measured_thread_;
         
+        if(current_step_num_thread_ == current_step_num_mpc_) // walking_tick_mj_mpc_ = 5800일때 제외하고.. ?
+        {
+            cp_measured_mpc_ = cp_measured_thread_;
+            //cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_;           
+        }
+        else
+        {             
+            cout << "step change timing is not same between thread 2 and 3." << endl;
+        }
 
+        if(current_step_num_mpc_ != current_step_num_mpc_prev_)
+        {
+            cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_; 
+        }
+
+        //cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_;
         atb_cpmpc_rcv_update_ = false;        
     }
-    if(current_step_num_mpc_prev_ != current_step_num_mpc_) // step change in mpc loop 
-    {   
-        cpmpc_deszmp_y_prev_(0) = cpmpc_deszmp_y_prev_(0) + 0.15;   
-        cpmpc_deszmp_y_(0) = cpmpc_deszmp_y_(0) + 0.15;//cpmpc_des_zmp_y_thread2_;
-    }
-    MJ_graph1 << cp_y_ref_(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << cp_measured_prev_mpc_(1) << "," << cpmpc_des_zmp_y_thread2_ <<  endl;         
+    // MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref_(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << cp_measured_prev_mpc_(1) << endl;
+    MJ_graph1 << cp_y_ref_(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << cp_measured_prev_mpc_(1) << "," << cpmpc_des_zmp_y_thread2_ << endl;         
     // gradient vector
-    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_prev_mpc_(1) - cp_y_ref_) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*cpmpc_deszmp_y_(0); 
-    
-    // 1.cp_y_ref_와 cp measured_mpc_는 step change time이 맞아야 하고 (ZMP 쪽이랑 비교해서 맞출것)
-    // 2. cpmpc_deszmp_y_는 stepchange는 이전에 사용된 입력이 stepchange 돼서 들어가야함. (0.725 때 step change돼서 들어가야됨.)
-    // 이거랑 오늘 아침 코드랑 비교
+    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_mpc_(1) - cp_y_ref_) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*cpmpc_deszmp_y_(0); 
+        
     QP_CP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
     QP_CP_mpc_y_.UpdateMinProblem(H_cp_mpc_,g_cp_mpc_);
     QP_CP_mpc_y_.DeleteSubjectToAx();      
@@ -10055,7 +10074,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     // MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref(0) << "," << cp_measured_mpc(1) << "," << del_cmp(1) << "," << cpmpc_deszmp_y_(0) << "," << cp_desired_(1) << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
+    //cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
 }
 
 
@@ -13112,8 +13131,15 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_p_thread2_ = y_hat_r_p_; 
         x_hat_thread2_ = x_hat_r_;
         y_hat_thread2_ = y_hat_r_; // 이것만 쓰면 mpc안에서 덮어 씌워져버려서 따로 Step change 변수 만들어야함.
-    
-        cpmpc_des_zmp_y_thread2_ = cp_des_zmp_y_;        
+
+        if(walking_tick_mj == t_start_ && current_step_num_ > 0)
+        {
+            cpmpc_des_zmp_y_thread2_ = des_zmp_y_stepchange_;
+        }
+        else
+        {
+            //cpmpc_des_zmp_y_thread2_ = cp_des_zmp_y_;
+        }
         
         atb_mpc_update_ = false;
     } 
@@ -13290,7 +13316,8 @@ void AvatarController::getComTrajectory_mpc()
         com_pos = temp_rot * (com_pos_prev - temp_pos);        
 
         //x_hat_r_p_sc_(0) = com_pos(0);
-        des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change     
+        des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
+         
     }    
     // MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
@@ -14251,7 +14278,7 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.15;
     }    
 
-    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << des_zmp_interpol_(1) << "," << del_cmp(1) << endl;    
+    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << endl;    
     
 }
 

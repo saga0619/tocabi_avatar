@@ -1194,8 +1194,7 @@ public:
     double cpmpc_des_zmp_y_prev_thread_ = 0;
     
     Eigen::VectorXd cp_x_ref_;
-    Eigen::VectorXd cp_y_ref_;
-    Eigen::VectorXd cp_y_ref_prev_;
+    Eigen::VectorXd cp_y_ref_; 
     double cp_des_zmp_y_ = 0;
     double cp_des_zmp_y_prev_ = 0;
     double stepchange_pos_ = 0;
