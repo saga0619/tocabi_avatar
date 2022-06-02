@@ -1187,8 +1187,7 @@ public:
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
     Eigen::VectorXd cpmpc_deszmp_y_prev_;
-    Eigen::Vector2d cp_measured_mpc_;
-    Eigen::Vector2d cp_measured_prev_mpc_;
+    
     double cpmpc_des_zmp_y_thread_ = 0;
     double cpmpc_des_zmp_y_thread2_ = 0;
     double cpmpc_des_zmp_y_prev_thread_ = 0;
@@ -1517,7 +1516,7 @@ public:
 
     double ZMP_X_REF;
     double ZMP_Y_REF;
-    double ZMP_Y_REF_alpha = 0;
+    double ZMP_Y_REF_alpha_ = 0;
 
     double t_last_;
     double t_start_;
