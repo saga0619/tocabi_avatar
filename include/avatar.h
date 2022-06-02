@@ -90,7 +90,8 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
     CQuadraticProgram QP_stepping_;
-    CQuadraticProgram QP_CP_mpc_y_;
+    CQuadraticProgram QP_cpmpc_x_;
+    CQuadraticProgram QP_cpmpc_y_;
 
     Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
@@ -111,6 +112,7 @@ public:
     std::atomic<bool> atb_mpc_y_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
     std::atomic<bool> atb_cpmpc_rcv_update_{false};
+    std::atomic<bool> atb_cpmpc_x_update_{false};
     std::atomic<bool> atb_cpmpc_y_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
@@ -1174,29 +1176,40 @@ public:
     Eigen::VectorXd y_com_vel_recur_;
     Eigen::VectorXd y_zmp_recur_;
     
+    Eigen::VectorXd x_cp_recur_;
     Eigen::VectorXd y_cp_recur_;
 
-    Eigen::MatrixXd F_cp_mpc_;
-    Eigen::MatrixXd theta_cp_mpc_;
-    Eigen::MatrixXd F_zmp_mpc_;
-    Eigen::MatrixXd H_cp_mpc_;
-    Eigen::VectorXd g_cp_mpc_;
+    Eigen::MatrixXd F_cp_;
+    Eigen::MatrixXd theta_cpmpc_;
+    Eigen::MatrixXd F_zmp_;
+    Eigen::MatrixXd H_cpmpc_;
+    Eigen::VectorXd g_cpmpc_x_;
+    Eigen::VectorXd g_cpmpc_y_;
     Eigen::MatrixXd Q_cp_;
     Eigen::MatrixXd R_cp_;
-    Eigen::VectorXd e1_cp_mpc_;
+    Eigen::VectorXd e1_cpmpc_;
+    Eigen::VectorXd cpmpc_input_x_;
+    Eigen::VectorXd cpmpc_deszmp_x_;
+    Eigen::VectorXd cpmpc_deszmp_x_prev_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
     Eigen::VectorXd cpmpc_deszmp_y_prev_;
     
-    double cpmpc_des_zmp_y_thread_ = 0;
+    double cpmpc_des_zmp_x_thread_ = 0;
+    double cpmpc_des_zmp_x_thread2_ = 0;
+    double cpmpc_des_zmp_x_prev_thread_ = 0;
+
+    double cpmpc_des_zmp_y_thread_ = 0;    
     double cpmpc_des_zmp_y_thread2_ = 0;
     double cpmpc_des_zmp_y_prev_thread_ = 0;
     
-    Eigen::VectorXd cp_x_ref_;
-    Eigen::VectorXd cp_y_ref_; 
+    double cp_des_zmp_x_ = 0;
+    double cp_des_zmp_x_prev_ = 0;
+    double des_zmp_x_stepchange_ = 0;
+    double des_zmp_x_prev_stepchange_ = 0;
+
     double cp_des_zmp_y_ = 0;
     double cp_des_zmp_y_prev_ = 0;
-    double stepchange_pos_ = 0;
     double des_zmp_y_stepchange_ = 0;
     double des_zmp_y_prev_stepchange_ = 0;
 
@@ -1226,7 +1239,7 @@ public:
     int cpmpc_interpol_cnt_x_ = 0;
     int cpmpc_interpol_cnt_y_ = 0;
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
-    bool cp_mpc_x_update_ {false}, cp_mpc_y_update_ {false} ;
+    bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
     int alpha_step_mpc_ = 0;
     int alpha_step_mpc_thread_ = 0;

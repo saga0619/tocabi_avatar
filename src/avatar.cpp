@@ -9884,6 +9884,11 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     {   
         x_hat_p_ = x_hat_;            
         U_x_mpc_ = MPC_input_x_.segment(0, N);
+
+        x_com_pos_recur_ = P_ps_mpc_ * x_hat_ + P_pu_mpc_* U_x_mpc_;
+        x_com_vel_recur_ = P_vs_mpc_ * x_hat_ + P_vu_mpc_* U_x_mpc_;
+        x_zmp_recur_ = P_zs_mpc_ * x_hat_ + P_zu_mpc_* U_x_mpc_;
+
         x_hat_ = A_mpc_ * x_hat_ + B_mpc_ * U_x_mpc_(0);
         if(atb_mpc_x_update_ == false)
         {
@@ -9905,10 +9910,8 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
    //U_y_mpc_.setZero(N); 
     if (QP_mpc_y_.SolveQPoases(200, MPC_input_y_))
     {             
-        y_hat_p_ = y_hat_;        
-        // y_com_pos_recur_ = P_ps_mpc_ * y_hat_ + P_pu_mpc_* U_y_mpc_;
-        // y_com_vel_recur_ = P_vs_mpc_ * y_hat_ + P_vu_mpc_* U_y_mpc_;
-        // y_zmp_recur_ = P_zs_mpc_ * y_hat_ + P_zu_mpc_* U_y_mpc_;
+        y_hat_p_ = y_hat_;
+
         U_y_mpc_ = MPC_input_y_.segment(0, N);       
 
         y_com_pos_recur_ = P_ps_mpc_ * y_hat_ + P_pu_mpc_* U_y_mpc_;
@@ -9934,15 +9937,21 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     output_zmp(1) = C_mpc_transpose_.transpose()*y_hat_;
 
     
+
+
    ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
-    //// https://doi.org/10.3182/20120905-3-HR-2030.00165
+   //// https://doi.org/10.3182/20120905-3-HR-2030.00165
     
     static int CP_MPC_first_loop = 0;
     int N_cp = 1.5 * MPC_freq; // N step 2.7 x 50, N_cp step = 1.5 ~ 1.8 * 50 // 얘 늘리려면 Wieber preview window도 늘리기
    
     Eigen::Vector2d cp_measured_mpc; 
-        
-    cp_y_ref_ = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 ~ 1.8 s
+
+    Eigen::VectorXd cp_x_ref(N_cp);
+    Eigen::VectorXd cp_y_ref(N_cp);    
+
+    cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 ~ 1.8 s
+    cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;  
          
     if(CP_MPC_first_loop == 0)
     {
@@ -9956,35 +9965,35 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         B_cp_mpc(0) = 1 - exp(wn*T); 
         
         // Define recursive state, input matrix
-        F_cp_mpc_.setZero(N_cp, 1);
-        F_zmp_mpc_.setZero(N_cp, N_cp);
+        F_cp_.setZero(N_cp, 1);
+        F_zmp_.setZero(N_cp, N_cp);
         
         for(int i = 0; i < N_cp; i++)
         {   
-            F_cp_mpc_(i,0) = exp(wn*T*i);
+            F_cp_(i,0) = exp(wn*T*i);
 
             for(int j = 0; j < N_cp; j++)
             {
                 if(j >= i)
                 {
-                    F_zmp_mpc_(j,i) = exp(wn*T*(j-i))*B_cp_mpc(0);
+                    F_zmp_(j,i) = exp(wn*T*(j-i))*B_cp_mpc(0);
                 }
             }
         }        
         
         // Define diffence matrix
-        theta_cp_mpc_.setIdentity(N_cp,N_cp);
+        theta_cpmpc_.setIdentity(N_cp,N_cp);
 
         for(int i = 0; i < N_cp-1; i ++)
         {
-            theta_cp_mpc_(i+1, i) = -1.0;
+            theta_cpmpc_(i+1, i) = -1.0;
         }
         
         Eigen::MatrixXd I_N_cp;
         I_N_cp.setIdentity(N_cp, N_cp); // N_cp x N_cp Identity matrix
 
-        e1_cp_mpc_.setZero(N_cp);
-        e1_cp_mpc_(0) = 1.0;
+        e1_cpmpc_.setZero(N_cp);
+        e1_cpmpc_(0) = 1.0;
         
         Q_cp_.setZero(N_cp, N_cp);
         R_cp_.setZero(N_cp, N_cp);
@@ -10023,25 +10032,33 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         // R_cp_ = 1.0 * I_N_cp;
 
         // Hessian matrix
-        H_cp_mpc_ = theta_cp_mpc_.transpose()*R_cp_*theta_cp_mpc_ +  F_zmp_mpc_.transpose()*Q_cp_*F_zmp_mpc_;        
+        H_cpmpc_ = theta_cpmpc_.transpose()*R_cp_*theta_cpmpc_ +  F_zmp_.transpose()*Q_cp_*F_zmp_;        
 
-        QP_CP_mpc_y_.InitializeProblemSize(N_cp, 0);        
-         
+        QP_cpmpc_x_.InitializeProblemSize(N_cp, N_cp);
+        QP_cpmpc_y_.InitializeProblemSize(N_cp, N_cp);        
+
+        // Control input (MPC variable) initinalization 
+        cpmpc_deszmp_x_.setZero(N_cp);
+        cpmpc_deszmp_x_prev_.setZero(N_cp);
+        cpmpc_deszmp_x_(0) = xi_mj_;
+        cpmpc_deszmp_x_prev_(0) = xi_mj_; 
+        
         cpmpc_deszmp_y_.setZero(N_cp);
         cpmpc_deszmp_y_prev_.setZero(N_cp);
         cpmpc_deszmp_y_(0) = yi_mj_;
         cpmpc_deszmp_y_prev_(0) = yi_mj_;
 
-        for(int i=0; i < N_cp; i++)
-        {
-            cpmpc_deszmp_y_(i) = y_zmp_recur_(i); //
-            cpmpc_deszmp_y_prev_(i) = cpmpc_deszmp_y_(i);
-        }
+        // for(int i=0; i < N_cp; i++)
+        // {
+        //     cpmpc_deszmp_y_(i) = y_zmp_recur_(i); //
+        //     cpmpc_deszmp_y_prev_(i) = cpmpc_deszmp_y_(i);
+        // }
         
         // cp_measured_prev_mpc_(1) = yi_mj_;
         // cp_measured_mpc_(1) = yi_mj_;
 
-        y_cp_recur_.setZero(N_cp);
+        // x_cp_recur_.setZero(N_cp);
+        // y_cp_recur_.setZero(N_cp);
 
         CP_MPC_first_loop = 1;
         cout << "Initialization of CP_MPC parameters is complete." << endl;
@@ -10051,38 +10068,85 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     {
         atb_cpmpc_rcv_update_ = true;
                 
-        if(current_step_num_thread_ == current_step_num_mpc_) // walking_tick_mj_mpc_ = 5800일때 제외하고.. ?
+        if(current_step_num_thread_ == current_step_num_mpc_) 
         {
             cp_measured_mpc = cp_measured_thread_;
             //cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_;           
         }
 
         if(current_step_num_mpc_ != current_step_num_mpc_prev_)
-        {
+        {        
+            cpmpc_deszmp_x_(0) = cpmpc_des_zmp_x_thread2_;       
             cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_; 
         }
 
         //cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_;
         atb_cpmpc_rcv_update_ = false;        
     }
-    // MJ_graph1 << Z_y_ref(0) << "," << cp_y_ref_(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << cp_measured_prev_mpc_(1) << endl;
-    MJ_graph1 << cp_y_ref_(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc(1) << "," << cpmpc_des_zmp_y_thread2_ << "," << Z_y_ref(0) << endl;         
+    
+    MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc(0) << "," << cpmpc_des_zmp_x_thread2_ << "," << Z_x_ref(0) << endl;
+    //MJ_graph1 << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc(1) << "," << cpmpc_des_zmp_y_thread2_ << "," << Z_y_ref(0) << endl;         
     
     // gradient vector
-    g_cp_mpc_ = F_zmp_mpc_.transpose()*Q_cp_*(F_cp_mpc_*cp_measured_mpc(1) - cp_y_ref_) - theta_cp_mpc_.transpose()*R_cp_*e1_cp_mpc_*cpmpc_deszmp_y_(0); 
-        
-    // Define QP problem for CP-MPC    
-    QP_CP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
-    QP_CP_mpc_y_.UpdateMinProblem(H_cp_mpc_,g_cp_mpc_);
-    QP_CP_mpc_y_.DeleteSubjectToAx();      
-    //CP_mpc_y.UpdateSubjectToAx(P_zu_mpc_, lb_b_y, ub_b_y);    
+    g_cpmpc_x_ = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(0) - cp_x_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_x_(0);
+    g_cpmpc_y_ = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(1) - cp_y_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_y_(0);         
+
+    // constraint formulation
+    Eigen::MatrixXd A_cp_mpc(N_cp, N_cp);
+    A_cp_mpc.setIdentity();
     
-    if (QP_CP_mpc_y_.SolveQPoases(200, cpmpc_input_y_))
+    Eigen::VectorXd ub_x_cp_mpc(N_cp);
+    Eigen::VectorXd lb_x_cp_mpc(N_cp);
+    Eigen::VectorXd ub_y_cp_mpc(N_cp);
+    Eigen::VectorXd lb_y_cp_mpc(N_cp);
+    
+    lb_x_cp_mpc.setZero();
+    ub_x_cp_mpc.setZero();
+
+    lb_y_cp_mpc.setZero();
+    ub_y_cp_mpc.setZero();
+    
+    lb_x_cp_mpc = Z_x_ref.segment(0, N_cp) - zmp_bound.segment(0, N_cp)*1.5;
+    ub_x_cp_mpc = Z_x_ref.segment(0, N_cp) + zmp_bound.segment(0, N_cp)*1.5;
+
+    lb_y_cp_mpc = Z_y_ref.segment(0, N_cp) - zmp_bound.segment(0, N_cp)*0.5; // Z_y_ref is trajectory considering the ZMP offset for COM planning.
+    ub_y_cp_mpc = Z_y_ref.segment(0, N_cp) + zmp_bound.segment(0, N_cp)*0.5; // therefore, Ref. ZMP without ZMP offset is required for CP control.
+    
+
+    // Define QP problem for CP-MPC  
+    QP_cpmpc_x_.EnableEqualityCondition(equality_condition_eps_);
+    QP_cpmpc_x_.UpdateMinProblem(H_cpmpc_,g_cpmpc_x_);
+    QP_cpmpc_x_.DeleteSubjectToAx();      
+    QP_cpmpc_x_.UpdateSubjectToAx(A_cp_mpc, lb_x_cp_mpc, ub_x_cp_mpc);    
+    
+    if (QP_cpmpc_x_.SolveQPoases(200, cpmpc_input_x_))
+    {             
+        cpmpc_deszmp_x_prev_(0) = cpmpc_deszmp_x_(0);
+        cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp);
+
+        if(atb_cpmpc_x_update_ == false)
+        {
+            atb_cpmpc_x_update_ = true;
+            
+            cpmpc_des_zmp_x_prev_thread_ = cpmpc_deszmp_x_prev_(0);
+            cpmpc_des_zmp_x_thread_ = cpmpc_deszmp_x_(0);
+
+            atb_cpmpc_x_update_ = false;
+        }       
+        cpmpc_x_update_ = true;
+    }
+
+    QP_cpmpc_y_.EnableEqualityCondition(equality_condition_eps_);
+    QP_cpmpc_y_.UpdateMinProblem(H_cpmpc_,g_cpmpc_y_);
+    QP_cpmpc_y_.DeleteSubjectToAx();      
+    QP_cpmpc_y_.UpdateSubjectToAx(A_cp_mpc, lb_y_cp_mpc, ub_y_cp_mpc);    
+    
+    if (QP_cpmpc_y_.SolveQPoases(200, cpmpc_input_y_))
     {             
         cpmpc_deszmp_y_prev_(0) = cpmpc_deszmp_y_(0);
         cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp);
 
-        y_cp_recur_ = F_cp_mpc_*cp_measured_mpc(1) + F_zmp_mpc_* cpmpc_deszmp_y_;
+        // y_cp_recur_ = F_cp_*cp_measured_mpc(1) + F_zmp_* cpmpc_deszmp_y_;
 
         if(atb_cpmpc_y_update_ == false)
         {
@@ -10093,7 +10157,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
             atb_cpmpc_y_update_ = false;
         }       
-        cp_mpc_y_update_ = true;
+        cpmpc_y_update_ = true;
     }
         
     current_step_num_mpc_prev_ = current_step_num_mpc_;
@@ -13070,6 +13134,13 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_p_(0) = yi_mj_;
         y_mpc_i_(0) = yi_mj_;    
 
+        cp_des_zmp_x_prev_ = xi_mj_;    
+        cp_des_zmp_x_ = xi_mj_;
+        
+        cpmpc_des_zmp_x_thread_ = xi_mj_;
+        cpmpc_des_zmp_x_thread2_ = xi_mj_;
+        cpmpc_des_zmp_x_prev_thread_ = xi_mj_;
+
         cp_des_zmp_y_prev_ = yi_mj_;    
         cp_des_zmp_y_ = yi_mj_;
         
@@ -13077,6 +13148,7 @@ void AvatarController::getComTrajectory_mpc()
         cpmpc_des_zmp_y_thread2_ = yi_mj_;
         cpmpc_des_zmp_y_prev_thread_ = yi_mj_;
 
+        cp_measured_thread_(0) = xi_mj_;
         cp_measured_thread_(1) = yi_mj_;
 
         des_zmp_interpol_.setZero();
@@ -13142,6 +13214,9 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_ = y_hat_r_sc_;
         y_hat_r_p_ = y_hat_r_p_sc_; 
         
+        cp_des_zmp_x_ = des_zmp_x_stepchange_;
+        cp_des_zmp_x_prev_ = des_zmp_x_prev_stepchange_;
+
         cp_des_zmp_y_ = des_zmp_y_stepchange_;
         cp_des_zmp_y_prev_ = des_zmp_y_prev_stepchange_;
     }
@@ -13165,7 +13240,8 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_thread2_ = y_hat_r_; // 이것만 쓰면 mpc안에서 덮어 씌워져버려서 따로 Step change 변수 만들어야함.
 
         if(walking_tick_mj == t_start_ && current_step_num_ > 0)
-        {
+        {   
+            cpmpc_des_zmp_x_thread2_ = des_zmp_x_stepchange_;
             cpmpc_des_zmp_y_thread2_ = des_zmp_y_stepchange_;
         }
         
@@ -13217,7 +13293,25 @@ void AvatarController::getComTrajectory_mpc()
         mpc_y_update_ = false;
     }
 
-    if(cp_mpc_y_update_ == true)
+    if(cpmpc_x_update_ == true)
+    {
+        if(atb_cpmpc_x_update_ == false) // 여기서 cp_des_zmp_y를 step change 시키고 cpmpc_des_zmp_y_thread_에 담아서 전달.
+        {
+            atb_cpmpc_x_update_ = true;
+
+            if(current_step_num_thread2_ == current_step_num_)        
+            {
+                cp_des_zmp_x_prev_ = cp_des_zmp_x_;//cpmpc_des_zmp_y_prev_thread_; 
+                cp_des_zmp_x_ = cpmpc_des_zmp_x_thread_;
+                cpmpc_interpol_cnt_x_ = 1;
+            }
+            atb_cpmpc_x_update_ = false;
+        }
+        cpmpc_diff_(0) = cp_des_zmp_x_ - cp_des_zmp_x_prev_;
+        cpmpc_x_update_ = false;
+    }
+
+    if(cpmpc_y_update_ == true)
     {
         if(atb_cpmpc_y_update_ == false) // 여기서 cp_des_zmp_y를 step change 시키고 cpmpc_des_zmp_y_thread_에 담아서 전달.
         {
@@ -13232,7 +13326,7 @@ void AvatarController::getComTrajectory_mpc()
             atb_cpmpc_y_update_ = false;
         }
         cpmpc_diff_(1) = cp_des_zmp_y_ - cp_des_zmp_y_prev_;
-        cp_mpc_y_update_ = false;
+        cpmpc_y_update_ = false;
     }
 
     double thread_freq = 50.0;
@@ -13249,13 +13343,16 @@ void AvatarController::getComTrajectory_mpc()
     wieber_interpol_cnt_x_ ++;
     wieber_interpol_cnt_y_ ++;
     
-    // double x_cpmpc_lin_spline = (thread_freq/hz_)*cpmpc_interpol_cnt_x_;
+    double x_cpmpc_lin_spline = (thread_freq/hz_)*cpmpc_interpol_cnt_x_;
     double y_cpmpc_lin_spline = (thread_freq/hz_)*cpmpc_interpol_cnt_y_;
 
+    x_cpmpc_lin_spline = DyrosMath::minmax_cut(x_cpmpc_lin_spline, 0.0, 1.0);
     y_cpmpc_lin_spline = DyrosMath::minmax_cut(y_cpmpc_lin_spline, 0.0, 1.0);
 
+    des_zmp_interpol_(0) = x_cpmpc_lin_spline*cpmpc_diff_(0) + cp_des_zmp_x_prev_;
     des_zmp_interpol_(1) = y_cpmpc_lin_spline*cpmpc_diff_(1) + cp_des_zmp_y_prev_;
     
+    cpmpc_interpol_cnt_x_ ++;
     cpmpc_interpol_cnt_y_ ++;
 
     // Reference COM, CP position // CPMPC로 대체하면 필요 X
@@ -13282,6 +13379,8 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_p_sc_ = y_hat_r_p_;
         y_hat_r_sc_ = y_hat_r_; 
 
+        des_zmp_x_prev_stepchange_ = cp_des_zmp_x_prev_;
+        des_zmp_x_stepchange_ = cp_des_zmp_x_;
         des_zmp_y_prev_stepchange_ = cp_des_zmp_y_prev_;
         des_zmp_y_stepchange_ = cp_des_zmp_y_;
 
@@ -13336,16 +13435,18 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_p_sc_(2) = com_acc(1);
 
         //com_pos_prev(0) = x_hat_r_p_sc_(0);
+        com_pos_prev(0) = des_zmp_x_stepchange_;
         com_pos_prev(1) = des_zmp_y_stepchange_;
         com_pos = temp_rot * (com_pos_prev - temp_pos);        
 
-        //x_hat_r_p_sc_(0) = com_pos(0);
+        des_zmp_x_stepchange_ = com_pos(0);
         des_zmp_y_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change    
 
+        com_pos_prev(0) = des_zmp_x_prev_stepchange_;
         com_pos_prev(1) = des_zmp_y_prev_stepchange_;
         com_pos = temp_rot * (com_pos_prev - temp_pos);        
 
-        //x_hat_r_p_sc_(0) = com_pos(0);
+        des_zmp_x_prev_stepchange_ = com_pos(0);
         des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
          
     }    
@@ -13620,7 +13721,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -14123,7 +14224,10 @@ void AvatarController::CP_compen_MJ_FT()
     {
         ZMP_Y_REF_alpha_ = ZMP_Y_REF;
     }
+     
+    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
     del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
+    
     ////////////////////////
     double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
     A = (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
@@ -14308,7 +14412,8 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.15;
     }    
 
-    MJ_graph << ZMP_Y_REF_alpha_ << "," << cp_desired_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << "," << des_zmp_interpol_(1) << endl;    
+    MJ_graph << ZMP_X_REF << "," << cp_desired_(0) << "," << cp_des_zmp_x_prev_ << "," << cp_measured_(0) << "," << cp_des_zmp_x_ << "," << del_cmp(0) << "," << des_zmp_interpol_(0) << endl;
+    //MJ_graph << ZMP_Y_REF_alpha_ << "," << cp_desired_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << "," << des_zmp_interpol_(1) << endl;    
     
 }
 
