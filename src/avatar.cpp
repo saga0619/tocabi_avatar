@@ -845,17 +845,14 @@ void AvatarController::computeSlow()
             updateInitialState();
             getRobotState();
             floatToSupportFootstep();
-
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory();
                 getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
                 // getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
-
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
-
                 getFootTrajectory();
                 // getFootTrajectory_stepping();    //working with BoltController_MJ()
                 getPelvTrajectory();
@@ -870,7 +867,7 @@ void AvatarController::computeSlow()
                     atb_walking_traj_update_ = false;
                 }
 
-                // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
                 // Compliant_control(q_des_);
 
                 if (atb_desired_q_update_ == false)
@@ -880,12 +877,13 @@ void AvatarController::computeSlow()
                     desired_q_dot_fast_ = desired_q_dot_slow_;
                     atb_desired_q_update_ = false;
                 }
+                
                 for (int i = 0; i < 12; i++)
                 {
-                    // ref_q_(i) = q_des_(i);
+                    ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
 
-                    ref_q_(i) = desired_q_fast_(i);
+                    // ref_q_(i) = desired_q_fast_(i);
                     static bool ref_q_nan_flag = false;
                     if (ref_q_(i) != ref_q_(i))
                     {
@@ -905,7 +903,7 @@ void AvatarController::computeSlow()
                     }
                 }
 
-                hip_compensator();
+                // hip_compensator();
                 // GravityCalculate_MJ();
 
                 if (atb_grav_update_ == false)
@@ -920,7 +918,7 @@ void AvatarController::computeSlow()
                     // for leg
                     for (int i = 0; i < 12; i++)
                     {
-                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
+                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
                     }
                     // for waist
                     //  ref_q_(13) = Initial_ref_q_(13);
@@ -944,29 +942,29 @@ void AvatarController::computeSlow()
                 first_smoothing_gain = DyrosMath::cubic(walking_tick_mj, 3.0 * hz_, 5.0 * hz_, 0.0, 1.0, 0.0, 0.0);
                 for (int i = 0; i < 12; i++)
                 {
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i) + ext_torque_compensation_(i);
+                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
 
-                    if (estimated_model_unct_torque_variance_slow_(i) == 0 && gaussian_mode_ == true)
-                    {
-                        p_gaussian(i) = 1.0;
-                        cout << "WARNING: model uncertainty torque variance is zero!" << endl;
-                    }
-                    else
-                    {
-                        p_gaussian(i) = 0.4 / std::sqrt(2 * M_PI * estimated_model_unct_torque_variance_slow_(i));
-                        p_gaussian(i) = DyrosMath::minmax_cut(p_gaussian(i), 0.0, 0.99);
-                    }
+                    // if (estimated_model_unct_torque_variance_slow_(i) == 0 && gaussian_mode_ == true)
+                    // {
+                    //     p_gaussian(i) = 1.0;
+                    //     cout << "WARNING: model uncertainty torque variance is zero!" << endl;
+                    // }
+                    // else
+                    // {
+                    //     p_gaussian(i) = 0.4 / std::sqrt(2 * M_PI * estimated_model_unct_torque_variance_slow_(i));
+                    //     p_gaussian(i) = DyrosMath::minmax_cut(p_gaussian(i), 0.0, 0.99);
+                    // }
                     // torque_lower_(i) -= first_smoothing_gain*0.3*estimated_model_unct_torque_slow_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
-
                 // left leg
                 // for (int i=0; i<6; i++)
                 // {
                 //     torque_lower_(i) += -0.45*estimated_model_unct_torque_slow_(i);
                 // }
                 desired_q_not_compensated_ = ref_q_;
+
                 printOutTextFile();
                 updateNextStepTime();
                 q_prev_MJ_ = rd_.q_;
@@ -1044,7 +1042,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                // rd_.tc_.mode = 10; // dg test rd_.tc_.mode = 10;  // dg test
+                rd_.tc_.mode = 10; // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -1454,6 +1452,7 @@ void AvatarController::computeFast()
             hmd_check_pose_calibration_[0] = true;
             triger_still_pose_cali_once_ = false;
         }
+
         // data process//
         getRobotData();
         walkingStateManager(); // avatar
@@ -1464,8 +1463,8 @@ void AvatarController::computeFast()
         //  computeCAMcontrol_HQP();
 
         // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-        calculateLstmOutput(left_leg_mob_lstm_);    //20~25us
-        calculateLstmOutput(right_leg_mob_lstm_);    //20~25us
+        // calculateLstmOutput(left_leg_mob_lstm_);    //20~25us
+        // calculateLstmOutput(right_leg_mob_lstm_);    //20~25us
         // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
         estimated_model_unct_torque_fast_.setZero();
@@ -3492,7 +3491,7 @@ void AvatarController::motionGenerator()
 
     poseCalibration();
 
-    computeLeg_QPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
+    // computeLeg_QPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
 
     if (upper_body_mode_ == 1) // init pose
     {
@@ -12678,8 +12677,8 @@ void AvatarController::printOutTextFile()
             {
                 file[3] << hmd_chest_vel_slow_lpf_(i) << "\t";
             }
-            file[3] << hmd_tracker_status_ << "\t";
-            file[3] << stepping_input_(0) << "\t" << stepping_input_(1) << "\t" << stepping_input_(2) << endl; // bolt
+            file[3] << hmd_tracker_status_ << endl;
+            // file[3] << stepping_input_(0) << "\t" << stepping_input_(1) << "\t" << stepping_input_(2) << endl; // bolt
 
             printout_cnt_ += 1;
         }
@@ -15767,7 +15766,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 2.0;
+    // target_x_ = 0.0;
     // target_y_ = 0;
     // target_z_ = 0.0;
     // com_height_ = 0.71;
