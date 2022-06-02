@@ -47,10 +47,10 @@ const bool gaussian_mode_ = false;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/float_random_walking_.txt",
-        "/ssd2/fb_mob_learning/data/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/3_lstm_float_.txt"
+        "/home/dyros/data/dg/float_random_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_float_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -1548,7 +1548,6 @@ public:
     Eigen::Vector12d DOB_IK_output_;
     Eigen::VectorQd ref_q_;
     Eigen::VectorQd ref_q_fast_;
-
     Eigen::VectorQd ref_q_pre_;
     Eigen::VectorQd ref_q_dot_;
     Eigen::VectorQd Kp;
