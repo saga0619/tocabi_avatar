@@ -850,15 +850,15 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
-                getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
+                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
 
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
 
-                // getFootTrajectory();
-                getFootTrajectory_stepping();    //working with BoltController_MJ()
+                getFootTrajectory();
+                // getFootTrajectory_stepping();    //working with BoltController_MJ()
                 getPelvTrajectory();
                 supportToFloatPattern();
                 // STEP1: send desired AM to the slow thread
@@ -1388,12 +1388,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/weights/left_leg/friction_model_error_noise/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/mean_std/left_leg/friction_model_error_noise/");
+            // loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/weights/left_leg/friction_model_error_noise/");
+            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/mean_std/left_leg/friction_model_error_noise/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/weights/right_leg/friction_model_error_noise/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/mean_std/right_leg/friction_model_error_noise/");
+            // loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/weights/right_leg/friction_model_error_noise/");
+            // loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_sim/mean_std/right_leg/friction_model_error_noise/");
             initial_flag = 2;
         }
     }
@@ -2025,6 +2025,7 @@ void AvatarController::getRobotData()
     if (current_time_ != pre_time_)
     {
         dt_ = current_time_ - pre_time_;
+        dt_ = DyrosMath::minmax_cut(dt_, 0.0005, 0.0020);
     }
 
     current_q_ = rd_.q_;
@@ -2553,25 +2554,25 @@ void AvatarController::collisionIsolation()
     left_leg_collision_detected_link_ = 0;
 
     threashold_joint_torque_collision_(0) = 10;
-    threashold_joint_torque_collision_(1) = 20;
-    threashold_joint_torque_collision_(2) = 20;
+    threashold_joint_torque_collision_(1) = 10;
+    threashold_joint_torque_collision_(2) = 12;
     threashold_joint_torque_collision_(3) = 10;
     threashold_joint_torque_collision_(4) = 5;
-    threashold_joint_torque_collision_(5) = 5;
+    threashold_joint_torque_collision_(5) = 3;
 
     //right leg
     right_leg_collision_detected_link_ = 0;
 
     threashold_joint_torque_collision_(6) = 10;
-    threashold_joint_torque_collision_(7) = 20;
-    threashold_joint_torque_collision_(8) = 20;
+    threashold_joint_torque_collision_(7) = 10;
+    threashold_joint_torque_collision_(8) = 12;
     threashold_joint_torque_collision_(9) = 10;
     threashold_joint_torque_collision_(10) = 5;
-    threashold_joint_torque_collision_(11) = 5;
+    threashold_joint_torque_collision_(11) = 3;
 
-    int detection_tick_margin = 0.03*hz_;
-    unsigned int continuous_filter_window = 10;
-    double compensation_gain = 0.5;
+    int detection_tick_margin = 0.01*hz_;
+    unsigned int continuous_filter_window = 5;
+    double compensation_gain = 0.9;
     double foot_normal_force_threshold = 10;
     // if(walking_tick_mj%200 == 0)
     // {
@@ -2599,20 +2600,29 @@ void AvatarController::collisionIsolation()
 
     bool check_left_swing_foot_ = (walking_tick_mj >= t_rest_init_ + t_double1_+ t_start_+detection_tick_margin)&&(walking_tick_mj<t_start_ + t_total_ - t_rest_last_ - t_double2_-detection_tick_margin)&&(foot_step_(current_step_num_, 6) == 0);
 
-    if( left_leg_collision_detected_link_ != 0 && left_leg_collision_detected_link_ != 6 && check_left_swing_foot_ && estimated_ext_force_lfoot_lstm_(2) < foot_normal_force_threshold)
+    if( left_leg_collision_detected_link_ != 0 && check_left_swing_foot_ && estimated_ext_force_lfoot_lstm_(2) < foot_normal_force_threshold)
     {
         if(left_leg_collision_detected_link_ == 3)
         {
             left_leg_collision_cnt_[0] += 1;
-            left_leg_collision_cnt_[1] = 0;
+            // left_leg_collision_cnt_[1] = 0;
+            // left_leg_collision_cnt_[2] = 0;
         }
         else if (left_leg_collision_detected_link_ == 4)
         {
             left_leg_collision_cnt_[1] += 1;
-            left_leg_collision_cnt_[0] = 0;
+            // left_leg_collision_cnt_[0] = 0;
+            // left_leg_collision_cnt_[2] = 0;
         }
+        else
+        {
+            left_leg_collision_cnt_[2] += 1;
+            // left_leg_collision_cnt_[0] = 0;
+            // left_leg_collision_cnt_[1] = 0;
+        }
+        
 
-        if(left_leg_collision_cnt_[0]>= continuous_filter_window || left_leg_collision_cnt_[1] >= continuous_filter_window)
+        if(left_leg_collision_cnt_[0]>= continuous_filter_window || left_leg_collision_cnt_[1] >= continuous_filter_window || left_leg_collision_cnt_[2] >= continuous_filter_window)
         {
 
             // current_step_num_ = total_step_num_ - 3;
@@ -2630,10 +2640,12 @@ void AvatarController::collisionIsolation()
                 if(estimated_ext_torque_lstm_(i) > 0)
                 {
                     ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), 0.0, 30.0);
                 }
                 else
                 {
                     ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -30.0, 0.0);
                 }
             }
         }
@@ -2642,6 +2654,7 @@ void AvatarController::collisionIsolation()
     {
         left_leg_collision_cnt_[0] = 0;
         left_leg_collision_cnt_[1] = 0;
+        left_leg_collision_cnt_[2] = 0;
 
         for(int i = 0; i<6; i++)
         {
@@ -2673,20 +2686,26 @@ void AvatarController::collisionIsolation()
 
     bool check_right_swing_foot_ = (walking_tick_mj >= t_rest_init_ + t_double1_+ t_start_+detection_tick_margin)&&(walking_tick_mj<t_start_ + t_total_ - t_rest_last_ - t_double2_-detection_tick_margin)&&(foot_step_(current_step_num_, 6) == 1);
 
-    if( right_leg_collision_detected_link_ != 0 && right_leg_collision_detected_link_ != 6 && check_right_swing_foot_ && estimated_ext_force_rfoot_lstm_(2) < foot_normal_force_threshold)
+    if( right_leg_collision_detected_link_ != 0 && check_right_swing_foot_ && estimated_ext_force_rfoot_lstm_(2) < foot_normal_force_threshold)
     {
         if(right_leg_collision_detected_link_ == 3)
         {
             right_leg_collision_cnt_[0] += 1;
-            right_leg_collision_cnt_[1] = 0;
+            // right_leg_collision_cnt_[1] = 0;
         }
         else if (right_leg_collision_detected_link_ == 4)
         {
             right_leg_collision_cnt_[1] += 1;
-            right_leg_collision_cnt_[0] = 0;
+            // right_leg_collision_cnt_[0] = 0;
+        }
+        else
+        {
+            right_leg_collision_cnt_[2] += 1;
+            // right_leg_collision_cnt_[0] = 0;
+            // right_leg_collision_cnt_[1] = 0;
         }
 
-        if(right_leg_collision_cnt_[0]>= 5 || right_leg_collision_cnt_[1] >= 5)
+        if(right_leg_collision_cnt_[0]>= continuous_filter_window || right_leg_collision_cnt_[1] >= continuous_filter_window || right_leg_collision_cnt_[2] >= continuous_filter_window )
         {
 
             // current_step_num_ = total_step_num_ - 3;
@@ -2695,7 +2714,7 @@ void AvatarController::collisionIsolation()
                 cout<< "collision is detected on the "<<right_leg_collision_detected_link_<<"th link of RIGHT LEG"<<endl;
                 cout<<"estimated_ext_torque_lstm_: \n"<<estimated_ext_torque_lstm_.segment(6, 6).transpose() <<endl;
 
-                calculateFootStepTotal_reactive(rfoot_support_current_.translation()(0)-0.03, true);
+                calculateFootStepTotal_reactive(rfoot_support_current_.translation()(0), true);
                 collision_detection_flag_ = true;
             }
 
@@ -2704,10 +2723,12 @@ void AvatarController::collisionIsolation()
                 if(estimated_ext_torque_lstm_(i) > 0)
                 {
                     ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), 0.0, 30.0);
                 }
                 else
                 {
                     ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -30.0, 0.0);
                 }
             }
         }
@@ -2716,7 +2737,7 @@ void AvatarController::collisionIsolation()
     {
         right_leg_collision_cnt_[0] = 0;
         right_leg_collision_cnt_[1] = 0;
-
+        right_leg_collision_cnt_[2] = 0;
 
         for(int i = 6; i<12; i++)
         {
@@ -10484,7 +10505,7 @@ void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Iso
     H_leg_qpik_ = w1_leg_qpik_ * H1 + w2_leg_qpik_ * H2 + w3_leg_qpik_ * H3;
     g_leg_qpik_ = w1_leg_qpik_ * g1 + w2_leg_qpik_ * g2 + w3_leg_qpik_ * g3;
 
-    double speed_reduce_rate = 20; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
+    double speed_reduce_rate = 30; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
     for (int j = 0; j < constraint_size1_leg_qpik_; j++)
     {
         lb_leg_qpik_(j) = min(max(speed_reduce_rate * (joint_limit_l_(j) - motion_q_pre_(j)), joint_vel_limit_l_(j)), joint_vel_limit_h_(j));
@@ -10513,7 +10534,7 @@ void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Iso
 
     
     // QP_leg_qpik_[i].SetPrintLevel(PL_NONE);
-    QP_leg_qpik_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_leg_qpik_.EnableEqualityCondition(equality_condition_eps_);
     QP_leg_qpik_.UpdateMinProblem(H_leg_qpik_, g_leg_qpik_);
     // QP_leg_qpik_[i].DeleteSubjectToAx();
     // QP_leg_qpik_[i].DeleteSubjectToX();
@@ -10529,12 +10550,15 @@ void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Iso
         static bool temp_test = true;
         if(temp_test)
         {
-            std::cout << "last solved q_dot: " << q_dot_leg_qpik_.transpose() << std::endl;
-            std::cout << "lfoot_t_des.translation(): " << lfoot_t_des.translation().transpose() << std::endl;
-            std::cout << "rfoot_t_des.translation(): " << rfoot_t_des.translation().transpose() << std::endl;
-            std::cout << "A_leg_hqpik_: \n" << A_leg_qpik_ << std::endl;
-            std::cout << "com_desired_: " << com_desired_.transpose() << std::endl;
-            std::cout << "cp_desired_: " << cp_desired_.transpose() << std::endl;
+            // std::cout << "last solved q_dot: " << q_dot_leg_qpik_.transpose() << std::endl;
+            // std::cout << "lfoot_t_des.translation(): " << lfoot_t_des.translation().transpose() << std::endl;
+            // std::cout << "rfoot_t_des.translation(): " << rfoot_t_des.translation().transpose() << std::endl;
+            // std::cout << "A_leg_hqpik_: \n" << A_leg_qpik_ << std::endl;
+            // std::cout << "com_desired_: " << com_desired_.transpose() << std::endl;
+            std::cout << "motion_q_pre_: " << motion_q_pre_.segment(0, 12).transpose() << std::endl;
+            QP_leg_qpik_.PrintSubjectToAx();
+            QP_leg_qpik_.PrintSubjectTox();
+            QP_leg_qpik_.PrintMinProb();
             temp_test =false;
         }
     
@@ -15718,28 +15742,28 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     ////// random walking setting///////
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+    target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
 
-    // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.02 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_ + (std::rand() % 61) * 0.01 * hz_;
+    t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.02 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_ + (std::rand() % 61) * 0.01 * hz_;
 
-    // // t_rest_init_ = 0.27*hz_;
-    // // t_rest_last_ = 0.27*hz_;
-    // // t_double1_ = 0.03*hz_;
-    // // t_double2_ = 0.03*hz_;
-    // // t_total_= 1.3*hz_;
-    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
@@ -15762,21 +15786,21 @@ void AvatarController::parameterSetting()
 
 
     //// 0.9s walking
-    target_x_ = 2.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    // target_x_ = 2.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.9 * hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     //// 0.7s walking
