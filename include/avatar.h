@@ -144,6 +144,7 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     void computeCAMcontrol_HQP();
+    void cpcontroller_MPC_MJDG(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void BoltController_MJ();
@@ -1183,8 +1184,11 @@ public:
     Eigen::MatrixXd theta_cpmpc_;
     Eigen::MatrixXd F_zmp_;
     Eigen::MatrixXd H_cpmpc_;
-    Eigen::VectorXd g_cpmpc_x_;
-    Eigen::VectorXd g_cpmpc_y_;
+    Eigen::MatrixXd H_cpStepping_mpc_;
+    // Eigen::VectorXd g_cpStepping_mpc_x_;
+    // Eigen::VectorXd g_cpStepping_mpc_y_;
+    // Eigen::VectorXd g_cpmpc_x_;
+    // Eigen::VectorXd g_cpmpc_y_;
     Eigen::MatrixXd Q_cp_;
     Eigen::MatrixXd R_cp_;
     Eigen::VectorXd e1_cpmpc_;

@@ -723,7 +723,7 @@ void AvatarController::computeSlow()
             floatToSupportFootstep();
             
             if (current_step_num_ < total_step_num_)
-            {   
+            {                   
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)
@@ -9929,22 +9929,26 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
             atb_mpc_y_update_ = false;
         }
         mpc_y_update_ = true;  
-    }
+    }    
+
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     
-    Eigen::Vector2d output_zmp;
+    if((int)walking_tick_mj_mpc_ % 200 == 0)
+    {   
+       // cout<<"wieber mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
+    }    
+}
 
-    output_zmp(0) = C_mpc_transpose_.transpose()*x_hat_;
-    output_zmp(1) = C_mpc_transpose_.transpose()*y_hat_;
+void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
+{
+    ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
+    //// https://doi.org/10.3182/20120905-3-HR-2030.00165
 
-    
-
-
-   ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
-   //// https://doi.org/10.3182/20120905-3-HR-2030.00165
-    
+    std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+    int mpc_tick = walking_tick_mj_mpc_ - zmp_start_time_mj_mpc_;
     static int CP_MPC_first_loop = 0;
-    int N_cp = 1.5 * MPC_freq; // N step 2.7 x 50, N_cp step = 1.5 ~ 1.8 * 50 // 얘 늘리려면 Wieber preview window도 늘리기
-   
+    int N_cp = preview_window * MPC_freq; // N step 2.7 x 50, N_cp step = 1.5 ~ 1.8 * 50 // 얘 늘리려면 Wieber preview window도 늘리기
+    int footprint_num = 2;
     Eigen::Vector2d cp_measured_mpc; 
 
     Eigen::VectorXd cp_x_ref(N_cp);
@@ -9952,6 +9956,11 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     Eigen::VectorXd Z_x_ref_wo_offset(N_cp);
     Eigen::VectorXd Z_y_ref_wo_offset(N_cp);    
+
+    Eigen::MatrixXd zero_Ncp_X_footnum;
+    Eigen::MatrixXd I_2(2,2);
+    zero_Ncp_X_footnum.setZero(N_cp, footprint_num);
+    I_2.setIdentity();
 
     cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 ~ 1.8 s
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;  
@@ -10000,6 +10009,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         
         Q_cp_.setZero(N_cp, N_cp);
         R_cp_.setZero(N_cp, N_cp);
+        double weighting_foot = 10.0;
 
         // Weighting parameter
         for(int i = 0; i < N_cp; i++) // N_cp = 75
@@ -10035,31 +10045,29 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         // R_cp_ = 1.0 * I_N_cp;
 
         // Hessian matrix
+        H_cpmpc_.setZero(N_cp, N_cp);
         H_cpmpc_ = theta_cpmpc_.transpose()*R_cp_*theta_cpmpc_ +  F_zmp_.transpose()*Q_cp_*F_zmp_;        
 
-        QP_cpmpc_x_.InitializeProblemSize(N_cp, N_cp);
-        QP_cpmpc_y_.InitializeProblemSize(N_cp, N_cp);        
+        H_cpStepping_mpc_.setZero(N_cp + footprint_num, N_cp + footprint_num);
+        H_cpStepping_mpc_.block(0, 0, N_cp, N_cp) = H_cpmpc_;
+        H_cpStepping_mpc_.block(N_cp, 0, footprint_num, N_cp) = zero_Ncp_X_footnum.transpose();
+        H_cpStepping_mpc_.block(0, N_cp, N_cp, footprint_num) = zero_Ncp_X_footnum;
+        H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*I_2;  
+
+        QP_cpmpc_x_.InitializeProblemSize(N_cp + footprint_num, 0);
+        QP_cpmpc_y_.InitializeProblemSize(N_cp + footprint_num, 0);        
 
         // Control input (MPC variable) initinalization 
         cpmpc_deszmp_x_.setZero(N_cp);
         cpmpc_deszmp_x_prev_.setZero(N_cp);
-        cpmpc_deszmp_x_(0) = xi_mj_;
-        cpmpc_deszmp_x_prev_(0) = xi_mj_; 
+        cpmpc_deszmp_x_(0) = x_hat_(0);
+        cpmpc_deszmp_x_prev_(0) = x_hat_(0);
         
         cpmpc_deszmp_y_.setZero(N_cp);
         cpmpc_deszmp_y_prev_.setZero(N_cp);
-        cpmpc_deszmp_y_(0) = yi_mj_;
-        cpmpc_deszmp_y_prev_(0) = yi_mj_;
-
-        // for(int i=0; i < N_cp; i++)
-        // {
-        //     cpmpc_deszmp_y_(i) = y_zmp_recur_(i); //
-        //     cpmpc_deszmp_y_prev_(i) = cpmpc_deszmp_y_(i);
-        // }
+        cpmpc_deszmp_y_(0) = y_hat_(0);
+        cpmpc_deszmp_y_prev_(0) = y_hat_(0);
         
-        // cp_measured_prev_mpc_(1) = yi_mj_;
-        // cp_measured_mpc_(1) = yi_mj_;
-
         // x_cp_recur_.setZero(N_cp);
         // y_cp_recur_.setZero(N_cp);
 
@@ -10085,12 +10093,19 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         atb_cpmpc_rcv_update_ = false;        
     }
     
-    //MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc(0) << "," << cpmpc_des_zmp_x_thread2_ << "," << Z_x_ref(0) << endl;
-            
-    
+    Eigen::VectorXd g_cpmpc_x(N_cp);
+    Eigen::VectorXd g_cpmpc_y(N_cp);
+    Eigen::VectorXd g_cpStepping_mpc_x(N_cp + footprint_num);
+    Eigen::VectorXd g_cpStepping_mpc_y(N_cp + footprint_num);
+
     // gradient vector
-    g_cpmpc_x_ = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(0) - cp_x_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_x_(0);
-    g_cpmpc_y_ = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(1) - cp_y_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_y_(0);         
+    g_cpmpc_x = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(0) - cp_x_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_x_(0);
+    g_cpStepping_mpc_x.setZero(N_cp + footprint_num);
+    g_cpStepping_mpc_x.segment(0, N_cp) = g_cpmpc_x;
+
+    g_cpmpc_y = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(1) - cp_y_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_y_(0);
+    g_cpStepping_mpc_y.setZero(N_cp + footprint_num);
+    g_cpStepping_mpc_y.segment(0, N_cp) = g_cpmpc_y;
 
     // constraint formulation
     Eigen::MatrixXd A_cp_mpc(N_cp, N_cp);
@@ -10112,24 +10127,31 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         Z_x_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
         Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1);
     }  
-    MJ_graph1 << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc(1) << "," << Z_y_ref_wo_offset(0) << "," << Z_y_ref(0) << endl; 
-    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound.segment(0, N_cp)*1.5;
-    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound.segment(0, N_cp)*1.5;
+    
+    Eigen::VectorXd zmp_bound(N_cp);
 
-    lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound.segment(0, N_cp)*0.5; // Z_y_ref is trajectory considering the ZMP offset for COM planning.
-    ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound.segment(0, N_cp)*0.5; // therefore, Ref. ZMP without ZMP offset is required for CP control.
+    for(int i = 0; i < N_cp; i++)  
+    {
+        zmp_bound(i) = 0.1;
+    }
+     //(Constraint에 걸려야 Foot 변위 생성될듯)
+    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound*1.5;
+    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound*1.5;
+
+    lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound*0.5; // Z_y_ref is trajectory considering the ZMP offset for COM planning.
+    ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound*0.5; // therefore, Ref. ZMP without ZMP offset is required for CP control.
     
 
     // Define QP problem for CP-MPC  
     QP_cpmpc_x_.EnableEqualityCondition(equality_condition_eps_);
-    QP_cpmpc_x_.UpdateMinProblem(H_cpmpc_,g_cpmpc_x_);
+    QP_cpmpc_x_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_x);
     QP_cpmpc_x_.DeleteSubjectToAx();      
-    QP_cpmpc_x_.UpdateSubjectToAx(A_cp_mpc, lb_x_cp_mpc, ub_x_cp_mpc);    
+    // QP_cpmpc_x_.UpdateSubjectToAx(A_cp_mpc, lb_x_cp_mpc, ub_x_cp_mpc);    
     
     if (QP_cpmpc_x_.SolveQPoases(200, cpmpc_input_x_))
     {             
         cpmpc_deszmp_x_prev_(0) = cpmpc_deszmp_x_(0);
-        cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp);
+        cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp + footprint_num);
 
         if(atb_cpmpc_x_update_ == false)
         {
@@ -10144,14 +10166,14 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     }
 
     QP_cpmpc_y_.EnableEqualityCondition(equality_condition_eps_);
-    QP_cpmpc_y_.UpdateMinProblem(H_cpmpc_,g_cpmpc_y_);
+    QP_cpmpc_y_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_y);
     QP_cpmpc_y_.DeleteSubjectToAx();      
-    QP_cpmpc_y_.UpdateSubjectToAx(A_cp_mpc, lb_y_cp_mpc, ub_y_cp_mpc);    
+    // QP_cpmpc_y_.UpdateSubjectToAx(A_cp_mpc, lb_y_cp_mpc, ub_y_cp_mpc);    
     
     if (QP_cpmpc_y_.SolveQPoases(200, cpmpc_input_y_))
     {             
         cpmpc_deszmp_y_prev_(0) = cpmpc_deszmp_y_(0);
-        cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp);
+        cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp + footprint_num);
 
         // y_cp_recur_ = F_cp_*cp_measured_mpc(1) + F_zmp_* cpmpc_deszmp_y_;
 
@@ -10166,17 +10188,14 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         }       
         cpmpc_y_update_ = true;
     }
-        
+    MJ_graph1 << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << endl;    
     current_step_num_mpc_prev_ = current_step_num_mpc_;
-
-    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    
-    if((int)walking_tick_mj_mpc_ % 100 == 0)
+    std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+    // if((int)walking_tick_mj_mpc_ % 2 == 0)
     {   
-        cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
+        cout<<"cp mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() << endl;
     }    
 }
-
 
 void AvatarController::savePreData()
 {
@@ -12237,6 +12256,7 @@ void AvatarController::getZmpTrajectory()
     addZmpOffset(); 
     zmpGenerator(norm_size, planning_step_number);
     
+    ref_zmp_wo_offset_mpc_.resize(norm_size, 2);
     ref_zmp_mpc_.resize(norm_size, 2);
 }
 
@@ -14589,8 +14609,8 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.15;
     }    
 
-    MJ_graph << ZMP_X_REF << "," << cp_desired_(0) << "," << cp_des_zmp_x_prev_ << "," << cp_measured_(0) << "," << cp_des_zmp_x_ << "," << del_cmp(0) << "," << des_zmp_interpol_(0) << endl;
-    //MJ_graph << ZMP_Y_REF_alpha_ << "," << cp_desired_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << "," << des_zmp_interpol_(1) << endl;    
+    //MJ_graph << ZMP_X_REF << "," << cp_desired_(0) << "," << cp_des_zmp_x_prev_ << "," << cp_measured_(0) << "," << cp_des_zmp_x_ << "," << del_cmp(0) << "," << des_zmp_interpol_(0) << endl;
+    MJ_graph << ZMP_Y_REF_alpha_ << "," << cp_desired_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << "," << des_zmp_interpol_(1) << endl;    
     
 }
 
