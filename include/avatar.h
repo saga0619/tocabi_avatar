@@ -1341,6 +1341,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
+    void onestepZmp_wo_offset(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1482,7 +1483,10 @@ public:
     Eigen::Vector6d swingfoot_support_init_;
 
     Eigen::MatrixXd ref_zmp_mj_;
-    Eigen::MatrixXd ref_zmp_mj_p_;
+    Eigen::MatrixXd ref_zmp_mj_wo_offset_;
+    Eigen::MatrixXd ref_zmp_wo_offset_mpc_;
+    Eigen::MatrixXd ref_zmp_wo_offset_thread_;
+
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_thread_;
 
