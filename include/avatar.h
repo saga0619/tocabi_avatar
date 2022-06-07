@@ -1254,6 +1254,14 @@ public:
     double alpha_lpf_ = 0;
     double temp_pos_y_ = 0;
     double F0_F1_mpc_x_ = 0, F1_F2_mpc_x_ = 0, F2_F3_mpc_x_ = 0, F0_F1_mpc_y_ = 0, F1_F2_mpc_y_ = 0, F2_F3_mpc_y_ = 0;
+    Eigen::Vector2d foot_diff_current2next_;
+    Eigen::Vector2d foot_diff_next2Nnext_;
+    Eigen::Vector2d foot_diff_current2next_thread_;
+    Eigen::Vector2d foot_diff_next2Nnext_thread_;
+    Eigen::Vector2d foot_diff_current2next_mpc_;
+    Eigen::Vector2d foot_diff_next2Nnext_mpc_;
+
+    // Eigen::Vector2d foot_diff_currentTonext_;
 
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
