@@ -9988,13 +9988,19 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     {
         atb_cpmpc_rcv_update_ = true;
                 
-        if(current_step_num_thread_ == current_step_num_mpc_) 
+        if(current_step_num_thread_ == current_step_num_mpc_)
         {
             cp_measured_mpc = cp_measured_thread_;          
         }
+        else
+        {
+            cout << "computeslow thread step num = " << current_step_num_thread_ << endl;
+            cout << "MPC thread step num = " << current_step_num_mpc_ << endl;            
+            cout << "stepchange was occured in only computeslow thread." << endl;
+        }
 
-        if(current_step_num_mpc_ != current_step_num_mpc_prev_) // receive step change control input
-        {        
+        if(current_step_num_mpc_ != current_step_num_mpc_prev_) // receive step change control input (stepchange state in MPC thread)
+        {      
             cpmpc_deszmp_x_(0) = cpmpc_des_zmp_x_thread2_;       
             cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_; 
         }
