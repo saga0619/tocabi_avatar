@@ -1181,7 +1181,7 @@ public:
     Eigen::VectorXd y_cp_recur_;
 
     Eigen::MatrixXd F_cp_;
-    Eigen::MatrixXd theta_cpmpc_;
+    Eigen::MatrixXd diff_matrix_;
     Eigen::MatrixXd F_zmp_;
     Eigen::MatrixXd H_cpmpc_;
     Eigen::MatrixXd H_cpStepping_mpc_;
@@ -1189,8 +1189,8 @@ public:
     // Eigen::VectorXd g_cpStepping_mpc_y_;
     // Eigen::VectorXd g_cpmpc_x_;
     // Eigen::VectorXd g_cpmpc_y_;
-    Eigen::MatrixXd Q_cp_;
-    Eigen::MatrixXd R_cp_;
+    Eigen::MatrixXd weighting_cp_;
+    Eigen::MatrixXd weighting_zmp_diff_;
     Eigen::VectorXd e1_cpmpc_;
     Eigen::VectorXd cpmpc_input_x_;
     Eigen::VectorXd cpmpc_deszmp_x_;

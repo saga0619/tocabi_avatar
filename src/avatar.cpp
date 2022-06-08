@@ -795,7 +795,7 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.6*hz_)&&(walking_tick_mj < 5.7*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = -420.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[0] = -420.0; //x-axis linear force // -420N
                     mujoco_applied_ext_force_.data[1] = 0*200.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
@@ -9213,7 +9213,7 @@ void AvatarController::computeCAMcontrol_HQP()
         MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha_ << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
     }        
 }   
-
+/*
 void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
 {   // https://doi.org/10.1016/j.robot.2018.03.004
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -9558,7 +9558,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
 }
-
+*/
 void AvatarController::BoltController_MJ()
 {   
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -9739,7 +9739,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         atb_mpc_update_ = true;
         walking_tick_mj_mpc_ = walking_tick_mj_thread_;
         current_step_num_mpc_ = current_step_num_thread_;
-        total_step_num_mpc_ = total_step_num_thread_;
+        total_step_num_mpc_ = total_step_num_thread_; // only used in CP-MPC
         zmp_start_time_mj_mpc_ = zmp_start_time_mj_thread_;
         ref_zmp_mpc_ = ref_zmp_thread_;        
 
@@ -9963,24 +9963,24 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     Eigen::VectorXd Z_x_ref_wo_offset(N_cp);
     Eigen::VectorXd Z_y_ref_wo_offset(N_cp);    
 
-    Eigen::MatrixXd zeros_Ncp_x_f;
-    Eigen::MatrixXd zeros_Ncp_x_Ncp;
-    Eigen::MatrixXd I_2(2,2);
+    Eigen::MatrixXd zeros_Ncp_x_f(N_cp, footprint_num);
+    Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
+    Eigen::MatrixXd eye2(2,2);
 
-    Eigen::MatrixXd P_sel;
-    Eigen::MatrixXd P_sel_alpha; 
+    Eigen::MatrixXd P_sel; 
 
     Eigen::VectorXd alpha_mpc(N_cp);
     Eigen::VectorXd foot_diff_mpc_x(N_cp);
     Eigen::VectorXd foot_diff_mpc_y(N_cp);
 
-    foot_diff_mpc_x.setZero(N_cp);
-    foot_diff_mpc_y.setZero(N_cp);
+    foot_diff_mpc_x.setZero();
+    foot_diff_mpc_y.setZero();
     alpha_mpc.setZero();
-    zeros_Ncp_x_f.setZero(N_cp, footprint_num);
-    zeros_Ncp_x_Ncp.setZero(N_cp, N_cp);
-    I_2.setIdentity();
-
+    zeros_Ncp_x_f.setZero();
+    zeros_Ncp_x_Ncp.setZero();
+    eye2.setIdentity();
+    
+    // reference CP trajectory generation
     cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 ~ 1.8 s
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
     
@@ -9993,7 +9993,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
             cp_measured_mpc = cp_measured_thread_;          
         }
 
-        if(current_step_num_mpc_ != current_step_num_mpc_prev_)
+        if(current_step_num_mpc_ != current_step_num_mpc_prev_) // receive step change control input
         {        
             cpmpc_deszmp_x_(0) = cpmpc_des_zmp_x_thread2_;       
             cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_; 
@@ -10026,21 +10026,18 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
         }        
         
         // Define diffence matrix
-        theta_cpmpc_.setIdentity(N_cp,N_cp);
+        diff_matrix_.setIdentity(N_cp, N_cp);
 
         for(int i = 0; i < N_cp-1; i ++)
         {
-            theta_cpmpc_(i+1, i) = -1.0;
+            diff_matrix_(i+1, i) = -1.0;
         }
         
-        Eigen::MatrixXd I_N_cp;
-        I_N_cp.setIdentity(N_cp, N_cp); // N_cp x N_cp Identity matrix
-
         e1_cpmpc_.setZero(N_cp);
         e1_cpmpc_(0) = 1.0;
         
-        Q_cp_.setZero(N_cp, N_cp);
-        R_cp_.setZero(N_cp, N_cp);
+        weighting_cp_.setZero(N_cp, N_cp);
+        weighting_zmp_diff_.setZero(N_cp, N_cp);
         double weighting_foot = 100.0;
 
         // Weighting parameter
@@ -10048,44 +10045,41 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
         {
             if(i < 1)
             {
-                Q_cp_(i,i) = 2.0;
-                R_cp_(i,i) = 0.2;
+                weighting_cp_(i,i) = 2.0;
+                weighting_zmp_diff_(i,i) = 0.2;
             }
             else if (i < 2)
             {
-                Q_cp_(i,i) = 2.0;
-                R_cp_(i,i) = 0.5;
+                weighting_cp_(i,i) = 2.0;
+                weighting_zmp_diff_(i,i) = 0.5;
             }
             else if (i < 10)
             {
-                Q_cp_(i,i) = 2.0;
-                R_cp_(i,i) = 10.0;
+                weighting_cp_(i,i) = 2.0;
+                weighting_zmp_diff_(i,i) = 10.0;
             }
             else if (i < 50)
             {
-                Q_cp_(i,i) = 6.0;
-                R_cp_(i,i) = 10.0;                
+                weighting_cp_(i,i) = 6.0;
+                weighting_zmp_diff_(i,i) = 10.0;                
             }
             else
             {
-                Q_cp_(i,i) = 100.0;
-                R_cp_(i,i) = 10.0; 
+                weighting_cp_(i,i) = 100.0;
+                weighting_zmp_diff_(i,i) = 10.0; 
             }
             
         }
 
         // Hessian matrix
         H_cpmpc_.setZero(N_cp, N_cp);
-        H_cpmpc_ = theta_cpmpc_.transpose()*R_cp_*theta_cpmpc_ +  F_zmp_.transpose()*Q_cp_*F_zmp_;        
+        H_cpmpc_ = diff_matrix_.transpose()*weighting_zmp_diff_*diff_matrix_ +  F_zmp_.transpose()*weighting_cp_*F_zmp_;        
 
         H_cpStepping_mpc_.setZero(N_cp + footprint_num, N_cp + footprint_num);
         H_cpStepping_mpc_.block(0, 0, N_cp, N_cp) = H_cpmpc_;
         H_cpStepping_mpc_.block(N_cp, 0, footprint_num, N_cp) = zeros_Ncp_x_f.transpose();
         H_cpStepping_mpc_.block(0, N_cp, N_cp, footprint_num) = zeros_Ncp_x_f;
-        H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*I_2;  
-
-        QP_cpmpc_x_.InitializeProblemSize(N_cp + footprint_num, 2*N_cp);
-        QP_cpmpc_y_.InitializeProblemSize(N_cp + footprint_num, 2*N_cp);        
+        H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*eye2;  
 
         // Control input (desired zmp) initinalization 
         cpmpc_deszmp_x_.setZero(N_cp);
@@ -10098,89 +10092,79 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
         cpmpc_deszmp_y_(0) = y_hat_(0);
         cpmpc_deszmp_y_prev_(0) = y_hat_(0);
         
-        // x_cp_recur_.setZero(N_cp);
-        // y_cp_recur_.setZero(N_cp);
+        QP_cpmpc_x_.InitializeProblemSize(N_cp + footprint_num, 2*N_cp); // MPC variable : desired ZMP, foot position 
+        QP_cpmpc_y_.InitializeProblemSize(N_cp + footprint_num, 2*N_cp);
 
         CP_MPC_first_loop = 1;
         cout << "Initialization of CP_MPC parameters is complete." << endl;
     }           
     
-
-    int remain_swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0 ;
+    // For foot adjustment
+    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0 ;
     
     if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) //To define selection vector for swingfoot adjustment
     {
-        remain_swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining swing step in current step 
+        swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining swing sampling time in current foothold. 
 
-        if(N_cp - remain_swing_time_cur >= t_total_/MPC_synchro_hz_) 
+        if(N_cp - swing_time_cur >= t_total_/MPC_synchro_hz_) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
         {
             swing_time_next = t_total_/MPC_synchro_hz_;
-            swing_time_n_next = N_cp - (t_total_/MPC_synchro_hz_ + remain_swing_time_cur);
+            swing_time_n_next = N_cp - (t_total_/MPC_synchro_hz_ + swing_time_cur);
             dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
             dsp_time2 = (t_rest_last_ + t_double2_)/MPC_synchro_hz_;
         }
-        else
+        else // 2 footholds are included in N_cp step.(current, next foothold)
         {
-            swing_time_next = N_cp - remain_swing_time_cur;
+            swing_time_next = N_cp - swing_time_cur;
             swing_time_n_next = 0;
             dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
             dsp_time2 = 0;
         } 
 
-        Eigen::VectorXd sel_swingfoot(remain_swing_time_cur); // dsp_time 2 빼야함.
+        Eigen::VectorXd sel_swingfoot(swing_time_cur); // dsp_time 2 빼야함.
         Eigen::VectorXd sel_swingfoot_next(swing_time_next); // dsp_time 2 빼야함.
-        sel_swingfoot.setOnes(); // vector.segment(i,n); // remaining swing foot step during N_cp step 
+        sel_swingfoot.setOnes(); // vector.segment(i,n); // remaining swing sampling time during N_cp step 
         sel_swingfoot_next.setOnes();
-        // define selection matrix for swing foot adjustment
-        P_sel.setZero(N_cp, footprint_num); // N_cp x 2  
-        P_sel.block(0, 0, remain_swing_time_cur, 1) = sel_swingfoot; // dynamic size block expression        
-        P_sel.block(remain_swing_time_cur, 1, swing_time_next, 1) = sel_swingfoot_next;  
+        
+        P_sel.setZero(N_cp, footprint_num); // N_Next step was not considered.
+        P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;       
+        P_sel.block(swing_time_cur, 1, swing_time_next, 1) = sel_swingfoot_next;  
 
         if(alpha_step_mpc_ == -1) // right support foot
         {   
-            alpha_mpc.setOnes(); // starting position, element size         
-            // alpha_mpc.segment(remain_swing_time_cur, swing_time_next).setOnes(); // starting position, element size
-            alpha_mpc = -alpha_mpc; // -1 for right swing foot
-            alpha_mpc.segment(0,remain_swing_time_cur).setOnes(); // 1 for left swing foot
-            alpha_mpc.segment(remain_swing_time_cur + swing_time_next, swing_time_n_next).setOnes(); // considering in n_next swing foot??
-        
+            alpha_mpc.setOnes(); // N_cp size vector         
+            alpha_mpc.segment(swing_time_cur, swing_time_next) = -alpha_mpc.segment(swing_time_cur, swing_time_next).setOnes();        
         }
         else if(alpha_step_mpc_ == 1) // left support foot
         {           
-            alpha_mpc.setOnes();//segment(0,remain_swing_time_cur).setOnes();
-            // alpha_mpc.segment(remain_swing_time_cur + swing_time_next, swing_time_n_next).setOnes();
+            alpha_mpc.setOnes();//segment(0,swing_time_cur).setOnes();
             alpha_mpc = -alpha_mpc; // -1 for right swing foot
-            alpha_mpc.segment(remain_swing_time_cur, swing_time_next).setOnes();  // 1 for next left swing foot
+            alpha_mpc.segment(swing_time_cur, swing_time_next).setOnes();  // 1 for next left swing foot
         }  
         // right foot -> alpha_mpc = -1 
         // left foot  -> alpha_mpc = +1
-    // cout<< remain_swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << endl;
-    // cout << alpha_mpc << endl;
+        // cout<< swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << endl;
+        // cout << alpha_mpc << endl;
          
         Eigen::VectorXd A;
-        A.setZero(remain_swing_time_cur);
-        foot_diff_mpc_x.segment(0,remain_swing_time_cur) =  A.Constant(remain_swing_time_cur, 1, foot_diff_current2next_mpc_(0));
-        A.setZero(remain_swing_time_cur);
-        foot_diff_mpc_y.segment(0,remain_swing_time_cur) =  A.Constant(remain_swing_time_cur, 1, foot_diff_current2next_mpc_(1));
+        A.setZero(swing_time_cur);
+        foot_diff_mpc_x.segment(0,swing_time_cur) =  A.Constant(swing_time_cur, 1, foot_diff_current2next_mpc_(0));
+        A.setZero(swing_time_cur);
+        foot_diff_mpc_y.segment(0,swing_time_cur) =  A.Constant(swing_time_cur, 1, foot_diff_current2next_mpc_(1));
         
         A.setZero(swing_time_next);
-        foot_diff_mpc_x.segment(remain_swing_time_cur,swing_time_next)  =  A.Constant(swing_time_next,1,foot_diff_next2Nnext_mpc_(0));
+        foot_diff_mpc_x.segment(swing_time_cur,swing_time_next)  =  A.Constant(swing_time_next,1,foot_diff_next2Nnext_mpc_(0));
         A.setZero(swing_time_next);
-        foot_diff_mpc_y.segment(remain_swing_time_cur,swing_time_next)  =  A.Constant(swing_time_next,1,foot_diff_next2Nnext_mpc_(1)); 
+        foot_diff_mpc_y.segment(swing_time_cur,swing_time_next)  =  A.Constant(swing_time_next,1,foot_diff_next2Nnext_mpc_(1)); 
         
     //     A.setZero(swing_time_n_next);
-    //     F_diff_mpc_x_.segment(remain_swing_time_cur + swing_time_next, swing_time_n_next) = A.Constant(swing_time_n_next,1,F2_F3_mpc_x_);
+    //     F_diff_mpc_x_.segment(swing_time_cur + swing_time_next, swing_time_n_next) = A.Constant(swing_time_n_next,1,F2_F3_mpc_x_);
     //     A.setZero(swing_time_n_next); 
-    //     F_diff_mpc_y_.segment(remain_swing_time_cur + swing_time_next, swing_time_n_next) = A.Constant(swing_time_n_next,1,F2_F3_mpc_y_); 
-
-    //    define the selection matrix for kinematic constraints
-        P_sel_alpha.setZero(N_cp, footprint_num);
-        P_sel_alpha = alpha_step_mpc_ * P_sel; //  
+    //     F_diff_mpc_y_.segment(swing_time_cur + swing_time_next, swing_time_n_next) = A.Constant(swing_time_n_next,1,F2_F3_mpc_y_);  
     }
     else
     {       
         P_sel.setZero(N_cp,footprint_num); // Ncp x 2
-        P_sel_alpha.setZero(N_cp, footprint_num); 
         alpha_mpc.setZero(N_cp);
         foot_diff_mpc_x.setZero(N_cp);
         foot_diff_mpc_y.setZero(N_cp);
@@ -10192,52 +10176,37 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     Eigen::VectorXd g_cpStepping_mpc_y(N_cp + footprint_num);
 
     // gradient vector
-    g_cpmpc_x = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(0) - cp_x_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_x_(0);
+    g_cpmpc_x = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc(0) - cp_x_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_x_(0);
     g_cpStepping_mpc_x.setZero(N_cp + footprint_num);
     g_cpStepping_mpc_x.segment(0, N_cp) = g_cpmpc_x;
 
-    g_cpmpc_y = F_zmp_.transpose()*Q_cp_*(F_cp_*cp_measured_mpc(1) - cp_y_ref) - theta_cpmpc_.transpose()*R_cp_*e1_cpmpc_*cpmpc_deszmp_y_(0);
+    g_cpmpc_y = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc(1) - cp_y_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_y_(0);
     g_cpStepping_mpc_y.setZero(N_cp + footprint_num);
     g_cpStepping_mpc_y.segment(0, N_cp) = g_cpmpc_y;
 
     // constraint formulation
-    Eigen::MatrixXd A_cpStepping_mpc(2*N_cp, N_cp + footprint_num);
+    Eigen::MatrixXd A_cpStepping_mpc(2*N_cp, N_cp+footprint_num);
     Eigen::MatrixXd A_cp_mpc(N_cp, N_cp);
     A_cp_mpc.setIdentity();
-    A_cpStepping_mpc.block(0, 0, N_cp, N_cp) = A_cp_mpc; // N = 150 
+    A_cpStepping_mpc.block(0, 0, N_cp, N_cp) = A_cp_mpc;  
     A_cpStepping_mpc.block(0, N_cp, N_cp, footprint_num) = -P_sel;
     A_cpStepping_mpc.block(N_cp, 0, N_cp, N_cp) = zeros_Ncp_x_Ncp;
-    A_cpStepping_mpc.block(N_cp, N_cp, N_cp, footprint_num) = -P_sel_alpha; 
+    A_cpStepping_mpc.block(N_cp, N_cp, N_cp, footprint_num) = - alpha_step_mpc_ * P_sel; 
  
     Eigen::VectorXd ub_x_cp_mpc(N_cp);
     Eigen::VectorXd lb_x_cp_mpc(N_cp);
     Eigen::VectorXd ub_y_cp_mpc(N_cp);
-    Eigen::VectorXd lb_y_cp_mpc(N_cp);
-    
-    lb_x_cp_mpc.setZero();
-    ub_x_cp_mpc.setZero();
-    lb_y_cp_mpc.setZero();
-    ub_y_cp_mpc.setZero();
+    Eigen::VectorXd lb_y_cp_mpc(N_cp);    
 
     Eigen::VectorXd ub_x_foot_cp_mpc(N_cp);
     Eigen::VectorXd lb_x_foot_cp_mpc(N_cp);
     Eigen::VectorXd ub_y_foot_cp_mpc(N_cp);
-    Eigen::VectorXd lb_y_foot_cp_mpc(N_cp);
-    
-    lb_x_foot_cp_mpc.setZero();
-    ub_x_foot_cp_mpc.setZero();
-    lb_y_foot_cp_mpc.setZero();
-    ub_y_foot_cp_mpc.setZero();
+    Eigen::VectorXd lb_y_foot_cp_mpc(N_cp);    
     
     Eigen::VectorXd ub_x_cpStepping_mpc(2*N_cp);
     Eigen::VectorXd lb_x_cpStepping_mpc(2*N_cp);
     Eigen::VectorXd ub_y_cpStepping_mpc(2*N_cp);
-    Eigen::VectorXd lb_y_cpStepping_mpc(2*N_cp);
-    
-    lb_x_cpStepping_mpc.setZero();
-    ub_x_cpStepping_mpc.setZero();
-    lb_y_cpStepping_mpc.setZero();
-    ub_y_cpStepping_mpc.setZero();
+    Eigen::VectorXd lb_y_cpStepping_mpc(2*N_cp);    
 
     for(int i = 0; i < N_cp; i ++)
     {
@@ -10249,14 +10218,14 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
 
     for(int i = 0; i < N_cp; i++)  
     {
-        zmp_bound(i) = 0.1;
+        zmp_bound(i) = 0.05;
     }
       
-    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound * 0.5;
-    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound * 0.5;
+    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound;
+    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound;
 
-    lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound * 0.5; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
-    ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound * 0.5; // However, Ref. ZMP without ZMP offset is required for CP control.
+    lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
+    ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound; // However, Ref. ZMP without ZMP offset is required for CP control.
     
     double L_min_x = 0.07, L_max_x = 0.07;
     double L_min_y = 0.27, L_max_y = 0.30; // distant between feet during walking : +-0.245
@@ -10336,7 +10305,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
     if((int)walking_tick_mj_mpc_ % 2 == 0)
     {   
-        cout<<"cp mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() << endl;
+        // cout<<"cp mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() << endl;
     }    
 }
 
@@ -14756,9 +14725,6 @@ void AvatarController::CP_compen_MJ_FT()
     {
         F_T_R_y_input = -0.15;
     }    
-
-    //MJ_graph << ZMP_X_REF << "," << cp_desired_(0) << "," << cp_des_zmp_x_prev_ << "," << cp_measured_(0) << "," << cp_des_zmp_x_ << "," << del_cmp(0) << "," << des_zmp_interpol_(0) << endl;
-    MJ_graph << ZMP_Y_REF_alpha_ << "," << cp_desired_(1) << "," << cp_des_zmp_y_prev_ << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << "," << del_cmp(1) << "," << des_zmp_interpol_(1) << endl;    
     
 }
 
