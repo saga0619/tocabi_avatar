@@ -1435,6 +1435,7 @@ public:
     Eigen::Vector2d cp_measured_;
     Eigen::Vector2d cp_measured_LPF;
     Eigen::Vector2d cp_measured_thread_;
+    Eigen::Vector2d cp_measured_mpc_;
     Eigen::Vector3d com_support_init_;
     Eigen::Vector3d com_float_init_;
     Eigen::Vector3d com_float_current_;
