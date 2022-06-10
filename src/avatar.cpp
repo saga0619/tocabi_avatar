@@ -793,9 +793,9 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 5.6*hz_)&&(walking_tick_mj < 5.7*hz_))
+                if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*-340.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[0] = -456.0; //x-axis linear force 
                     mujoco_applied_ext_force_.data[1] = 0*200.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
@@ -9595,8 +9595,8 @@ void AvatarController::BoltController_MJ()
     // L : del_F_x , W : del_F_y 
 
     double L_nom = 0;
-    double L_min = -0.15; // min value of del_F_x
-    double L_max = +0.15; // max value of del_F_x
+    double L_min = -0.1; // min value of del_F_x
+    double L_max = +0.1; // max value of del_F_x
 
     double W_nom = 0;
     double W_min = -0.1;
@@ -9631,7 +9631,7 @@ void AvatarController::BoltController_MJ()
     }    
 
     T_gap = 0.05*hz_;
-    T_nom = 0.6; // 0.6하면 370 못버팀.
+    T_nom = 0.6;  
     T_min = T_nom - 0.3; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
     T_max = T_nom + 0.3;
     tau_nom = exp(wn*T_nom); 
@@ -9735,12 +9735,12 @@ void AvatarController::BoltController_MJ()
         }  
         if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
         {
-            //if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
-            //{
-            t_total_prev_ = t_total_;
-            t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
-            t_last_ = t_start_ + t_total_ - 1;                
-            //} 
+            if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
+            {
+                t_total_prev_ = t_total_;
+                t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+                t_last_ = t_start_ + t_total_ - 1;                
+            } 
         }
         else
         {
@@ -12484,10 +12484,10 @@ void AvatarController::getFootTrajectory_stepping()
     
     if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_)
     {
-        desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(0), target_swing_foot(0) + del_F_(0), 0.0, 0.0);
-        desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(1), target_swing_foot(1) + del_F_(1), 0.0, 0.0);
-        // desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); // joe's MPC
-        // desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
+        // desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(0), target_swing_foot(0) + del_F_(0), 0.0, 0.0);
+        // desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(1), target_swing_foot(1) + del_F_(1), 0.0, 0.0);
+        desired_swing_foot(0) = target_swing_foot(0) + del_F_(0); // joe's MPC
+        desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
     }
     else
     {
@@ -14048,7 +14048,8 @@ void AvatarController::CP_compen_MJ_FT()
     {
         ZMP_Y_REF_alpha = ZMP_Y_REF;
     }
-
+    del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), -0.1, 0.1);
+    del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), -0.07, 0.07);
     ////////////////////////
     double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
     A = (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
@@ -14182,18 +14183,18 @@ void AvatarController::CP_compen_MJ_FT()
     }
 
     //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
-    F_T_L_x_input_dot = -0.2 * (Tau_L_x - l_ft_LPF(3)) - Kl_roll * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.1 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //F_T_L_x_input = 0;
-    F_T_R_x_input_dot = -0.2 * (Tau_R_x - r_ft_LPF(3)) - Kr_roll * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.1 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //F_T_R_x_input = 0;
 
     //Pitch 방향
-    F_T_L_y_input_dot = 0.2 * (Tau_L_y - l_ft_LPF(4)) - Kl_pitch * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.1 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //F_T_L_y_input = 0;
-    F_T_R_y_input_dot = 0.2 * (Tau_R_y - r_ft_LPF(4)) - Kr_pitch * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.1 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //F_T_R_y_input = 0;
 
