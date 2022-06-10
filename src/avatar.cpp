@@ -793,9 +793,9 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 5.6*hz_)&&(walking_tick_mj < 5.7*hz_))
+                if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*-340.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[0] = -391.0; //x-axis linear force 
                     mujoco_applied_ext_force_.data[1] = 0*200.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
@@ -14182,18 +14182,18 @@ void AvatarController::CP_compen_MJ_FT()
     }
 
     //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
-    F_T_L_x_input_dot = -0.2 * (Tau_L_x - l_ft_LPF(3)) - Kl_roll * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.1 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //F_T_L_x_input = 0;
-    F_T_R_x_input_dot = -0.2 * (Tau_R_x - r_ft_LPF(3)) - Kr_roll * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.1 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //F_T_R_x_input = 0;
 
     //Pitch 방향
-    F_T_L_y_input_dot = 0.2 * (Tau_L_y - l_ft_LPF(4)) - Kl_pitch * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.1 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //F_T_L_y_input = 0;
-    F_T_R_y_input_dot = 0.2 * (Tau_R_y - r_ft_LPF(4)) - Kr_pitch * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.1 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //F_T_R_y_input = 0;
 
@@ -14233,8 +14233,7 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.15;
     }    
 
-    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << endl;
-    
+    MJ_graph << ZMP_Y_REF_alpha << "," << ZMP_Y_REF << "," << cp_desired_(1) << "," << cp_measured_(1) << "," << cp_des_zmp_y_ << endl;    
     
 }
 
@@ -14266,7 +14265,10 @@ void AvatarController::CentroidalMomentCalculator()
  
     del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -(0.12*support_margin + del_tau_limit_(0)/M_G), 0.18*support_margin + del_tau_limit_(0)/M_G );
     del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -(0.065*support_margin + del_tau_limit_(1)/M_G), 0.065*support_margin + del_tau_limit_(1)/M_G );
-  
+    
+    del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -0.1, 0.1);
+    del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -0.07, 0.07);
+
     if (walking_tick_mj == 0)
     {
         del_tau_.setZero();
