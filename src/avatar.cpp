@@ -9938,7 +9938,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     
     int mpc_tick = walking_tick_mj_mpc_ - zmp_start_time_mj_mpc_;
     static int CP_MPC_first_loop = 0;
-    int N_cp = preview_window * MPC_freq; // N step 2.7 x 50, N_cp step = 1.5 ~ 1.8 * 50 // 얘 늘리려면 Wieber preview window도 늘리기
+    int N_cp = preview_window * MPC_freq; 
     int footprint_num = 2;
 
     Eigen::VectorXd cp_x_ref(N_cp);
@@ -9951,8 +9951,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
     Eigen::MatrixXd eye2(2,2);
 
-    Eigen::MatrixXd P_sel; 
-    Eigen::MatrixXd Foot_sel;
+    Eigen::MatrixXd P_sel;  
 
     zeros_Ncp_x_f.setZero();
     zeros_Ncp_x_Ncp.setZero();
@@ -10067,14 +10066,10 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
 
         // Control input (desired zmp) initinalization 
         cpmpc_deszmp_x_.setZero(N_cp + footprint_num);
-        cpmpc_deszmp_x_prev_.setZero(N_cp + footprint_num);
         cpmpc_deszmp_x_(0) = x_hat_(0);
-        cpmpc_deszmp_x_prev_(0) = x_hat_(0);
         
         cpmpc_deszmp_y_.setZero(N_cp + footprint_num);
-        cpmpc_deszmp_y_prev_.setZero(N_cp + footprint_num);
         cpmpc_deszmp_y_(0) = y_hat_(0);
-        cpmpc_deszmp_y_prev_(0) = y_hat_(0);
         
         QP_cpmpc_x_.InitializeProblemSize(N_cp + footprint_num, N_cp + footprint_num); // MPC variable : desired ZMP, foot position 
         QP_cpmpc_y_.InitializeProblemSize(N_cp + footprint_num, N_cp + footprint_num);
@@ -10084,11 +10079,11 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     }  
     
     // For foot adjustment
-    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0 ;
+    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0;
     
-    if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) //To define selection vector for swingfoot adjustment
+    if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) // Define selection vector for swingfoot adjustment
     {
-        swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining swing sampling time in current foothold. 
+        swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining sampling time in current foot. 
 
         if(N_cp - swing_time_cur >= t_total_/MPC_synchro_hz_) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
         {
@@ -10245,21 +10240,17 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     QP_cpmpc_x_.EnableEqualityCondition(equality_condition_eps_);
     QP_cpmpc_x_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_x);
     QP_cpmpc_x_.DeleteSubjectToAx();      
-    QP_cpmpc_x_.UpdateSubjectToAx(A_cpStepping_mpc, lb_x_cpStepping_mpc, ub_x_cpStepping_mpc);    
-         
+    QP_cpmpc_x_.UpdateSubjectToAx(A_cpStepping_mpc, lb_x_cpStepping_mpc, ub_x_cpStepping_mpc);             
    
     if (QP_cpmpc_x_.SolveQPoases(200, cpmpc_input_x_))
-    {             
-        cpmpc_deszmp_x_prev_(0) = cpmpc_deszmp_x_(0);
+    {                     
         cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp + footprint_num);
-        del_F_(0) = cpmpc_deszmp_x_(N_cp);
+        // del_F_(0) = cpmpc_deszmp_x_(N_cp);
         if(atb_cpmpc_x_update_ == false)
         {
             atb_cpmpc_x_update_ = true;
-            
-            cpmpc_des_zmp_x_prev_thread_ = cpmpc_deszmp_x_prev_(0);
+            del_F_x_thread_ = cpmpc_deszmp_x_(N_cp);
             cpmpc_des_zmp_x_thread_ = cpmpc_deszmp_x_(0);
-
             atb_cpmpc_x_update_ = false;
         }       
         cpmpc_x_update_ = true;
@@ -10272,24 +10263,20 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     
     if (QP_cpmpc_y_.SolveQPoases(200, cpmpc_input_y_))
     {             
-        cpmpc_deszmp_y_prev_(0) = cpmpc_deszmp_y_(0);
         cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp + footprint_num);
-        del_F_(1) = cpmpc_deszmp_y_(N_cp);
+        // del_F_(1) = cpmpc_deszmp_y_(N_cp);
         // y_cp_recur_ = F_cp_*cp_measured_mpc_(1) + F_zmp_* cpmpc_deszmp_y_;
-
         if(atb_cpmpc_y_update_ == false)
         {
             atb_cpmpc_y_update_ = true;
-            
-            cpmpc_des_zmp_y_prev_thread_ = cpmpc_deszmp_y_prev_(0);
+            del_F_y_thread_ = cpmpc_deszmp_y_(N_cp);
             cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
-
             atb_cpmpc_y_update_ = false;
         }       
         cpmpc_y_update_ = true;
     }
-    MJ_graph << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << endl;
-    MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << endl;
+    // MJ_graph << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << endl;
+    // MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << endl;
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
     if((int)walking_tick_mj_mpc_ % 2 == 0)
@@ -13436,20 +13423,19 @@ void AvatarController::getComTrajectory_mpc()
         
         cpmpc_des_zmp_x_thread_ = xi_mj_;
         cpmpc_des_zmp_x_thread2_ = xi_mj_;
-        cpmpc_des_zmp_x_prev_thread_ = xi_mj_;
 
         cp_des_zmp_y_prev_ = yi_mj_;    
         cp_des_zmp_y_ = yi_mj_;
         
         cpmpc_des_zmp_y_thread_ = yi_mj_;
         cpmpc_des_zmp_y_thread2_ = yi_mj_;
-        cpmpc_des_zmp_y_prev_thread_ = yi_mj_;
 
         cp_measured_thread_(0) = xi_mj_;
         cp_measured_thread_(1) = yi_mj_;
 
         des_zmp_interpol_.setZero();
-        cpmpc_diff_.setZero();        
+        cpmpc_diff_.setZero();
+        cpStepping_diff_.setZero();        
     }
 
     if (current_step_num_ == 0)
@@ -13518,6 +13504,8 @@ void AvatarController::getComTrajectory_mpc()
         {   
             cpmpc_des_zmp_x_thread2_ = des_zmp_x_stepchange_;
             cpmpc_des_zmp_y_thread2_ = des_zmp_y_stepchange_;
+            cpmpc_interpol_cnt_x_ = 1;
+            cpmpc_interpol_cnt_y_ = 1;
         }
         
         atb_mpc_update_ = false;
@@ -13576,13 +13564,18 @@ void AvatarController::getComTrajectory_mpc()
 
             if(current_step_num_thread2_ == current_step_num_)        
             {
-                cp_des_zmp_x_prev_ = cp_des_zmp_x_;//cpmpc_des_zmp_y_prev_thread_; 
+                cp_des_zmp_x_prev_ = cp_des_zmp_x_; 
                 cp_des_zmp_x_ = cpmpc_des_zmp_x_thread_;
+                
+                del_F_x_prev_ = del_F_x_;
+                del_F_x_ = del_F_x_thread_;
+                
                 cpmpc_interpol_cnt_x_ = 1;
             }
             atb_cpmpc_x_update_ = false;
         }
         cpmpc_diff_(0) = cp_des_zmp_x_ - cp_des_zmp_x_prev_;
+        cpStepping_diff_(0) = del_F_x_ - del_F_x_prev_;
         cpmpc_x_update_ = false;
     }
 
@@ -13594,16 +13587,21 @@ void AvatarController::getComTrajectory_mpc()
 
             if(current_step_num_thread2_ == current_step_num_)        
             {
-                cp_des_zmp_y_prev_ = cp_des_zmp_y_;//cpmpc_des_zmp_y_prev_thread_; 
+                cp_des_zmp_y_prev_ = cp_des_zmp_y_; //cpmpc_des_zmp_y_prev_thread_; 
                 cp_des_zmp_y_ = cpmpc_des_zmp_y_thread_;
+                
+                del_F_y_prev_ = del_F_y_;
+                del_F_y_ = del_F_y_thread_;
+                
                 cpmpc_interpol_cnt_y_ = 1;
             }
             atb_cpmpc_y_update_ = false;
         }
         cpmpc_diff_(1) = cp_des_zmp_y_ - cp_des_zmp_y_prev_;
+        cpStepping_diff_(1) = del_F_y_ - del_F_y_prev_;
         cpmpc_y_update_ = false;
     }
-
+    
     double thread_freq = 50.0;
 
     double x_com_lin_spline = (thread_freq/hz_)*wieber_interpol_cnt_x_;
@@ -13623,13 +13621,20 @@ void AvatarController::getComTrajectory_mpc()
 
     x_cpmpc_lin_spline = DyrosMath::minmax_cut(x_cpmpc_lin_spline, 0.0, 1.0);
     y_cpmpc_lin_spline = DyrosMath::minmax_cut(y_cpmpc_lin_spline, 0.0, 1.0);
-
+    
     des_zmp_interpol_(0) = x_cpmpc_lin_spline*cpmpc_diff_(0) + cp_des_zmp_x_prev_;
     des_zmp_interpol_(1) = y_cpmpc_lin_spline*cpmpc_diff_(1) + cp_des_zmp_y_prev_;
+
+    // del_F_(0) = x_cpmpc_lin_spline*cpStepping_diff_(0) + del_F_x_prev_;
+    // del_F_(1) = y_cpmpc_lin_spline*cpStepping_diff_(1) + del_F_y_prev_;
+    del_F_(0) = del_F_x_;
+    del_F_(1) = del_F_y_;
+
+    MJ_graph << cp_des_zmp_y_prev_ << "," << cp_des_zmp_y_ << "," << del_F_x_prev_ << "," << del_F_x_ << "," << del_F_(0) << "," << des_zmp_interpol_(1) << endl;
     
     cpmpc_interpol_cnt_x_ ++;
     cpmpc_interpol_cnt_y_ ++;
-
+    
     // Reference COM, CP position // CPMPC로 대체하면 필요 X
     cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
     cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;

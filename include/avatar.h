@@ -1185,27 +1185,26 @@ public:
     Eigen::MatrixXd F_zmp_;
     Eigen::MatrixXd H_cpmpc_;
     Eigen::MatrixXd H_cpStepping_mpc_;
-    // Eigen::VectorXd g_cpStepping_mpc_x_;
-    // Eigen::VectorXd g_cpStepping_mpc_y_;
-    // Eigen::VectorXd g_cpmpc_x_;
-    // Eigen::VectorXd g_cpmpc_y_;
     Eigen::MatrixXd weighting_cp_;
     Eigen::MatrixXd weighting_zmp_diff_;
     Eigen::VectorXd e1_cpmpc_;
     Eigen::VectorXd cpmpc_input_x_;
     Eigen::VectorXd cpmpc_deszmp_x_;
-    Eigen::VectorXd cpmpc_deszmp_x_prev_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
-    Eigen::VectorXd cpmpc_deszmp_y_prev_;
+
+    double del_F_x_ = 0;
+    double del_F_y_ = 0;
+    double del_F_x_prev_ = 0;
+    double del_F_y_prev_ = 0;
+    double del_F_x_thread_ = 0;
+    double del_F_y_thread_ = 0;
     
     double cpmpc_des_zmp_x_thread_ = 0;
     double cpmpc_des_zmp_x_thread2_ = 0;
-    double cpmpc_des_zmp_x_prev_thread_ = 0;
 
     double cpmpc_des_zmp_y_thread_ = 0;    
     double cpmpc_des_zmp_y_thread2_ = 0;
-    double cpmpc_des_zmp_y_prev_thread_ = 0;
     
     double cp_des_zmp_x_ = 0;
     double cp_des_zmp_x_prev_ = 0;
@@ -1237,6 +1236,7 @@ public:
     Eigen::Vector3d x_diff_;
     Eigen::Vector3d y_diff_;
     Eigen::Vector2d cpmpc_diff_;
+    Eigen::Vector2d cpStepping_diff_;
 
     int wieber_interpol_cnt_x_ = 0;
     int wieber_interpol_cnt_y_ = 0;
