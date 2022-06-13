@@ -795,8 +795,8 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 593.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = 0*-595.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = 587.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[1] = 0*283.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9596,7 +9596,7 @@ void AvatarController::BoltController_MJ()
 
     double L_nom = 0;
     double L_min = -0.1; // min value of del_F_x
-    double L_max = +0.15; // max value of del_F_x
+    double L_max = +0.10; // max value of del_F_x
 
     double W_nom = 0;
     double W_min = -0.08;
@@ -9643,8 +9643,8 @@ void AvatarController::BoltController_MJ()
 
     T_gap = 0.05*hz_;
     T_nom = 0.6;  
-    T_min = T_nom - 0.3; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
-    T_max = T_nom + 0.3;
+    T_min = T_nom - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
+    T_max = T_nom + 0.2;
     tau_nom = exp(wn*T_nom); 
 
     b_nom_x = L_nom/(exp(wn*T_nom)-1);
@@ -9744,27 +9744,27 @@ void AvatarController::BoltController_MJ()
                 stepping_input_ = stepping_input.segment(0, 5);
             }
         }  
-        if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
-        {
-            if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
-            {
-                t_total_prev_ = t_total_;
-                t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
-                t_last_ = t_start_ + t_total_ - 1;                
-            } 
-        }
-        else
-        {
-            t_total_ = t_total_prev_;
-            t_last_ = t_start_ + t_total_ - 1;
-        }
+        // if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
+        // {
+        //     if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
+        //     {
+        //         t_total_prev_ = t_total_;
+        //         t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+        //         t_last_ = t_start_ + t_total_ - 1;                
+        //     } 
+        // }
+        // else
+        // {
+        //     t_total_ = t_total_prev_;
+        //     t_last_ = t_start_ + t_total_ - 1;
+        // }
     }        
  
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf  
-    
+    MJ_graph1 << stepping_input_(0) << "," << stepping_input_(1) << "," << stepping_input_(2) << endl;
 }
 
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
@@ -13285,7 +13285,7 @@ void AvatarController::getComTrajectory_mpc()
         //x_hat_r_p_sc_(0) = com_pos(0);
         des_zmp_y_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change        
     }    
-    MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
+      
 }
 
 void AvatarController::getComTrajectory()
