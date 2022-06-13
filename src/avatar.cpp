@@ -10193,7 +10193,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound_y; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
     ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound_y; // However, Ref. ZMP without ZMP offset is required for CP control.
     
-    double del_F_x_min = 0.1, del_F_x_max = 0.1;
+    double del_F_x_min = 0.1, del_F_x_max = 0.15;
     double del_F_y_rightswing_min = -0.08, del_F_y_rightswing_max = 0.03;
     double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.08;
  
