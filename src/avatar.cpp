@@ -795,8 +795,8 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_))
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*-440.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = +265.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = 593.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[1] = 0*-595.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9596,7 +9596,7 @@ void AvatarController::BoltController_MJ()
 
     double L_nom = 0;
     double L_min = -0.1; // min value of del_F_x
-    double L_max = +0.1; // max value of del_F_x
+    double L_max = +0.15; // max value of del_F_x
 
     double W_nom = 0;
     double W_min = -0.08;
@@ -9744,20 +9744,20 @@ void AvatarController::BoltController_MJ()
                 stepping_input_ = stepping_input.segment(0, 5);
             }
         }  
-        // if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
-        // {
-        //     if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
-        //     {
-        //         t_total_prev_ = t_total_;
-        //         t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
-        //         t_last_ = t_start_ + t_total_ - 1;                
-        //     } 
-        // }
-        // else
-        // {
-        //     t_total_ = t_total_prev_;
-        //     t_last_ = t_start_ + t_total_ - 1;
-        // }
+        if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
+        {
+            if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
+            {
+                t_total_prev_ = t_total_;
+                t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+                t_last_ = t_start_ + t_total_ - 1;                
+            } 
+        }
+        else
+        {
+            t_total_ = t_total_prev_;
+            t_last_ = t_start_ + t_total_ - 1;
+        }
     }        
  
     del_F_(0) = stepping_input_(0);
