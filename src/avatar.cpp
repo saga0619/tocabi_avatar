@@ -795,8 +795,8 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 600.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = 0*-520.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = -447.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[1] = 0*-526.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -10193,7 +10193,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound_y; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
     ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound_y; // However, Ref. ZMP without ZMP offset is required for CP control.
     
-    double del_F_x_min = 0.1, del_F_x_max = 0.15;
+    double del_F_x_min = 0.1, del_F_x_max = 0.10;
     double del_F_y_rightswing_min = -0.08, del_F_y_rightswing_max = 0.03;
     double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.08;
  
