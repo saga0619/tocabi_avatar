@@ -793,10 +793,10 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 5.995*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
+                if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
                     mujoco_applied_ext_force_.data[0] = 0*-447.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = 252.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[1] = 275.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
