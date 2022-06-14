@@ -26,25 +26,25 @@
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
-const int FILE_CNT = 14;
+const int FILE_CNT = 0;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dh-sung/data/dg/0_flag_.txt",
-    "/home/dh-sung/data/dg/1_com_.txt",
-    "/home/dh-sung/data/dg/2_zmp_.txt",
-    "/home/dh-sung/data/dg/3_foot_.txt",
-    "/home/dh-sung/data/dg/4_torque_.txt",
-    "/home/dh-sung/data/dg/5_joint_.txt",
-    "/home/dh-sung/data/dg/6_hand_.txt",
-    "/home/dh-sung/data/dg/7_elbow_.txt",
-    "/home/dh-sung/data/dg/8_shoulder_.txt",
-    "/home/dh-sung/data/dg/9_acromion_.txt",
-    "/home/dh-sung/data/dg/10_hmd_.txt",
-    "/home/dh-sung/data/dg/11_tracker_.txt",
-    "/home/dh-sung/data/dg/12_qpik_.txt",
-    "/home/dh-sung/data/dg/13_tracker_vel_.txt"
+    // "/home/dyros/data/dg/0_flag_.txt",
+    // "/home/dyros/data/dg/1_com_.txt",
+    // "/home/dyros/data/dg/2_zmp_.txt",
+    // "/home/dyros/data/dg/3_foot_.txt",
+    // "/home/dyros/data/dg/4_torque_.txt",
+    // "/home/dyros/data/dg/5_joint_.txt",
+    // "/home/dyros/data/dg/6_hand_.txt",
+    // "/home/dyros/data/dg/7_elbow_.txt",
+    // "/home/dyros/data/dg/8_shoulder_.txt",
+    // "/home/dyros/data/dg/9_acromion_.txt",
+    // "/home/dyros/data/dg/10_hmd_.txt",
+    // "/home/dyros/data/dg/11_tracker_.txt",
+    // "/home/dyros/data/dg/12_qpik_.txt",
+    // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
 const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 

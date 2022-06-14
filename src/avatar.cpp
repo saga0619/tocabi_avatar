@@ -919,7 +919,7 @@ void AvatarController::computeSlow()
                     //ref_q_(i) = q_des(i);
                     ref_q_(i) = DOB_IK_output_(i);
                 }
-                hip_compensator();
+                // hip_compensator();
 
                 if (atb_grav_update_ == false)
                 {
@@ -1014,7 +1014,7 @@ void AvatarController::computeSlow()
                 ref_q_(i) = DOB_IK_output_(i);
             }
 
-            hip_compensator();
+            // hip_compensator();
 
             if (atb_grav_update_ == false)
             {
@@ -5404,8 +5404,8 @@ void AvatarController::poseCalibration()
     // hmd_pelv_pose_.linear().setIdentity();
 
     Eigen::Vector3d tracker_offset;
-    // tracker_offset << -0.08, 0, 0;  //bebop
-    tracker_offset << -0.08, 0, -0.04; //senseglove
+    tracker_offset << -0.08, 0, 0;  //bebop
+    // tracker_offset << -0.08, 0, -0.04; //senseglove
 
     hmd_lhand_pose_.translation() += hmd_lhand_pose_.linear() * tracker_offset;
     hmd_rhand_pose_.translation() += hmd_rhand_pose_.linear() * tracker_offset;
