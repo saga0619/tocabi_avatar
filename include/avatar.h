@@ -10,6 +10,8 @@
 #include <geometry_msgs/PoseArray.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/String.h>
+#include "tocabi_msgs/FTsensor.h"
+
 #include <sstream>
 #include <fstream>
 
@@ -47,10 +49,10 @@ const bool gaussian_mode_ = false;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/ssd2/fb_mob_learning/data/float_random_walking_.txt",
-        "/ssd2/fb_mob_learning/data/1_foot_.txt",
-        "/ssd2/fb_mob_learning/data/2_zmp_.txt",
-        "/ssd2/fb_mob_learning/data/3_lstm_float_.txt"
+        "/home/dyros/data/dg/float_random_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_float_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -81,6 +83,7 @@ public:
 
     void computeSlow();
     void computeFast();
+    void computeThread3();
     void computePlanner();
     void copyRobotData(RobotData &rd_l);
 
@@ -273,6 +276,8 @@ public:
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
+    ros::Subscriber opto_ftsensor_sub;
+
     ros::Publisher calibration_state_pub;
     ros::Publisher calibration_state_gui_log_pub;
 
@@ -311,9 +316,8 @@ public:
     void PoseCalibrationCallback(const std_msgs::Int8 &msg);
     void TrackerStatusCallback(const std_msgs::Bool &msg);
 
-    void ExosuitCallback(const geometry_msgs::PoseArray &msg);
 
-    void AzureKinectCallback(const visualization_msgs::MarkerArray &msg);
+    void OptoforceFTCallback(const tocabi_msgs::FTsensor &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -759,6 +763,9 @@ public:
 
     Eigen::Vector6d l_ft_LPF;
     Eigen::Vector6d r_ft_LPF;
+
+    Eigen::Vector6d opto_ft_raw_;
+    Eigen::Vector6d opto_ft_;
 
     double F_F_input_dot = 0;
     double F_F_input = 0;

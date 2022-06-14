@@ -62,6 +62,8 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
 
+    opto_ftsensor_sub = nh_avatar_.subscribe("optoforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this);
+
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
     ros::param::get("/tocabi_controller/urdf_path", desc_package_path);
@@ -1115,7 +1117,7 @@ void AvatarController::computeSlow()
             desired_q_dot_.setZero();
             desired_q_dot_fast_.setZero();
 
-            initial_flag = 1;
+            
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
             walking_end_flag = 0;
@@ -1130,6 +1132,7 @@ void AvatarController::computeSlow()
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
             atb_grav_update_ = false;
+            initial_flag = 1;
         }
 
         if (atb_grav_update_ == false)
@@ -1170,7 +1173,7 @@ void AvatarController::computeSlow()
                 torque_upper_.setZero();
                 torque_upper_.segment(12, MODEL_DOF - 12) = rd_.torque_desired.segment(12, MODEL_DOF - 12);
 
-                pelv_trajectory_support_init_ = pelv_trajectory_support_;
+                // pelv_trajectory_support_init_ = pelv_trajectory_support_;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
@@ -1192,6 +1195,7 @@ void AvatarController::computeSlow()
             {
                 getZmpTrajectory();
                 getComTrajectory();
+                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 CentroidalMomentCalculator();
 
                 getFootTrajectory();
@@ -1242,7 +1246,7 @@ void AvatarController::computeSlow()
 
                 desired_q_not_compensated_ = ref_q_;
 
-                // printOutTextFile();
+                printOutTextFile();
 
                 updateNextStepTimeJoy();
 
@@ -1537,6 +1541,9 @@ void AvatarController::computeFast()
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
+
+            cout << "comutefast tc.mode =12 is initialized" << endl;
+            initial_flag =2;
         }
     }
     else if (rd_.tc_.mode == 13)
@@ -1764,6 +1771,12 @@ void AvatarController::computeFast()
         }
         // printOutTextFile();
     }
+}
+
+void AvatarController::computeThread3()
+{
+    // comGenerator_MPC_wieber(50.0, 1/50, 1.5, 40.0);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -12368,6 +12381,16 @@ void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
     hmd_tracker_status_raw_ = msg.data;
 }
 
+void AvatarController::OptoforceFTCallback(const tocabi_msgs::FTsensor &msg)
+{
+    opto_ft_raw_(0) = msg.Fx;
+    opto_ft_raw_(1) = msg.Fy;
+    opto_ft_raw_(2) = msg.Fz;
+    opto_ft_raw_(3) = msg.Tx;
+    opto_ft_raw_(4) = msg.Ty;
+    opto_ft_raw_(5) = msg.Tz;
+}
+
 Eigen::MatrixXd AvatarController::discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q)
 {
     int n = a.rows(); // number of rows
@@ -12663,6 +12686,14 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
+                file[3] << l_ft_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[3] << r_ft_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
                 file[3] << l_ft_LPF(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
@@ -12673,11 +12704,11 @@ void AvatarController::printOutTextFile()
             {
                 file[3] << rd_.q_dot_virtual_(i) << "\t";
             }
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 6; i++)
             {
-                file[3] << hmd_chest_vel_slow_lpf_(i) << "\t";
+                file[3] << opto_ft_(i) << "\t";
             }
-            file[3] << hmd_tracker_status_ << endl;
+            file[3] << endl;
             // file[3] << stepping_input_(0) << "\t" << stepping_input_(1) << "\t" << stepping_input_(2) << endl; // bolt
 
             printout_cnt_ += 1;
@@ -13010,11 +13041,11 @@ void AvatarController::getRobotState()
     q_dot_virtual_Xd_global_noise_ = q_dot_virtual_Xd_global_;
     q_ddot_virtual_Xd_global_noise_ = q_ddot_virtual_Xd_global_;
     // std::mt19937 generator(std::random_device{}());
-    auto dist_1 = std::bind(std::normal_distribution<double>{0.0, 0.1}, std::mt19937(std::random_device{}()));
-    auto dist_2 = std::bind(std::normal_distribution<double>{0.0, 0.01}, std::mt19937(std::random_device{}()));
-    auto dist_3 = std::bind(std::normal_distribution<double>{0.0, 0.001}, std::mt19937(std::random_device{}()));
-    auto dist_4 = std::bind(std::normal_distribution<double>{0.0, 0.0001}, std::mt19937(std::random_device{}()));
-    auto dist_5 = std::bind(std::normal_distribution<double>{0.0, 0.00001}, std::mt19937(std::random_device{}()));
+    // auto dist_1 = std::bind(std::normal_distribution<double>{0.0, 0.1}, std::mt19937(std::random_device{}()));
+    // auto dist_2 = std::bind(std::normal_distribution<double>{0.0, 0.01}, std::mt19937(std::random_device{}()));
+    // auto dist_3 = std::bind(std::normal_distribution<double>{0.0, 0.001}, std::mt19937(std::random_device{}()));
+    // auto dist_4 = std::bind(std::normal_distribution<double>{0.0, 0.0001}, std::mt19937(std::random_device{}()));
+    // auto dist_5 = std::bind(std::normal_distribution<double>{0.0, 0.00001}, std::mt19937(std::random_device{}()));
 
     // std::default_random_engine generator;
     // std::normal_distribution<double> dist(0.0, 0.1);
@@ -13162,6 +13193,8 @@ void AvatarController::getRobotState()
 
     l_ft_ = rd_.LF_FT; // generated force by robot left foot
     r_ft_ = rd_.RF_FT; // generated force by robot right foot
+
+    opto_ft_ = opto_ft_raw_;    // collision test exp
 
     double foot_plate_mass = 2.326; // urdf
 
@@ -14336,6 +14369,7 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
             index++;
         }
     }
+
     /////////////////////////////////////////////////////////////////////.
     if (current_step_num_ >= total_step_num_ - planning_step_num)
     {
@@ -15723,28 +15757,28 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     ////// random walking setting///////
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-    target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
 
-    t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.02 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_ + (std::rand() % 61) * 0.01 * hz_;
+    // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.02 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.9 * hz_ + (std::rand() % 61) * 0.01 * hz_;
 
-    // t_rest_init_ = 0.27*hz_;
-    // t_rest_last_ = 0.27*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.3*hz_;
-    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // // t_rest_init_ = 0.27*hz_;
+    // // t_rest_last_ = 0.27*hz_;
+    // // t_double1_ = 0.03*hz_;
+    // // t_double2_ = 0.03*hz_;
+    // // t_total_= 1.3*hz_;
+    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
@@ -15766,21 +15800,21 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 0.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0*DEG2RAD;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    target_x_ = 0.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_;
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     //// 0.7s walking
@@ -16940,6 +16974,12 @@ void AvatarController::calculateFootStepTotal_MJoy()
     foot_step_joy_temp_.resize(joy_index_ + index, 7);
     foot_step_joy_temp_.setZero();
     foot_step_joy_temp_ = foot_step_;
+
+    // mpc footstep adjustment
+    modified_del_zmp_.setZero(joy_index_ + index, 2);
+    m_del_zmp_x.setZero(joy_index_ + index, 2);
+    m_del_zmp_y.setZero(joy_index_ + index, 2);
+
 }
 
 void AvatarController::calculateFootStepTotal_MJoy_End()
