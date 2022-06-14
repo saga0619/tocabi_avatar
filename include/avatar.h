@@ -90,7 +90,8 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
     CQuadraticProgram QP_stepping_;
-    CQuadraticProgram QP_CP_mpc_y_;
+    CQuadraticProgram QP_cpmpc_x_;
+    CQuadraticProgram QP_cpmpc_y_;
 
     Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
@@ -111,6 +112,7 @@ public:
     std::atomic<bool> atb_mpc_y_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
     std::atomic<bool> atb_cpmpc_rcv_update_{false};
+    std::atomic<bool> atb_cpmpc_x_update_{false};
     std::atomic<bool> atb_cpmpc_y_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
@@ -142,6 +144,7 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     void computeCAMcontrol_HQP();
+    void cpcontroller_MPC_MJDG(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void BoltController_MJ();
@@ -1174,21 +1177,46 @@ public:
     Eigen::VectorXd y_com_vel_recur_;
     Eigen::VectorXd y_zmp_recur_;
     
-    Eigen::MatrixXd F_cp_mpc_;
-    Eigen::MatrixXd theta_cp_mpc_;
-    Eigen::MatrixXd F_zmp_mpc_;
-    Eigen::MatrixXd H_cp_mpc_;
-    Eigen::VectorXd g_cp_mpc_;
-    Eigen::MatrixXd Q_cp_;
-    Eigen::MatrixXd R_cp_;
-    Eigen::VectorXd e1_cp_mpc_;
-    Eigen::VectorXd cp_mpc_input_y_;
-    Eigen::VectorXd cp_mpc_des_zmp_y_;
-    double cp_mpc_des_zmp_y_thread_ = 0;
-    double cp_mpc_des_zmp_y_thread2_ = 0;
+    Eigen::VectorXd x_cp_recur_;
+    Eigen::VectorXd y_cp_recur_;
+
+    Eigen::MatrixXd F_cp_;
+    Eigen::MatrixXd diff_matrix_;
+    Eigen::MatrixXd F_zmp_;
+    Eigen::MatrixXd H_cpmpc_;
+    Eigen::MatrixXd H_cpStepping_mpc_;
+    Eigen::MatrixXd weighting_cp_;
+    Eigen::MatrixXd weighting_zmp_diff_;
+    Eigen::VectorXd e1_cpmpc_;
+    Eigen::VectorXd cpmpc_input_x_;
+    Eigen::VectorXd cpmpc_deszmp_x_;
+    Eigen::VectorXd cpmpc_input_y_;
+    Eigen::VectorXd cpmpc_deszmp_y_;
+
+    double del_F_x_ = 0;
+    double del_F_y_ = 0;
+    double del_F_x_prev_ = 0;
+    double del_F_y_prev_ = 0;
+    double del_F_x_thread_ = 0;
+    double del_F_y_thread_ = 0;
+    
+    double cpmpc_des_zmp_x_thread_ = 0;
+    double cpmpc_des_zmp_x_thread2_ = 0;
+
+    double cpmpc_des_zmp_y_thread_ = 0;    
+    double cpmpc_des_zmp_y_thread2_ = 0;
+    
+    double cp_des_zmp_x_ = 0;
+    double cp_des_zmp_x_prev_ = 0;
+    double des_zmp_x_stepchange_ = 0;
+    double des_zmp_x_prev_stepchange_ = 0;
+
     double cp_des_zmp_y_ = 0;
-    double stepchange_pos_ = 0;
+    double cp_des_zmp_y_prev_ = 0;
     double des_zmp_y_stepchange_ = 0;
+    double des_zmp_y_prev_stepchange_ = 0;
+
+    Eigen::Vector2d des_zmp_interpol_;
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
     Eigen::VectorXd U_y_mpc_; 
@@ -1207,11 +1235,15 @@ public:
     Eigen::Vector3d y_mpc_i_; 
     Eigen::Vector3d x_diff_;
     Eigen::Vector3d y_diff_;
+    Eigen::Vector2d cpmpc_diff_;
+    Eigen::Vector2d cpStepping_diff_;
 
-    int interpol_cnt_x_ = 0;
-    int interpol_cnt_y_ = 0;
+    int wieber_interpol_cnt_x_ = 0;
+    int wieber_interpol_cnt_y_ = 0;
+    int cpmpc_interpol_cnt_x_ = 0;
+    int cpmpc_interpol_cnt_y_ = 0;
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
-    bool cp_mpc_x_update_ {false}, cp_mpc_y_update_ {false} ;
+    bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
     int alpha_step_mpc_ = 0;
     int alpha_step_mpc_thread_ = 0;
@@ -1222,6 +1254,14 @@ public:
     double alpha_lpf_ = 0;
     double temp_pos_y_ = 0;
     double F0_F1_mpc_x_ = 0, F1_F2_mpc_x_ = 0, F2_F3_mpc_x_ = 0, F0_F1_mpc_y_ = 0, F1_F2_mpc_y_ = 0, F2_F3_mpc_y_ = 0;
+    Eigen::Vector2d foot_diff_current2next_;
+    Eigen::Vector2d foot_diff_next2Nnext_;
+    Eigen::Vector2d foot_diff_current2next_thread_;
+    Eigen::Vector2d foot_diff_next2Nnext_thread_;
+    Eigen::Vector2d foot_diff_current2next_mpc_;
+    Eigen::Vector2d foot_diff_next2Nnext_mpc_;
+
+    // Eigen::Vector2d foot_diff_currentTonext_;
 
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
@@ -1313,6 +1353,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
+    void onestepZmp_wo_offset(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1394,6 +1435,7 @@ public:
     Eigen::Vector2d cp_measured_;
     Eigen::Vector2d cp_measured_LPF;
     Eigen::Vector2d cp_measured_thread_;
+    Eigen::Vector2d cp_measured_mpc_;
     Eigen::Vector3d com_support_init_;
     Eigen::Vector3d com_float_init_;
     Eigen::Vector3d com_float_current_;
@@ -1454,7 +1496,10 @@ public:
     Eigen::Vector6d swingfoot_support_init_;
 
     Eigen::MatrixXd ref_zmp_mj_;
-    Eigen::MatrixXd ref_zmp_mj_p_;
+    Eigen::MatrixXd ref_zmp_mj_wo_offset_;
+    Eigen::MatrixXd ref_zmp_wo_offset_mpc_;
+    Eigen::MatrixXd ref_zmp_wo_offset_thread_;
+
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_thread_;
 
@@ -1501,7 +1546,7 @@ public:
 
     double ZMP_X_REF;
     double ZMP_Y_REF;
-    double ZMP_Y_REF_alpha = 0;
+    double ZMP_Y_REF_alpha_ = 0;
 
     double t_last_;
     double t_start_;
