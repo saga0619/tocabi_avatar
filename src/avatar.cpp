@@ -727,6 +727,7 @@ void AvatarController::computeSlow()
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                steptimingController_MJ();
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -795,8 +796,8 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 5.998*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*610.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = -500.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = -400;//610.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[1] = 0*-500.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9546,6 +9547,247 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
     // cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
 }
 */
+
+void AvatarController::steptimingController_MJ()
+{   
+    if(walking_tick_mj == 0)
+    {
+        stepping_input_.setZero(6);
+        QP_steptiming_.InitializeProblemSize(6, 10);
+    } 
+
+    double L_nom = 0;
+    double L_min = -0.15; // min value of del_F_x
+    double L_max = +0.15; // max value of del_F_x
+
+    double W_nom = 0;
+    double W_min = -0.1;
+    double W_max = +0.1;
+
+    double T_nom1 = 0;
+    double T_min1 = 0;
+    double T_max1 = 0;
+    double tau_nom1 = 0;
+
+    double T_nom2 = 0;
+    double T_min2 = 0;
+    double T_max2 = 0;
+    double tau_nom2 = 0;
+
+    double T_gap = 0;
+    
+    double w1_step = 1.0, w2_step = 1.0, w3_step = 1000.0, w4_step = 1000.0, w5_step = 1000.0, w6_step = 1000.0;
+    double u0_x = 0; 
+    double u0_y = 0;    
+    double b_nom_x1 = 0; 
+    double b_nom_y1 = 0; 
+    double b_nom_x2 = 0; 
+    double b_nom_y2 = 0; 
+    double l_p = 0;
+    double l_p2 = 0;
+
+    L_nom = foot_step_support_frame_(current_step_num_, 0); 
+    W_nom = 0;
+    l_p = foot_step_support_frame_(current_step_num_, 1);    
+    l_p2 = foot_step_support_frame_(current_step_num_+1, 1); 
+
+    if(current_step_num_ != 0)
+    {
+        u0_x = foot_step_support_frame_(current_step_num_-1, 0); 
+        u0_y = foot_step_support_frame_(current_step_num_-1, 1); 
+    }
+    else
+    {
+        u0_x = 0.0;
+        u0_y = 0.0; 
+    }    
+
+    T_gap = 0.05*hz_;
+    T_nom1 = 0.6; 
+    T_min1 = T_nom1 - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
+    T_max1 = T_nom1 + 0.2;
+    tau_nom1 = exp(wn*T_nom1); 
+
+    T_nom2 = 0.6; 
+    T_min2 = T_nom2 - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
+    T_max2 = T_nom2 + 0.2;
+    tau_nom2 = exp(wn*T_nom2); 
+    
+    b_nom_x1 = 0.0; //L_nom/(exp(wn*T_nom1)-1);
+    b_nom_y1 = 0.0; //l_p/(1 + exp(wn*T_nom1)) - W_nom/(1 - exp(wn*T_nom1));
+
+    b_nom_x2 = 0.0;//L_nom/(exp(wn*T_nom2)-1);
+    b_nom_y2 = 0.0;//l_p2/(1 + exp(wn*T_nom2)) - W_nom/(1 - exp(wn*T_nom2));
+
+    Eigen::MatrixXd H_step;
+    Eigen::VectorXd g_step; 
+    
+    H_step.setZero(6,6);
+    H_step(0,0) = w1_step; // current step time
+    H_step(1,1) = w2_step; // next step time
+    H_step(2,2) = w3_step; // current DCM offset in x
+    H_step(3,3) = w4_step; // current DCM offset in y
+    H_step(4,4) = w5_step; // next DCM offset in x
+    H_step(5,5) = w6_step; // next DCM offset in y
+    
+    g_step.setZero(6);
+    g_step(0) = -w1_step * tau_nom1;
+    g_step(1) = -w2_step * tau_nom2;
+    g_step(2) = -w3_step * b_nom_x1; 
+    g_step(3) = -w4_step * b_nom_y1; 
+    g_step(4) = -w5_step * b_nom_x2; 
+    g_step(5) = -w6_step * b_nom_y2;  
+
+    Eigen::VectorXd lb_step(10);
+    Eigen::VectorXd ub_step(10);
+    Eigen::MatrixXd A_step(10,6);         
+
+    double stepping_start_time = 0;
+    
+    if (current_step_num_ == 0)
+    {
+        stepping_start_time = 0.0;
+    }
+    else
+    {
+        stepping_start_time = t_start_;
+    }    
+
+    A_step.setZero(10,6);
+
+    A_step(0,0) = 1; // tau1
+    A_step(0,1) = 0; // tau2
+    A_step(0,2) = 0; // current DCM offset in x
+    A_step(0,3) = 0; // current DCM offset in y
+    A_step(0,4) = 0; // next DCM offset in x
+    A_step(0,5) = 0; // next DCM offset in y
+
+    A_step(1,0) = 0; // tau1
+    A_step(1,1) = 1; // tau2
+    A_step(1,2) = 0; // current DCM offset in x
+    A_step(1,3) = 0; // current DCM offset in y
+    A_step(1,4) = 0; // next DCM offset in x
+    A_step(1,5) = 0; // next DCM offset in y
+
+    A_step(2,0) = 0; // tau1
+    A_step(2,1) = 0; // tau2
+    A_step(2,2) = 1; // current DCM offset in x
+    A_step(2,3) = 0; // current DCM offset in y
+    A_step(2,4) = 0; // next DCM offset in x
+    A_step(2,5) = 0; // next DCM offset in y
+
+    A_step(3,0) = 0; // tau1
+    A_step(3,1) = 0; // tau2
+    A_step(3,2) = 0; // current DCM offset in x
+    A_step(3,3) = 1; // current DCM offset in y
+    A_step(3,4) = 0; // next DCM offset in x
+    A_step(3,5) = 0; // next DCM offset in y
+
+    A_step(4,0) = 0; // tau1
+    A_step(4,1) = 0; // tau2
+    A_step(4,2) = 0; // current DCM offset in x
+    A_step(4,3) = 0; // current DCM offset in y
+    A_step(4,4) = 1; // next DCM offset in x
+    A_step(4,5) = 0; // next DCM offset in y
+
+    A_step(5,0) = 0; // tau1
+    A_step(5,1) = 0; // tau2
+    A_step(5,2) = 0; // current DCM offset in x
+    A_step(5,3) = 0; // current DCM offset in y
+    A_step(5,4) = 0; // next DCM offset in x
+    A_step(5,5) = 1; // next DCM offset in y
+
+    A_step(6,0) = (cp_measured_(0) - u0_x)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(6,1) = 0; // tau2
+    A_step(6,2) = -1; // current DCM offset in x
+    A_step(6,3) = 0; // current DCM offset in y
+    A_step(6,4) = 0; // next DCM offset in x
+    A_step(6,5) = 0; // next DCM offset in y
+
+    A_step(7,0) = (cp_measured_(1) - u0_y)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(7,1) = 0; // tau2
+    A_step(7,2) = 0; // current DCM offset in x
+    A_step(7,3) = -1; // current DCM offset in y
+    A_step(7,4) = 0; // next DCM offset in x
+    A_step(7,5) = 0; // next DCM offset in y
+    
+    A_step(8,0) = 0; // tau
+    A_step(8,1) = stepping_input_(2); // tau2
+    A_step(8,2) = 0; // current DCM offset in x
+    A_step(8,3) = 0; // current DCM offset in y
+    A_step(8,4) = -1; // next DCM offset in x
+    A_step(8,5) = 0; // next DCM offset in y
+
+    A_step(9,0) = 0; // tau
+    A_step(9,1) = stepping_input_(3); // tau2
+    A_step(9,2) = 0; // current DCM offset in x
+    A_step(9,3) = 0; // current DCM offset in y
+    A_step(9,4) = 0; // next DCM offset in x
+    A_step(9,5) = -1; // next DCM offset in y
+
+    lb_step.setZero(10);
+    ub_step.setZero(10);
+
+    lb_step(0) = exp(wn*T_min1);
+    lb_step(1) = exp(wn*T_min2);
+    lb_step(2) = b_nom_x1 - 0.05;
+    lb_step(3) = b_nom_y1 - 0.05;
+    lb_step(4) = b_nom_x2 - 0.05;
+    lb_step(5) = b_nom_y2 - 0.05;
+    lb_step(6) = del_F_x_ - u0_x;
+    lb_step(7) = del_F_y_ + 0*foot_step_support_frame_(current_step_num_, 1) - u0_y;
+    lb_step(8) = del_F_x_next_ - del_F_x_;
+    lb_step(9) = del_F_y_next_ - del_F_y_;
+    
+    ub_step(0) = exp(wn*T_max1);
+    ub_step(1) = exp(wn*T_max2);
+    ub_step(2) = b_nom_x1 + 0.05;
+    ub_step(3) = b_nom_y1 + 0.05;
+    ub_step(4) = b_nom_x2 + 0.05;
+    ub_step(5) = b_nom_y2 + 0.05;
+    ub_step(6) = del_F_x_ - u0_x; 
+    ub_step(7) = del_F_y_ + 0*foot_step_support_frame_(current_step_num_, 1) - u0_y;
+    ub_step(8) = del_F_x_next_ - del_F_x_;
+    ub_step(9) = del_F_y_next_ - del_F_y_;   
+
+       
+
+    if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
+    {   // Solving the QP during only SSP
+        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+        {
+            
+            QP_steptiming_.EnableEqualityCondition(equality_condition_eps_);
+            QP_steptiming_.UpdateMinProblem(H_step, g_step);
+            QP_steptiming_.DeleteSubjectToAx();      
+            QP_steptiming_.UpdateSubjectToAx(A_step, lb_step, ub_step);
+        
+            if(QP_steptiming_.SolveQPoases(200, stepping_input))
+            {   
+                stepping_input_ = stepping_input.segment(0, 6);
+            }
+        }  
+        // if(stepping_input_(2) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
+        // {
+        //     //if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
+        //     //{
+        //     t_total_prev_ = t_total_;
+        //     t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+        //     t_last_ = t_start_ + t_total_ - 1;                
+        //     //} 
+        // }
+        // else
+        // {
+        //     t_total_ = t_total_prev_;
+        //     t_last_ = t_start_ + t_total_ - 1;
+        // }
+    }
+    MJ_graph << stepping_input_(0) << "," << stepping_input_(1) << "," << stepping_input_(2) << "," << stepping_input_(3) << "," << stepping_input_(4) << "," << stepping_input_(5) << endl;        
+    MJ_graph1 << A_step(6,0) << "," << stepping_input_(0) << "," << A_step(6,2) << "," << stepping_input_(2) << "," << lb_step(6) << "," << ub_step(6) << endl;
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    // Log 함수 쓸때 주의 -> log(0) -> inf  
+}
+
 void AvatarController::BoltController_MJ()
 {   
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -10259,6 +10501,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         {
             atb_cpmpc_x_update_ = true;
             del_F_x_thread_ = cpmpc_deszmp_x_(N_cp);
+            del_F_x_next_thread_ = cpmpc_deszmp_x_(N_cp + 1);
             cpmpc_des_zmp_x_thread_ = cpmpc_deszmp_x_(0);
             atb_cpmpc_x_update_ = false;
         }       
@@ -10279,19 +10522,22 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         {
             atb_cpmpc_y_update_ = true;
             del_F_y_thread_ = cpmpc_deszmp_y_(N_cp);
+            del_F_y_next_thread_ = cpmpc_deszmp_y_(N_cp + 1);
             cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
             atb_cpmpc_y_update_ = false;
         }       
         cpmpc_y_update_ = true;
     }
-    MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
-    MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << cpmpc_deszmp_x_(N_cp+1) << endl;
+    
+    //MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
+    //MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << cpmpc_deszmp_x_(N_cp+1) << endl;
+    
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
-    if((int)walking_tick_mj_mpc_ % 2 == 0)
-    {   
-        // cout<<"cp mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() << endl;
-    }    
+    // if((int)walking_tick_mj_mpc_ % 2 == 0)
+    // {   
+    //     cout<<"cp mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() << endl;
+    // }    
 }
 
 void AvatarController::savePreData()
@@ -13576,15 +13822,14 @@ void AvatarController::getComTrajectory_mpc()
                 cp_des_zmp_x_prev_ = cp_des_zmp_x_; 
                 cp_des_zmp_x_ = cpmpc_des_zmp_x_thread_;
                 
-                del_F_x_prev_ = del_F_x_;
                 del_F_x_ = del_F_x_thread_;
+                del_F_x_next_ = del_F_x_thread_;
                 
                 cpmpc_interpol_cnt_x_ = 1;
             }
             atb_cpmpc_x_update_ = false;
         }
         cpmpc_diff_(0) = cp_des_zmp_x_ - cp_des_zmp_x_prev_;
-        cpStepping_diff_(0) = del_F_x_ - del_F_x_prev_;
         cpmpc_x_update_ = false;
     }
 
@@ -13599,15 +13844,14 @@ void AvatarController::getComTrajectory_mpc()
                 cp_des_zmp_y_prev_ = cp_des_zmp_y_; //cpmpc_des_zmp_y_prev_thread_; 
                 cp_des_zmp_y_ = cpmpc_des_zmp_y_thread_;
                 
-                del_F_y_prev_ = del_F_y_;
                 del_F_y_ = del_F_y_thread_;
+                del_F_y_next_ = del_F_y_thread_;
                 
                 cpmpc_interpol_cnt_y_ = 1;
             }
             atb_cpmpc_y_update_ = false;
         }
         cpmpc_diff_(1) = cp_des_zmp_y_ - cp_des_zmp_y_prev_;
-        cpStepping_diff_(1) = del_F_y_ - del_F_y_prev_;
         cpmpc_y_update_ = false;
     }
     

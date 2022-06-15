@@ -91,6 +91,7 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
     CQuadraticProgram QP_stepping_;
+    CQuadraticProgram QP_steptiming_;
     CQuadraticProgram QP_cpmpc_x_;
     CQuadraticProgram QP_cpmpc_y_;
 
@@ -148,6 +149,8 @@ public:
     void cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
+
+    void steptimingController_MJ();
     void BoltController_MJ();
     void getComTrajectory_mpc();
     //estimator
@@ -1193,13 +1196,15 @@ public:
     Eigen::VectorXd cpmpc_deszmp_x_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
-
+    
+    double del_F_x_next_ = 0;
+    double del_F_y_next_ = 0;
     double del_F_x_ = 0;
     double del_F_y_ = 0;
-    double del_F_x_prev_ = 0;
-    double del_F_y_prev_ = 0;
     double del_F_x_thread_ = 0;
     double del_F_y_thread_ = 0;
+    double del_F_x_next_thread_ = 0;
+    double del_F_y_next_thread_ = 0;
     
     double cpmpc_des_zmp_x_thread_ = 0;
     double cpmpc_des_zmp_x_thread2_ = 0;
