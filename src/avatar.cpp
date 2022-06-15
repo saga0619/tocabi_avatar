@@ -796,7 +796,7 @@ void AvatarController::computeSlow()
                 if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 5.998*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
                     mujoco_applied_ext_force_.data[0] = 0*610.0; //x-axis linear force 
-                    mujoco_applied_ext_force_.data[1] = 0*-526.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[1] = -500.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9717,6 +9717,13 @@ void AvatarController::BoltController_MJ()
     
 }
 
+void AvatarController::computeThread3()
+{
+    comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); // Hz, T, Preview window
+    cpcontroller_MPC_MJDG(50.0, 1.5); // Hz, Preview window
+    // comGenerator_MPC_joe(50.0, 1.0/50.0, 1.5, 2000/50.0); // Hz, T, Preview window  
+}
+
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
 {   //https://doi.org/10.1163/016918610X493552
     
@@ -9929,7 +9936,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     }    
 }
 
-void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
+void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_window)
 {
     ///////////////////////////////////////// CP control + stepping MPC ///////////////////////////////////////
     //// https://doi.org/10.3182/20120905-3-HR-2030.00165
@@ -9940,6 +9947,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     static int CP_MPC_first_loop = 0;
     int N_cp = preview_window * MPC_freq; 
     int footprint_num = 2;
+    double T = 1/MPC_freq;
+    int MPC_synchro_hz = 2000.0 / MPC_freq;
 
     Eigen::VectorXd cp_x_ref(N_cp);
     Eigen::VectorXd cp_y_ref(N_cp);
@@ -10083,20 +10092,20 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
     
     if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) // Define selection vector for swingfoot adjustment
     {
-        swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining sampling time in current foot. 
+        swing_time_cur = (t_total_ - mpc_tick)/MPC_synchro_hz; // remaining sampling time in current foot. 
 
-        if(N_cp - swing_time_cur >= t_total_/MPC_synchro_hz_) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
+        if(N_cp - swing_time_cur >= t_total_/MPC_synchro_hz) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
         {
-            swing_time_next = t_total_/MPC_synchro_hz_;
-            swing_time_n_next = N_cp - (t_total_/MPC_synchro_hz_ + swing_time_cur);
-            dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
-            dsp_time2 = (t_rest_last_ + t_double2_)/MPC_synchro_hz_;
+            swing_time_next = t_total_/MPC_synchro_hz;
+            swing_time_n_next = N_cp - (t_total_/MPC_synchro_hz + swing_time_cur);
+            dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz;
+            dsp_time2 = (t_rest_last_ + t_double2_)/MPC_synchro_hz;
         }
         else // 2 footholds are included in N_cp step.(current, next foothold)
         {
             swing_time_next = N_cp - swing_time_cur;
             swing_time_n_next = 0;
-            dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
+            dsp_time1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz;
             dsp_time2 = 0;
         } 
 
@@ -10174,8 +10183,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
 
     for(int i = 0; i < N_cp; i ++)
     {
-        Z_x_ref_wo_offset(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
-        Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1);
+        Z_x_ref_wo_offset(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
+        Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 1);
     }  
     
     Eigen::VectorXd zmp_bound_x(N_cp);
@@ -10275,8 +10284,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double T, double p
         }       
         cpmpc_y_update_ = true;
     }
-    // MJ_graph << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << endl;
-    // MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << endl;
+    MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
+    MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << cpmpc_deszmp_x_(N_cp+1) << endl;
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
     if((int)walking_tick_mj_mpc_ % 2 == 0)
@@ -13625,12 +13634,10 @@ void AvatarController::getComTrajectory_mpc()
     des_zmp_interpol_(0) = x_cpmpc_lin_spline*cpmpc_diff_(0) + cp_des_zmp_x_prev_;
     des_zmp_interpol_(1) = y_cpmpc_lin_spline*cpmpc_diff_(1) + cp_des_zmp_y_prev_;
 
-    // del_F_(0) = x_cpmpc_lin_spline*cpStepping_diff_(0) + del_F_x_prev_;
-    // del_F_(1) = y_cpmpc_lin_spline*cpStepping_diff_(1) + del_F_y_prev_;
     del_F_(0) = del_F_x_;
     del_F_(1) = del_F_y_;
 
-    MJ_graph << cp_des_zmp_y_prev_ << "," << cp_des_zmp_y_ << "," << del_F_x_prev_ << "," << del_F_x_ << "," << del_F_(0) << "," << des_zmp_interpol_(1) << endl;
+    // MJ_graph << cp_des_zmp_y_prev_ << "," << cp_des_zmp_y_ << "," << del_F_x_prev_ << "," << del_F_x_ << "," << del_F_(0) << "," << des_zmp_interpol_(1) << endl;
     
     cpmpc_interpol_cnt_x_ ++;
     cpmpc_interpol_cnt_y_ ++;
@@ -14436,7 +14443,7 @@ void AvatarController::CP_compen_MJ()
     {
         alpha = 0;
     }
-    //del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_ ;
+    
     F_R = (1 - alpha) * rd_.link_[COM_id].mass * GRAVITY;
     F_L = alpha * rd_.link_[COM_id].mass * GRAVITY;
 
