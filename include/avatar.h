@@ -1274,7 +1274,8 @@ public:
     Eigen::Vector6d fixed_swing_foot;
     Eigen::MatrixXd modified_del_zmp_; 
     Eigen::MatrixXd m_del_zmp_x;
-    Eigen::MatrixXd m_del_zmp_y; 
+    Eigen::MatrixXd m_del_zmp_y;
+    double zmp_modif_time_margin_ = 0; 
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
