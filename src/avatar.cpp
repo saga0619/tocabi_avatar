@@ -851,7 +851,7 @@ void AvatarController::computeSlow()
             {
                 getZmpTrajectory();
                 getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -1044,7 +1044,7 @@ void AvatarController::computeSlow()
                 cout << "walking finish" << endl;
                 walking_end_flag = 1;
                 initial_flag = 0;
-                rd_.tc_.mode = 10; // dg test rd_.tc_.mode = 10;  // dg test
+                // rd_.tc_.mode = 10; // dg test rd_.tc_.mode = 10;  // dg test
             }
 
             if (atb_grav_update_ == false)
@@ -1775,7 +1775,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    // comGenerator_MPC_wieber(50.0, 1/50, 1.5, 40.0);
+    comGenerator_MPC_wieber(50.0, 1/50, 1.5, 40.0);
 
 }
 
@@ -11222,7 +11222,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     // QP_mpc_x.InitializeProblemSize(N, N);
     QP_mpc_x_.EnableEqualityCondition(equality_condition_eps_);
     QP_mpc_x_.UpdateMinProblem(Q_prime_, p_x);
-    QP_mpc_x_.DeleteSubjectToAx();
+    // QP_mpc_x_.DeleteSubjectToAx();
     QP_mpc_x_.UpdateSubjectToAx(P_zu_mpc_, lb_b_x, ub_b_x);
 
     // U_x_mpc.setZero(N);
@@ -11252,7 +11252,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     // QP_mpc_y.InitializeProblemSize(N, N);
     QP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
     QP_mpc_y_.UpdateMinProblem(Q_prime_, p_y);
-    QP_mpc_y_.DeleteSubjectToAx();
+    // QP_mpc_y_.DeleteSubjectToAx();
     QP_mpc_y_.UpdateSubjectToAx(P_zu_mpc_, lb_b_y, ub_b_y);
 
     // U_y_mpc.setZero(N);
@@ -12609,7 +12609,7 @@ void AvatarController::printOutTextFile()
             file[1] << lfoot_trajectory_float_.translation()(0) << "\t" << lfoot_trajectory_float_.translation()(1) << "\t" << lfoot_trajectory_float_.translation()(2) << "\t";
             file[1] << rfoot_trajectory_float_.translation()(0) << "\t" << rfoot_trajectory_float_.translation()(1) << "\t" << rfoot_trajectory_float_.translation()(2) << endl;
 
-            file[2] << zmp_measured_FT_(0) << "\t" << zmp_measured_FT_(1) << "\t" << (ZMP_X_REF + del_zmp(0)) << "\t" << (ZMP_Y_REF_alpha + del_zmp(1)) << endl;
+            file[2] << zmp_measured_FT_(0) << "\t" << zmp_measured_FT_(1) << "\t" << (ZMP_X_REF + del_zmp(0)) << "\t" << (ZMP_Y_REF_alpha + del_zmp(1)) << "\t" << x_mpc_i_(0) << "\t" << y_mpc_i_(0) << endl;
 
             file[0] << rd_.control_time_ << "\t" << foot_step_(current_step_num_, 6) << "\t";
             // <<rd_.torque_desired (0)<<"\t"<<rd_.torque_desired (1)<<"\t"<<rd_.torque_desired (2)<<"\t"<<rd_.torque_desired (3)<<"\t"<<rd_.torque_desired (4)<<"\t"<<rd_.torque_desired (5)<<"\t"<<rd_.torque_desired (6)<<"\t"<<rd_.torque_desired (7)<<"\t"<<rd_.torque_desired (8)<<"\t"<<rd_.torque_desired (9)<<"\t"<<rd_.torque_desired (10)<<"\t"<<rd_.torque_desired (11)<<"\t"<<rd_.torque_desired (12)<<"\t"<<rd_.torque_desired (13)<<"\t"<<rd_.torque_desired (14)<<"\t"<<rd_.torque_desired (15)<<"\t"<<rd_.torque_desired (16)<<"\t"<<rd_.torque_desired (17)<<"\t"<<rd_.torque_desired (18)<<"\t"<<rd_.torque_desired (19)<<"\t"<<rd_.torque_desired (20)<<"\t"<<rd_.torque_desired (21)<<"\t"<<rd_.torque_desired (22)<<"\t"<<rd_.torque_desired (23)<<"\t"<<rd_.torque_desired (24)<<"\t"<<rd_.torque_desired (25)<<"\t"<<rd_.torque_desired (26)<<"\t"<<rd_.torque_desired (27)<<"\t"<<rd_.torque_desired (28)<<"\t"<<rd_.torque_desired (29)<<"\t"<<rd_.torque_desired (30)<<"\t"<<rd_.torque_desired (31)<<"\t"<<rd_.torque_desired (32)<<endl;
@@ -13663,7 +13663,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 50; // total foot step number
+        middle_total_step_number = 100; // total foot step number
         dlength = 0;
     }
 
@@ -15342,6 +15342,7 @@ void AvatarController::getComTrajectory_mpc()
         x_diff_ = x_hat_r_ - x_hat_r_p_;
         mpc_x_update_ = false;
     }
+
     if (mpc_y_update_ == true) // 0.011 ~ 0.012 주기로 업데이트
     {
         if (atb_mpc_y_update_ == false)
@@ -15377,12 +15378,12 @@ void AvatarController::getComTrajectory_mpc()
     interpol_cnt_y_++;
 
     // Reference COM, CP position
-    cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
-    cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
+    // cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
+    // cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
 
-    com_desired_(0) = x_mpc_i_(0);
-    com_desired_(1) = y_mpc_i_(0);
-    com_desired_(2) = 0.77172;
+    // com_desired_(0) = x_mpc_i_(0);
+    // com_desired_(1) = y_mpc_i_(0);
+    // com_desired_(2) = 0.77172;
 
     if (collision_detection_flag_ == true)
     {
@@ -15412,8 +15413,8 @@ void AvatarController::getComTrajectory_mpc()
         for (int i = 0; i < 3; i++)
             temp_pos(i) = foot_step_support_frame_(current_step_num_, i);
 
-        temp_pos(0) = temp_pos(0) + modified_del_zmp_(current_step_num_, 0);
-        temp_pos(1) = temp_pos(1) + modified_del_zmp_(current_step_num_, 1);
+        // temp_pos(0) = temp_pos(0) + modified_del_zmp_(current_step_num_, 0);
+        // temp_pos(1) = temp_pos(1) + modified_del_zmp_(current_step_num_, 1);
 
         com_pos_prev(0) = x_hat_r_sc_(0);
         com_pos_prev(1) = y_hat_r_sc_(0);
@@ -15800,7 +15801,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 0.0;
+    target_x_ = 0.5;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
