@@ -723,11 +723,16 @@ void AvatarController::computeSlow()
             floatToSupportFootstep();
             
             if (current_step_num_ < total_step_num_)
-            {                   
+            {   
+                               
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)
+<<<<<<< HEAD
                 // steptimingController_MJ();
+=======
+                steptimingController_MJ(); 
+>>>>>>> 78d578d4b07b29ea856e14babf51832499a214da
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -793,7 +798,37 @@ void AvatarController::computeSlow()
                 updateNextStepTime();
                 q_prev_MJ_ = rd_.q_;
                 
+<<<<<<< HEAD
                 
+=======
+                ////mujoco ext wrench publish////(dg add)
+                if( (walking_tick_mj >= 6.1*hz_)&&(walking_tick_mj < 6.2*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
+                { // -170,175 // -350 7.5 - 7.6
+                    mujoco_applied_ext_force_.data[0] = 0*-430;//610.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[1] = -650.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
+                    mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
+                    mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
+                    mujoco_applied_ext_force_.data[5] = 0.0;  //z-axis angular moment
+
+                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+
+                    mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);                    
+                } 
+                else
+                {
+                    mujoco_applied_ext_force_.data[0] = 0; //x-axis linear force
+                    mujoco_applied_ext_force_.data[1] = 0; //y-axis linear force
+                    mujoco_applied_ext_force_.data[2] = 0; //z-axis linear force
+                    mujoco_applied_ext_force_.data[3] = 0; //x-axis angular moment
+                    mujoco_applied_ext_force_.data[4] = 0; //y-axis angular moment
+                    mujoco_applied_ext_force_.data[5] = 0; //z-axis angular moment
+
+                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+
+                    mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+                }
+>>>>>>> 78d578d4b07b29ea856e14babf51832499a214da
             }
         }
         else
@@ -9516,6 +9551,164 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
 }
 */
 
+<<<<<<< HEAD
+=======
+void AvatarController::steptimingController_MJ()
+{   
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    //Setting up nominal values w.r.t current footstep
+ 
+    // W : 현재 지지발 기준에서 plan된 y방향 발 위치에서 추가로 얼마나 더 step했는지 / 여기서 step width라고 부름/ 로봇이 얼마나 옆으로 이동했는지를 보여주는 value
+
+    // L : del_F_x , W : del_F_y 
+
+    double L_nom = 0;
+    double L_min = -0.15; // min value of del_F_x
+    double L_max = +0.15; // max value of del_F_x
+
+    double W_nom = 0;
+    double W_min = -0.1;
+    double W_max = +0.1;
+
+    double T_nom = 0;
+    double T_min = 0;
+    double T_max = 0;
+    double tau_nom = 0;
+    double T_gap = 0;
+    
+    double w1_step = 50, w2_step = 5000, w3_step = 5000.0;
+    double u0_x = 0; 
+    double u0_y = 0;    
+    double b_nom_x = 0; 
+    double b_nom_y = 0; 
+    double l_p = 0;
+
+    L_nom = foot_step_support_frame_(current_step_num_, 0); 
+    W_nom = 0;
+    l_p = foot_step_support_frame_(current_step_num_, 1);    
+
+    if(current_step_num_ != 0)
+    {
+        u0_x = foot_step_support_frame_(current_step_num_-1, 0); 
+        u0_y = foot_step_support_frame_(current_step_num_-1, 1); 
+    }
+    else
+    {
+        u0_x = 0.0;
+        u0_y = 0.0; 
+    }    
+
+    T_gap = 0.05*hz_;
+    T_nom = 0.6; // 0.6하면 370 못버팀.
+    T_min = T_nom - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
+    T_max = T_nom + 0.2;
+    tau_nom = exp(wn*T_nom); 
+
+    b_nom_x = L_nom/(exp(wn*T_nom)-1);
+    b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
+
+    Eigen::MatrixXd H_step;
+    Eigen::VectorXd g_step; 
+    
+    H_step.setZero(3,3);
+    H_step(0,0) = w1_step; // U_T,x (step position in x-direction)
+    H_step(1,1) = w2_step; // U_T,y (step position in y-direction)
+    H_step(2,2) = w3_step; // tau (step timing)
+    
+    g_step.setZero(3);
+    
+    g_step(0) = -w1_step * tau_nom;
+    g_step(1) = -w2_step * b_nom_x;  
+    g_step(2) = -w3_step * b_nom_y;  
+
+    Eigen::VectorXd lb_step;
+    Eigen::VectorXd ub_step;
+    Eigen::MatrixXd A_step;         
+
+    double stepping_start_time = 0;
+    
+    if (current_step_num_ == 0)
+    {
+        stepping_start_time = 0.0;
+    }
+    else
+    {
+        stepping_start_time = t_start_;
+    }    
+
+    A_step.setZero(5,3);
+
+    A_step(0,0) = (cp_measured_(0)-u0_x)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(0,1) = -1; // b_x
+    A_step(0,2) = 0; // b_y
+
+    A_step(1,0) = (cp_measured_(1)-u0_y)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    A_step(1,1) = 0; // b_x
+    A_step(1,2) = -1; // b_y
+
+    A_step(2,0) = 1; // U_T,x
+
+    A_step(3,1) = 1; // U_T,y
+
+    A_step(4,2) = 1; // tau
+ 
+
+    lb_step.setZero(5);
+    ub_step.setZero(5);
+
+    lb_step(0) = del_F_x_ - u0_x;
+    lb_step(1) = del_F_y_ - u0_y;
+    lb_step(2) = exp(wn*T_min);
+    lb_step(3) = b_nom_x - 0.1;
+    lb_step(4) = b_nom_y - 0.1;
+    
+    ub_step(0) = del_F_x_ - u0_x;
+    ub_step(1) = del_F_y_ - u0_y;
+    ub_step(2) = exp(wn*T_max);
+    ub_step(3) = b_nom_x + 0.1;
+    ub_step(4) = b_nom_y + 0.1;    
+
+    if(walking_tick_mj == 0)
+    {
+        stepping_input_.setZero(3);
+    }    
+
+    if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
+    {   // Solving the QP during only SSP
+        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+        {
+            QP_stepping_.InitializeProblemSize(3, 5);
+            QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
+            QP_stepping_.UpdateMinProblem(H_step, g_step);
+            QP_stepping_.DeleteSubjectToAx();      
+            QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
+        
+            if(QP_stepping_.SolveQPoases(200, stepping_input))
+            {   
+                stepping_input_ = stepping_input.segment(0, 3);
+            }
+
+             if(stepping_input_(0) != 0)
+             {
+                //  if(walking_tick_mj - stepping_start_time + T_gap < t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_last_ + t_double2_ - 0.2*hz_)
+                //  {
+                //     t_total_ = round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;   
+                //     t_last_ = t_start_ + t_total_ - 1;
+                //  }
+                if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_)
+                 {
+                    t_total_ = round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;   
+                    t_last_ = t_start_ + t_total_ - 1;
+                 }
+                 //cout << walking_tick_mj - stepping_start_time + T_gap << "," << round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_ << endl;
+             } 
+        }  
+    }        
+    MJ_graph1 << t_total_/2000.0 << "," << ZMP_Y_REF_alpha_ << "," << walking_tick_mj - stepping_start_time + T_gap << "," << t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_last_ + t_double2_ <<  endl;
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    // Log 함수 쓸때 주의 -> log(0) -> inf  
+}
+>>>>>>> 78d578d4b07b29ea856e14babf51832499a214da
 
 void AvatarController::BoltController_MJ()
 {   
@@ -10179,13 +10372,13 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
  
     ub_x_foot_cp_mpc.setZero();   
     lb_x_foot_cp_mpc.setZero();
-   
-    for(int i = 0; i < footprint_num; i ++)
-    {
-        ub_x_foot_cp_mpc(i) = del_F_x_max; 
-        lb_x_foot_cp_mpc(i) = -del_F_x_min; 
-    } 
     
+    for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
+    {
+        ub_x_foot_cp_mpc(i) = +0.10;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+        lb_x_foot_cp_mpc(i) = -0.10;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+    } 
+        
     ub_y_foot_cp_mpc.setZero();   
     lb_y_foot_cp_mpc.setZero();
 
@@ -10255,10 +10448,11 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
             atb_cpmpc_y_update_ = false;
         }       
+
         cpmpc_y_update_ = true;
     }
     
-    //MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
+    MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
     //MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << cpmpc_deszmp_x_(N_cp+1) << endl;
     
     current_step_num_mpc_prev_ = current_step_num_mpc_;
@@ -12820,8 +13014,9 @@ void AvatarController::getFootTrajectory_stepping()
     {
         target_swing_foot(i) = foot_step_support_frame_(current_step_num_, i);        
     }
-    
-    if(walking_tick_mj == t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_) // 조현민 처럼 Step으로 zmp를 변경하는게 아니라 부드럽게 바꿔줘도 좋을듯 / SSP 끝나기 0.1초 전 스윙 발 X,Y 고정
+    zmp_modif_time_margin_ = 0.1*hz_;
+
+    if(walking_tick_mj == t_start_ + t_total_ - t_double2_ - t_rest_last_ - zmp_modif_time_margin_) // 조현민 처럼 Step으로 zmp를 변경하는게 아니라 부드럽게 바꿔줘도 좋을듯 / SSP 끝나기 0.1초 전 스윙 발 X,Y 고정
     {
         fixed_swing_foot(0) = desired_swing_foot(0); 
         fixed_swing_foot(1) = desired_swing_foot(1); 
@@ -12858,7 +13053,7 @@ void AvatarController::getFootTrajectory_stepping()
         stepping_foot_init_pos(1) = lfoot_support_init_.translation()(1); //lfoot_trajectory_support_.translation()(1);
     }
     
-    if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_)
+    if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - zmp_modif_time_margin_)
     {
         // desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(0), target_swing_foot(0) + del_F_(0), 0.0, 0.0);
         // desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(1), target_swing_foot(1) + del_F_(1), 0.0, 0.0);
