@@ -81,6 +81,7 @@ public:
 
     void computeSlow();
     void computeFast();
+    void computeThread3();
     void computePlanner();
     void copyRobotData(RobotData &rd_l);
 
@@ -143,24 +144,9 @@ public:
     void getProcessedRobotData();
     void walkingStateManager();
     void motionGenerator();
-    void getCOMTrajectory_dg();
-    void getLegIK();
-    void getSwingFootXYTrajectory(double phase, Eigen::Vector3d com_pos_current, Eigen::Vector3d com_vel_current, Eigen::Vector3d com_vel_desired);
-    void getSwingFootXYZTrajectory();
-    void computeIk(Eigen::Isometry3d float_trunk_transform, Eigen::Isometry3d float_lleg_transform, Eigen::Isometry3d float_rleg_transform, Eigen::Vector12d &q_des);
-    Eigen::VectorQd hipAngleCompensator(Eigen::VectorQd desired_q);
-    Eigen::VectorQd jointControl(Eigen::VectorQd current_q, Eigen::VectorQd &desired_q, Eigen::VectorQd current_q_dot, Eigen::VectorQd &desired_q_dot, Eigen::VectorQd pd_mask);
-    Eigen::VectorQd gravityCompensator(Eigen::VectorQd current_q);
-    void cpCompensator();
-
-    Eigen::VectorQd comVelocityControlCompute();
-    Eigen::VectorQd swingFootControlCompute();
-    Eigen::VectorQd jointTrajectoryPDControlCompute();
-    Eigen::VectorQd dampingControlCompute();
-    Eigen::VectorQd jointLimit();
-    Eigen::VectorQd ikBalanceControlCompute();
 
     Eigen::VectorQd floatGravityTorque(Eigen::VectorQVQd q);
+
     ////// external torque estimator
     void floatingBaseMOB();
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
@@ -172,7 +158,7 @@ public:
     void collisionIdentification();
 
     void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
-    void computeLeg_HQPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
+    void computeLeg_HQPIK(Vector6d desired_momentum, Isometry3d desired_swing_foot, Matrix3d desired_support_foot_ori, Isometry3d desired_lhand, Isometry3d desired_rhand, Matrix3d desired_lupperarm_ori, Matrix3d desired_rupperarm_ori ,Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
 
     void computeCAMcontrol_HQP();
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
@@ -185,12 +171,8 @@ public:
     Eigen::MatrixXd getAdotMatrix(VectorXd q, VectorXd qdot);
     ///////////////////
 
-    bool balanceTrigger(Eigen::Vector2d com_pos_2d, Eigen::Vector2d com_vel_2d);
-    int checkZMPinWhichFoot(Eigen::Vector2d zmp_measured);               // check where the zmp is
-    Eigen::VectorQd tuneTorqueForZMPSafety(Eigen::VectorQd task_torque); // check where the zmp is
     // Eigen::VectorQd zmpAnkleControl();
     // Eigen::VectorQd jointComTrackingTuning();
-    void fallDetection();
 
     //motion control
     void motionRetargeting();
@@ -203,8 +185,6 @@ public:
     void motionRetargeting_HQPIK2();
     // void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
-    void exoSuitRawDataProcessing();
-    void azureKinectRawDataProcessing();
     void hmdRawDataProcessing();
     void poseCalibration();
     void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
@@ -222,17 +202,10 @@ public:
     void getMatrix3dDataFromText(std::ifstream &text_file, Eigen::Matrix3d &mat);
     void getIsometry3dDataFromText(std::ifstream &text_file, Eigen::Isometry3d &isom);
 
-    //preview related functions
-    void getComTrajectory_Preview();
-    void modifiedPreviewControl_MJ();
-    void previewParam_MJ(double dt, int NL, double zc, Eigen::Matrix4d &K, Eigen::MatrixXd &Gi, Eigen::VectorXd &Gd, Eigen::MatrixXd &Gx, Eigen::MatrixXd &A, Eigen::VectorXd &B, Eigen::MatrixXd &C, Eigen::MatrixXd &D, Eigen::MatrixXd &A_bar, Eigen::VectorXd &B_bar);
-    void preview_MJ(double dt, int NL, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double &UX, double &UY, Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD);
-    Eigen::MatrixXd discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q);
+    //CMM
     void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
-    void updateCMM_DG();
     void CentroidalMomentCalculator();
 
-    void getZmpTrajectory_dg();
     void savePreData();
     void printOutTextFile();
 
@@ -247,11 +220,7 @@ public:
 
     ros::Subscriber com_walking_pd_gain_sub;
     ros::Subscriber pelv_ori_pd_gain_sub;
-    ros::Subscriber support_foot_damping_gain_sub;
     ros::Subscriber dg_leg_pd_gain_sub;
-    ros::Subscriber alpha_x_sub;
-    ros::Subscriber alpha_y_sub;
-    ros::Subscriber step_width_sub;
 
     ros::Subscriber test1_sub;
     ros::Subscriber test2_sub;
@@ -773,15 +742,6 @@ public:
     double F_T_R_y_input = 0;
     double F_T_R_y_input_dot = 0;
 
-    Eigen::Vector2d f_star_xy_;
-    Eigen::Vector2d f_star_xy_pre_;
-    Eigen::Vector6d f_star_6d_;
-    Eigen::Vector6d f_star_6d_pre_;
-    Eigen::Vector6d f_star_l_;
-    Eigen::Vector6d f_star_r_;
-    Eigen::Vector6d f_star_l_pre_;
-    Eigen::Vector6d f_star_r_pre_;
-
     Eigen::VectorQd torque_task_;
     Eigen::VectorQd torque_init_;
     Eigen::VectorQd torque_grav_;
@@ -795,15 +755,6 @@ public:
 
     Eigen::VectorQd torque_task_min_;
     Eigen::VectorQd torque_task_max_;
-    //getComTrajectory() variables
-    double xi_;
-    double yi_;
-    Eigen::Vector3d xs_;
-    Eigen::Vector3d ys_;
-    Eigen::Vector3d xd_;
-    Eigen::Vector3d yd_;
-    Eigen::Vector3d xd_b;
-    Eigen::Vector3d yd_b;
 
     //Preview Control
     double preview_horizon_;
@@ -811,11 +762,7 @@ public:
     double preview_update_time_;
     double last_preview_param_update_time_;
 
-    Eigen::Vector3d preview_x, preview_y, preview_x_b, preview_y_b, preview_x_b2, preview_y_b2;
-    double ux_, uy_, ux_1_, uy_1_;
     double zc_;
-    double gi_;
-    double zmp_start_time_; //원래 코드에서는 start_time, zmp_ref 시작되는 time같음
  
     
     Eigen::Matrix4d k_;
@@ -827,25 +774,7 @@ public:
     Eigen::Matrix1x3d c_;
 
     //Preview CPM
-    Eigen::MatrixXd A_;
-    Eigen::VectorXd B_;
-    Eigen::MatrixXd C_;
-    Eigen::MatrixXd D_;
-    Eigen::Matrix3d K_;
-    Eigen::MatrixXd Gi_;
-    Eigen::MatrixXd Gx_;
-    Eigen::VectorXd Gd_;
-    Eigen::MatrixXd A_bar_;
-    Eigen::VectorXd B_bar_;
-    Eigen::Vector2d Preview_X, Preview_Y, Preview_X_b, Preview_Y_b;
-    Eigen::VectorXd X_bar_p_, Y_bar_p_;
-    Eigen::Vector2d XD_;
-    Eigen::Vector2d YD_;
-    double UX_, UY_;
 
-    int zmp_size_;
-
-    Eigen::MatrixXd ref_zmp_;
     Eigen::Vector3d com_pos_desired_preview_;
     Eigen::Vector3d com_vel_desired_preview_;
     Eigen::Vector3d com_acc_desired_preview_;
@@ -854,18 +783,7 @@ public:
     Eigen::Vector3d com_vel_desired_preview_pre_;
     Eigen::Vector3d com_acc_desired_preview_pre_;
 
-    //siwngFootControlCompute
-    Vector3d swingfoot_f_star_l_;
-    Vector3d swingfoot_f_star_r_;
-    Vector3d swingfoot_f_star_l_pre_;
-    Vector3d swingfoot_f_star_r_pre_;
 
-    //dampingControlCompute
-    Vector3d f_lfoot_damping_;
-    Vector3d f_rfoot_damping_;
-    Vector3d f_lfoot_damping_pre_;
-    Vector3d f_rfoot_damping_pre_;
-    Matrix3d support_foot_damping_gain_;
 
     //MotionRetargeting variables
     int upperbody_mode_recieved_;
@@ -1317,20 +1235,20 @@ public:
     ///////////////////////////////////////////////////
 
     /////////////LEG-HQPIK//////////////////////////
-    const int hierarchy_num_leg_hqpik_ = 2;
-    const int variable_size_leg_hqpik_ = 12;            // original number -> 6 (DG)
-    const int constraint_size1_leg_hqpik_ = 12;         //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
-    const int constraint_size2_leg_hqpik_[2] = {12, 12}; //[lb <=	Ax 	<=	ub] or [Ax = b]
-    const int control_size_leg_hqpik_[2] = {6, 6};     //1: leg position control, 2: leg orientation control
+    const int hierarchy_num_leg_hqpik_ = 6;
+    const int variable_size_leg_hqpik_ = 33;            // original number -> 6 (DG)
+    const int constraint_size1_leg_hqpik_ = 33;         //[lb <=	x	<= 	ub] form constraints // original number -> 6 (DG)
+    const int constraint_size2_leg_hqpik_[6] = {12, 9, 15, 23, 35, 39}; //[lb <=	Ax 	<=	ub] or [Ax = b]
+    const int control_size_leg_hqpik_[6] = {9, 6, 8, 12, 4, 4};     //1: momentum(6)+swing leg pos(3), 2: both foot orientation(6), 3: pelv, upper body, head orientation(8), 4: both hand pose (12), 5: both upper arm orientation (4), 6: both shoulder orientation (4)
 
-    double w1_leg_hqpik_[2];
-    double w2_leg_hqpik_[2];
-    double w3_leg_hqpik_[2];
+    double w1_leg_hqpik_[6];
+    double w2_leg_hqpik_[6];
+    double w3_leg_hqpik_[6];
 
-    Eigen::MatrixXd H_leg_hqpik_[2], A_leg_hqpik_[2];
-    Eigen::MatrixXd J_leg_hqpik_[2];
-    Eigen::VectorXd g_leg_hqpik_[2], u_dot_leg_hqpik_[2], qpres_leg_hqpik_, ub_leg_hqpik_[2], lb_leg_hqpik_[2], ubA_leg_hqpik_[2], lbA_leg_hqpik_[2];
-    Eigen::VectorXd q_dot_leg_hqpik_[2];
+    Eigen::MatrixXd H_leg_hqpik_[6], A_leg_hqpik_[6];
+    Eigen::MatrixXd J_leg_hqpik_[6];
+    Eigen::VectorXd g_leg_hqpik_[6], u_dot_leg_hqpik_[6], qpres_leg_hqpik_, ub_leg_hqpik_[6], lb_leg_hqpik_[6], ubA_leg_hqpik_[6], lbA_leg_hqpik_[6];
+    Eigen::VectorXd q_dot_leg_hqpik_[6];
 
     int last_solved_hierarchy_num_leg_hqpik_;
     ///////////////////////////////////////////////////
