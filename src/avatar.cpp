@@ -795,9 +795,9 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 6.1*hz_)&&(walking_tick_mj < 6.2*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
+                if( (walking_tick_mj >= 5.9*hz_)&&(walking_tick_mj < 6.0*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*-430;//610.0; //x-axis linear force 
+                    mujoco_applied_ext_force_.data[0] = 0*-430.0;//610.0; //x-axis linear force 
                     mujoco_applied_ext_force_.data[1] = -650.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
@@ -9549,6 +9549,7 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
 }
 */
 
+
 void AvatarController::steptimingController_MJ()
 {   
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -9572,6 +9573,7 @@ void AvatarController::steptimingController_MJ()
     double tau_nom = 0;
     double T_gap = 0;
     
+    // double w1_step = 0.5, w2_step = 1000, w3_step = 1000.0;
     double w1_step = 50, w2_step = 5000, w3_step = 5000.0;
     double u0_x = 0; 
     double u0_y = 0;    
@@ -9596,8 +9598,8 @@ void AvatarController::steptimingController_MJ()
 
     T_gap = 0.05*hz_;
     T_nom = 0.6; // 0.6하면 370 못버팀.
-    T_min = T_nom - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
-    T_max = T_nom + 0.2;
+    T_min = T_nom - 0.15;  
+    T_max = T_nom + 0.15;
     tau_nom = exp(wn*T_nom); 
 
     b_nom_x = L_nom/(exp(wn*T_nom)-1);
@@ -9669,6 +9671,37 @@ void AvatarController::steptimingController_MJ()
         stepping_input_.setZero(3);
     }    
 
+    // if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
+    // {   // Solving the QP during only SSP
+    //     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    //     {
+    //         QP_stepping_.InitializeProblemSize(3, 5);
+    //         QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
+    //         QP_stepping_.UpdateMinProblem(H_step, g_step);
+    //         QP_stepping_.DeleteSubjectToAx();      
+    //         QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
+        
+    //         if(QP_stepping_.SolveQPoases(200, stepping_input))
+    //         {   
+    //             stepping_input_ = stepping_input.segment(0, 3);
+    //         }
+    //     }  
+    //     if(stepping_input_(0) != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) - 0.1*hz_) // stepping time의 해가 0이 나오면 t_total_ = inf;
+    //     {
+    //         //if(t_rest_init_ + t_double1_ + log(stepping_input_(2))/wn_*hz_ + t_rest_last_ + t_double2_  > walking_tick_mj - stepping_start_time + T_gap) // 필요 없을듯
+    //         //{
+    //         t_total_prev_ = t_total_;
+    //         t_total_ = round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;               
+    //         t_last_ = t_start_ + t_total_ - 1;                
+    //         //} 
+    //     }
+    //     else
+    //     {
+    //         t_total_ = t_total_prev_;
+    //         t_last_ = t_start_ + t_total_ - 1;
+    //     }
+    // }        
+
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
     {   // Solving the QP during only SSP
         if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
@@ -9684,23 +9717,18 @@ void AvatarController::steptimingController_MJ()
                 stepping_input_ = stepping_input.segment(0, 3);
             }
 
-             if(stepping_input_(0) != 0)
-             {
-                //  if(walking_tick_mj - stepping_start_time + T_gap < t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_last_ + t_double2_ - 0.2*hz_)
-                //  {
-                //     t_total_ = round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;   
-                //     t_last_ = t_start_ + t_total_ - 1;
-                //  }
-                if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_)
-                 {
-                    t_total_ = round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;   
+            if(stepping_input_(0) != 0)
+            {
+                if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*100)/100.0*hz_ - zmp_modif_time_margin_)
+                {                     
+                    t_total_ = round(log(stepping_input_(0))/wn*100)/100.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
                     t_last_ = t_start_ + t_total_ - 1;
-                 }
-                 //cout << walking_tick_mj - stepping_start_time + T_gap << "," << round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_ << endl;
-             } 
+                }
+                //cout << walking_tick_mj - stepping_start_time + T_gap << "," << round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_ << endl;
+            }
         }  
     }        
-    MJ_graph1 << t_total_/2000.0 << "," << ZMP_Y_REF_alpha_ << "," << walking_tick_mj - stepping_start_time + T_gap << "," << t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_last_ + t_double2_ <<  endl;
+    MJ_graph << t_total_/2000.0 << "," << ZMP_Y_REF_alpha_ << "," << walking_tick_mj - stepping_start_time << "," << t_rest_init_ + t_double1_ + round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_<<  endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf  
 }
@@ -10447,8 +10475,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         cpmpc_y_update_ = true;
     }
     
-    MJ_graph  << cp_y_ref(0) << "," << cpmpc_deszmp_y_(0) <<  "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << cpmpc_deszmp_y_(N_cp+1) << endl;
-    //MJ_graph1 << cp_x_ref(0) << "," << cpmpc_deszmp_x_(0) <<  "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << cpmpc_deszmp_x_(N_cp+1) << endl;
+    MJ_graph1  << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << t_total_ << endl;
+    // MJ_graph1 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << endl;
     
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
