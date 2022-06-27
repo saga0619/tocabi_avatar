@@ -728,11 +728,7 @@ void AvatarController::computeSlow()
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)
-<<<<<<< HEAD
                 // steptimingController_MJ();
-=======
-                steptimingController_MJ(); 
->>>>>>> 78d578d4b07b29ea856e14babf51832499a214da
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -9551,8 +9547,6 @@ void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double pr
 }
 */
 
-<<<<<<< HEAD
-=======
 void AvatarController::steptimingController_MJ()
 {   
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -9708,7 +9702,6 @@ void AvatarController::steptimingController_MJ()
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf  
 }
->>>>>>> 78d578d4b07b29ea856e14babf51832499a214da
 
 void AvatarController::BoltController_MJ()
 {   
