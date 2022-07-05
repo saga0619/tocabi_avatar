@@ -150,6 +150,7 @@ public:
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
 
+    void CPMPC_bolt_Controller_MJ();
     void steptimingController_MJ();
     void BoltController_MJ();
     void getComTrajectory_mpc();
@@ -1564,7 +1565,12 @@ public:
     double t_double1_;
     double t_double2_;
     double t_total_;
-    double t_total_prev_;
+    double t_total_thread_;
+    double t_rest_init_thread_;
+    double t_rest_last_thread_;
+    double t_total_mpc_;
+    double t_rest_init_mpc_;
+    double t_rest_last_mpc_;
     double foot_height_;
     int total_step_num_;
     int total_step_num_mpc_;
