@@ -1198,7 +1198,8 @@ public:
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
     
-    double cp_err_integ_ = 0;
+    double cp_err_integ_x_ = 0;
+    double cp_err_integ_y_ = 0;
     double dsp_reducer_ = 0;
     double dsp_reducer_1_ = 0;
     double del_F_x_next_ = 0;
