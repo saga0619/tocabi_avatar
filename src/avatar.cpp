@@ -14,6 +14,7 @@ using namespace TOCABI;
 
 ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
 ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
 ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
 ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
 ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
@@ -795,10 +796,10 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if( (walking_tick_mj >= 6.18*hz_)&&(walking_tick_mj < 6.38*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
+                if((walking_tick_mj >= 6.18*hz_)&&(walking_tick_mj < 6.38*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
                 { // -170,175 // -350 7.5 - 7.6
                     mujoco_applied_ext_force_.data[0] = 0*-225.0;//x-axis linear force // 475때 넘어지는거는 time 소숫점 3자리 문제 
-                    mujoco_applied_ext_force_.data[1] = -205.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[1] = -210.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9573,6 +9574,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double T_gap = 0;
         
     double w1_step = 1.0, w2_step = 0.005, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
+    // -Y 시간 얼마 안남았을때만 밑에 웨이팅이 좋다.
+    // double w1_step = 1.0, w2_step = 1000.0, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     double u0_x = 0; 
     double u0_y = 0;    
     double b_nom_x = 0; 
@@ -9612,8 +9615,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     T_gap = 0.05*hz_;
     T_nom = 0.6; // 0.6하면 370 못버팀.
-    T_min = T_nom - 0.2; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; 
-    T_max = T_nom + 0.2;
+    T_min = T_nom - 0.15; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; // DSP가 고정이라는 가정하에 써야됨.
+    T_max = T_nom + 0.15;
     tau_nom = exp(wn*T_nom); 
 
     b_nom_x = L_nom/(exp(wn*T_nom)-1);
@@ -9712,39 +9715,39 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
             {   
                 stepping_input_ = stepping_input.segment(0, 5);
             }
-        }  
+        }
+
         if(stepping_input_(2) != 0)
         {
             if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
             {           
                 t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
                 t_last_ = t_start_ + t_total_ - 1;
-            }
-            //cout << walking_tick_mj - stepping_start_time + T_gap << "," << round(log(stepping_input_(0))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_ << endl;
+            }            
         }
     }  
     
-    // if(current_step_num_ == 5) // -y
-    // {
-    //     t_rest_init_ = 0.02 * hz_;
-    //     t_rest_last_ = 0.02 * hz_;
-    //     t_total_ = 0.9 * hz_;
-    //     t_last_ = t_start_ + t_total_ - 1;
-    // } 
-    // else if(current_step_num_ > 5)
-    // {
-    //     t_rest_init_ = 0.12 * hz_;
-    //     t_rest_last_ = 0.12 * hz_;
-    //     t_total_ = 0.9 * hz_;
-    //     // t_total_ = 1.1 * hz_;
-    //     t_last_ = t_start_ + t_total_ - 1;
-    // }
-
+    if(current_step_num_ == 5) // -y (t_total_이 많이 줄어들면 못버팀)
+    {
+        t_rest_init_ = (0.12 + dsp_reducer_1_)* hz_;// 얘만 넣어도 효과 있음. //0.02 * hz_;
+        t_rest_last_ = (0.12 + dsp_reducer_1_)* hz_;
+        t_total_ = 0.8 * hz_;
+        t_last_ = t_start_ + t_total_ - 1;
+    } 
+    else if(current_step_num_ > 5)
+    {
+        t_rest_init_ = 0.12 * hz_;
+        t_rest_last_ = 0.12 * hz_;
+        // t_total_ = 0.9 * hz_;
+        // t_total_ = 1.1 * hz_;
+        // t_last_ = t_start_ + t_total_ - 1;
+    }
+    
     // if(current_step_num_ == 5) // -x
     // {
     //     t_rest_init_ = 0.0 * hz_;
     //     t_rest_last_ = 0.0 * hz_;
-    //     t_total_ = 0.7 * hz_;
+    //     t_total_ = 0.70 * hz_; 
     //     t_last_ = t_start_ + t_total_ - 1;
     // } 
     // else
@@ -9766,12 +9769,12 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(0) = 0;
         stepping_input_(1) = 0;
     }
-    
+    MJ_graph1 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << current_step_num_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf  
-    MJ_graph1 << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_/hz_ << "," << L_nom << endl;
+    // MJ_graph1 << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_/hz_ << "," << L_nom << endl;
      
 }
 
@@ -10306,9 +10309,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             else
             {
                 weighting_cp_(i,i) = 100.0;
-                weighting_zmp_diff_(i,i) = 10.0; 
-            }
-            
+                weighting_zmp_diff_(i,i) = 0.10; 
+            }            
         }
 
         // Hessian matrix
@@ -10532,14 +10534,41 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
             atb_cpmpc_y_update_ = false;
         }       
-
         cpmpc_y_update_ = true;
     }
+            
+    Eigen::VectorXd cp_predicted(N_cp);
+    static int graph_flag = 0;
+    double weighting_dsp = 0;
+
+    cp_predicted = F_cp_*cp_measured_mpc_(1) + F_zmp_*cpmpc_deszmp_y_.segment(0,N_cp);
     
-    // MJ_graph << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << endl;
-    MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << t_total_ << "," << del_zmp(1) << endl;
+    // if(walking_tick_mj_mpc_ > 6.38 * hz_ && graph_flag == 0)
+    // {
+    //     for(int i = 0; i < N_cp; i ++)
+    //     { 
+    //         MJ_graph1 << cp_y_ref(i) << "," << cp_predicted(i) << endl;
+    //     }
+    //     graph_flag = 1;
+    // }
     
-    
+    cp_err_integ_ = 0;
+
+    if(current_step_num_mpc_ > 0)
+    {
+        for(int i = 0; i < N_cp; i ++)
+        { 
+            cp_err_integ_ += (cp_predicted(i) - cp_y_ref(i))/(i+1);
+        }
+        cp_err_integ_ = DyrosMath::minmax_cut(cp_err_integ_, -0.5, 0.5);
+        weighting_dsp = DyrosMath::cubic(mpc_tick, 1200.0, 1500.0, 0.0, 1.0, 0.0, 0.0);
+        dsp_reducer_ = cp_err_integ_ * weighting_dsp;
+    }
+       
+
+    //MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << endl;
+    MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << t_total_ << "," << cp_err_integ_ << "," << weighting_dsp <<  endl;
+        
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
     // if((int)walking_tick_mj_mpc_ % 2 == 0)
@@ -13999,7 +14028,8 @@ void AvatarController::getComTrajectory_mpc()
 
         des_zmp_x_prev_stepchange_ = com_pos(0);
         des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
-         
+        
+        dsp_reducer_1_ = DyrosMath::minmax_cut(0.6*round(dsp_reducer_*10)/10.0, -0.12, 0.12);
     }    
     // MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
