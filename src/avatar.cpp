@@ -796,10 +796,12 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
                 
                 ////mujoco ext wrench publish////(dg add)
-                if((walking_tick_mj >= 6.18*hz_)&&(walking_tick_mj < 6.38*hz_)) // x : 5.6 ~ 5.7 y : 5.9 ~ 6.0
+                // 1st DSP 5.55 ~ 5.7 / SSP 5.7 ~ 6.3 / 2nd DSP 6.3 ~ 6.45 
+                // 5.82 ~ 6.02 (20%) / 6.18 ~ 6.38 (80%)
+                if((walking_tick_mj >= 6.180*hz_)&&(walking_tick_mj < 6.380*hz_)) 
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = -210.0;//x-axis linear force // 475때 넘어지는거는 time 소숫점 3자리 문제 
-                    mujoco_applied_ext_force_.data[1] = 0*-210.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = -230.0;//x-axis linear force // 475때 넘어지는거는 time 소숫점 3자리 문제 
+                    mujoco_applied_ext_force_.data[1] = 0*-195.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9701,6 +9703,43 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_.setZero(5);
     }    
     
+
+    if (walking_tick_mj == t_start_ + t_total_ - t_rest_last_ - t_double2_  && current_step_num_ != total_step_num_ - 1) // SSP 끝날때 미리 계산된 DSP time 저장.
+    {
+        dsp_reducer_1_prev_ = dsp_reducer_1_;
+        cout << "walking_tick: " <<  (double)walking_tick_mj*0.0005 << endl;
+    }
+    else
+    {         
+        dsp_reducer_1_ = 0.5 * dsp_reducer_x_;
+        dsp_reducer_1_ = DyrosMath::minmax_cut(round(dsp_reducer_1_*1000)/1000.0, 0.0, 0.12);
+        // dsp_reducer_2_ = 1 / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_2_ + (2 * M_PI * 10.0 * del_t) / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_1_;
+    } 
+
+    if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_) // -x
+    {   
+        t_rest_last_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
+    } 
+    else if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // -x
+    {
+        t_rest_init_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
+        t_rest_last_ = 0.12*hz_;
+    }
+    
+    // if(current_step_num_ == 5) // -x (t_total_이 많이 줄어들면 못버팀)
+    // {
+    //     t_rest_init_ = 0*(0.12 + dsp_reducer_1_)* hz_;// 얘만 넣어도 효과 있음. //0.02 * hz_;
+    //     t_rest_last_ = 0*(0.12 + dsp_reducer_1_)* hz_;
+    //     t_total_ = 0.7 * hz_;
+    //     t_last_ = t_start_ + t_total_ - 1;
+    // } 
+    // else if(current_step_num_ >= 6)
+    // {
+    //     t_rest_init_ = 0.12 * hz_;
+    //     t_rest_last_ = 0.12 * hz_;
+    //     // t_total_ = 1.1 * hz_;
+    //     // t_last_ = t_start_ + t_total_ - 1;
+    // }
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
     {   // Solving the QP during only SSP
         if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
@@ -9722,6 +9761,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
             if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
             {           
                 t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
+                t_total_ = DyrosMath::minmax_cut(t_total_, 0.75*hz_, 1.05*hz_);
                 t_last_ = t_start_ + t_total_ - 1;
             }            
         }
@@ -9742,21 +9782,6 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     //     // t_total_ = 1.1 * hz_;
     //     // t_last_ = t_start_ + t_total_ - 1;
     // }
-    
-    if(current_step_num_ == 5) // -x
-    {
-        t_rest_init_ = (0.12 + dsp_reducer_1_)* hz_;//0.0 * hz_;
-        t_rest_last_ = (0.12 + dsp_reducer_1_)* hz_;//0.0 * hz_;
-        t_total_ = 0.75 * hz_; 
-        t_last_ = t_start_ + t_total_ - 1;
-    } 
-    else
-    {
-        t_rest_init_ = 0.12 * hz_;
-        t_rest_last_ = 0.12 * hz_;
-        // t_total_ = 1.1 * hz_;
-        // t_last_ = t_start_ + t_total_ - 1;
-    }
 
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
@@ -9769,7 +9794,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(0) = 0;
         stepping_input_(1) = 0;
     }
-    MJ_graph1 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << current_step_num_ << endl;
+    MJ_graph1 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_reducer_x_ << "," << dsp_reducer_1_ << "," << dsp_reducer_2_ << "," << current_step_num_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -10384,9 +10409,9 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
                 sel_swingfoot_n_next.setOnes();
                 sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
             }
-             P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
+            P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
         }
-        // cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
+        //cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
     }
     else
     {       
@@ -10442,8 +10467,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
 
     for(int i = 0; i < N_cp; i++)  
     {
-        zmp_bound_x(i) = 0.08;
-        zmp_bound_y(i) = 0.07; // 0.07 limitation causes the foot trajectory to be created too late for small disturbances.
+        zmp_bound_x(i) = 0.1;
+        zmp_bound_y(i) = 0.07;  
     }
     
     lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x;
@@ -10545,7 +10570,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     cp_predicted_x = F_cp_*cp_measured_mpc_(0) + F_zmp_*cpmpc_deszmp_x_.segment(0,N_cp);
     cp_predicted_y = F_cp_*cp_measured_mpc_(1) + F_zmp_*cpmpc_deszmp_y_.segment(0,N_cp);
     
-    // if(walking_tick_mj_mpc_ > 6.38 * hz_ && graph_flag == 0)
+    // if(walking_tick_mj_mpc_ >= 6.36 * hz_ && graph_flag == 0)
     // {
     //     for(int i = 0; i < N_cp; i ++)
     //     { 
@@ -10554,35 +10579,62 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     //     graph_flag = 1;
     // }
     
-    cp_err_integ_x_ = 0;
-    cp_err_integ_y_ = 0;
+    // cp_err_integ_x_ = 0;
+    // cp_err_integ_y_ = 0;
+    // swing_time_cur, swing_time_next, swing_time_n_next
+    Eigen::VectorXd cp_err_dsp_x(N_cp); 
+    Eigen::VectorXd cp_err_dsp_y(N_cp);
+    double cp_err_norm_x = 0; 
+    double cp_err_norm_y = 0;
 
     if(current_step_num_mpc_ > 0)
     {
-        for(int i = 0; i < N_cp; i ++)
-        { 
-            cp_err_integ_x_ += (cp_predicted_x(i) - cp_x_ref(i))/(0*i+1);
-            cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i))/(0*i+1);
+        // for(int i = 0; i < N_cp; i ++)
+        // { 
+        //     cp_err_integ_x_ += (cp_predicted_x(i) - cp_x_ref(i));
+        //     cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i));
+        // }
+        if(swing_time_cur <= dsp_time1)
+        {   
+            cp_err_dsp_x.setZero();
+            cp_err_dsp_y.setZero();
+            
+            for(int i = 0 ; i < swing_time_cur + dsp_time2 ; i ++)
+            { 
+                cp_err_dsp_x(i) = cp_predicted_x(i) - cp_x_ref(i);
+                cp_err_dsp_y(i) = cp_predicted_y(i) - cp_y_ref(i);
+                //cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i));
+            }
+            cp_err_norm_x = cp_err_dsp_x.norm();
+            cp_err_norm_y = cp_err_dsp_y.norm();
         }
-
-        cp_err_integ_x_ = DyrosMath::minmax_cut(cp_err_integ_x_, -10.5, 10.5);
-        cp_err_integ_y_ = DyrosMath::minmax_cut(cp_err_integ_y_, -10.5, 10.5);
-
-        //if(mpc_tick <= 1500)
+        else
         {
-            weighting_dsp = DyrosMath::cubic(mpc_tick, 1400.0, 1600.0, 0.0, 1.0, 0.0, 0.0);
+            cp_err_dsp_x.setZero();
+            cp_err_dsp_y.setZero();
+
+            for(int i = swing_time_cur - dsp_time1; i < swing_time_cur - dsp_time1 + dsp_time1 + dsp_time2 ; i ++)
+            { 
+                cp_err_dsp_x(i) = (cp_predicted_x(i) - cp_x_ref(i));
+                cp_err_dsp_y(i) = (cp_predicted_y(i) - cp_y_ref(i));
+            }  
+            cp_err_norm_x = cp_err_dsp_x.norm();
+            cp_err_norm_y = cp_err_dsp_y.norm();
         }
-        //else
-        //{
-            //weighting_dsp = 0;
-        //}
         
-        // dsp_reducer_ = cp_err_integ_y_* weighting_dsp;
-        dsp_reducer_ = cp_err_integ_x_* weighting_dsp;
+        cp_err_norm_x = DyrosMath::minmax_cut(cp_err_norm_x, -10.5, 10.5);
+        cp_err_norm_y = DyrosMath::minmax_cut(cp_err_norm_y, -10.5, 10.5);
+
+        
+        // weighting_dsp = DyrosMath::cubic(mpc_tick, t_total_mpc_/2 + 0.1*hz_, t_total_mpc_, 0.0, 1.0, 0.0, 0.0);
+        weighting_dsp = DyrosMath::cubic(mpc_tick, t_total_mpc_/2 + 0.1*hz_, t_total_mpc_ - (t_rest_last_mpc_ + t_double2_), 0.0, 1.0, 0.0, 0.0);
+        
+        // dsp_reducer_y_ = cp_err_integ_y_* weighting_dsp;
+        dsp_reducer_x_ = cp_err_norm_x* weighting_dsp;
     }
        
 
-    MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << "," << cp_err_integ_x_ << "," << weighting_dsp <<  endl;
+    MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     // MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_prev_ = current_step_num_mpc_;
@@ -13151,7 +13203,7 @@ void AvatarController::getFootTrajectory_stepping()
         fixed_swing_foot(0) = desired_swing_foot(0); 
         fixed_swing_foot(1) = desired_swing_foot(1); 
         modified_del_zmp_(current_step_num_,0) = del_F_(0);
-        modified_del_zmp_(current_step_num_,1) = del_F_(1);
+        modified_del_zmp_(current_step_num_,1) = del_F_(1);        
     }
 
     if(current_step_num_ > 0)
@@ -14044,8 +14096,7 @@ void AvatarController::getComTrajectory_mpc()
 
         des_zmp_x_prev_stepchange_ = com_pos(0);
         des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
-        
-        dsp_reducer_1_ = DyrosMath::minmax_cut(0.6*round(dsp_reducer_*10)/10.0, -0.12, 0.12);
+                
     }    
     // MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
@@ -14840,7 +14891,7 @@ void AvatarController::CP_compen_MJ_FT()
     del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
   
     // del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), -0.08, 0.08);
-    // del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), -0.05, 0.05); 
+    // del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), -0.07, 0.07); 
 
     ////////////////////////
     // double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
