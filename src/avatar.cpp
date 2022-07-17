@@ -7920,7 +7920,13 @@ void AvatarController::computeCAMcontrol_HQP()
     //  }
 }
 // void AvatarController::computeLeg_HQPIK(Vector6d desired_momentum, Isometry3d desired_swing_foot, Matrix3d desired_support_foot_ori, Isometry3d desired_lhand, Isometry3d desired_rhand, Matrix3d desired_lupperarm_ori, Matrix3d desired_rupperarm_ori ,Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot)
-// {
+// {   
+//     //////////////////// TO DO LISTS/////////////////
+//     // - get desired trajectory from the thread 1
+//     // - get the contact information (which foot is on the contact)
+//     // - define jacobians for each task
+//     // - test the code
+
 //     if (first_loop_leg_hqpik_)
 //     {
 //         for (int i = 0; i < hierarchy_num_leg_hqpik_; i++)
@@ -7955,6 +7961,20 @@ void AvatarController::computeCAMcontrol_HQP()
 //         first_loop_leg_hqpik_ = false;
 //     }
 
+//     //////////// calculate robot's states using the desired_q
+//     // Vector3d com_position_from_des;
+//     // Vector3d link_com_xipos_temp;
+//     // com_position_from_des.setZero();
+//     // for (int i = 0; i < LINK_NUMBER; i++)
+//     // {
+//     //     link_com_xipos_temp = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[i].id, rd_.link_[i].com_position, false);
+//     //     com_position_from_des += link_com_xipos_temp * rd_.link_[i].mass / rd_.link_[COM_id].mass;
+//     // }
+
+
+//     RigidBodyDynamics::CalcBodyToBaseCoordinates(model_, q_virtual_, id, Eigen::Vector3d::Zero(), false)
+
+//     ////////////////////////////
 
 //     // 1st task: linear & angular momentum control (6dof) + swing foot position (3dof)
 //     Vector3d zero3;
@@ -13330,29 +13350,29 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     ////// random walking setting///////
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-    target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
 
-    t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.02 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.7 * hz_ + (std::rand() % 51) * 0.01 * hz_;
-    // t_total_ = 1.5*hz_;
+    // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.02 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.7 * hz_ + (std::rand() % 51) * 0.01 * hz_;
+    // // t_total_ = 1.5*hz_;
 
-    // t_rest_init_ = 0.27*hz_;
-    // t_rest_last_ = 0.27*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.3*hz_;
-    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // // t_rest_init_ = 0.27*hz_;
+    // // t_rest_last_ = 0.27*hz_;
+    // // t_double1_ = 0.03*hz_;
+    // // t_double2_ = 0.03*hz_;
+    // // t_total_= 1.3*hz_;
+    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
@@ -13366,7 +13386,7 @@ void AvatarController::parameterSetting()
     // step_length_y_ = 0.0;
     // is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.2*hz_;
+    // t_rest_init_ = 0.2*hz_; 
     // t_rest_last_ = 0.2*hz_;
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
@@ -13374,21 +13394,21 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 1.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0*DEG2RAD;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_;
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
 
     //// 0.7s walking
