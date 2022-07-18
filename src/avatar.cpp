@@ -2033,7 +2033,7 @@ void AvatarController::getRobotData()
     if (current_time_ != pre_time_)
     {
         dt_ = current_time_ - pre_time_;
-        dt_ = DyrosMath::minmax_cut(dt_, 0.0005, 0.0020);
+        dt_ = DyrosMath::minmax_cut(dt_, 0.0005, 0.0050);
     }
 
     current_q_ = rd_.q_;
