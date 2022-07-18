@@ -1422,10 +1422,11 @@ public:
 
     ifstream network_weights_file_[6];
     ifstream mean_std_file_[4];
+    ifstream col_thr_file_;
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
 
-    Eigen::VectorQd threashold_joint_torque_collision_;
+    Eigen::VectorQd threshold_joint_torque_collision_;
     Eigen::VectorQd ext_torque_compensation_;
 
     int left_leg_collision_detected_link_;
@@ -1459,6 +1460,8 @@ public:
     void initializeLegLSTM(LSTM &lstm);
     void calculateLstmInput(LSTM &lstm);
     void calculateLstmOutput(LSTM &lstm);
+
+    void loadCollisionThreshold(std::string folder_path);
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables

@@ -726,6 +726,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -766,8 +767,8 @@ void AvatarController::computeSlow()
         }
 
         // getRobotState();
-        if (initial_flag == 2)
-            rd_.tc_.mode = 11; // dg test
+        // if (initial_flag == 2)
+            // rd_.tc_.mode = 11; // dg test
 
         // if( int(rd_.control_time_*2000)%2000 == 0)
         // {
@@ -2477,9 +2478,9 @@ void AvatarController::floatingBaseMOB()
     }
     estimated_model_unct_torque_slow_lpf_.segment(0, 12) = DyrosMath::lpf<12>(estimated_model_unct_torque_slow_.segment(0, 12), estimated_model_unct_torque_slow_lpf_.segment(0, 12), hz_, 10);
     // estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF) - estimated_model_unct_torque_slow_;  // MOB learning
-    // estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF);
+    estimated_ext_torque_lstm_ = mob_residual_wholebody_.segment(6, MODEL_DOF);
     // estimated_ext_torque_lstm_ = rd_.torque_jts_;
-    estimated_ext_torque_lstm_ = estimated_model_unct_torque_slow_; // FT e2e learning
+    // estimated_ext_torque_lstm_ = estimated_model_unct_torque_slow_; // FT e2e learning
 
     estimated_ext_force_lfoot_lstm_ = R_temp_lfoot.transpose() * (jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse() * estimated_ext_torque_lstm_.segment(0, 6);
     estimated_ext_force_rfoot_lstm_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_ext_torque_lstm_.segment(6, 6);
@@ -2548,7 +2549,7 @@ void AvatarController::floatingBaseMOB()
 }
 void AvatarController::collisionEstimation()
 {
-    // collisionIsolation();
+    collisionIsolation();
     // collisionIdentification();
 }
 void AvatarController::collisionIsolation()
@@ -2558,20 +2559,20 @@ void AvatarController::collisionIsolation()
 
     //////////////////sim ideal mob   /////////
     // //left leg
-    // threashold_joint_torque_collision_(0) = 10;
-    // threashold_joint_torque_collision_(1) = 20;
-    // threashold_joint_torque_collision_(2) = 20;
-    // threashold_joint_torque_collision_(3) = 10;
-    // threashold_joint_torque_collision_(4) = 5;
-    // threashold_joint_torque_collision_(5) = 5;
+    // threshold_joint_torque_collision_(0) = 10;
+    // threshold_joint_torque_collision_(1) = 20;
+    // threshold_joint_torque_collision_(2) = 20;
+    // threshold_joint_torque_collision_(3) = 10;
+    // threshold_joint_torque_collision_(4) = 5;
+    // threshold_joint_torque_collision_(5) = 5;
 
     // //right leg
-    // threashold_joint_torque_collision_(6) = 10;
-    // threashold_joint_torque_collision_(7) = 20;
-    // threashold_joint_torque_collision_(8) = 20;
-    // threashold_joint_torque_collision_(9) = 10;
-    // threashold_joint_torque_collision_(10) = 5;
-    // threashold_joint_torque_collision_(11) = 5;
+    // threshold_joint_torque_collision_(6) = 10;
+    // threshold_joint_torque_collision_(7) = 20;
+    // threshold_joint_torque_collision_(8) = 20;
+    // threshold_joint_torque_collision_(9) = 10;
+    // threshold_joint_torque_collision_(10) = 5;
+    // threshold_joint_torque_collision_(11) = 5;
 
     // int detection_tick_margin = 0.03*hz_;
     // unsigned int continuous_filter_window = 10;
@@ -2580,26 +2581,29 @@ void AvatarController::collisionIsolation()
     ///////////////////////////////////////////
 
     //////////////////tocabi/////////
-    // left leg
-    threashold_joint_torque_collision_(0) = 4;
-    threashold_joint_torque_collision_(1) = 15;
-    threashold_joint_torque_collision_(2) = 15;
-    threashold_joint_torque_collision_(3) = 10;
-    threashold_joint_torque_collision_(4) = 2;
-    threashold_joint_torque_collision_(5) = 2;
+    // // left leg
+    // threshold_joint_torque_collision_(0) = 4;
+    // threshold_joint_torque_collision_(1) = 15;
+    // threshold_joint_torque_collision_(2) = 15;
+    // threshold_joint_torque_collision_(3) = 10;
+    // threshold_joint_torque_collision_(4) = 2;
+    // threshold_joint_torque_collision_(5) = 2;
 
-    // right leg
-    threashold_joint_torque_collision_(6) = 4;
-    threashold_joint_torque_collision_(7) = 15;
-    threashold_joint_torque_collision_(8) = 15;
-    threashold_joint_torque_collision_(9) = 10;
-    threashold_joint_torque_collision_(10) = 2;
-    threashold_joint_torque_collision_(11) = 2;
+    // // right leg
+    // threshold_joint_torque_collision_(6) = 4;
+    // threshold_joint_torque_collision_(7) = 15;
+    // threshold_joint_torque_collision_(8) = 15;
+    // threshold_joint_torque_collision_(9) = 10;
+    // threshold_joint_torque_collision_(10) = 2;
+    // threshold_joint_torque_collision_(11) = 2;
 
     int detection_tick_margin = 0.03 * hz_;
     unsigned int continuous_filter_window = 10;
     double compensation_gain = 0.0;
     double foot_normal_force_threshold = 12;
+
+    VectorQd threshold_joint_torque_w_sigma = threshold_joint_torque_collision_ + 0.0*estimated_model_unct_torque_variance_slow_;
+
     ///////////////////////////////////////////
 
     // if(walking_tick_mj%200 == 0)
@@ -2609,9 +2613,9 @@ void AvatarController::collisionIsolation()
     ///////////////////////////LEFT LEG////////////////////////////////////
     for (int i = 0; i < 6; i++)
     {
-        // threashold_joint_torque_collision_(i) = 30;
+        // threshold_joint_torque_collision_(i) = 30;
         // left leg
-        if (abs(estimated_ext_torque_lstm_(i)) > threashold_joint_torque_collision_(i))
+        if (abs(estimated_ext_torque_lstm_(i)) > threshold_joint_torque_w_sigma(i))
         {
             left_leg_collision_detected_link_ = i + 1;
         }
@@ -2660,20 +2664,20 @@ void AvatarController::collisionIsolation()
                 cout << "estimated_ext_torque_lstm_: \n"
                      << estimated_ext_torque_lstm_.segment(0, 6).transpose() << endl;
 
-                // calculateFootStepTotal_reactive(lfoot_support_current_.translation()(0), false);
-                // collision_detection_flag_ = true;
+                calculateFootStepTotal_reactive(lfoot_support_current_.translation()(0), false);
+                collision_detection_flag_ = true;
             }
 
             for (int i = 0; i < 6; i++)
             {
                 if (estimated_ext_torque_lstm_(i) > 0)
                 {
-                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threshold_joint_torque_w_sigma(i));
                     ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), 0.0, 30.0);
                 }
                 else
                 {
-                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threshold_joint_torque_w_sigma(i));
                     ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -30.0, 0.0);
                 }
             }
@@ -2695,9 +2699,9 @@ void AvatarController::collisionIsolation()
     ///////////////////////////RIGHT LEG////////////////////////////////////
     for (int i = 0; i < 6; i++)
     {
-        // threashold_joint_torque_collision_(i) = 30;
+        // threshold_joint_torque_collision_(i) = 30;
         // left leg
-        if (abs(estimated_ext_torque_lstm_(i + 6)) > threashold_joint_torque_collision_(i + 6))
+        if (abs(estimated_ext_torque_lstm_(i + 6)) > threshold_joint_torque_collision_(i + 6))
         {
             right_leg_collision_detected_link_ = i + 1;
         }
@@ -2751,12 +2755,12 @@ void AvatarController::collisionIsolation()
             {
                 if (estimated_ext_torque_lstm_(i) > 0)
                 {
-                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) - threshold_joint_torque_collision_(i));
                     ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), 0.0, 30.0);
                 }
                 else
                 {
-                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threashold_joint_torque_collision_(i));
+                    ext_torque_compensation_(i) = compensation_gain*(estimated_ext_torque_lstm_(i) + threshold_joint_torque_collision_(i));
                     ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -30.0, 0.0);
                 }
             }
@@ -2819,7 +2823,50 @@ void AvatarController::collisionIdentification()
     {
     }
 }
+void AvatarController::loadCollisionThreshold(std::string folder_path)
+{
+    std::string thr_path("collision_threshold.txt");
 
+    thr_path = folder_path + thr_path;
+    col_thr_file_.open(thr_path, ios::in);
+    
+    int index = 0;
+    float temp;
+
+    if (!col_thr_file_.is_open())
+    {
+        std::cout << "Can not find the Collision Threshold file" << std::endl;
+    }
+    while (!col_thr_file_.eof())
+    {
+        col_thr_file_ >> temp;
+
+        if (temp == temp)
+        {
+            if(index <12)
+            {
+                threshold_joint_torque_collision_(index) = temp;
+                index++;
+                cout<<"threshold: "<<index<<", "<< temp <<endl;
+            }
+            else
+            {
+                cout<<"Collision Threshold file has more than 12 values"<<endl;
+            }
+        }
+        else
+        {
+            cout << "WARNING: collision_threshold has NaN value! (" << temp << ") at" + thr_path << endl;
+        }
+    }
+
+    if (index == 12)
+    {
+        cout <<"Collision Threshold: ["<<threshold_joint_torque_collision_.segment(0, 12).transpose()<< "]" << endl;
+    }
+    col_thr_file_.close();
+
+}
 void AvatarController::walkingStateManager()
 {
     if (walking_phase_ < 1)
