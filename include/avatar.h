@@ -35,24 +35,25 @@
 #include <cmath> /* isnan, sqrt */
 #include <random>
 
-const int FILE_CNT = 4;
+const int FILE_CNT = 5;
 
 // mob lstm
-const int n_input_ = 28;
+const int n_input_ = 24;
 const int n_sequence_length_ = 1;
-const int n_output_ = 6;
+const int n_output_ = 12;
 const int n_hidden_ = 128;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
-const bool gaussian_mode_ = false;
+const bool gaussian_mode_ = true;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/float_random_walking_.txt",
+        "/home/dyros/data/dg/random_walking_.txt",
         "/home/dyros/data/dg/1_foot_.txt",
         "/home/dyros/data/dg/2_zmp_.txt",
-        "/home/dyros/data/dg/3_lstm_float_.txt"
+        "/home/dyros/data/dg/3_lstm_float_.txt",
+        "/home/dyros/data/dg/q_qdot_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -1425,6 +1426,7 @@ public:
     ifstream col_thr_file_;
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
+    Eigen::VectorQd maximum_collision_free_torque_;
 
     Eigen::VectorQd threshold_joint_torque_collision_;
     Eigen::VectorQd ext_torque_compensation_;
