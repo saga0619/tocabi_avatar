@@ -727,7 +727,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -1129,7 +1129,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
@@ -1390,13 +1390,17 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             initial_flag = 2;
+
+            // KIST-Joint vel estimation
+            initializeJointMLP();
+            loadJointVelNetwork("/home/dg/catkin_ws/src/tocabi_avatar/joint_vel_net/");
         }
     }
     else if (rd_.tc_.mode == 11)
@@ -1532,12 +1536,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             if (atb_grav_update_ == false)
             {
@@ -2897,10 +2901,6 @@ void AvatarController::loadCollisionThreshold(std::string folder_path)
                 threshold_joint_torque_collision_(index) = temp;
                 index++;
                 cout<<"threshold: "<<index<<", "<< temp <<endl;
-            }
-            else
-            {
-                cout<<"Collision Threshold file has more than 12 values"<<endl;
             }
         }
         else
@@ -11465,7 +11465,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[0] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.W_ih(index) = temp;
                 index++;
@@ -11488,7 +11488,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[1] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.W_hh(index) = temp;
                 index++;
@@ -11511,7 +11511,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[2] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.b_ih(index) = temp;
                 index++;
@@ -11534,7 +11534,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[3] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.b_hh(index) = temp;
                 index++;
@@ -11557,7 +11557,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[4] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.W_linear(index) = temp;
                 index++;
@@ -11580,7 +11580,7 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
         network_weights_file_[5] >> temp;
         if (temp != '\n')
         {
-            if (temp = temp)
+            if (temp == temp)
             {
                 lstm.b_linear(index) = temp;
                 index++;
@@ -11624,7 +11624,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
         {
             if (temp != '\n')
             {
-                if (temp = temp)
+                if (temp == temp)
                 {
                     lstm.input_mean(index) = temp;
                     index++;
@@ -11649,7 +11649,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
         {
             if (temp != '\n')
             {
-                if (temp = temp)
+                if (temp == temp)
                 {
                     lstm.input_std(index) = temp;
                     index++;
@@ -11674,7 +11674,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
         {
             if (temp != '\n')
             {
-                if (temp = temp)
+                if (temp == temp)
                 {
                     lstm.output_mean(index) = temp;
                     index++;
@@ -11699,7 +11699,7 @@ void AvatarController::loadLstmMeanStd(LSTM &lstm, std::string folder_path)
         {
             if (temp != '\n')
             {
-                if (temp = temp)
+                if (temp == temp)
                 {
                     lstm.output_std(index) = temp;
                     index++;
@@ -11957,6 +11957,133 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
             }
         }
     }
+}
+//////////Joint Vel Estimate Network////////////////
+void AvatarController::initializeJointMLP()
+{
+    // network weights
+    W1.setZero(20, 100);
+    W2.setZero(100, 100);
+    W3.setZero(100, 1);
+    b1.setZero(100);
+    b2.setZero(100);
+    b3.setZero(1);
+    h1.setZero(100);
+    h2.setZero(100);
+
+    q_current_buffer_.setZero(20, 33);
+}
+void AvatarController::loadJointVelNetwork(std::string folder_path)
+{
+    std::string W_1_path("weight[0].txt");
+    std::string W_2_path("weight[2].txt");
+    std::string W_3_path("weight[4].txt");
+
+
+    std::string b_1_path("weight[1].txt");
+    std::string b_2_path("weight[3].txt");
+    std::string b_3_path("weight[5].txt");
+
+
+    W_1_path = folder_path + W_1_path;
+    W_2_path = folder_path + W_2_path;
+    W_3_path = folder_path + W_3_path;
+
+    b_1_path = folder_path + b_1_path;
+    b_2_path = folder_path + b_2_path;
+    b_3_path = folder_path + b_3_path;
+
+
+    joint_vel_net_weights_file_[0].open(W_1_path, ios::in);
+    joint_vel_net_weights_file_[1].open(b_1_path, ios::in);
+    joint_vel_net_weights_file_[2].open(W_2_path, ios::in);
+    joint_vel_net_weights_file_[3].open(b_2_path, ios::in);
+    joint_vel_net_weights_file_[4].open(W_3_path, ios::in);
+    joint_vel_net_weights_file_[5].open(b_3_path, ios::in);
+
+    int index = 0;
+    float temp;
+
+    // W1
+    if (!joint_vel_net_weights_file_[0].is_open())
+    {
+        std::cout << "Can not find the weight[0].txt file" << std::endl;
+    }
+    for(int i = 0; i<20 ; i++)
+    {
+        for(int j = 0; j<100 ; j++)
+        {
+            joint_vel_net_weights_file_[0] >> W1(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[0].close();
+    // cout<<"W1: \n"<<W1<<endl;
+
+    //b1
+    if (!joint_vel_net_weights_file_[1].is_open())
+    {
+        std::cout << "Can not find the weight[1].txt file" << std::endl;
+    }
+    for(int i = 0; i<100 ; i++)
+    {
+        joint_vel_net_weights_file_[1] >> b1(i);
+    }
+    joint_vel_net_weights_file_[1].close();
+    // cout<<"b1: \n"<<b1.transpose()<<endl;
+
+    // W2
+    if (!joint_vel_net_weights_file_[2].is_open())
+    {
+        std::cout << "Can not find the weight[2].txt file" << std::endl;
+    }
+    for(int i = 0; i<100 ; i++)
+    {
+        for(int j = 0; j<100 ; j++)
+        {
+            joint_vel_net_weights_file_[2] >> W2(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[2].close();
+    // cout<<"W2: \n"<<W2<<endl;
+
+    //b2
+    if (!joint_vel_net_weights_file_[3].is_open())
+    {
+        std::cout << "Can not find the weight[3].txt file" << std::endl;
+    }
+    for(int i = 0; i<100 ; i++)
+    {
+        joint_vel_net_weights_file_[3] >> b2(i);
+    }
+    joint_vel_net_weights_file_[3].close();
+    // cout<<"b2: \n"<<b2.transpose()<<endl;
+
+    // W3
+    if (!joint_vel_net_weights_file_[4].is_open())
+    {
+        std::cout << "Can not find the weight[4].txt file" << std::endl;
+    }
+    for(int i = 0; i<100 ; i++)
+    {
+        for(int j = 0; j<1 ; j++)
+        {
+            joint_vel_net_weights_file_[4] >> W3(i, j);
+        }
+    }
+    joint_vel_net_weights_file_[4].close();
+    // cout<<"W3: \n"<<W3<<endl;
+
+    //b3
+    if (!joint_vel_net_weights_file_[5].is_open())
+    {
+        std::cout << "Can not find the weight[5].txt file" << std::endl;
+    }
+    for(int i = 0; i<1 ; i++)
+    {
+        joint_vel_net_weights_file_[5] >> b3(i);
+    }
+    joint_vel_net_weights_file_[5].close();
+    // cout<<"b3: \n"<<b3.transpose()<<endl;
 }
 void AvatarController::savePreData()
 {
