@@ -1461,7 +1461,7 @@ public:
     void calculateLstmOutput(LSTM &lstm);
 
     void loadCollisionThreshold(std::string folder_path);
-    //////////////////////////////////////MPL ///////////////////////////////////////////////////////////
+    //////////////////////////////////////MLP ///////////////////////////////////////////////////////////
     void initializeJointMLP();
     void loadJointVelNetwork(std::string folder_path);
     ifstream joint_vel_net_weights_file_[6];
