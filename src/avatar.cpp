@@ -398,7 +398,7 @@ void AvatarController::setGains()
     kp_stiff_joint_(25) = 2000; // 400; //right arm
     kp_stiff_joint_(26) = 3000; // 800;
     kp_stiff_joint_(27) = 2000; // 400;
-    kp_stiff_joint_(28) = 2000; // 400;
+    kp_stiff_joint_(28) = 2000; // 400;f
     kp_stiff_joint_(29) = 125;
     kp_stiff_joint_(30) = 125;
     kp_stiff_joint_(31) = 25;
@@ -727,7 +727,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -946,7 +946,8 @@ void AvatarController::computeSlow()
                 first_smoothing_gain = DyrosMath::cubic(walking_tick_mj, 3.0 * hz_, 5.0 * hz_, 0.0, 1.0, 0.0, 0.0);
                 for (int i = 0; i < 12; i++)
                 {
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    // torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * nn_estimated_q_dot_slow_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
                     // torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
 
                     // if (estimated_model_unct_torque_variance_slow_(i) == 0 && gaussian_mode_ == true)
@@ -1129,7 +1130,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
@@ -1390,17 +1391,17 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             initial_flag = 2;
 
             // KIST-Joint vel estimation
             initializeJointMLP();
-            loadJointVelNetwork("/home/dg/catkin_ws/src/tocabi_avatar/joint_vel_net/");
+            loadJointVelNetwork("/home/dyros/catkin_ws/src/tocabi_avatar/joint_vel_net/original/");
         }
     }
     else if (rd_.tc_.mode == 11)
@@ -1538,12 +1539,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             if (atb_grav_update_ == false)
             {
@@ -13046,17 +13047,13 @@ void AvatarController::printOutTextFile()
     {
         file[4] << nn_estimated_q_dot_slow_(i) << "\t";
     }
-    for (int i = 0; i < 100; i++)
-    {
-        file[4] << h1(i) << "\t";
-    }
-    for (int i = 0; i < 100; i++)
-    {
-        file[4] << h2(i) << "\t";
-    }
     for (int i = 0; i < 33; i++)
     {
         file[4] << q_dot_buffer_slow_(0, i) << "\t";
+    }
+    for (int i = 0; i < 33; i++)
+    {
+        file[4] << ref_q_(i) << "\t";
     }
     file[4] << endl;
     //////////////////////////////
@@ -13655,7 +13652,8 @@ void AvatarController::getRobotState()
     }
     floatingBaseMOB();                       // created by DG
     collisionEstimation();
-    cout<<"mlp time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+    if(walking_tick_mj %2000 == 0)
+        cout<<"mlp time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
 
@@ -14017,7 +14015,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 20; // total foot step number
+        middle_total_step_number = 10; // total foot step number
         dlength = 0;
     }
 
@@ -14563,30 +14561,47 @@ void AvatarController::Joint_gain_set_MJ()
 
     Kp(0) = 2000.0;
     Kd(0) = 20.0; // Left Hip yaw
+    // Kd(0) = rd_.link_[Left_Foot].pos_p_gain[0];
     Kp(1) = 5000.0;
     Kd(1) = 55.0; // Left Hip roll //55
+    // Kd(1) = rd_.link_[Left_Foot].pos_p_gain[1];
     Kp(2) = 4000.0;
     Kd(2) = 45.0; // Left Hip pitch
+    // Kd(2) = rd_.link_[Left_Foot].pos_p_gain[2];
     Kp(3) = 3700.0;
     Kd(3) = 40.0;   // Left Knee pitch
+    // Kd(3) = rd_.link_[Left_Foot].rot_p_gain[0];
     Kp(4) = 4000.0; // 5000
     Kd(4) = 65.0;   // Left Ankle pitch /5000 / 30  //55
+    // Kd(4) = rd_.link_[Left_Foot].rot_p_gain[1];
     Kp(5) = 4000.0; // 5000
     Kd(5) = 65.0;   // Left Ankle roll /5000 / 30 //55
+    // Kd(5) = rd_.link_[Left_Foot].rot_p_gain[2];
+    
 
     Kp(6) = 2000.0;
     Kd(6) = 20.0; // Right Hip yaw
+    // Kd(6) = rd_.link_[Left_Foot].pos_d_gain[0];
     Kp(7) = 5000.0;
     Kd(7) = 55.0; // Right Hip roll  //55
+    // Kd(7) = rd_.link_[Left_Foot].pos_d_gain[1];
     Kp(8) = 4000.0;
     Kd(8) = 45.0; // Right Hip pitch
+    // Kd(8) = rd_.link_[Left_Foot].pos_d_gain[2];
     Kp(9) = 3700.0;
     Kd(9) = 40.0;    // Right Knee pitch
+    // Kd(9) = rd_.link_[Left_Foot].rot_d_gain[0];
     Kp(10) = 4000.0; // 5000
     Kd(10) = 65.0;   // Right Ankle pitch //55
+    // Kd(10) = rd_.link_[Left_Foot].rot_d_gain[1];
     Kp(11) = 4000.0; // 5000
     Kd(11) = 65.0;   // Right Ankle roll //55
+    // Kd(11) = rd_.link_[Left_Foot].rot_d_gain[2];
 
+    for(int i=0; i<12; i++)
+    {
+        cout<<"Kd "<<i<<"th"<< Kd(i)<< endl;
+    }
     Kp(12) = 6000.0;
     Kd(12) = 200.0; // Waist yaw
     Kp(13) = 10000.0;
