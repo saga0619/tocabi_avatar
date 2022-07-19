@@ -1464,14 +1464,14 @@ public:
     //////////////////////////////////////MLP ///////////////////////////////////////////////////////////
     void initializeJointMLP();
     void loadJointVelNetwork(std::string folder_path);
-    void caculateJointVelMlpInput();
-    void caculateJointVelMlpOutput();
+    void calculateJointVelMlpInput();
+    void calculateJointVelMlpOutput();
     ifstream joint_vel_net_weights_file_[6];
 
     std::atomic<bool> atb_mlp_input_update_{false};
     std::atomic<bool> atb_mlp_output_update_{false};
 
-    const float gear_ratio_motor_ = 1/100;
+    const double gear_ratio_motor_ = 1/100;
     Eigen::MatrixXd q_dot_buffer_slow_;  //20 stacks
     Eigen::MatrixXd q_dot_buffer_fast_;  //20 stacks
     Eigen::MatrixXd q_dot_buffer_thread_;  //20 stacks

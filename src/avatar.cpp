@@ -1477,7 +1477,6 @@ void AvatarController::computeFast()
         calculateLstmOutput(left_leg_mob_lstm_);    //20~25us
         calculateLstmOutput(right_leg_mob_lstm_);    //20~25us
 
-        caculateJointVelMlpOutput();
 
         // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
@@ -12095,7 +12094,7 @@ void AvatarController::loadJointVelNetwork(std::string folder_path)
     joint_vel_net_weights_file_[5].close();
     // cout<<"b3: \n"<<b3<<endl;
 }
-void AvatarController::caculateJointVelMlpInput()
+void AvatarController::calculateJointVelMlpInput()
 {
     // 최근 20개 속도 임시 저장하는 변수
     for(int i = 0; i<MODEL_DOF; i++)
@@ -12108,7 +12107,7 @@ void AvatarController::caculateJointVelMlpInput()
     
     for(int joint=0; joint<MODEL_DOF; joint++)
     {
-        q_dot_buffer_slow_(0, joint) = rd_.q_dot_(joint)*gear_ratio_motor_;
+        q_dot_buffer_slow_(0, joint) = rd_.q_dot_virtual_(6+joint)*101;
     }
     
     if(atb_mlp_input_update_ == false)
@@ -12118,14 +12117,9 @@ void AvatarController::caculateJointVelMlpInput()
         atb_mlp_input_update_ = false;
     }
 
-    if(atb_mlp_output_update_ == false)
-    {
-        atb_mlp_output_update_ = true;
-        nn_estimated_q_dot_slow_ = nn_estimated_q_dot_thread_;
-        atb_mlp_output_update_ = false;
-    }
+
 }
-void AvatarController::caculateJointVelMlpOutput()
+void AvatarController::calculateJointVelMlpOutput()
 {
     if(atb_mlp_input_update_ == false)
     {
@@ -12166,7 +12160,7 @@ void AvatarController::caculateJointVelMlpOutput()
         nn_estimated_q_dot_fast_(joint) = (W3.transpose()*h2)(0) + b3;
 
         // nn_estimated_q_dot_fast_(joint) = 0.7*nn_estimated_q_dot_fast_(joint) + 0.3*q_dot_buffer_fast_(0, joint);
-        nn_estimated_q_dot_fast_(joint) = nn_estimated_q_dot_fast_(joint)/gear_ratio_motor_;
+        nn_estimated_q_dot_fast_(joint) = nn_estimated_q_dot_fast_(joint)/101;
 
     }
     // nn_estimated_q_dot_fast_ = DyrosMath::lpf<33>(nn_estimated_q_dot_fast_, nn_estimated_q_dot_pre_, 2000.0, 2*M_PI*200);
@@ -13060,6 +13054,10 @@ void AvatarController::printOutTextFile()
     {
         file[4] << h2(i) << "\t";
     }
+    for (int i = 0; i < 33; i++)
+    {
+        file[4] << q_dot_buffer_slow_(0, i) << "\t";
+    }
     file[4] << endl;
     //////////////////////////////
 
@@ -13645,12 +13643,19 @@ void AvatarController::getRobotState()
     collectRobotInputData_acc_version();     // 1us
     calculateLstmInput(left_leg_mob_lstm_);  // 1us
     calculateLstmInput(right_leg_mob_lstm_); // 1us
-
-    caculateJointVelMlpInput();
-
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    calculateJointVelMlpInput();
+    calculateJointVelMlpOutput();
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    if(atb_mlp_output_update_ == false)
+    {
+        atb_mlp_output_update_ = true;
+        nn_estimated_q_dot_slow_ = nn_estimated_q_dot_thread_;
+        atb_mlp_output_update_ = false;
+    }
     floatingBaseMOB();                       // created by DG
     collisionEstimation();
-
+    cout<<"mlp time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
 
