@@ -49,11 +49,11 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/random_walking_.txt",
-        "/home/dyros/data/dg/1_foot_.txt",
-        "/home/dyros/data/dg/2_zmp_.txt",
-        "/home/dyros/data/dg/3_lstm_float_.txt",
-        "/home/dyros/data/dg/q_qdot_.txt"
+        "/ssd2/fb_mob_learning/data/random_walking_.txt",
+        "/ssd2/fb_mob_learning/data/1_foot_.txt",
+        "/ssd2/fb_mob_learning/data/2_zmp_.txt",
+        "/ssd2/fb_mob_learning/data/3_lstm_float_.txt",
+        "/ssd2/fb_mob_learning/data/q_qdot_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -1464,20 +1464,32 @@ public:
     //////////////////////////////////////MLP ///////////////////////////////////////////////////////////
     void initializeJointMLP();
     void loadJointVelNetwork(std::string folder_path);
+    void caculateJointVelMlpInput();
+    void caculateJointVelMlpOutput();
     ifstream joint_vel_net_weights_file_[6];
 
-    Eigen::MatrixXd q_current_buffer_;  //20 stacks
+    std::atomic<bool> atb_mlp_input_update_{false};
+    std::atomic<bool> atb_mlp_output_update_{false};
+
+    const float gear_ratio_motor_ = 1/100;
+    Eigen::MatrixXd q_dot_buffer_slow_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_fast_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_thread_;  //20 stacks
+
     Eigen::MatrixXd W1;
     Eigen::MatrixXd W2;
     Eigen::MatrixXd W3;
     Eigen::VectorXd b1;
     Eigen::VectorXd b2;
-    Eigen::VectorXd b3;
+    double b3;
 
     Eigen::VectorXd h1;
     Eigen::VectorXd h2;
 
-    Eigen::VectorQd nn_estimated_q_dot_;
+    Eigen::VectorQd nn_estimated_q_dot_slow_;
+    Eigen::VectorQd nn_estimated_q_dot_fast_;
+    Eigen::VectorQd nn_estimated_q_dot_thread_;
+
     Eigen::VectorQd nn_estimated_q_dot_pre_;
     
     //fallDetection variables
