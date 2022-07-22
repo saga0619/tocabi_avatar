@@ -5803,10 +5803,13 @@ void AvatarController::poseCalibration()
 
     check_val = hmd_lhand_vel_.segment(0, 3).norm();
     // abrupt motion check and stop
-    // if (upper_body_mode_>=5)
-    if(false)
+
+    double limit_val = 4.0;
+
+    if (upper_body_mode_>=5)
+    // if(false)
     {
-        if (check_val > 2.5)
+        if (check_val > limit_val)
         {
             cout << "WARNING: left hand linear velocity is over the 2.0m/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5814,7 +5817,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_lhand_vel_.segment(3, 3).norm();
-        if ((check_val > 2.5 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: left hand angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5822,7 +5825,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_rhand_vel_.segment(0, 3).norm();
-        if ((check_val > 2.5))
+        if ((check_val > limit_val))
         {
             cout << "WARNING: right hand linear velocity is over the 2.0m/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5830,7 +5833,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_rhand_vel_.segment(3, 3).norm();
-        if ((check_val > 2.5 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: right hand angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5838,7 +5841,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_lupperarm_vel_.segment(0, 3).norm();
-        if ((check_val > 2.0))
+        if ((check_val > limit_val))
         {
             cout << "WARNING: hmd_lupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5846,7 +5849,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_lupperarm_vel_.segment(3, 3).norm();
-        if ((check_val > 2.0 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: hmd_lupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5854,7 +5857,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_rupperarm_vel_.segment(0, 3).norm();
-        if ((check_val > 2.0))
+        if ((check_val > limit_val))
         {
             cout << "WARNING: hmd_rupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5862,7 +5865,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_rupperarm_vel_.segment(3, 3).norm();
-        if ((check_val > 2.0 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: hmd_rupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5870,7 +5873,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_head_vel_.segment(3, 3).norm();
-        if ((check_val > 2.0 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: Head angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
@@ -5878,7 +5881,7 @@ void AvatarController::poseCalibration()
         }
 
         check_val = hmd_chest_vel_.segment(3, 3).norm();
-        if ((check_val > 2.0 * M_PI))
+        if ((check_val > limit_val * M_PI))
         {
             cout << "WARNING: Chest angular velocity is over the 360 degree/s limit" << check_val << endl;
             upper_body_mode_ = 3;
