@@ -64,6 +64,7 @@ public:
 
     void computeSlow();
     void computeFast();
+    void computeThread3();
     void computePlanner();
     void copyRobotData(RobotData &rd_l);
 
@@ -1062,6 +1063,12 @@ public:
     int last_solved_hierarchy_num_;
     const double equality_condition_eps_ = 1e-8;
     const double damped_puedoinverse_eps_ = 1e-5;
+
+    bool verbose = false;
+    bool print_constraints = false;
+
+    bool sca_constraint_hqpik_ = false;
+    const unsigned int num_sca_constraint_hqpik_ = 1;
     ///////////////////////////////////////////////////
     
     /////////////HQPIK2//////////////////////////
@@ -1082,6 +1089,7 @@ public:
     Eigen::MatrixXd J_hqpik2_[5];
     Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
     Eigen::VectorXd q_dot_hqpik2_[5];
+
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////
@@ -1121,6 +1129,58 @@ public:
     int foot_lift_count_;
     int foot_landing_count_;
     ///////////////////////////////////////////////////////////////
+
+    //////////////Self Collision Avoidance Network////////////////
+    struct MLP
+    {
+        ~MLP() { std::cout << "MLP terminate" << std::endl; }
+        std::vector<Eigen::MatrixXd> weight;
+        std::vector<Eigen::VectorXd> bias;
+        std::vector<Eigen::VectorXd> hidden;
+        std::vector<Eigen::MatrixXd> hidden_derivative;
+
+        std::vector<std::string> w_path;
+        std::vector<std::string> b_path;
+
+        std::vector<ifstream> weight_files;
+        std::vector<ifstream> bias_files;
+
+        int n_input;
+        int n_output;
+        Eigen::VectorXd n_hidden;
+        int n_layer;
+        
+        Eigen::VectorXd q_to_input_mapping_vector;
+
+        Eigen::VectorXd input_slow;
+        Eigen::VectorXd input_fast;
+        Eigen::VectorXd input_thread;
+
+        Eigen::VectorXd output_slow;
+        Eigen::VectorXd output_fast;
+        Eigen::VectorXd output_thread;
+
+        Eigen::MatrixXd output_derivative_fast;
+        bool loadweightfile_verbose = false;
+        bool loadbiasfile_verbose = false;
+    }   larm_upperbody_sca_mlp_, rarm_upperbody_sca_mlp_, btw_arms_sca_mlp_;
+    
+    void setNeuralNetworks();
+    void initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector);
+    void loadScaNetwork(MLP &mlp, std::string folder_path);
+    void calculateScaMlpInput(MLP &mlp);
+    void calculateScaMlpOutput(MLP &mlp);
+    void readWeightFile(MLP &mlp, int weight_num);
+    void readBiasFile(MLP &mlp, int bias_num);
+
+    std::atomic<bool> atb_mlp_input_update_{false};
+    std::atomic<bool> atb_mlp_output_update_{false};
+
+    Eigen::MatrixXd q_dot_buffer_slow_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_fast_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_thread_;  //20 stacks
+
+    //////////////////////////////////////////////////////////////
 
 private:
     Eigen::VectorQd ControlVal_;
