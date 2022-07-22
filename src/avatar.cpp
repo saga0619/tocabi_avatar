@@ -44,12 +44,12 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     waist_pd_gain_sub = nh_avatar_.subscribe("/tocabi/dg/waistpdgain", 100, &AvatarController::WaistJointGainCallback, this);
 
     hmd_posture_sub = nh_avatar_.subscribe("/HMD", 100, &AvatarController::HmdCallback, this);
-    lhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI3", 100, &AvatarController::LeftHandTrackerCallback, this);
-    rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI5", 100, &AvatarController::RightHandTrackerCallback, this);
-    lelbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI2", 100, &AvatarController::LeftElbowTrackerCallback, this);
-    relbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI4", 100, &AvatarController::RightElbowTrackerCallback, this);
-    chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI1", 100, &AvatarController::ChestTrackerCallback, this);
-    pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKERTOCABI0", 100, &AvatarController::PelvisTrackerCallback, this);
+    lhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER3", 100, &AvatarController::LeftHandTrackerCallback, this);
+    rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightHandTrackerCallback, this);
+    lelbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER2", 100, &AvatarController::LeftElbowTrackerCallback, this);
+    relbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER4", 100, &AvatarController::RightElbowTrackerCallback, this);
+    chest_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER1", 100, &AvatarController::ChestTrackerCallback, this);
+    pelvis_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER0", 100, &AvatarController::PelvisTrackerCallback, this);
     tracker_status_sub = nh_avatar_.subscribe("/TRACKERSTATUS", 100, &AvatarController::TrackerStatusCallback, this);
 
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
@@ -6701,28 +6701,28 @@ void AvatarController::poseCalibration()
     hmd_rshoulder_pose_.translation() = hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose() * hmd_chest_2_rshoulder_center_pos_ + hmd_chest_pose_.translation();
     hmd_rshoulder_pose_.linear() = hmd_chest_pose_.linear();
 
-    // TOCABI PELVIS MEASUREMENT
-    if (still_pose_cali_flag_ == true)
-    {
-        hmd_pelv_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_pelv_pose_;
+    // // TOCABI PELVIS MEASUREMENT
+    // if (still_pose_cali_flag_ == true)
+    // {
+    //     hmd_pelv_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_pelv_pose_;
 
-        tocabi_pelv_tracker_estimation_[0] = hmd_pelv_pose_.translation() + hmd_pelv_pose_.linear() * tracker2origin_init_[0].linear().transpose() * tracker2origin_init_[0].translation();
-        tocabi_pelv_tracker_estimation_[1] = hmd_lupperarm_pose_.translation() + hmd_lupperarm_pose_.linear() * tracker2origin_init_[1].linear().transpose() * tracker2origin_init_[1].translation();
-        tocabi_pelv_tracker_estimation_[2] = hmd_lhand_pose_.translation() + hmd_lhand_pose_.linear() * tracker2origin_init_[2].linear().transpose() * tracker2origin_init_[2].translation();
-        tocabi_pelv_tracker_estimation_[3] = hmd_rupperarm_pose_.translation() + hmd_rupperarm_pose_.linear() * tracker2origin_init_[3].linear().transpose() * tracker2origin_init_[3].translation();
-        tocabi_pelv_tracker_estimation_[4] = hmd_rhand_pose_.translation() + hmd_rhand_pose_.linear() * tracker2origin_init_[4].linear().transpose() * tracker2origin_init_[4].translation();
+    //     tocabi_pelv_tracker_estimation_[0] = hmd_pelv_pose_.translation() + hmd_pelv_pose_.linear() * tracker2origin_init_[0].linear().transpose() * tracker2origin_init_[0].translation();
+    //     tocabi_pelv_tracker_estimation_[1] = hmd_lupperarm_pose_.translation() + hmd_lupperarm_pose_.linear() * tracker2origin_init_[1].linear().transpose() * tracker2origin_init_[1].translation();
+    //     tocabi_pelv_tracker_estimation_[2] = hmd_lhand_pose_.translation() + hmd_lhand_pose_.linear() * tracker2origin_init_[2].linear().transpose() * tracker2origin_init_[2].translation();
+    //     tocabi_pelv_tracker_estimation_[3] = hmd_rupperarm_pose_.translation() + hmd_rupperarm_pose_.linear() * tracker2origin_init_[3].linear().transpose() * tracker2origin_init_[3].translation();
+    //     tocabi_pelv_tracker_estimation_[4] = hmd_rhand_pose_.translation() + hmd_rhand_pose_.linear() * tracker2origin_init_[4].linear().transpose() * tracker2origin_init_[4].translation();
 
-        Eigen::Vector3d pelv_tracker_avg;
-        pelv_tracker_avg.setZero();
+    //     Eigen::Vector3d pelv_tracker_avg;
+    //     pelv_tracker_avg.setZero();
 
-        for (int i = 1; i < 5; i++)
-        {
-            pelv_tracker_avg = pelv_tracker_avg + tocabi_pelv_tracker_estimation_[i];
-        }
-        pelv_tracker_avg = pelv_tracker_avg / 4;
+    //     for (int i = 1; i < 5; i++)
+    //     {
+    //         pelv_tracker_avg = pelv_tracker_avg + tocabi_pelv_tracker_estimation_[i];
+    //     }
+    //     pelv_tracker_avg = pelv_tracker_avg / 4;
 
-        hmd_chest_pose_.translation() = pelv_tracker_avg;
-    }
+    //     hmd_chest_pose_.translation() = pelv_tracker_avg;
+    // }
 
     // HMD Velocity
     if (hmd_chest_pose_.translation() != hmd_chest_pose_pre_.translation())
@@ -6774,6 +6774,96 @@ void AvatarController::poseCalibration()
         atb_hmd_vel_update_ = true;
         hmd_chest_vel_thread_ = hmd_chest_vel_;
         atb_hmd_vel_update_ = false;
+    }
+
+    double check_val = 0;
+
+    check_val = hmd_lhand_vel_.segment(0, 3).norm();
+    // abrupt motion check and stop
+
+    double limit_val = 4.0;
+
+    if (upper_body_mode_>=5)
+    // if(false)
+    {
+        if (check_val > limit_val)
+        {
+            cout << "WARNING: left hand linear velocity is over the 2.0m/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_lhand_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: left hand angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_rhand_vel_.segment(0, 3).norm();
+        if ((check_val > limit_val))
+        {
+            cout << "WARNING: right hand linear velocity is over the 2.0m/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_rhand_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: right hand angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_lupperarm_vel_.segment(0, 3).norm();
+        if ((check_val > limit_val))
+        {
+            cout << "WARNING: hmd_lupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_lupperarm_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: hmd_lupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_rupperarm_vel_.segment(0, 3).norm();
+        if ((check_val > limit_val))
+        {
+            cout << "WARNING: hmd_rupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_rupperarm_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: hmd_rupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_head_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: Head angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
+
+        check_val = hmd_chest_vel_.segment(3, 3).norm();
+        if ((check_val > limit_val * M_PI))
+        {
+            cout << "WARNING: Chest angular velocity is over the 360 degree/s limit" << check_val << endl;
+            upper_body_mode_ = 3;
+            upperbody_mode_recieved_ = true;
+        }
     }
 }
 void AvatarController::getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali)
@@ -12469,7 +12559,7 @@ void AvatarController::PelvisTrackerCallback(const tocabi_msgs::matrix_3_4 &msg)
     hmd_pelv_pose_raw_.translation()(1) = msg.secondRow[3];
     hmd_pelv_pose_raw_.translation()(2) = msg.thirdRow[3];
 
-    // hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
+    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); //tracker is behind the chair
 }
 
 void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
@@ -15914,24 +16004,6 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 0.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0*DEG2RAD;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
-
-
-    //// 0.7s walking
     target_x_ = 0.0;
     target_y_ = 0;
     target_z_ = 0.0;
@@ -15941,12 +16013,30 @@ void AvatarController::parameterSetting()
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.08*hz_;
-    t_rest_last_ = 0.08*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.7*hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_;
     foot_height_ = 0.055;      // 0.9 sec 0.05
+
+
+    //// 0.7s walking
+    // target_x_ = 0.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+
+    // t_rest_init_ = 0.08*hz_;
+    // t_rest_last_ = 0.08*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 0.7*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.7;
@@ -16588,21 +16678,21 @@ void AvatarController::CP_compen_MJ_FT()
 
     // Roll 방향 (-0.02/-30 0.9초)
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.05 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.05 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
     //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.05 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.05 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
 
     // Pitch 방향  (0.005/-30 0.9초)
     //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-    F_T_L_y_input_dot = 0.04 * (Tau_L_y - l_ft_LPF(4)) - 40.0 * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.04 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //   F_T_L_y_input = 0;
     //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-    F_T_R_y_input_dot = 0.04 * (Tau_R_y - r_ft_LPF(4)) - 40.0 * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.04 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //   F_T_R_y_input = 0;
     // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
