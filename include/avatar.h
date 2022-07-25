@@ -1064,11 +1064,11 @@ public:
     const double equality_condition_eps_ = 1e-8;
     const double damped_puedoinverse_eps_ = 1e-5;
 
-    bool verbose = false;
+    bool verbose = true;
     bool print_constraints = false;
 
-    bool sca_constraint_hqpik_ = false;
-    const unsigned int num_sca_constraint_hqpik_ = 1;
+    bool sca_constraint_hqpik_ = true;
+    const unsigned int num_sca_constraint_hqpik_ = 3;
     ///////////////////////////////////////////////////
     
     /////////////HQPIK2//////////////////////////
