@@ -12,7 +12,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include <fstream>
-
+#include <math.h>
 //lexls
 // #include <lexls/lexlsi.h>
 // #include <lexls/tools.h>
@@ -25,6 +25,11 @@
 #include <ros/ros.h>
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
+
+#include <cstdlib>
+#include <ctime>
+
+#include "foot_contact_estimator.h"
 
 const int FILE_CNT = 14;
 
@@ -180,6 +185,8 @@ public:
     void getZmpTrajectory_dg();
     void savePreData();
     void printOutTextFile();
+
+    void saveRobotData();
 
     double bandBlock(double value, double max, double min);
     /////////////////////////////////////////////////////////
@@ -1216,6 +1223,17 @@ public:
     Eigen::Isometry3d lfoot_trajectory_support_;
     Eigen::Vector3d rfoot_trajectory_euler_support_;
     Eigen::Vector3d lfoot_trajectory_euler_support_;
+
+    // add by HS
+    bool save_flag_ = true;
+    Eigen::Vector3d pelv_acc_current_;
+    Eigen::Vector3d pelv_acc_current_LPF_;
+    Indicator wi_{"wrench"};    
+    Indicator pi_{"pose"};  
+    Discriminator d_;
+    int wi_result_, pi_result_, ws_;
+    Eigen::VectorXd p_in_, w_in_;
+    void callEstimator();
 
     Eigen::Isometry3d pelv_trajectory_float_; //pelvis frame
     Eigen::Isometry3d rfoot_trajectory_float_;

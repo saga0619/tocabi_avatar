@@ -89,11 +89,10 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     first_loop_hqpik2_ = true;
     first_loop_qp_retargeting_ = true;
 
-    f_add_.resize(6,1);
+
+    // INITIALIZE INDICATORS' INPUT FROM HS //
     w_in_.resize(wi_.getInputDim(),1);
-    p_in_.resize(pi_.getInputDim(),1);
-    foot_cs_pub_ = nh_avatar_.advertise<std_msgs::String>("/mujoco_ros_interface/sim_command_con2sim", 100);
-    
+    p_in_.resize(pi_.getInputDim(),1);    
 }
 
 void AvatarController::setGains()
@@ -735,26 +734,12 @@ void AvatarController::computeSlow()
                 CP_compen_MJ_FT();
                 std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
                 torque_lower_.setZero();
-                if( d_.pause_flag_ == false)
-                {
-                    for (int i = 0; i < 12; i++){
-                    torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
-                    // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
-                    }                
-                }
-                else // set the robot to keep the current joint angle
-                {   
-                    for(int i = 0; i < 12; i ++)
-                    {                           
-                        ref_q_(i) = DyrosMath::cubic(d_.freezing_tick_, 0, 1.0 * hz_, Initial_ref_q_(i), d_.freezing_q_(i), 0.0, 0.0);                                                 
-                    }                
-                    for(int i = 0; i < 12; i ++)
-                    {
-                        torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
-                    }
-                    d_.freezing_tick_ ++;
-                }
 
+                for (int i = 0; i < 12; i++){
+                torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+                // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+                }                
+                
                 
                 desired_q_not_compensated_ = ref_q_;
 
@@ -10706,85 +10691,9 @@ void AvatarController::getRobotState()
     pelv_acc_current_ = rd_.imu_lin_acc;
     pelv_acc_current_LPF_ = 1/(1+2*M_PI*6.0*del_t)*pelv_acc_current_LPF_ + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*pelv_acc_current_;
             
-    f_add_ = (l_ft_LPF + r_ft_LPF).cwiseAbs();    
-    double temp_w_in_ = (f_add_ - wi_.nominal_w_mean_).transpose()*wi_.nominal_w_cov_.inverse()*(f_add_ - wi_.nominal_w_mean_);
-    w_in_(0) = sqrt(temp_w_in_);
+    /////////////////////////// WALKING STATE ESTIMATION PROCESS BY HS ///////////////////////////
+    callEstimator();
 
-    
-    // 0 : left foot swing == right foot support
-    // 1 : right foot swing == left foot support
-    if(foot_step_(current_step_num_, 6) == 0.0 && walking_tick_mj == t_last_){
-        p_in_(0) = abs(lfoot_support_current_.translation()(2));
-    }
-    else if(foot_step_(current_step_num_, 6) == 1.0 && walking_tick_mj == t_last_){
-        p_in_(0) = abs(rfoot_support_current_.translation()(2));                 
-    }
-    else{
-        p_in_(0) = p_in_(0);
-    }
-
-    wi_result_ = wi_.defineState(w_in_);    
-    pi_result_ = pi_.defineState(p_in_);
-    cs_ = d_.predict(wi_result_, pi_result_);
-    
-    wi_.publishResult(w_in_(0), wi_result_);
-    pi_.publishResult(p_in_(0), pi_result_);
-    d_.publishResult(cs_);
-    // if(d_.pause_flag_ == true)
-    // {
-    //     std_msgs::String cs_msg;
-    //     cs_msg.data = "run";
-    //     foot_cs_pub_.publish(cs_msg);
-    // }
-    // if(d_.pause_flag_ == false && (cs_==2 || cs_== 3)) 
-    // {
-    //     if(d_.pause_flag_ == false){
-    //         d_.pause_flag_ = true;
-    //         d_.pause_count_ = walking_tick_mj;
-    //     }
-    //     std_msgs::String cs_msg;
-    //     cs_msg.data = "pause";
-    //     foot_cs_pub_.publish(cs_msg);    
-    // }    
-    
-    
-    // set the robot to stop
-    // if(d_.pause_flag_ == false && (cs_ == 3)){
-    // // if(d_.pause_flag_ == false && (cs_ == 2 || cs_ == 3)){
-    //     d_.pause_flag_ = true;        
-    //     d_.freezing_tick_ = 0.0;
-    //     d_.freezing_q_.resize(12,1);
-        
-    //     Eigen::Isometry3d pelv_target, left_target, right_target;
-    //     pelv_target.translation().setZero();
-    //     pelv_target.linear() = Eigen::Matrix3d::Identity();
-    //     left_target.linear() = Eigen::Matrix3d::Identity();
-    //     right_target.linear() = Eigen::Matrix3d::Identity();
-
-    //     if(foot_step_(current_step_num_, 6) == 1) // left foot support
-    //     {
-    //         for(int i = 0; i < 3; i ++){
-    //             left_target.translation()(i) = foot_step_(current_step_num_ - 1, i);
-    //             right_target.translation()(i) = foot_step_(current_step_num_ - 2, i);
-    //         }
-    //     }
-    //     else{
-    //         for(int i = 0; i < 3; i++){
-    //             left_target.translation()(i) = foot_step_(current_step_num_ - 2, i);
-    //             right_target.translation()(i) = foot_step_(current_step_num_ - 1, i);
-    //         }
-    //     }
-    //     Eigen::Vector12d freezing_q;
-    //     computeIkControl_MJ(pelv_target, left_target, right_target, freezing_q);
-    //     // d_.freezing_q_ = freezing_q;
-    //     d_.freezing_q_ = q_des;
-    //     // d_.freezing_q_ = q_des;
-    //     Initial_ref_q_.block<12,1>(0,0) = rd_.q_.block<12,1>(0,0);
-    //     std::cout<<"Init: "<< Initial_ref_q_.block<12,1>(0,0).transpose()<<std::endl;
-    //     std::cout<<"Goal: "<< d_.freezing_q_.transpose()<<std::endl;
-    // }
-
-    // std::cout<<walking_tick_mj<<","<<t_total_<<","<<t_last_ + 1<<std::endl;
 }
 
 void AvatarController::calculateFootStepTotal()
@@ -13921,8 +13830,37 @@ void AvatarController::saveRobotData()
     save_w_input<<w_in_(0)<<std::endl;
     save_p_input<<p_in_(0)<<std::endl;
     save_indicator<<wi_result_<<", "<<pi_result_<<std::endl;
-    save_cs<<cs_<<std::endl;    
+    save_cs<<ws_<<std::endl;    
 
     save_ref_cp << cp_desired_(0) << ", " << cp_desired_(1) << std::endl;
     save_cp << cp_measured_(0) << ", " << cp_measured_(1) << std::endl;
+}
+
+void AvatarController::callEstimator()
+{
+    Eigen::Vector6d f_add;
+    
+    f_add = (l_ft_LPF + r_ft_LPF).cwiseAbs();    
+    double temp_w_in_ = (f_add - wi_.nominal_w_mean_).transpose()*wi_.nominal_w_cov_.inverse()*(f_add - wi_.nominal_w_mean_);
+    w_in_(0) = sqrt(temp_w_in_);
+
+    // 0 : left foot swing == right foot support
+    // 1 : right foot swing == left foot support
+    if(foot_step_(current_step_num_, 6) == 0.0 && walking_tick_mj == t_last_){
+        p_in_(0) = abs(lfoot_support_current_.translation()(2));
+    }
+    else if(foot_step_(current_step_num_, 6) == 1.0 && walking_tick_mj == t_last_){
+        p_in_(0) = abs(rfoot_support_current_.translation()(2));                 
+    }
+    else{
+        p_in_(0) = p_in_(0);
+    }
+
+    wi_result_ = wi_.defineState(w_in_);    
+    pi_result_ = pi_.defineState(p_in_);
+    ws_ = d_.predict(wi_result_, pi_result_);
+    
+    wi_.publishResult(w_in_(0), wi_result_);
+    pi_.publishResult(p_in_(0), pi_result_);
+    d_.publishResult(ws_);
 }
