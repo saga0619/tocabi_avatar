@@ -1352,7 +1352,7 @@ void AvatarController::computeSlow()
         for (int i = 12; i < MODEL_DOF; i++)
         {
             torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
-            torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
+            // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
