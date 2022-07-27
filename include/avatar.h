@@ -67,7 +67,7 @@ const std::string FILE_NAMES[FILE_CNT] =
         // "/ssd2/fb_mob_learning/data/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg"; //tocabi
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg"; //tocabi
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu
 
@@ -1246,7 +1246,7 @@ public:
     Eigen::VectorXd U_x_mpc_;
     Eigen::VectorXd U_y_mpc_; 
     // Thread 2
-    double del_F_x = 0, del_F_y = 0;
+    double del_F_x_ = 0, del_F_y_ = 0;
     Eigen::Vector2d del_F_;
     Eigen::Vector3d x_hat_r_;
     Eigen::Vector3d x_hat_r_sc_;
@@ -1261,8 +1261,8 @@ public:
     Eigen::Vector3d x_diff_;
     Eigen::Vector3d y_diff_;
 
-    int interpol_cnt_x_ = 0;
-    int interpol_cnt_y_ = 0;
+    int wieber_interpol_cnt_x_ = 0;
+    int wieber_interpol_cnt_y_ = 0;
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
     int alpha_step_mpc_ = 0;

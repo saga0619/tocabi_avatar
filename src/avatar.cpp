@@ -727,7 +727,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -853,8 +853,8 @@ void AvatarController::computeSlow()
             {
                 
                 getZmpTrajectory();
-                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -1197,8 +1197,8 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory();
-                getComTrajectory();
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                // getComTrajectory();
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 CentroidalMomentCalculator();
 
                 getFootTrajectory();
@@ -1390,12 +1390,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             initial_flag = 2;
         }
     }
@@ -1804,8 +1804,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    // comGenerator_MPC_wieber(50.0, 1/50, 1.5, 40.0);
-
+    comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2886,28 +2885,32 @@ void AvatarController::loadCollisionThreshold(std::string folder_path)
     {
         std::cout << "Can not find the Collision Threshold file" << std::endl;
     }
-    while (!col_thr_file_.eof())
+    else
     {
-        col_thr_file_ >> temp;
-
-        if (temp == temp)
+        while (!col_thr_file_.eof())
         {
-            if(index <12)
+            col_thr_file_ >> temp;
+
+            if (temp == temp)
             {
-                threshold_joint_torque_collision_(index) = temp;
-                index++;
-                cout<<"threshold: "<<index<<", "<< temp <<endl;
+                if(index <12)
+                {
+                    threshold_joint_torque_collision_(index) = temp;
+                    index++;
+                    cout<<"threshold: "<<index<<", "<< temp <<endl;
+                }
+                else
+                {
+                    cout<<"Collision Threshold file has more than 12 values"<<endl;
+                }
             }
             else
             {
-                cout<<"Collision Threshold file has more than 12 values"<<endl;
+                cout << "WARNING: collision_threshold has NaN value! (" << temp << ") at" + thr_path << endl;
             }
         }
-        else
-        {
-            cout << "WARNING: collision_threshold has NaN value! (" << temp << ") at" + thr_path << endl;
-        }
     }
+
 
     if (index == 12)
     {
@@ -11284,16 +11287,22 @@ void AvatarController::BoltController_MJ()
     // Log 함수 쓸때 주의 -> log(0) -> inf
 }
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
-{
+{   
+    // reference: https://doi.org/10.1163/016918610X493552
+
+
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    if (atb_mpc_update_ == false)
+    if(atb_mpc_update_ == false)  
     {
         atb_mpc_update_ = true;
         walking_tick_mj_mpc_ = walking_tick_mj_thread_;
         current_step_num_mpc_ = current_step_num_thread_;
-        total_step_num_mpc_ = total_step_num_thread_;
+        total_step_num_mpc_ = total_step_num_thread_; // only used in CP-MPC
         zmp_start_time_mj_mpc_ = zmp_start_time_mj_thread_;
-        ref_zmp_mpc_ = ref_zmp_thread_;
+        ref_zmp_mpc_ = ref_zmp_thread_;        
+
+        // ref_zmp_wo_offset_mpc_ = ref_zmp_wo_offset_thread_; // only used in CP-MPC
+        // alpha_step_mpc_ = alpha_step_mpc_thread_; // only used in CP-MPC
 
         x_hat_ = x_hat_thread2_;
         y_hat_ = y_hat_thread2_;
@@ -11302,16 +11311,18 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
         atb_mpc_update_ = false;
     }
-    int N = preview_window * MPC_freq; // N step horizon (1.5s x 50)
+
+    int N = preview_window * MPC_freq; // N step horizon (2.7s x 50)
     int mpc_tick = walking_tick_mj_mpc_ - zmp_start_time_mj_mpc_;
     static int MPC_first_loop = 0;
     int state_num_ = 3;
     Eigen::MatrixXd O_N;
-    Eigen::MatrixXd I_N(N, N);
-    O_N.setZero(N, N); // N x N Zero matrix
+    Eigen::MatrixXd I_N(N,N);
+    O_N.setZero(N,N); // N x N Zero matrix
     I_N.setIdentity(); // N x N Identity matrix
-    // int MPC_synchro_hz_ = 40; // 40 = Control freq (2000) / MPC_freq (50)
-    if (MPC_first_loop == 0)
+    //int MPC_synchro_hz_ = 40; // 40 = Control freq (2000) / MPC_freq (50)
+
+    if(MPC_first_loop == 0)
     {
         // Define State matrix
         A_mpc_(0, 0) = 1.0;
@@ -11330,63 +11341,80 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         // Define Output matrix
         C_mpc_transpose_(0) = 1;
         C_mpc_transpose_(1) = 0;
-        C_mpc_transpose_(2) = -0.71 / 9.81;
-
+        C_mpc_transpose_(2) = -0.71 / 9.81;                 
+                
         W1_mpc_ = 0.000001; // The term alpha in wiber's paper
-        W2_mpc_ = 1.0;      // The term gamma in wiber's paper
+        W2_mpc_ = 1.0; // The term gamma in wiber's paper
 
-        P_zs_mpc_.setZero(N, state_num_);
-        P_zu_mpc_.setZero(N, N);
+        // P_ps_mpc_.setZero(N,state_num_);
+        // P_pu_mpc_.setZero(N,N);
+        // P_vs_mpc_.setZero(N,state_num_);
+        // P_vu_mpc_.setZero(N,N);
+        P_zs_mpc_.setZero(N,state_num_);
+        P_zu_mpc_.setZero(N,N);
 
-        for (int i = 0; i < N; i++)
-        {
-            // Define reculsive state matrix for MPC P_zs (N x 3)
-            P_zs_mpc_(i, 0) = 1;
-            P_zs_mpc_(i, 1) = (i + 1) * T;
-            P_zs_mpc_(i, 2) = ((i + 1) * (i + 1) * T * T) * 0.5 - 0.71 / 9.81;
+        // x_com_pos_recur_.setZero(N);
+        // x_com_vel_recur_.setZero(N);
+        // x_zmp_recur_.setZero(N);
 
+        // y_com_pos_recur_.setZero(N);
+        // y_com_vel_recur_.setZero(N);
+        // y_zmp_recur_.setZero(N);
+
+        for(int i = 0; i < N; i++)
+        {   
+        //     // Define reculsive state matrix for MPC P_zs (N x 3)
+        //     P_ps_mpc_(i,0) = 1;
+        //     P_ps_mpc_(i,1) = (i+1)*T;
+        //     P_ps_mpc_(i,2) = ((i+1)*(i+1)*T*T)*0.5;
+
+        //     P_vs_mpc_(i,0) = 0;
+        //     P_vs_mpc_(i,1) = 1;
+        //     P_vs_mpc_(i,2) = (i+1)*T;
+
+            P_zs_mpc_(i,0) = 1;
+            P_zs_mpc_(i,1) = (i+1)*T;
+            P_zs_mpc_(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
+            
             // Define reculsive input matrix for MPC P_zu (N x N / Lower Triangular Toeplitz matrix)
-            for (int j = 0; j < N; j++)
+            for(int j = 0; j < N; j++)
             {
-                if (j >= i)
+                if(j >= i)
                 {
-                    P_zu_mpc_(j, i) = (1 + 3 * (j - i) + 3 * (j - i) * (j - i)) * (T * T * T) / 6 - T * 0.71 / 9.81;
+                    // P_pu_mpc_(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6;
+                    // P_vu_mpc_(j,i) = (1 + 2*(j-i))*(T*T)/2;
+                    P_zu_mpc_(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
                 }
             }
-        }
+        }        
 
-        Q_prime_.setZero(N, N);
-        Q_prime_ = W1_mpc_ * I_N + W2_mpc_ * P_zu_mpc_.transpose() * P_zu_mpc_;
-
-        // Q_mpc.setZero(2*N,2*N); // 2N x 2N
-        // Q_mpc.block<75, 75>(0, 0) = Q_prime; // N = 75
-        // Q_mpc.block<75, 75>(N, 0) = O_N;
-        // Q_mpc.block<75, 75>(0, N) = O_N;
-        // Q_mpc.block<75, 75>(N, N) = Q_prime;
+        Q_prime_.setZero(N,N);
+        Q_prime_ = W1_mpc_*I_N + W2_mpc_*P_zu_mpc_.transpose()*P_zu_mpc_;
 
         QP_mpc_x_.InitializeProblemSize(N, N);
         QP_mpc_y_.InitializeProblemSize(N, N);
-
+ 
         MPC_first_loop = 1;
         cout << "Initialization of MPC parameters is complete." << endl;
     }
+    
     Eigen::VectorXd p_x(N);
     Eigen::VectorXd p_y(N);
     // Eigen::VectorXd p(2*N);
     Eigen::VectorXd Z_x_ref(N);
     Eigen::VectorXd Z_y_ref(N);
 
-    for (int i = 0; i < N; i++)
+    for(int i = 0; i < N; i ++)
     {
-        Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_ * (i + 1), 0); // 20 = Control freq (2000) / MPC_freq (100)
-        Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_ * (i + 1), 1);
-    }
-    // cout<<"mpc_tick:"<<mpc_tick<<endl;
-    // define cost functions
-    p_x = W2_mpc_ * P_zu_mpc_.transpose() * (P_zs_mpc_ * x_hat_ - Z_x_ref);
-    p_y = W2_mpc_ * P_zu_mpc_.transpose() * (P_zs_mpc_ * y_hat_ - Z_y_ref);
+        Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
+        Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1);
+    }    
+
+    //define cost functions
+    p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - Z_x_ref);
+    p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - Z_y_ref);
     // p.segment(0, N) = p_x;
-    // p.segment(N, N) = p_y;
+    // p.segment(N, N) = p_y;  
 
     Eigen::VectorXd lb_b_x(N);
     Eigen::VectorXd ub_b_x(N);
@@ -11396,84 +11424,80 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     // Eigen::VectorXd ub_b(2*N);
     Eigen::VectorXd zmp_bound(N);
 
-    for (int i = 0; i < N; i++)
+    for(int i = 0; i < N; i++)  
     {
         zmp_bound(i) = 0.1;
     }
-
-    lb_b_x = Z_x_ref - zmp_bound - P_zs_mpc_ * x_hat_;
-    ub_b_x = Z_x_ref + zmp_bound - P_zs_mpc_ * x_hat_;
-    lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc_ * y_hat_;
-    ub_b_y = Z_y_ref + zmp_bound - P_zs_mpc_ * y_hat_;
-
-    // QP_mpc_x.InitializeProblemSize(N, N);
+    
+    lb_b_x = Z_x_ref - zmp_bound - P_zs_mpc_*x_hat_;
+    ub_b_x = Z_x_ref + zmp_bound - P_zs_mpc_*x_hat_;
+    lb_b_y = Z_y_ref - zmp_bound - P_zs_mpc_*y_hat_;
+    ub_b_y = Z_y_ref + zmp_bound - P_zs_mpc_*y_hat_;
+    
+    // QP_mpc_x_.InitializeProblemSize(N, N);
     QP_mpc_x_.EnableEqualityCondition(equality_condition_eps_);
-    QP_mpc_x_.UpdateMinProblem(Q_prime_, p_x);
-    // QP_mpc_x_.DeleteSubjectToAx();
+    QP_mpc_x_.UpdateMinProblem(Q_prime_,p_x);
+    QP_mpc_x_.DeleteSubjectToAx();      
     QP_mpc_x_.UpdateSubjectToAx(P_zu_mpc_, lb_b_x, ub_b_x);
 
-    // U_x_mpc.setZero(N);
-    if (QP_mpc_x_.SolveQPoases(200, MPC_input_x_))
-    {
-        x_hat_p_ = x_hat_;
+    //U_x_mpc_.setZero(N);  
+     if (QP_mpc_x_.SolveQPoases(200, MPC_input_x_))
+    {   
+        x_hat_p_ = x_hat_;            
         U_x_mpc_ = MPC_input_x_.segment(0, N);
-        x_hat_ = A_mpc_ * x_hat_ + B_mpc_ * U_x_mpc_(0);
 
+        // x_com_pos_recur_ = P_ps_mpc_ * x_hat_ + P_pu_mpc_* U_x_mpc_;
+        // x_com_vel_recur_ = P_vs_mpc_ * x_hat_ + P_vu_mpc_* U_x_mpc_;
+        // x_zmp_recur_ = P_zs_mpc_ * x_hat_ + P_zu_mpc_* U_x_mpc_;
+
+        x_hat_ = A_mpc_ * x_hat_ + B_mpc_ * U_x_mpc_(0);
+        if(atb_mpc_x_update_ == false)
+        {
+            atb_mpc_x_update_ = true;
+            x_hat_p_thread_ = x_hat_p_;
+            x_hat_thread_ = x_hat_;
+            current_step_num_thread2_ = current_step_num_mpc_;
+            atb_mpc_x_update_ = false;
+        }
         mpc_x_update_ = true;
     }
-    else
-    {
-        cout << "WARNING: Wieber MPC X is not solved !!" << endl;
-        QP_mpc_x_.InitializeProblemSize(N, N);
-    }
-
-    if (atb_mpc_x_update_ == false)
-    {
-        atb_mpc_x_update_ = true;
-        x_hat_p_thread_ = x_hat_p_;
-        x_hat_thread_ = x_hat_;
-        current_step_num_thread2_ = current_step_num_mpc_;
-        atb_mpc_x_update_ = false;
-    }
-
-    // QP_mpc_y.InitializeProblemSize(N, N);
+        
+    // QP_mpc_y_.InitializeProblemSize(N, N);
     QP_mpc_y_.EnableEqualityCondition(equality_condition_eps_);
-    QP_mpc_y_.UpdateMinProblem(Q_prime_, p_y);
-    // QP_mpc_y_.DeleteSubjectToAx();
+    QP_mpc_y_.UpdateMinProblem(Q_prime_,p_y);
+    QP_mpc_y_.DeleteSubjectToAx();      
     QP_mpc_y_.UpdateSubjectToAx(P_zu_mpc_, lb_b_y, ub_b_y);
 
-    // U_y_mpc.setZero(N);
+   //U_y_mpc_.setZero(N); 
     if (QP_mpc_y_.SolveQPoases(200, MPC_input_y_))
-    {
+    {             
         y_hat_p_ = y_hat_;
-        U_y_mpc_ = MPC_input_y_.segment(0, N);
+
+        U_y_mpc_ = MPC_input_y_.segment(0, N);       
+
+        // y_com_pos_recur_ = P_ps_mpc_ * y_hat_ + P_pu_mpc_* U_y_mpc_;
+        // y_com_vel_recur_ = P_vs_mpc_ * y_hat_ + P_vu_mpc_* U_y_mpc_;
+        // y_zmp_recur_ = P_zs_mpc_ * y_hat_ + P_zu_mpc_* U_y_mpc_;
         y_hat_ = A_mpc_ * y_hat_ + B_mpc_ * U_y_mpc_(0);
 
-        mpc_y_update_ = true;
-    }
-    else
-    {
-        cout << "WARNING: Wieber MPC Y is not solved !!" << endl;
-        QP_mpc_y_.InitializeProblemSize(N, N);
-    }
-
-    if (atb_mpc_y_update_ == false)
-    {
-        atb_mpc_y_update_ = true;
-        // cout<<"walking_tick_mj_mpc_:"<<walking_tick_mj_mpc_<<endl;
-        y_hat_p_thread_ = y_hat_p_;
-        y_hat_thread_ = y_hat_;
-        current_step_num_thread2_ = current_step_num_mpc_;
-        atb_mpc_y_update_ = false;
-    }
-
-    Eigen::Vector2d output_zmp;
-
-    output_zmp(0) = C_mpc_transpose_.transpose() * x_hat_;
-    output_zmp(1) = C_mpc_transpose_.transpose() * y_hat_;
+        if(atb_mpc_y_update_ == false)
+        {
+            atb_mpc_y_update_ = true;
+            // cout<<"walking_tick_mj_mpc_:"<<walking_tick_mj_mpc_<<endl;
+            y_hat_p_thread_ = y_hat_p_;
+            y_hat_thread_ = y_hat_;
+            current_step_num_thread2_ = current_step_num_mpc_;
+            atb_mpc_y_update_ = false;
+        }
+        mpc_y_update_ = true;  
+    }    
 
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // cout<<"MPC calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+    
+    if((int)walking_tick_mj_mpc_ % 200 == 0)
+    {   
+       // cout<<"wieber mpc calculation time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl;
+    }    
 }
 void AvatarController::initializeLegLSTM(LSTM &lstm)
 {
@@ -11550,138 +11574,164 @@ void AvatarController::loadLstmWeights(LSTM &lstm, std::string folder_path)
     {
         std::cout << "Can not find the W_ih file" << std::endl;
     }
-    while (!network_weights_file_[0].eof())
+    else
     {
-        network_weights_file_[0] >> temp;
-        if (temp != '\n')
+        while (!network_weights_file_[0].eof())
         {
-            if (temp = temp)
+            network_weights_file_[0] >> temp;
+            if (temp != '\n')
             {
-                lstm.W_ih(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: W_ih has NaN value! (" << temp << ") at" + W_ih_path << endl;
+                if (temp = temp)
+                {
+                    lstm.W_ih(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: W_ih has NaN value! (" << temp << ") at" + W_ih_path << endl;
+                }
             }
         }
+        network_weights_file_[0].close();
     }
-    network_weights_file_[0].close();
+
+    
 
     if (!network_weights_file_[1].is_open())
     {
         std::cout << "Can not find the W_hh file" << std::endl;
     }
-    index = 0;
-    while (!network_weights_file_[1].eof())
+    else
     {
-        network_weights_file_[1] >> temp;
-        if (temp != '\n')
+        index = 0;
+        while (!network_weights_file_[1].eof())
         {
-            if (temp = temp)
+            network_weights_file_[1] >> temp;
+            if (temp != '\n')
             {
-                lstm.W_hh(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: W_hh has NaN value!" << endl;
+                if (temp = temp)
+                {
+                    lstm.W_hh(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: W_hh has NaN value!" << endl;
+                }
             }
         }
+        network_weights_file_[1].close();       
     }
-    network_weights_file_[1].close();
+       
 
     if (!network_weights_file_[2].is_open())
     {
         std::cout << "Can not find the b_ih file" << std::endl;
     }
-    index = 0;
-    while (!network_weights_file_[2].eof())
+    else
     {
-        network_weights_file_[2] >> temp;
-        if (temp != '\n')
+        index = 0;
+        while (!network_weights_file_[2].eof())
         {
-            if (temp = temp)
+            network_weights_file_[2] >> temp;
+            if (temp != '\n')
             {
-                lstm.b_ih(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: b_ih has NaN value!" << endl;
+                if (temp = temp)
+                {
+                    lstm.b_ih(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: b_ih has NaN value!" << endl;
+                }
             }
         }
+        network_weights_file_[2].close();       
     }
-    network_weights_file_[2].close();
+    
+
 
     if (!network_weights_file_[3].is_open())
     {
         std::cout << "Can not find the b_hh file" << std::endl;
     }
-    index = 0;
-    while (!network_weights_file_[3].eof())
+    else
     {
-        network_weights_file_[3] >> temp;
-        if (temp != '\n')
+        index = 0;
+        while (!network_weights_file_[3].eof())
         {
-            if (temp = temp)
+            network_weights_file_[3] >> temp;
+            if (temp != '\n')
             {
-                lstm.b_hh(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: b_hh has NaN value!" << endl;
+                if (temp = temp)
+                {
+                    lstm.b_hh(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: b_hh has NaN value!" << endl;
+                }
             }
         }
+        network_weights_file_[3].close();
     }
-    network_weights_file_[3].close();
+
 
     if (!network_weights_file_[4].is_open())
     {
         std::cout << "Can not find the W_linear file" << std::endl;
     }
-    index = 0;
-    while (!network_weights_file_[4].eof())
+    else
     {
-        network_weights_file_[4] >> temp;
-        if (temp != '\n')
+        index = 0;
+        while (!network_weights_file_[4].eof())
         {
-            if (temp = temp)
+            network_weights_file_[4] >> temp;
+            if (temp != '\n')
             {
-                lstm.W_linear(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: W_linear has NaN value!" << endl;
+                if (temp = temp)
+                {
+                    lstm.W_linear(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: W_linear has NaN value!" << endl;
+                }
             }
         }
+        network_weights_file_[4].close();
     }
-    network_weights_file_[4].close();
+
 
     if (!network_weights_file_[5].is_open())
     {
         std::cout << "Can not find the b_linear file" << std::endl;
     }
-    index = 0;
-    while (!network_weights_file_[5].eof())
+    else
     {
-        network_weights_file_[5] >> temp;
-        if (temp != '\n')
+        index = 0;
+        while (!network_weights_file_[5].eof())
         {
-            if (temp = temp)
+            network_weights_file_[5] >> temp;
+            if (temp != '\n')
             {
-                lstm.b_linear(index) = temp;
-                index++;
-            }
-            else
-            {
-                cout << "WARNING: b_linear has NaN value!" << endl;
+                if (temp = temp)
+                {
+                    lstm.b_linear(index) = temp;
+                    index++;
+                }
+                else
+                {
+                    cout << "WARNING: b_linear has NaN value!" << endl;
+                }
             }
         }
+        network_weights_file_[5].close();
     }
-    network_weights_file_[5].close();
+
 
     // cout<<"lstm.b_ih: \n"<<lstm.b_ih<<endl;
     // cout<<"lstm.W_ih: \n"<<lstm.W_ih<<endl;
@@ -13383,6 +13433,8 @@ void AvatarController::getRobotState()
     com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
 
     SC_err_compen(com_support_current_(0), com_support_current_(1));
+    
+    wn = sqrt(GRAVITY / zc_mj_);
 
     // cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     cp_measured_(0) = com_support_current_(0) + com_float_current_dot_LPF(0) / wn;
@@ -13530,7 +13582,7 @@ void AvatarController::getRobotState()
     zmp_measured_mj_(0) = (left_zmp(0) * l_ft_LPF(2) + right_zmp(0) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP X
     zmp_measured_mj_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
 
-    wn = sqrt(GRAVITY / zc_mj_);
+    
 
     if (walking_tick_mj == 0)
     {
@@ -14528,7 +14580,7 @@ void AvatarController::addZmpOffset()
 
 void AvatarController::getZmpTrajectory()
 {
-    unsigned int planning_step_number = 4;
+    unsigned int planning_step_number = 6;
     unsigned int norm_size = 0;
 
     if (current_step_num_ >= total_step_num_ - planning_step_number)
@@ -15404,9 +15456,9 @@ void AvatarController::supportToFloatPattern()
 void AvatarController::getComTrajectory_mpc()
 {
     if (walking_tick_mj == 0)
-    {
-        U_x_mpc_.setZero(75);
-        U_y_mpc_.setZero(75);
+    {       
+        U_x_mpc_.setZero(135);
+        U_y_mpc_.setZero(135);
 
         x_hat_.setZero();
         x_hat_(0) = xi_mj_;
@@ -15441,7 +15493,26 @@ void AvatarController::getComTrajectory_mpc()
         y_hat_r_p_.setZero();
         y_hat_r_(0) = yi_mj_;
         y_hat_r_p_(0) = yi_mj_;
-        y_mpc_i_(0) = yi_mj_;
+        y_mpc_i_(0) = yi_mj_;    
+
+        // cp_des_zmp_x_prev_ = xi_mj_;    
+        // cp_des_zmp_x_ = xi_mj_;
+        
+        // cpmpc_des_zmp_x_thread_ = xi_mj_;
+        // cpmpc_des_zmp_x_thread2_ = xi_mj_;
+
+        // cp_des_zmp_y_prev_ = yi_mj_;    
+        // cp_des_zmp_y_ = yi_mj_;
+        
+        // cpmpc_des_zmp_y_thread_ = yi_mj_;
+        // cpmpc_des_zmp_y_thread2_ = yi_mj_;
+
+        // cp_measured_thread_(0) = xi_mj_;
+        // cp_measured_thread_(1) = yi_mj_;
+
+        // des_zmp_interpol_.setZero();
+        // cpmpc_diff_.setZero();
+        // cpStepping_diff_.setZero();        
     }
 
     if (current_step_num_ == 0)
@@ -15451,13 +15522,12 @@ void AvatarController::getComTrajectory_mpc()
     else
     {
         zmp_start_time_mj_ = t_start_;
-    }
-
-    ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_, 0);
-    ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_, 1);
+    }    
+    ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
+    ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
 
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
-
+    
     int alpha_step = 0;
 
     if (foot_step_(current_step_num_, 6) == 1)
@@ -15467,137 +15537,185 @@ void AvatarController::getComTrajectory_mpc()
     else
     {
         alpha_step = -1;
-    }
+    }        
 
-    // F0 - F1 수정
-    if (current_step_num_ < total_step_num_ - 2)
-    {
-        F2_F3_mpc_x_ = foot_step_support_frame_(current_step_num_ + 2, 0) - foot_step_support_frame_(current_step_num_ + 1, 0);
-        F2_F3_mpc_y_ = foot_step_support_frame_(current_step_num_ + 2, 1) - foot_step_support_frame_(current_step_num_ + 1, 1);
-    }
-    else
-    {
-        F2_F3_mpc_x_ = 0;
-        F2_F3_mpc_y_ = 0;
-    }
-
-    if (current_step_num_ < total_step_num_ - 1)
-    {
-        F1_F2_mpc_x_ = foot_step_support_frame_(current_step_num_ + 1, 0) - foot_step_support_frame_(current_step_num_, 0);
-        F1_F2_mpc_y_ = foot_step_support_frame_(current_step_num_ + 1, 1) - foot_step_support_frame_(current_step_num_, 1);
-    }
-    else
-    {
-        F1_F2_mpc_x_ = 0;
-        F1_F2_mpc_y_ = 0;
-    }
-
-    F0_F1_mpc_x_ = foot_step_support_frame_(current_step_num_, 0);
-    F0_F1_mpc_y_ = foot_step_support_frame_(current_step_num_, 1);
-
-    // support foot change
-    if (walking_tick_mj == t_start_ && current_step_num_ > 0)
+    // support foot change           
+    if(walking_tick_mj == t_start_ && current_step_num_ > 0)
     {
         x_hat_r_ = x_hat_r_sc_;
         x_hat_r_p_ = x_hat_r_p_sc_;
 
         y_hat_r_ = y_hat_r_sc_;
-        y_hat_r_p_ = y_hat_r_p_sc_;
+        y_hat_r_p_ = y_hat_r_p_sc_; 
+        
+        // cp_des_zmp_x_ = des_zmp_x_stepchange_;
+        // cp_des_zmp_x_prev_ = des_zmp_x_prev_stepchange_;
+
+        // cp_des_zmp_y_ = des_zmp_y_stepchange_;
+        // cp_des_zmp_y_prev_ = des_zmp_y_prev_stepchange_;
     }
 
     // send vaiables to the mpc in the thread3
-    if (atb_mpc_update_ == false)
+    if(atb_mpc_update_ == false)  
     {
         atb_mpc_update_ = true;
         walking_tick_mj_thread_ = walking_tick_mj;
         current_step_num_thread_ = current_step_num_;
         total_step_num_thread_ = total_step_num_;
         zmp_start_time_mj_thread_ = zmp_start_time_mj_;
-        ref_zmp_thread_ = ref_zmp_mj_;
+        ref_zmp_thread_ = ref_zmp_mj_; 
+        
+        // ref_zmp_wo_offset_thread_ = ref_zmp_mj_wo_offset_;     
+        // alpha_step_mpc_thread_ = alpha_step;        
+        // cp_measured_thread_ = cp_measured_;
 
         x_hat_p_thread2_ = x_hat_r_p_;
-        y_hat_p_thread2_ = y_hat_r_p_;
+        y_hat_p_thread2_ = y_hat_r_p_; 
         x_hat_thread2_ = x_hat_r_;
         y_hat_thread2_ = y_hat_r_; // 이것만 쓰면 mpc안에서 덮어 씌워져버려서 따로 Step change 변수 만들어야함.
 
+        if(walking_tick_mj == t_start_ && current_step_num_ > 0)
+        {   
+            // cpmpc_des_zmp_x_thread2_ = des_zmp_x_stepchange_;
+            // cpmpc_des_zmp_y_thread2_ = des_zmp_y_stepchange_;
+            // cpmpc_interpol_cnt_x_ = 1;
+            // cpmpc_interpol_cnt_y_ = 1;
+        }
+        
         atb_mpc_update_ = false;
-    }
+    } 
 
-    // get the mpc result from thread3
-    if (mpc_x_update_ == true) // 0.011 ~ 0.012 주기로 업데이트
-    {
-        if (atb_mpc_x_update_ == false)
+     // get the mpc result from thread3
+    if(mpc_x_update_ == true) // 0.011 ~ 0.012 주기로 업데이트
+    {   
+        if(atb_mpc_x_update_ == false)
         {
             atb_mpc_x_update_ = true;
-            if (current_step_num_thread2_ == current_step_num_)
-            {
+            if(current_step_num_thread2_ == current_step_num_)
+            {    
                 x_hat_r_ = x_hat_thread_;
-                x_hat_r_p_ = x_hat_p_thread_;
-
-                interpol_cnt_x_ = 1;
+                x_hat_r_p_ = x_hat_p_thread_;                  
+                wieber_interpol_cnt_x_ = 1;
             }
             else
             {
-                cout << "MPC output X is ignored" << endl;
+                cout<<"MPC output X is ignored"<<endl;
             }
             atb_mpc_x_update_ = false;
         }
         x_diff_ = x_hat_r_ - x_hat_r_p_;
         mpc_x_update_ = false;
-    }
+    } 
 
-    if (mpc_y_update_ == true) // 0.011 ~ 0.012 주기로 업데이트
-    {
-        if (atb_mpc_y_update_ == false)
+    if(mpc_y_update_ == true) // 0.011 ~ 0.012 주기로 업데이트
+    {   
+        if(atb_mpc_y_update_ == false)
         {
-            atb_mpc_y_update_ = true;
-            if (current_step_num_thread2_ == current_step_num_)
-            {
+            atb_mpc_y_update_ = true; 
+            if(current_step_num_thread2_ == current_step_num_)
+            {        
                 // cout<<"walking_tick_mj: "<<walking_tick_mj<<endl;
                 y_hat_r_ = y_hat_thread_;
                 y_hat_r_p_ = y_hat_p_thread_;
-                interpol_cnt_y_ = 1;
+                // wieber_interpol_cnt_y_ = 1;
             }
             else
             {
-                cout << "MPC output Y is ignored" << endl;
+                cout<<"MPC output Y is ignored"<<endl;
             }
             atb_mpc_y_update_ = false;
         }
-
+        
         y_diff_ = y_hat_r_ - y_hat_r_p_;
         mpc_y_update_ = false;
     }
 
-    double x_com_lin_spline = (50.0 / hz_) * interpol_cnt_x_;
-    double y_com_lin_spline = (50.0 / hz_) * interpol_cnt_y_;
+    // if(cpmpc_x_update_ == true)
+    // {
+    //     if(atb_cpmpc_x_update_ == false) // 여기서 cp_des_zmp_y를 step change 시키고 cpmpc_des_zmp_y_thread_에 담아서 전달.
+    //     {
+    //         atb_cpmpc_x_update_ = true;
+
+    //         if(current_step_num_thread2_ == current_step_num_)        
+    //         {
+    //             cp_des_zmp_x_prev_ = cp_des_zmp_x_; 
+    //             cp_des_zmp_x_ = cpmpc_des_zmp_x_thread_;
+                
+    //             del_F_x_ = del_F_x_thread_;
+    //             del_F_x_next_ = del_F_x_thread_;
+                
+    //             cpmpc_interpol_cnt_x_ = 1;
+    //         }
+    //         atb_cpmpc_x_update_ = false;
+    //     }
+    //     cpmpc_diff_(0) = cp_des_zmp_x_ - cp_des_zmp_x_prev_;
+    //     cpmpc_x_update_ = false;
+    // }
+
+    // if(cpmpc_y_update_ == true)
+    // {
+    //     if(atb_cpmpc_y_update_ == false) // 여기서 cp_des_zmp_y를 step change 시키고 cpmpc_des_zmp_y_thread_에 담아서 전달.
+    //     {
+    //         atb_cpmpc_y_update_ = true;
+
+    //         if(current_step_num_thread2_ == current_step_num_)        
+    //         {
+    //             cp_des_zmp_y_prev_ = cp_des_zmp_y_; //cpmpc_des_zmp_y_prev_thread_; 
+    //             cp_des_zmp_y_ = cpmpc_des_zmp_y_thread_;
+                
+    //             del_F_y_ = del_F_y_thread_;
+    //             del_F_y_next_ = del_F_y_thread_;
+                
+    //             cpmpc_interpol_cnt_y_ = 1;
+    //         }
+    //         atb_cpmpc_y_update_ = false;
+    //     }
+    //     cpmpc_diff_(1) = cp_des_zmp_y_ - cp_des_zmp_y_prev_;
+    //     cpmpc_y_update_ = false;
+    // }
+    
+    double thread_freq = 50.0;
+
+    double x_com_lin_spline = (thread_freq/hz_)*wieber_interpol_cnt_x_;
+    double y_com_lin_spline = (thread_freq/hz_)*wieber_interpol_cnt_y_;
 
     x_com_lin_spline = DyrosMath::minmax_cut(x_com_lin_spline, 0.0, 1.0);
     y_com_lin_spline = DyrosMath::minmax_cut(y_com_lin_spline, 0.0, 1.0);
 
-    x_mpc_i_ = x_com_lin_spline * x_diff_ + x_hat_r_p_; // 50.0 = MPC freq.
-    y_mpc_i_ = y_com_lin_spline * y_diff_ + y_hat_r_p_;
-    interpol_cnt_x_++;
-    interpol_cnt_y_++;
+    x_mpc_i_ = x_com_lin_spline*x_diff_ + x_hat_r_p_; // 50.0 = MPC freq.
+    y_mpc_i_ = y_com_lin_spline*y_diff_ + y_hat_r_p_;
 
-    // Reference COM, CP position
-    // cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
-    // cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
+    wieber_interpol_cnt_x_ ++;
+    wieber_interpol_cnt_y_ ++;
+    
+    // double x_cpmpc_lin_spline = (thread_freq/hz_)*cpmpc_interpol_cnt_x_;
+    // double y_cpmpc_lin_spline = (thread_freq/hz_)*cpmpc_interpol_cnt_y_;
 
-    // com_desired_(0) = x_mpc_i_(0);
-    // com_desired_(1) = y_mpc_i_(0);
-    // com_desired_(2) = 0.77172;
+    // x_cpmpc_lin_spline = DyrosMath::minmax_cut(x_cpmpc_lin_spline, 0.0, 1.0);
+    // y_cpmpc_lin_spline = DyrosMath::minmax_cut(y_cpmpc_lin_spline, 0.0, 1.0);
+    
+    // des_zmp_interpol_(0) = x_cpmpc_lin_spline*cpmpc_diff_(0) + cp_des_zmp_x_prev_;
+    // des_zmp_interpol_(1) = y_cpmpc_lin_spline*cpmpc_diff_(1) + cp_des_zmp_y_prev_;
 
-    if (collision_detection_flag_ == true)
-    {
-        // cout<<"com_desired_: "<<com_desired_.transpose()<<endl;
-        // cout<<"ref_zmp_mj_: "<<ref_zmp_mj_<<endl;
-    }
+    del_F_(0) = del_F_x_;
+    del_F_(1) = del_F_y_;
 
-    // MJ_graph << x_mpc_i_(0) << "," << y_mpc_i_(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
+    // MJ_graph << cp_des_zmp_y_prev_ << "," << cp_des_zmp_y_ << "," << del_F_x_prev_ << "," << del_F_x_ << "," << del_F_(0) << "," << des_zmp_interpol_(1) << endl;
+    
+    // cpmpc_interpol_cnt_x_ ++;
+    // cpmpc_interpol_cnt_y_ ++;
+    
+    // Reference COM, CP position // CPMPC로 대체하면 필요 X
+    cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
+    cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
 
+    com_desired_(0) = x_mpc_i_(0);
+    com_desired_(1) = y_mpc_i_(0);
+    com_desired_(2) = 0.77172;     
+    
+    // MJ_graph << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," <<  del_F_x_ << "," << del_F_y_ << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << del_zmp(0) << "," << del_zmp(1) << endl;            
     if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
-    {
+    {        
         Eigen::Vector3d com_pos_prev;
         Eigen::Vector3d com_pos;
         Eigen::Vector3d com_vel_prev;
@@ -15605,24 +15723,29 @@ void AvatarController::getComTrajectory_mpc()
         Eigen::Vector3d com_acc_prev;
         Eigen::Vector3d com_acc;
         Eigen::Matrix3d temp_rot;
-        Eigen::Vector3d temp_pos;
+        Eigen::Vector3d temp_pos; 
 
         x_hat_r_p_sc_ = x_hat_r_p_;
         x_hat_r_sc_ = x_hat_r_;
         y_hat_r_p_sc_ = y_hat_r_p_;
-        y_hat_r_sc_ = y_hat_r_;
+        y_hat_r_sc_ = y_hat_r_; 
+
+        // des_zmp_x_prev_stepchange_ = cp_des_zmp_x_prev_;
+        // des_zmp_x_stepchange_ = cp_des_zmp_x_;
+        // des_zmp_y_prev_stepchange_ = cp_des_zmp_y_prev_;
+        // des_zmp_y_stepchange_ = cp_des_zmp_y_;
 
         temp_rot = DyrosMath::rotateWithZ(-foot_step_support_frame_(current_step_num_, 5));
         for (int i = 0; i < 3; i++)
-            temp_pos(i) = foot_step_support_frame_(current_step_num_, i);
-
-        // temp_pos(0) = temp_pos(0) + modified_del_zmp_(current_step_num_, 0);
-        // temp_pos(1) = temp_pos(1) + modified_del_zmp_(current_step_num_, 1);
-
+            temp_pos(i) = foot_step_support_frame_(current_step_num_, i);        
+       
+        temp_pos(0) = temp_pos(0) + modified_del_zmp_(current_step_num_,0);
+        temp_pos(1) = temp_pos(1) + modified_del_zmp_(current_step_num_,1);
+         
         com_pos_prev(0) = x_hat_r_sc_(0);
         com_pos_prev(1) = y_hat_r_sc_(0);
 
-        com_pos = temp_rot * (com_pos_prev - temp_pos);
+        com_pos = temp_rot * (com_pos_prev - temp_pos); 
 
         com_vel_prev(0) = x_hat_r_sc_(1);
         com_vel_prev(1) = y_hat_r_sc_(1);
@@ -15639,7 +15762,7 @@ void AvatarController::getComTrajectory_mpc()
         x_hat_r_sc_(1) = com_vel(0);
         y_hat_r_sc_(1) = com_vel(1);
         x_hat_r_sc_(2) = com_acc(0);
-        y_hat_r_sc_(2) = com_acc(1);
+        y_hat_r_sc_(2) = com_acc(1);        
 
         com_pos_prev(0) = x_hat_r_p_sc_(0);
         com_pos_prev(1) = y_hat_r_p_sc_(0);
@@ -15658,10 +15781,27 @@ void AvatarController::getComTrajectory_mpc()
         x_hat_r_p_sc_(0) = com_pos(0);
         y_hat_r_p_sc_(0) = com_pos(1);
         x_hat_r_p_sc_(1) = com_vel(0);
-        y_hat_r_p_sc_(1) = com_vel(1);
+        y_hat_r_p_sc_(1) = com_vel(1); 
         x_hat_r_p_sc_(2) = com_acc(0);
         y_hat_r_p_sc_(2) = com_acc(1);
-    }
+
+        //com_pos_prev(0) = x_hat_r_p_sc_(0);
+        // com_pos_prev(0) = des_zmp_x_stepchange_;
+        // com_pos_prev(1) = des_zmp_y_stepchange_;
+        com_pos = temp_rot * (com_pos_prev - temp_pos);        
+
+        // des_zmp_x_stepchange_ = com_pos(0);
+        // des_zmp_y_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change    
+
+        // com_pos_prev(0) = des_zmp_x_prev_stepchange_;
+        // com_pos_prev(1) = des_zmp_y_prev_stepchange_;
+        com_pos = temp_rot * (com_pos_prev - temp_pos);        
+
+        // des_zmp_x_prev_stepchange_ = com_pos(0);
+        // des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
+         
+    }    
+    // MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
 
 void AvatarController::getComTrajectory()
