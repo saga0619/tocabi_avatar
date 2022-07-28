@@ -30,7 +30,7 @@ const int FILE_CNT = 0;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
-  ///change this directory when you use this code on the other computer///
+    // change this directory when you use this code on the other computer///
     // "/home/dyros/data/dg/0_flag_.txt",
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
@@ -49,7 +49,7 @@ const std::string FILE_NAMES[FILE_CNT] =
 
 const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
-//const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
+// const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
 {
@@ -89,7 +89,7 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
 
-    //lQR-HQP (Lexls)
+    // lQR-HQP (Lexls)
     // LexLS::tools::HierarchyType type_of_hierarchy;
     // LexLS::Index number_of_variables;
     // LexLS::Index number_of_objectives;
