@@ -180,83 +180,83 @@ void AvatarController::setGains()
     ////////////////////////////////////////////////////
 
     /////////Torque Limit///////////
-    torque_task_min_(0) = -300;
-    torque_task_min_(1) = -300;
-    torque_task_min_(2) = -300;
-    torque_task_min_(3) = -300;
-    torque_task_min_(4) = -300;
-    torque_task_min_(5) = -300;
+    torque_task_min_(0) = -333;
+    torque_task_min_(1) = -232;
+    torque_task_min_(2) = -263;
+    torque_task_min_(3) = -289;
+    torque_task_min_(4) = -222;
+    torque_task_min_(5) = -166;
 
-    torque_task_min_(6) = -300;
-    torque_task_min_(7) = -300;
-    torque_task_min_(8) = -300;
-    torque_task_min_(9) = -300;
-    torque_task_min_(10) = -300;
-    torque_task_min_(11) = -300;
+    torque_task_min_(6) = -333;
+    torque_task_min_(7) = -232;
+    torque_task_min_(8) = -263;
+    torque_task_min_(9) = -289;
+    torque_task_min_(10) = -222;
+    torque_task_min_(11) = -166;
 
-    torque_task_min_(12) = -300;
-    torque_task_min_(13) = -300;
-    torque_task_min_(14) = -300;
+    torque_task_min_(12) = -303;
+    torque_task_min_(13) = -303;
+    torque_task_min_(14) = -303;
 
-    torque_task_min_(15) = -300;
-    torque_task_min_(16) = -300;
-    torque_task_min_(17) = -300;
-    torque_task_min_(18) = -300;
-    torque_task_min_(19) = -300;
-    torque_task_min_(20) = -300;
-    torque_task_min_(21) = -100;
-    torque_task_min_(22) = -100;
+    torque_task_min_(15) = -64;
+    torque_task_min_(16) = -64;
+    torque_task_min_(17) = -64;
+    torque_task_min_(18) = -64;
+    torque_task_min_(19) = -23;
+    torque_task_min_(20) = -23;
+    torque_task_min_(21) = -10;
+    torque_task_min_(22) = -10;
 
-    torque_task_min_(23) = -100;
-    torque_task_min_(24) = -100;
+    torque_task_min_(23) = -10;
+    torque_task_min_(24) = -10;
 
-    torque_task_min_(25) = -300;
-    torque_task_min_(26) = -300;
-    torque_task_min_(27) = -300;
-    torque_task_min_(28) = -300;
-    torque_task_min_(29) = -300;
-    torque_task_min_(30) = -300;
-    torque_task_min_(31) = -100;
-    torque_task_min_(32) = -100;
+    torque_task_min_(25) = -64;
+    torque_task_min_(26) = -64;
+    torque_task_min_(27) = -64;
+    torque_task_min_(28) = -64;
+    torque_task_min_(29) = -23;
+    torque_task_min_(30) = -23;
+    torque_task_min_(31) = -10;
+    torque_task_min_(32) = -10;
 
-    torque_task_max_(0) = 300;
-    torque_task_max_(1) = 300;
-    torque_task_max_(2) = 300;
-    torque_task_max_(3) = 300;
-    torque_task_max_(4) = 300;
-    torque_task_max_(5) = 300;
+    torque_task_max_(0) = 333;
+    torque_task_max_(1) = 232;
+    torque_task_max_(2) = 263;
+    torque_task_max_(3) = 289;
+    torque_task_max_(4) = 222;
+    torque_task_max_(5) = 166;
 
-    torque_task_max_(6) = 300;
-    torque_task_max_(7) = 300;
-    torque_task_max_(8) = 300;
-    torque_task_max_(9) = 300;
-    torque_task_max_(10) = 300;
-    torque_task_max_(11) = 300;
+    torque_task_max_(6)  = 333;
+    torque_task_max_(7)  = 232; 
+    torque_task_max_(8)  = 263;
+    torque_task_max_(9)  = 289;
+    torque_task_max_(10) = 222;
+    torque_task_max_(11) = 166;
 
     torque_task_max_(12) = 300;
     torque_task_max_(13) = 300;
     torque_task_max_(14) = 300;
 
-    torque_task_max_(15) = 100;
-    torque_task_max_(16) = 300;
-    torque_task_max_(17) = 300;
-    torque_task_max_(18) = 300;
-    torque_task_max_(19) = 300;
-    torque_task_max_(20) = 300;
-    torque_task_max_(21) = 100;
-    torque_task_max_(22) = 100;
+    torque_task_max_(15) = 64;
+    torque_task_max_(16) = 64;
+    torque_task_max_(17) = 64;
+    torque_task_max_(18) = 64;
+    torque_task_max_(19) = 23;
+    torque_task_max_(20) = 23;
+    torque_task_max_(21) = 10;
+    torque_task_max_(22) = 10;
 
-    torque_task_max_(23) = 100;
-    torque_task_max_(24) = 100;
+    torque_task_max_(23) = 10;
+    torque_task_max_(24) = 10;
 
-    torque_task_max_(25) = 100;
-    torque_task_max_(26) = 300;
-    torque_task_max_(27) = 300;
-    torque_task_max_(28) = 300;
-    torque_task_max_(29) = 300;
-    torque_task_max_(30) = 300;
-    torque_task_max_(31) = 100;
-    torque_task_max_(32) = 100;
+    torque_task_max_(25) = 64;
+    torque_task_max_(26) = 64;
+    torque_task_max_(27) = 64;
+    torque_task_max_(28) = 64;
+    torque_task_max_(29) = 23;
+    torque_task_max_(30) = 23;
+    torque_task_max_(31) = 10;
+    torque_task_max_(32) = 10;
     ////////////////////////////////
 
     //////////Joint PD Gain/////////
@@ -866,13 +866,13 @@ void AvatarController::computeSlow()
                 if (atb_walking_traj_update_ == false)
                 {
                     atb_walking_traj_update_ = true;
-                    lfoot_trajectory_float_fast_ = lfoot_trajectory_float_;
-                    rfoot_trajectory_float_fast_ = rfoot_trajectory_float_;
+                    lfoot_trajectory_float_thread_ = lfoot_trajectory_float_;
+                    rfoot_trajectory_float_thread_ = rfoot_trajectory_float_;
                     del_ang_momentum_fast_ = del_ang_momentum_;
                     atb_walking_traj_update_ = false;
                 }
 
-                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
                 // Compliant_control(q_des_);
 
                 if (atb_desired_q_update_ == false)
@@ -885,10 +885,10 @@ void AvatarController::computeSlow()
                 
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = q_des_(i);
+                    // ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
 
-                    // ref_q_(i) = desired_q_fast_(i);
+                    ref_q_(i) = desired_q_fast_(i);
                     static bool ref_q_nan_flag = false;
                     if (ref_q_(i) != ref_q_(i))
                     {
@@ -923,7 +923,8 @@ void AvatarController::computeSlow()
                     // for leg
                     for (int i = 0; i < 12; i++)
                     {
-                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        // ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
                     }
                     // for waist
                     //  ref_q_(13) = Initial_ref_q_(13);
@@ -1096,9 +1097,13 @@ void AvatarController::computeSlow()
             }
         }
 
+        for (int i = 12; i < MODEL_DOF; i++)
+        {
+            torque_d(i)  = DyrosMath::minmax_cut(torque_d(i), torque_task_min_(i), torque_task_max_(i));
+        }
+
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
-        rd_.torque_desired = torque_lower_ + torque_upper_;
-        // rd_.torque_desired = torque_lower_ + torque_upper_ + estimated_model_unct_torque_slow_;
+        rd_.torque_desired = torque_d;
         ///////////////////////////////////////////////////////////////////////////////
     }
     else if (rd_.tc_.mode == 12)
@@ -1415,8 +1420,8 @@ void AvatarController::computeFast()
                     if (atb_walking_traj_update_ == false)
                     {
                         atb_walking_traj_update_ = true;
-                        lfoot_trajectory_float_slow_ = lfoot_trajectory_float_fast_;
-                        rfoot_trajectory_float_slow_ = rfoot_trajectory_float_fast_;
+                        lfoot_trajectory_float_fast_ = lfoot_trajectory_float_thread_;
+                        rfoot_trajectory_float_fast_ = rfoot_trajectory_float_thread_;
                         del_ang_momentum_slow_ = del_ang_momentum_fast_;
                         atb_walking_traj_update_ = false;
                     }
@@ -2047,8 +2052,8 @@ void AvatarController::initWalkingParameter()
 
     last_hmd_vel_calc_time_ = rd_.control_time_;
 
-    lfoot_trajectory_float_slow_ = lfoot_transform_pre_desired_from_;
-    rfoot_trajectory_float_slow_ = rfoot_transform_pre_desired_from_;
+    lfoot_trajectory_float_thread_ = lfoot_transform_pre_desired_from_;
+    rfoot_trajectory_float_thread_ = rfoot_transform_pre_desired_from_;
     lfoot_trajectory_float_fast_ = lfoot_transform_pre_desired_from_;
     rfoot_trajectory_float_fast_ = rfoot_transform_pre_desired_from_;
 
@@ -3604,7 +3609,7 @@ void AvatarController::motionGenerator()
 
     poseCalibration();
 
-    // computeLeg_QPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
+    computeLeg_QPIK(lfoot_trajectory_float_fast_, rfoot_trajectory_float_fast_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
 
     if (upper_body_mode_ == 1) // init pose
     {
@@ -4100,26 +4105,7 @@ void AvatarController::motionGenerator()
     if (int(current_time_ * 1e4) % int(1e3) == 0)
     {
     }
-    /////////////////FOOT HEIGHT/////////////////////////
 
-    // if (foot_swing_trigger_ == true)
-    // {
-    // 	if (walking_phase_ < swingfoot_highest_time_)
-    // 	{
-    // 		// swing_foot_pos_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, 0.00, 0.6, swing_foot_transform_init_.translation()(2), 0, 0, support_foot_transform_current_.translation()(2)+swing_foot_height_, 0, 0)(0);
-    // 		// swing_foot_vel_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, 0.00, 0.6, swing_foot_transform_init_.translation()(2), 0, 0, support_foot_transform_current_.translation()(2)+swing_foot_height_, 0, 0)(1);
-    // 		swing_foot_pos_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, 1 * switching_phase_duration_, swingfoot_highest_time_, support_foot_transform_current_.translation()(2)+ swing_foot_transform_init_.translation()(2) - support_foot_transform_init_.translation()(2), 0, 0, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0)(0);
-    // 		swing_foot_vel_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, 1 * switching_phase_duration_, swingfoot_highest_time_, support_foot_transform_current_.translation()(2)+ swing_foot_transform_init_.translation()(2) - support_foot_transform_init_.translation()(2), 0, 0, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0)(1);
-    // 		swing_foot_acc_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, 1 * switching_phase_duration_, swingfoot_highest_time_, support_foot_transform_current_.translation()(2)+ swing_foot_transform_init_.translation()(2) - support_foot_transform_init_.translation()(2), 0, 0, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0)(2);
-    // 	}
-    // 	else
-    // 	{
-    // 		swing_foot_pos_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, swingfoot_highest_time_, 1, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0, support_foot_transform_current_.translation()(2) - 0.005, 0, 0)(0);
-    // 		swing_foot_vel_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, swingfoot_highest_time_, 1, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0, support_foot_transform_current_.translation()(2) - 0.005, 0, 0)(1);
-    // 		swing_foot_acc_trajectory_from_global_(2) = DyrosMath::QuinticSpline(walking_phase_, swingfoot_highest_time_, 1, support_foot_transform_current_.translation()(2) + swing_foot_height_, 0, 0, support_foot_transform_current_.translation()(2) - 0.005, 0, 0)(2);
-    // 	}
-
-    // }
 }
 
 void AvatarController::motionRetargeting()
