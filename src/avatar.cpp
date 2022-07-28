@@ -13905,7 +13905,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 20; // total foot step number
+        middle_total_step_number = 3; // total foot step number
         dlength = 0;
     }
 
@@ -14275,11 +14275,15 @@ void AvatarController::calculateFootStepTotal_reactive(double target_x, bool is_
     foot_step_(2, 1) = is_right * (0.1025 + step_width);
     foot_step_(2, 6) = 0.5 + 0.5 * (-is_right);
 
-    // second step
+    // third step
     foot_step_(3, 0) = third_foot_step_x;
     foot_step_(3, 1) = -is_right * (0.1025 + step_width);
     foot_step_(3, 6) = 0.5 + 0.5 * (is_right);
 
+    // fourth step
+    // foot_step_(4, 0) = third_foot_step_x;
+    // foot_step_(4, 1) = is_right * (0.1025 + step_width);
+    // foot_step_(4, 6) = 0.5 + 0.5 * (-is_right);
     cout << "Reactive Foot Step\n" << foot_step_ << endl;
 }
 void AvatarController::floatToSupportFootstep()
@@ -14567,13 +14571,14 @@ void AvatarController::addZmpOffset()
 
 void AvatarController::getZmpTrajectory()
 {
-    unsigned int planning_step_number = 6;
-    unsigned int norm_size = 0;
+    int planning_step_number = 6;
+    int norm_size = 0;
 
     if (current_step_num_ >= total_step_num_ - planning_step_number)
-        norm_size = (t_last_ - t_start_ + 1) * (total_step_num_ - current_step_num_) + 3.0 * hz_;
+        norm_size = (t_last_ - t_start_ + 1) * (total_step_num_ - current_step_num_) + 5.0 * hz_;
     else
         norm_size = (t_last_ - t_start_ + 1) * (planning_step_number);
+
     if (current_step_num_ == 0)
         norm_size = norm_size + t_temp_ + 1;
     addZmpOffset();
@@ -14581,7 +14586,7 @@ void AvatarController::getZmpTrajectory()
     ref_zmp_mpc_.resize(norm_size, 2);
 }
 
-void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num)
+void AvatarController::zmpGenerator(int norm_size, int planning_step_num)
 {
     ref_zmp_mj_.resize(norm_size, 2);
     Eigen::VectorXd temp_px;
@@ -14625,15 +14630,15 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
             }
             index = index + t_total_;
         }
-        for (unsigned int j = 0; j < 3.0 * hz_; j++)
+        for (unsigned int j = 0; j < 5.0 * hz_; j++)
         {
             ref_zmp_mj_(index + j, 0) = ref_zmp_mj_(index - 1, 0);
             ref_zmp_mj_(index + j, 1) = ref_zmp_mj_(index - 1, 1);
         }
-        index = index + 3.0 * hz_;
+        index = index + 5.0 * hz_;
     }
     else // 보행 중 사용 하는 Ref ZMP
-    {
+    {   
         for (unsigned int i = current_step_num_; i < current_step_num_ + planning_step_num; i++)
         {
             onestepZmp(i, temp_px, temp_py);
@@ -14647,7 +14652,7 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
     }
 }
 
-void AvatarController::onestepZmp(unsigned int current_step_number, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py)
+void AvatarController::onestepZmp(int current_step_number, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py)
 {
     temp_px.resize(t_total_); // 함수가 실행 될 때 마다, 240 tick의 참조 ZMP를 담는다. Realtime = 1.2초
     temp_py.resize(t_total_);
@@ -15513,6 +15518,12 @@ void AvatarController::getComTrajectory_mpc()
     ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
     ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
 
+    if(walking_tick_mj%100 == 0)
+    {
+        cout<<"ZMP_X_REF: "<<ZMP_X_REF<<endl;
+        cout<<"ZMP_Y_REF: "<<ZMP_Y_REF<<endl;
+        cout<<"current_step_num_: "<<current_step_num_ <<endl;
+    }
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
     
     int alpha_step = 0;
