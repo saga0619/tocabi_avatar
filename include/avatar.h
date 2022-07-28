@@ -47,7 +47,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -873,14 +873,10 @@ public:
     bool hmd_tracker_status_raw_;   //1: good, 0: bad
     bool hmd_tracker_status_;   //1: good, 0: bad
     bool hmd_tracker_status_pre_;   //1: good, 0: bad
+    
+    bool hmd_tracker_first_receive_ = false;
 
     double tracker_status_changed_time_;
-    double calibration_x_l_scale_;
-    double calibration_x_r_scale_;
-    double calibration_y_l_scale_;
-    double calibration_y_r_scale_;
-    double calibration_z_l_scale_;
-    double calibration_z_r_scale_;
     
 
     double hmd_larm_max_l_;
@@ -1042,6 +1038,10 @@ public:
     /////////////////////////////////////////////
 
     /////////////HQPIK//////////////////////////
+    // TO DO LIST:
+    // 1. split each arms
+    // 2. spline upperarm task
+    // 3. remove upper arm, upper body, and shoulder tasks
     const unsigned int hierarchy_num_hqpik_ = 4;
     const unsigned int variable_size_hqpik_ = 21;
 	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
@@ -1057,18 +1057,22 @@ public:
     
     Eigen::MatrixXd H_hqpik_[4], A_hqpik_[4];
     Eigen::MatrixXd J_hqpik_[4], J_temp_;
-    Eigen::VectorXd g_hqpik_[4], u_dot_hqpik_[4], qpres_hqpik_, ub_hqpik_[4],lb_hqpik_[4], ubA_hqpik_[4], lbA_hqpik_[4];
+    Eigen::VectorXd g_hqpik_[4], u_dot_hqpik_[4], qpres_hqpik_, ub_hqpik_[4], lb_hqpik_[4], ubA_hqpik_[4], lbA_hqpik_[4];
     Eigen::VectorXd q_dot_hqpik_[4];
 
     int last_solved_hierarchy_num_;
     const double equality_condition_eps_ = 1e-8;
     const double damped_puedoinverse_eps_ = 1e-5;
 
-    bool verbose = true;
+    bool verbose = false;
     bool print_constraints = false;
 
     bool sca_constraint_hqpik_ = true;
-    const unsigned int num_sca_constraint_hqpik_ = 3;
+    const unsigned int num_sca_constraint_hqpik_ = 2;
+
+    double elbow_is_not_solved_time_ = 0;
+    bool elbow_control_singular_ = false;
+    Eigen::Isometry3d elbow_singular_start_pose_;
     ///////////////////////////////////////////////////
     
     /////////////HQPIK2//////////////////////////
@@ -1089,7 +1093,6 @@ public:
     Eigen::MatrixXd J_hqpik2_[5];
     Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
     Eigen::VectorXd q_dot_hqpik2_[5];
-
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////

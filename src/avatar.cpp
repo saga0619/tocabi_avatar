@@ -701,28 +701,19 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
             updateInitialState();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
             getRobotState();
-            std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
             floatToSupportFootstep();
-            std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory();
-                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
                 getComTrajectory();
-                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getFootTrajectory();
-                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
                 getPelvTrajectory();
-                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
                 supportToFloatPattern();
-                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des); // 390
-                std::chrono::steady_clock::time_point t10 = std::chrono::steady_clock::now();
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
                 {
@@ -759,7 +750,6 @@ void AvatarController::computeSlow()
 
                 CP_compen_MJ();
                 CP_compen_MJ_FT();
-                std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
                 {
@@ -772,25 +762,7 @@ void AvatarController::computeSlow()
                 updateNextStepTime();
 
                 q_prev_MJ_ = rd_.q_;
-                std::chrono::steady_clock::time_point t14 = std::chrono::steady_clock::now();
 
-                // if (int(walking_tick_mj) % 50 == 0)
-                // {
-                //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-                //     cout<<"get state time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count() <<endl;
-                //     cout<<"getZmpTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
-                //     cout<<"getComTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
-                //     cout<<"getFootTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t6 - t5).count() <<endl;
-                //     cout<<"getPelvTrajectory time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t7 - t6).count() <<endl;
-                //     cout<<"supportToFloatPattern time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t8 - t7).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t9 - t8).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t10 - t9).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t11 - t10).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t12 - t11).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t13 - t12).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t13).count() <<endl;
-                //     cout<<"computeIkControl_MJ time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t14 - t1).count() <<endl;
-                // }
             }
         }
         else
@@ -924,27 +896,19 @@ void AvatarController::computeSlow()
                 cout << "mode = 13" << endl;
             }
 
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
             updateInitialStateJoy();
             getRobotState();
             floatToSupportFootstep();
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
             if (current_step_num_ < total_step_num_)
             {
-                std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
                 getZmpTrajectory();
-                std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
                 getComTrajectory();
-                std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
                 getFootTrajectory();
-                std::chrono::steady_clock::time_point t6 = std::chrono::steady_clock::now();
                 getPelvTrajectory();
-                std::chrono::steady_clock::time_point t7 = std::chrono::steady_clock::now();
                 supportToFloatPattern();
-                std::chrono::steady_clock::time_point t8 = std::chrono::steady_clock::now();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
-                std::chrono::steady_clock::time_point t9 = std::chrono::steady_clock::now();
 
                 Compliant_control(q_des);
                 for (int i = 0; i < 12; i++)
@@ -1613,7 +1577,7 @@ void AvatarController::initWalkingParameter()
     hmd_larm_max_l_ = 0.45;
     hmd_rarm_max_l_ = 0.45;
     hmd_shoulder_width_ = 0.5;
-
+    
     hmd_pelv_pose_.setIdentity();
     hmd_lshoulder_pose_.setIdentity();
     hmd_lhand_pose_.setIdentity();
@@ -1652,7 +1616,7 @@ void AvatarController::initWalkingParameter()
     tracker_status_changed_time_ = current_time_;
     hmd_tracker_status_ = false;
     hmd_tracker_status_raw_ = false;
-    hmd_tracker_status_pre_ = false;
+    hmd_tracker_status_pre_ = true;
 
     // hmd_tracker_status_ = true;
     // hmd_tracker_status_raw_ = true;
@@ -3099,29 +3063,40 @@ void AvatarController::motionGenerator()
         }
         else
         {
-            if (upperbody_mode_recieved_ == true)
+            if(hmd_tracker_first_receive_ == true)
             {
-                cout << "Upperbody Mode is Changed to #6 (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)" << endl;
+                if (upperbody_mode_recieved_ == true)
+                {
+                    cout << "Upperbody Mode is Changed to #6 (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)" << endl;
 
-                first_loop_hqpik_ = true;
-                first_loop_qp_retargeting_ = true;
+                    first_loop_hqpik_ = true;
+                    first_loop_qp_retargeting_ = true;
 
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-                calibration_state_gui_log_pub.publish(msg);
+                    std_msgs::String msg;
+                    std::stringstream upperbody_mode_ss;
+                    upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1-AVATAR XPRIZE SEMIFINALS VERSION)";
+                    msg.data = upperbody_mode_ss.str();
+                    calibration_state_pub.publish(msg);
+                    calibration_state_gui_log_pub.publish(msg);
+                }
+
+                rawMasterPoseProcessing();
+                motionRetargeting_HQPIK();
+                // motionRetargeting_HQPIK_lexls();
+                // motionRetargeting_QPIK_upperbody();
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                // }
             }
-
-            rawMasterPoseProcessing();
-            motionRetargeting_HQPIK();
-            // motionRetargeting_HQPIK_lexls();
-            // motionRetargeting_QPIK_upperbody();
-            // if (int(current_time_ * 10000) % 10000 == 0)
-            // {
-            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            // }
+            else
+            {
+                cout << " WARNING: Tracker messages are not received! Upperbody returns to the init pose" << endl;
+                upper_body_mode_ = 3;
+                upperbody_mode_recieved_ = true;
+                upperbody_command_time_ = current_time_;
+                motion_q_ = motion_q_pre_;
+            }
         }
     }
     else if (upper_body_mode_ == 7) // HQPIK ver2
@@ -3136,28 +3111,39 @@ void AvatarController::motionGenerator()
         }
         else
         {
-            if (upperbody_mode_recieved_ == true)
+            if(hmd_tracker_first_receive_ == true)
             {
-                cout << "Upperbody Mode is Changed to #7 (HQPIK ver2)" << endl;
+                if (upperbody_mode_recieved_ == true)
+                {
+                    cout << "Upperbody Mode is Changed to #7 (HQPIK ver2)" << endl;
 
-                first_loop_hqpik2_ = true;
-                first_loop_qp_retargeting_ = true;
+                    first_loop_hqpik2_ = true;
+                    first_loop_qp_retargeting_ = true;
 
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK ver2)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-                calibration_state_gui_log_pub.publish(msg);
+                    std_msgs::String msg;
+                    std::stringstream upperbody_mode_ss;
+                    upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK ver2)";
+                    msg.data = upperbody_mode_ss.str();
+                    calibration_state_pub.publish(msg);
+                    calibration_state_gui_log_pub.publish(msg);
+                }
+
+                rawMasterPoseProcessing();
+                motionRetargeting_HQPIK2();
+
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                // }
             }
-
-            rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
-
-            // if (int(current_time_ * 10000) % 10000 == 0)
-            // {
-            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            // }
+            else
+            {
+                cout << " WARNING: Tracker messages are not received! Upperbody returns to the init pose" << endl;
+                upper_body_mode_ = 3;
+                upperbody_mode_recieved_ = true;
+                upperbody_command_time_ = current_time_;
+                motion_q_ = motion_q_pre_;
+            }
         }
     }
     else if (upper_body_mode_ == 8) // Absolute mapping
@@ -3172,29 +3158,40 @@ void AvatarController::motionGenerator()
         }
         else
         {
-            if (upperbody_mode_recieved_ == true)
+            if(hmd_tracker_first_receive_ == true)
             {
-                cout << "Upperbody Mode is Changed to #7 (ABSOLUTE HAND POS MAPPING)" << endl;
+                if (upperbody_mode_recieved_ == true)
+                {
+                    cout << "Upperbody Mode is Changed to #7 (ABSOLUTE HAND POS MAPPING)" << endl;
 
-                first_loop_hqpik_ = true;
-                first_loop_qp_retargeting_ = true;
+                    first_loop_hqpik_ = true;
+                    first_loop_qp_retargeting_ = true;
 
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (ABSOLUTE HAND POS MAPPING)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-                calibration_state_gui_log_pub.publish(msg);
+                    std_msgs::String msg;
+                    std::stringstream upperbody_mode_ss;
+                    upperbody_mode_ss << "Motion Tracking Contorol in On (ABSOLUTE HAND POS MAPPING)";
+                    msg.data = upperbody_mode_ss.str();
+                    calibration_state_pub.publish(msg);
+                    calibration_state_gui_log_pub.publish(msg);
+                }
+
+                rawMasterPoseProcessing();
+                motionRetargeting_HQPIK();
+                // motionRetargeting_HQPIK_lexls();
+                // motionRetargeting_QPIK_upperbody();
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                // }
             }
-
-            rawMasterPoseProcessing();
-            motionRetargeting_HQPIK();
-            // motionRetargeting_HQPIK_lexls();
-            // motionRetargeting_QPIK_upperbody();
-            // if (int(current_time_ * 10000) % 10000 == 0)
-            // {
-            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            // }
+            else
+            {
+                cout << " WARNING: Tracker messages are not received! Upperbody returns to the init pose" << endl;
+                upper_body_mode_ = 3;
+                upperbody_mode_recieved_ = true;
+                upperbody_command_time_ = current_time_;
+                motion_q_ = motion_q_pre_;
+            }
         }
     }
     else if (upper_body_mode_ == 9) // Propositional mapping
@@ -3209,29 +3206,40 @@ void AvatarController::motionGenerator()
         }
         else
         {
-            if (upperbody_mode_recieved_ == true)
+            if(hmd_tracker_first_receive_ == true)
             {
-                cout << "Upperbody Mode is Changed to #8 (PROPOSITIONAL HAND POS MAPPING)" << endl;
+                if (upperbody_mode_recieved_ == true)
+                {
+                    cout << "Upperbody Mode is Changed to #8 (PROPOSITIONAL HAND POS MAPPING)" << endl;
 
-                first_loop_hqpik_ = true;
-                first_loop_qp_retargeting_ = true;
+                    first_loop_hqpik_ = true;
+                    first_loop_qp_retargeting_ = true;
 
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (PROPOSITIONAL HAND POS MAPPING)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-                calibration_state_gui_log_pub.publish(msg);
+                    std_msgs::String msg;
+                    std::stringstream upperbody_mode_ss;
+                    upperbody_mode_ss << "Motion Tracking Contorol in On (PROPOSITIONAL HAND POS MAPPING)";
+                    msg.data = upperbody_mode_ss.str();
+                    calibration_state_pub.publish(msg);
+                    calibration_state_gui_log_pub.publish(msg);
+                }
+
+                rawMasterPoseProcessing();
+                motionRetargeting_HQPIK();
+                // motionRetargeting_HQPIK_lexls();
+                // motionRetargeting_QPIK_upperbody();
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                // }
             }
-
-            rawMasterPoseProcessing();
-            motionRetargeting_HQPIK();
-            // motionRetargeting_HQPIK_lexls();
-            // motionRetargeting_QPIK_upperbody();
-            // if (int(current_time_ * 10000) % 10000 == 0)
-            // {
-            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            // }
+            else
+            {
+                cout << " WARNING: Tracker messages are not received! Upperbody returns to the init pose" << endl;
+                upper_body_mode_ = 3;
+                upperbody_mode_recieved_ = true;
+                upperbody_command_time_ = current_time_;
+                motion_q_ = motion_q_pre_;
+            }
         }
     }
     else if (upper_body_mode_ == 10) // Cali Pose Direction Only
@@ -3246,29 +3254,40 @@ void AvatarController::motionGenerator()
         }
         else
         {
-            if (upperbody_mode_recieved_ == true)
+            if(hmd_tracker_first_receive_ == true)
             {
-                cout << "Upperbody Mode is Changed to #10 (HQPIK1 - Direction Only)" << endl;
+                if (upperbody_mode_recieved_ == true)
+                {
+                    cout << "Upperbody Mode is Changed to #10 (HQPIK1 - Direction Only)" << endl;
 
-                first_loop_hqpik_ = true;
-                first_loop_qp_retargeting_ = true;
+                    first_loop_hqpik_ = true;
+                    first_loop_qp_retargeting_ = true;
 
-                std_msgs::String msg;
-                std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1 - Direction Only)";
-                msg.data = upperbody_mode_ss.str();
-                calibration_state_pub.publish(msg);
-                calibration_state_gui_log_pub.publish(msg);
+                    std_msgs::String msg;
+                    std::stringstream upperbody_mode_ss;
+                    upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1 - Direction Only)";
+                    msg.data = upperbody_mode_ss.str();
+                    calibration_state_pub.publish(msg);
+                    calibration_state_gui_log_pub.publish(msg);
+                }
+
+                rawMasterPoseProcessing();
+                motionRetargeting_HQPIK();
+                // motionRetargeting_HQPIK_lexls();
+                // motionRetargeting_QPIK_upperbody();
+                // if (int(current_time_ * 10000) % 10000 == 0)
+                // {
+                //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+                // }
             }
-
-            rawMasterPoseProcessing();
-            motionRetargeting_HQPIK();
-            // motionRetargeting_HQPIK_lexls();
-            // motionRetargeting_QPIK_upperbody();
-            // if (int(current_time_ * 10000) % 10000 == 0)
-            // {
-            //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-            // }
+            else
+            {
+                cout << " WARNING: Tracker messages are not received! Upperbody returns to the init pose" << endl;
+                upper_body_mode_ = 3;
+                upperbody_mode_recieved_ = true;
+                upperbody_command_time_ = current_time_;
+                motion_q_ = motion_q_pre_;
+            }
         }
     }
 
@@ -4697,16 +4716,16 @@ void AvatarController::motionRetargeting_HQPIK()
             lbA_hqpik_[i](higher_task_equality_num+1) = -k_sac*(hx_rarm_upperbody - h_offset);
             ubA_hqpik_[i](higher_task_equality_num+1) = 1e4;
 
-            // btw_arms
-            for(int j = 0; j<btw_arms_sca_mlp_.n_input; j++)
-            {
-                A_hqpik_[i](higher_task_equality_num+2, btw_arms_sca_mlp_.q_to_input_mapping_vector(j)-12) = 
-                (btw_arms_sca_mlp_.output_derivative_fast.row(1)-btw_arms_sca_mlp_.output_derivative_fast.row(0))(j);
-            }
-            hx_btw_arms = btw_arms_sca_mlp_.output_fast(1)-btw_arms_sca_mlp_.output_fast(0);
-            // hx = DyrosMath::minmax_cut(hx, -0.999, 1e4);
-            lbA_hqpik_[i](higher_task_equality_num+2) = -k_sac*(hx_btw_arms);
-            ubA_hqpik_[i](higher_task_equality_num+2) = 1e4;
+            // //// btw_arms
+            // for(int j = 0; j<btw_arms_sca_mlp_.n_input; j++)
+            // {
+            //     A_hqpik_[i](higher_task_equality_num+2, btw_arms_sca_mlp_.q_to_input_mapping_vector(j)-12) = 
+            //     (btw_arms_sca_mlp_.output_derivative_fast.row(1)-btw_arms_sca_mlp_.output_derivative_fast.row(0))(j);
+            // }
+            // hx_btw_arms = btw_arms_sca_mlp_.output_fast(1)-btw_arms_sca_mlp_.output_fast(0);
+            // // hx = DyrosMath::minmax_cut(hx, -0.999, 1e4);
+            // lbA_hqpik_[i](higher_task_equality_num+2) = -k_sac*(hx_btw_arms);
+            // ubA_hqpik_[i](higher_task_equality_num+2) = 1e4;
 
             higher_task_equality_num += num_sca_constraint_hqpik_;
         }
@@ -4763,6 +4782,10 @@ void AvatarController::motionRetargeting_HQPIK()
             //     if (int(current_time_ * 10000) % 1000 == 0)
             //         std::cout << "4th HQPIK(shoulder) is solved" << std::endl;
             // }
+            if( i == 2)
+            {
+                elbow_control_singular_ = false;
+            }
         }
         else
         {
@@ -4776,6 +4799,13 @@ void AvatarController::motionRetargeting_HQPIK()
                 {
                     std::cout << "Error hierarchy: " << i << std::endl;
                     std::cout << "last solved q_dot: " << q_dot_hqpik_[last_solved_hierarchy_num_].transpose() << std::endl;
+                }
+
+                if(i == 2)
+                {
+                    elbow_control_singular_ = true;
+                    elbow_is_not_solved_time_ = rd_.control_time_;
+                    elbow_singular_start_pose_ = lupperarm_transform_pre_desired_from_;
                 }
             }
             // cout<<"Error qpres_: \n"<< qpres_ << endl;
@@ -5591,6 +5621,11 @@ void AvatarController::poseCalibration()
 {
     hmd_tracker_status_ = hmd_tracker_status_raw_;
 
+    if(hmd_tracker_first_receive_ == false && hmd_tracker_status_ == true)
+    {
+        hmd_tracker_first_receive_ = true;
+    }
+
     if (hmd_tracker_status_ == true)
     {
         if (hmd_tracker_status_pre_ == false)
@@ -6096,7 +6131,6 @@ void AvatarController::poseCalibration()
         cout << "hmd_larm_max_l_: " << hmd_larm_max_l_ << endl;
         cout << "hmd_rarm_max_l_: " << hmd_rarm_max_l_ << endl;
         cout << "hmd_shoulder_width_: " << hmd_shoulder_width_ << endl;
-        hmd_check_pose_calibration_[3] = true;
 
         hmd_chest_2_lshoulder_center_pos_ = hmd_lshoulder_center_pos_ - hmd_chest_pose_init_.translation();
         hmd_chest_2_rshoulder_center_pos_ = hmd_rshoulder_center_pos_ - hmd_chest_pose_init_.translation();
@@ -6119,6 +6153,8 @@ void AvatarController::poseCalibration()
         hmd_lshoulder_pose_init_.linear() = hmd_chest_pose_init_.linear();
         hmd_rshoulder_pose_init_.translation() = hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose() * hmd_chest_2_rshoulder_center_pos_ + hmd_chest_pose_init_.translation();
         hmd_rshoulder_pose_init_.linear() = hmd_chest_pose_init_.linear();
+
+        hmd_check_pose_calibration_[3] = true;
     }
 
     // Shoulder Data
@@ -6493,73 +6529,73 @@ void AvatarController::rawMasterPoseProcessing()
         /////Absolute hand position mapping //////
         Vector3d hand_offset;
         // hand_offset << 0.0, 0.0, 0.15;
-        // hand_offset << 0.15, 0, 0.15;
-        // master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
-        // master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
+        hand_offset << 0.15, 0, 0.15;
+        master_lhand_pose_raw_.translation() = hmd_lhand_pose_.translation() + hand_offset;
+        master_rhand_pose_raw_.translation() = hmd_rhand_pose_.translation() + hand_offset;
 
-        //test
-        master_lhand_pose_raw_ = lhand_transform_init_from_global_;
-        master_lhand_pose_raw_.linear() = DyrosMath::rotateWithZ(-90*DEG2RAD)*master_lhand_pose_raw_.linear();
+        /////////////////test////////////////////
+        // master_lhand_pose_raw_ = lhand_transform_init_from_global_;
+        // master_lhand_pose_raw_.linear() = DyrosMath::rotateWithZ(-90*DEG2RAD)*master_lhand_pose_raw_.linear();
 
-        master_rhand_pose_raw_ = rhand_transform_init_from_global_;
-        master_rhand_pose_raw_.linear() = DyrosMath::rotateWithZ(90*DEG2RAD)*master_rhand_pose_raw_.linear();
-        //front motion
-        // master_lhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
+        // master_rhand_pose_raw_ = rhand_transform_init_from_global_;
+        // master_rhand_pose_raw_.linear() = DyrosMath::rotateWithZ(90*DEG2RAD)*master_rhand_pose_raw_.linear();
+        // //front motion
+        // // master_lhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
+        // // master_lhand_pose_raw_.translation()(1) = DyrosMath::cubic
+        // // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
+        // // lhand_transform_init_from_global_.translation()(1), 
+        // // lhand_transform_init_from_global_.translation()(1)-0.28, 0.0, 0.0);
+
+        // // master_lhand_pose_raw_.translation()(2) = DyrosMath::cubic
+        // // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
+        // // lhand_transform_init_from_global_.translation()(2), 
+        // // lhand_transform_init_from_global_.translation()(2)+0.32, 0.0, 0.0);
+        // //////////////////////////////
+        // //front motion
+        // // master_lhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
+        // master_lhand_pose_raw_.translation()(0) = 0.4;
         // master_lhand_pose_raw_.translation()(1) = DyrosMath::cubic
         // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
         // lhand_transform_init_from_global_.translation()(1), 
-        // lhand_transform_init_from_global_.translation()(1)-0.28, 0.0, 0.0);
+        // lhand_transform_init_from_global_.translation()(1)-0.25, 0.0, 0.0);
 
-        // master_lhand_pose_raw_.translation()(2) = DyrosMath::cubic
+        // master_lhand_pose_raw_.translation()(2) = lhand_transform_init_from_global_.translation()(2)+ 0.45 + 0.20*sin(current_time_*2*M_PI/20);
+
+        // // master_lhand_pose_raw_.translation()(2) = DyrosMath::cubic
+        // // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
+        // // lhand_transform_init_from_global_.translation()(2), 
+        // // lhand_transform_init_from_global_.translation()(2)+0.30, 0.0, 0.0);
+
+
+        // // master_rhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
+        // master_rhand_pose_raw_.translation()(0) = 0.4;
+        // master_rhand_pose_raw_.translation()(1) = DyrosMath::cubic
         // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
-        // lhand_transform_init_from_global_.translation()(2), 
-        // lhand_transform_init_from_global_.translation()(2)+0.32, 0.0, 0.0);
-        //////////////////////////////
-        //front motion
-        // master_lhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
-        master_lhand_pose_raw_.translation()(0) = 0.4;
-        master_lhand_pose_raw_.translation()(1) = DyrosMath::cubic
-        (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
-        lhand_transform_init_from_global_.translation()(1), 
-        lhand_transform_init_from_global_.translation()(1)-0.25, 0.0, 0.0);
+        // rhand_transform_init_from_global_.translation()(1), 
+        // rhand_transform_init_from_global_.translation()(1)+0.25, 0.0, 0.0);
 
-        master_lhand_pose_raw_.translation()(2) = lhand_transform_init_from_global_.translation()(2)+ 0.45 + 0.20*sin(current_time_*2*M_PI/20);
+        // master_rhand_pose_raw_.translation()(2) = rhand_transform_init_from_global_.translation()(2) + 0.15 - 0.20*sin(current_time_*2*M_PI/20);
 
-        // master_lhand_pose_raw_.translation()(2) = DyrosMath::cubic
-        // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
-        // lhand_transform_init_from_global_.translation()(2), 
-        // lhand_transform_init_from_global_.translation()(2)+0.30, 0.0, 0.0);
-
-
-        // master_rhand_pose_raw_.translation()(0) = 0.3 + 0.2*sin(current_time_*2*M_PI/20);
-        master_rhand_pose_raw_.translation()(0) = 0.4;
-        master_rhand_pose_raw_.translation()(1) = DyrosMath::cubic
-        (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
-        rhand_transform_init_from_global_.translation()(1), 
-        rhand_transform_init_from_global_.translation()(1)+0.25, 0.0, 0.0);
-
-        master_rhand_pose_raw_.translation()(2) = rhand_transform_init_from_global_.translation()(2) + 0.15 - 0.20*sin(current_time_*2*M_PI/20);
-
-        // master_rhand_pose_raw_.translation()(2) = DyrosMath::cubic
-        // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
-        // rhand_transform_init_from_global_.translation()(2), 
-        // rhand_transform_init_from_global_.translation()(2)+0.30, 0.0, 0.0);
-        //////////////////////
+        // // master_rhand_pose_raw_.translation()(2) = DyrosMath::cubic
+        // // (current_time_, upperbody_command_time_, upperbody_command_time_ + 1.0,
+        // // rhand_transform_init_from_global_.translation()(2), 
+        // // rhand_transform_init_from_global_.translation()(2)+0.30, 0.0, 0.0);
+        // //////////////////////
         
-        // master_lhand_pose_raw_ = lhand_transform_init_from_global_;
-        // master_rhand_pose_raw_ = rhand_transform_init_from_global_;
+        // // master_lhand_pose_raw_ = lhand_transform_init_from_global_;
+        // // master_rhand_pose_raw_ = rhand_transform_init_from_global_;
 
-        master_lelbow_pose_raw_ = lupperarm_transform_init_from_global_;
-        master_relbow_pose_raw_ = rupperarm_transform_init_from_global_;
+        // master_lelbow_pose_raw_ = lupperarm_transform_init_from_global_;
+        // master_relbow_pose_raw_ = rupperarm_transform_init_from_global_;
         
-        master_lshoulder_pose_raw_ = lshoulder_transform_init_from_global_;
-        master_rshoulder_pose_raw_ = rshoulder_transform_init_from_global_;
+        // master_lshoulder_pose_raw_ = lshoulder_transform_init_from_global_;
+        // master_rshoulder_pose_raw_ = rshoulder_transform_init_from_global_;
 
-        master_upperbody_pose_raw_ = upperbody_transform_init_from_global_;
-        master_head_pose_raw_ = head_transform_init_from_global_;
+        // master_upperbody_pose_raw_ = upperbody_transform_init_from_global_;
+        // master_head_pose_raw_ = head_transform_init_from_global_;
 
-        // master_upperbody_pose_raw_.linear().setIdentity();
-        // master_head_pose_raw_.linear().setIdentity();
+        // // master_upperbody_pose_raw_.linear().setIdentity();
+        // // master_head_pose_raw_.linear().setIdentity();
         ///////////////////////////////////////////
     }
     else if (upper_body_mode_ == 9)
@@ -7074,7 +7110,7 @@ void AvatarController::hmdRawDataProcessing()
 
     if (beta == 0)
     {
-        // qpRetargeting_1(); // calc lhand_mapping_vector_, rhand_mapping_vector_ //1025
+        qpRetargeting_1(); // calc lhand_mapping_vector_, rhand_mapping_vector_ //1025
         // if ((int(current_time_ * 1e4) % int(1e4) == 0))
         // {
         //     cout << "beta0: " << beta << endl;
