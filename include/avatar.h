@@ -1524,8 +1524,8 @@ public:
     void GravityCalculate_MJ();
 
     void getZmpTrajectory();
-    void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
-    void onestepZmp(unsigned int current_step_number, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py);
+    void zmpGenerator(int norm_size, int planning_step_num);
+    void onestepZmp(int current_step_number, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
