@@ -1672,6 +1672,9 @@ public:
     Eigen::Vector6d swingfoot_float_init_;
     Eigen::Vector6d swingfoot_support_init_;
 
+    Eigen::Vector6d target_swing_foot_;
+    Eigen::Vector6d target_swing_foot_pre_;
+
     Eigen::MatrixXd ref_zmp_mj_;
     Eigen::MatrixXd ref_zmp_mj_p_;
     Eigen::MatrixXd ref_zmp_mpc_;
