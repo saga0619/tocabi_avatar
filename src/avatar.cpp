@@ -853,8 +853,8 @@ void AvatarController::computeSlow()
             {
                 
                 getZmpTrajectory();
-                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요 
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -872,7 +872,7 @@ void AvatarController::computeSlow()
                     atb_walking_traj_update_ = false;
                 }
 
-                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
                 // Compliant_control(q_des_);
 
                 if (atb_desired_q_update_ == false)
@@ -885,10 +885,10 @@ void AvatarController::computeSlow()
                 
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = q_des_(i);
+                    // ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
 
-                    // ref_q_(i) = desired_q_fast_(i);
+                    ref_q_(i) = desired_q_fast_(i);
                     static bool ref_q_nan_flag = false;
                     if (ref_q_(i) != ref_q_(i))
                     {
@@ -923,7 +923,8 @@ void AvatarController::computeSlow()
                     // for leg
                     for (int i = 0; i < 12; i++)
                     {
-                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        // ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
                     }
                     // for waist
                     //  ref_q_(13) = Initial_ref_q_(13);
@@ -947,6 +948,9 @@ void AvatarController::computeSlow()
                 for (int i = 0; i < 12; i++)
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Tau_CP(i) + 1.0 * Gravity_MJ_fast_(i);
+
+                    //compliant control after collision
+                    torque_lower_(i) += ext_torque_compensation_(i);
                     // torque_lower_(i) = 1.0 * Gravity_MJ_fast_(i);
 
                     // if (estimated_model_unct_torque_variance_slow_(i) == 0 && gaussian_mode_ == true)
@@ -1096,6 +1100,10 @@ void AvatarController::computeSlow()
             }
         }
 
+        for (int i=0; i<MODEL_DOF; i++)
+        {
+            torque_d(i) = DyrosMath::minmax_cut(torque_d(i), torque_task_min_(i), torque_task_max_(i));
+        }
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         // rd_.torque_desired = torque_lower_ + torque_upper_ + estimated_model_unct_torque_slow_;
@@ -3601,7 +3609,7 @@ void AvatarController::motionGenerator()
 
     poseCalibration();
 
-    // computeLeg_QPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
+    computeLeg_QPIK(lfoot_trajectory_float_slow_, rfoot_trajectory_float_slow_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
 
     if (upper_body_mode_ == 1) // init pose
     {
@@ -10684,10 +10692,10 @@ void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Iso
     error_v_leg_pos.segment(3, 3) = rfoot_t_des.translation() - rfoot_transform_pre_desired_from_.translation();
     error_w_leg_pos.segment(3, 3) = -DyrosMath::getPhi(rfoot_transform_pre_desired_from_.linear(), rfoot_t_des.linear());
 
-    u_dot_leg_qpik_.segment(0, 3) = 100 * error_v_leg_pos.segment(0, 3);
+    u_dot_leg_qpik_.segment(0, 3) = 200 * error_v_leg_pos.segment(0, 3);
     u_dot_leg_qpik_.segment(3, 3) = 100 * error_w_leg_pos.segment(0, 3);
 
-    u_dot_leg_qpik_.segment(6, 3) = 100 * error_v_leg_pos.segment(3, 3);
+    u_dot_leg_qpik_.segment(6, 3) = 200 * error_v_leg_pos.segment(3, 3);
     u_dot_leg_qpik_.segment(9, 3) = 100 * error_w_leg_pos.segment(3, 3);
 
     static bool qp_leg_is_not_solved = false;
