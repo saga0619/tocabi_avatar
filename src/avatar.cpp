@@ -14094,6 +14094,7 @@ void AvatarController::computeThread3()
 
 void AvatarController::computePlanner()
 {
+    
 }
 
 void AvatarController::copyRobotData(RobotData &rd_l)
