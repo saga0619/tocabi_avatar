@@ -798,10 +798,10 @@ void AvatarController::computeSlow()
                 ////mujoco ext wrench publish////(dg add)
                 // 1st DSP 5.55 ~ 5.7 / SSP 5.7 ~ 6.3 / 2nd DSP 6.3 ~ 6.45 
                 // 5.82 ~ 6.02 (20%) / 6.18 ~ 6.38 (80%) / 5.88 ~ 6.08 (30%) / 6.12 ~ 6.32 (70%)
-                if((walking_tick_mj >= 6.1*hz_)&&(walking_tick_mj < 6.3*hz_)) 
+                if((walking_tick_mj >= 5.88*hz_)&&(walking_tick_mj < 6.08*hz_)) 
                 { // -170,175 // -350 7.5 - 7.6
-                    mujoco_applied_ext_force_.data[0] = 0*-232.0;//x-axis linear force // 475때 넘어지는거는 time 소숫점 3자리 문제 
-                    mujoco_applied_ext_force_.data[1] = 0*-233.0;  //y-axis linear force  
+                    mujoco_applied_ext_force_.data[0] = 0*240;//-232.0;//x-axis linear force // 475때 넘어지는거는 time 소숫점 3자리 문제 
+                    mujoco_applied_ext_force_.data[1] = 0*-350.0;  //y-axis linear force  
                     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
                     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
                     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
@@ -9575,7 +9575,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double tau_nom = 0;
     double T_gap = 0;
         
-    double w1_step = 200.0, w2_step = 1.0, w3_step = 2000.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
+    double w1_step = 1.0, w2_step = 0.005, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     // -Y 시간 얼마 안남았을때만 밑에 웨이팅이 좋다.
     // double w1_step = 1.0, w2_step = 1000.0, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     double u0_x = 0; 
@@ -9596,7 +9596,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         del_F_y_ = 0;
     }
 
-    L_nom = del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
+    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
     W_nom = del_F_y_; // 0;
     L_min = L_nom - 0.05;
     L_max = L_nom + 0.05;
@@ -9687,7 +9687,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
     lb_step(4) = exp(wn*T_min);
-    lb_step(5) = b_nom_x - 0.02;
+    lb_step(5) = b_nom_x - 0.1; 
     lb_step(6) = b_nom_y - 0.1;
     
     ub_step(0) = u0_x;
@@ -9695,7 +9695,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
-    ub_step(5) = b_nom_x + 0.02;
+    ub_step(5) = b_nom_x + 0.1;
     ub_step(6) = b_nom_y + 0.1;    
     
     if(walking_tick_mj == 0)
@@ -9742,8 +9742,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     dsp_scaler_dot_(1) = 300.0 * stepping_err(1) - 10.0 * dsp_scaler_(1);
     dsp_scaler_(1) = dsp_scaler_(1) + dsp_scaler_dot_(1)*del_t;
     
-    MJ_graph << target_swing_foot(1) + del_F_(1) << "," << desired_swing_foot(1) << "," << del_F_y_ << "," << stepping_err(1) << "," << dsp_scaler_(1) << "," <<  dsp_scaler_.norm() << "," << dsp_time_reducer_fixed_ << endl;
-    MJ_graph1 << t_rest_init_ << "," << t_rest_last_ << "," << current_step_num_*500 << "," << t_total_ << "," << b_nom_y << endl;
+    // MJ_graph << target_swing_foot(1) + del_F_(1) << "," << desired_swing_foot(1) << "," << del_F_y_ << "," << stepping_err(1) << "," << dsp_scaler_(1) << "," <<  dsp_scaler_.norm() << "," << dsp_time_reducer_fixed_ << endl;
+    // MJ_graph1 << t_rest_init_ << "," << t_rest_last_ << "," << current_step_num_*500 << "," << t_total_ << "," << b_nom_y << endl;
     if (walking_tick_mj == t_start_ + t_total_ - t_rest_last_ - t_double2_  && current_step_num_ != total_step_num_ - 1) // SSP 끝날때 미리 계산된 DSP time 저장.
     {
         dsp_time_reducer_fixed_ = dsp_time_reducer_;
@@ -10533,18 +10533,18 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     
     for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
-        ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+        ub_x_foot_cp_mpc(i) = +0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+        lb_x_foot_cp_mpc(i) = -0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
         if(alpha_step_mpc_ == 1) // left foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.15 - rfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - rfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.2 - rfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.2 - rfoot_support_current_.translation()(0);
         }
         else if(alpha_step_mpc_ == -1) // right foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.15 - lfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - lfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.2 - lfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.2 - lfoot_support_current_.translation()(0);
         } 
         
     }   
@@ -13241,7 +13241,7 @@ void AvatarController::getFootTrajectory_stepping()
     {
         fixed_swing_foot(0) = desired_swing_foot(0); 
         fixed_swing_foot(1) = desired_swing_foot(1);  
-        modified_del_zmp_(current_step_num_,0) = del_F_(0);
+        modified_del_zmp_(current_step_num_,0) = del_F_(0) - target_swing_foot(0);
         modified_del_zmp_(current_step_num_,1) = del_F_(1);        
     }
 
@@ -13276,17 +13276,15 @@ void AvatarController::getFootTrajectory_stepping()
     
     if (walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - zmp_modif_time_margin_)
     {
-        // desired_swing_foot(0) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(0), target_swing_foot(0) + del_F_(0), 0.0, 0.0);
-        // desired_swing_foot(1) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_ , t_start_ + t_total_ - t_double2_ - t_rest_last_ - 0.1*hz_, stepping_foot_init_pos(1), target_swing_foot(1) + del_F_(1), 0.0, 0.0);
-        desired_swing_foot(0) = target_swing_foot(0) + 0*del_F_x_ + del_F_(0); // joe's MPC
-        desired_swing_foot(1) = target_swing_foot(1) + 0*del_F_y_ + del_F_(1);  
+        desired_swing_foot(0) = del_F_(0); // del_F_ is optimized by target_swing_foot_(0) + del_F_x
+        desired_swing_foot(1) = target_swing_foot(1) + del_F_(1);  
     }
     else
     {
         desired_swing_foot(0) = fixed_swing_foot(0);
         desired_swing_foot(1) = fixed_swing_foot(1);
     }    
-    
+     
     
     if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
@@ -13419,6 +13417,7 @@ void AvatarController::getFootTrajectory_stepping()
             //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
         }
     }
+    MJ_graph << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << del_F_(0) << "," << foot_step_support_frame_(current_step_num_, 0) + del_F_x_ << "," << desired_swing_foot(0) << endl;
 }
 
 void AvatarController::preview_Parameter(double dt, int NL, Eigen::MatrixXd &Gi, Eigen::VectorXd &Gd, Eigen::MatrixXd &Gx, Eigen::MatrixXd &A, Eigen::VectorXd &B, Eigen::MatrixXd &C)
@@ -14137,7 +14136,7 @@ void AvatarController::getComTrajectory_mpc()
         des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
                 
     }    
-    // MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
+    //MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
 
 void AvatarController::getComTrajectory()
