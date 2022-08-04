@@ -106,6 +106,8 @@ public:
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_global_;
+    RigidBodyDynamics::Model model_local_;
 
     //////////dg custom controller functions////////
     void setGains();
@@ -404,10 +406,20 @@ public:
     Eigen::VectorVQd pre_desired_q_dot_vqd_;
     Eigen::VectorVQd pre_desired_q_ddot_vqd_;
 
+    //model update
+    Eigen::VectorXd q_ddot_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_dot_virtual_Xd_global_pre_, q_virtual_Xd_global_; // for model_global_ update
+    Eigen::VectorXd q_ddot_virtual_Xd_local_, q_dot_virtual_Xd_local_, q_dot_virtual_Xd_local_pre_, q_virtual_Xd_local_;
+
     Eigen::VectorQd desired_q_fast_;
     Eigen::VectorQd desired_q_dot_fast_;
     Eigen::VectorQd desired_q_slow_;
     Eigen::VectorQd desired_q_dot_slow_;
+    //sca
+    Eigen::VectorQd q_ddot_max_slow_;
+    Eigen::VectorQd q_ddot_max_fast_;
+    Eigen::VectorQd q_ddot_max_thread_;
+    Eigen::VectorQd q_braking_stop_;
+    Eigen::VectorQd torque_max_braking_;
 
     Eigen::VectorQd motion_q_;
     Eigen::VectorQd motion_q_dot_;
@@ -1008,11 +1020,11 @@ public:
     //////////////////////////////////////////
 
     /////////////QPIK UPPERBODY /////////////////
-    const int hierarchy_num_upperbody_ = 4;
+    const int task_num_upperbody_ = 4;
     const int variable_size_upperbody_ = 21;
 	const int constraint_size1_upperbody_ = 21;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_upperbody_ = 12;	//[lb <=	Ax 	<=	ub] from constraints
-   	const int control_size_upperbody_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+   	const int control_size_upperbody_[4] = {4, 12, 21, 21};		//1: head, 2: both hand, 3: init pose, 4: damping
 
 	// const int control_size_hand = 12;		//2
 	// const int control_size_upperbody = 3;	//1
@@ -1020,12 +1032,7 @@ public:
 	// const int control_size_upperarm = 4; 	//3
 	// const int control_size_shoulder = 4;	//4
 
-    double w1_upperbody_;
-    double w2_upperbody_;
-    double w3_upperbody_;
-    double w4_upperbody_;
-    double w5_upperbody_;
-    double w6_upperbody_;
+    double w_upperbody_[4];
 
     Eigen::MatrixXd H_upperbody_, A_upperbody_;
     Eigen::MatrixXd J_upperbody_[4];
@@ -1067,7 +1074,8 @@ public:
     bool verbose = false;
     bool print_constraints = false;
 
-    bool sca_constraint_hqpik_ = true;
+    bool sca_constraint_hqpik_ = false;
+    bool sca_dynamic_version_ = true;
     const unsigned int num_sca_constraint_hqpik_ = 2;
 
     double elbow_is_not_solved_time_ = 0;
@@ -1076,23 +1084,23 @@ public:
     ///////////////////////////////////////////////////
     
     /////////////HQPIK2//////////////////////////
-    const int hierarchy_num_hqpik2_ = 5;
+    const int hierarchy_num_hqpik2_ = 3;
     const int variable_size_hqpik2_ = 21;
 	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
+	const int constraint_size2_hqpik2_[3] = {12, 16, 16};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const int control_size_hqpik2_[3] = {4, 12, 21};		//1: head ori(2)+pos(2), 2: hand, 3: init q pose
 
-    double w1_hqpik2_[5];
-    double w2_hqpik2_[5];
-    double w3_hqpik2_[5];
-    double w4_hqpik2_[5];
-    double w5_hqpik2_[5];
-    double w6_hqpik2_[5];
+    double w1_hqpik2_[3];
+    double w2_hqpik2_[3];
+    double w3_hqpik2_[3];
+    double w4_hqpik2_[3];
+    double w5_hqpik2_[3];
+    double w6_hqpik2_[3];
     
-    Eigen::MatrixXd H_hqpik2_[5], A_hqpik2_[5];
-    Eigen::MatrixXd J_hqpik2_[5];
-    Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
-    Eigen::VectorXd q_dot_hqpik2_[5];
+    Eigen::MatrixXd H_hqpik2_[3], A_hqpik2_[3];
+    Eigen::MatrixXd J_hqpik2_[3];
+    Eigen::VectorXd g_hqpik2_[3], u_dot_hqpik2_[3], qpres_hqpik2_, ub_hqpik2_[3],lb_hqpik2_[3], ubA_hqpik2_[3], lbA_hqpik2_[3];
+    Eigen::VectorXd q_dot_hqpik2_[3];
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////
@@ -1118,6 +1126,7 @@ public:
     const double w_dot_min_ = -30;
     const double w_dot_max_ = 30;
 
+    Eigen::VectorQd nominal_q_pose_;
     ////////////////////////////////////////////////////////////
 
     
@@ -1164,6 +1173,13 @@ public:
         Eigen::VectorXd output_thread;
 
         Eigen::MatrixXd output_derivative_fast;
+
+        Eigen::VectorXd hx_gradient_fast;
+        Eigen::VectorXd hx_gradient_fast_lpf;
+        Eigen::VectorXd hx_gradient_fast_pre;
+
+        double hx;
+
         bool loadweightfile_verbose = false;
         bool loadbiasfile_verbose = false;
     }   larm_upperbody_sca_mlp_, rarm_upperbody_sca_mlp_, btw_arms_sca_mlp_;
