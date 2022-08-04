@@ -10533,18 +10533,18 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     
     for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
-        ub_x_foot_cp_mpc(i) = +0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc(i) = -0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+        ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+        lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
         if(alpha_step_mpc_ == 1) // left foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.2 - rfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.2 - rfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.15 - rfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.15 - rfoot_support_current_.translation()(0);
         }
         else if(alpha_step_mpc_ == -1) // right foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.2 - lfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.2 - lfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.15 - lfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.15 - lfoot_support_current_.translation()(0);
         } 
         
     }   
