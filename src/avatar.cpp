@@ -547,7 +547,7 @@ void AvatarController::setGains()
     joint_limit_l_(23) = -80 * DEG2RAD;
     joint_limit_h_(23) = 80 * DEG2RAD;
     joint_limit_l_(24) = -40 * DEG2RAD;
-    joint_limit_h_(24) = 30 * DEG2RAD;
+    joint_limit_h_(24) = 20 * DEG2RAD;
     // RIGHT ARM
     joint_limit_l_(25) = -30 * DEG2RAD;
     joint_limit_h_(25) = 30 * DEG2RAD;
@@ -1249,9 +1249,9 @@ void AvatarController::computeFast()
 
         // motion planing and control//
 
-        if (motion_q_pre_(24) > 5 * DEG2RAD)
+        if (current_q_(24) > 5 * DEG2RAD)
         {
-            if (abs(motion_q_pre_(23)) > 18 * DEG2RAD)
+            if (abs(current_q_(23)) > 18 * DEG2RAD)
             {
                 joint_limit_h_(24) = 10 * DEG2RAD;
                 joint_limit_h_(23) = 80 * DEG2RAD;
