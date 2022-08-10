@@ -1197,17 +1197,13 @@ public:
     Eigen::VectorXd cpmpc_deszmp_x_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
-    
+    double force_temp_ = 0, theta_temp_ = 0;
     Eigen::Vector2d dsp_scaler_dot_;
     Eigen::Vector2d dsp_scaler_;
     double dsp_scaler_x_dot_ = 0;
     double dsp_scaler_x_ = 0;
     double dsp_scaler_y_dot_ = 0;
-    double dsp_scaler_y_ = 0;
-    double dsp_reducer_norm_ = 0;
-    double dsp_reducer_x_ = 0;
-    double dsp_reducer_y_ = 0;
-    Eigen::Vector2d dsp_reducer_;
+    double dsp_scaler_y_ = 0;  
     double dsp_time_reducer_ = 0;
     double dsp_time_reducer_fixed_ = 0;
     double del_F_x_next_ = 0;
