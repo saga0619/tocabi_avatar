@@ -1052,8 +1052,8 @@ public:
     const unsigned int hierarchy_num_hqpik_ = 4;
     const unsigned int variable_size_hqpik_ = 21;
 	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const unsigned int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 25};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const unsigned int control_size_hqpik_[4] = {3, 14, 8, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
 
     double w1_hqpik_[4];
     double w2_hqpik_[4];
@@ -1088,14 +1088,11 @@ public:
     const int variable_size_hqpik2_ = 21;
 	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
 	const int constraint_size2_hqpik2_[3] = {12, 16, 16};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[3] = {4, 12, 21};		//1: head ori(2)+pos(2), 2: hand, 3: init q pose
+	const int control_size_hqpik2_[3] = {4, 12, 8};		//1: head ori(2)+pos(2), 2: hand(12), 3: upperarm(4)+shoulder(4)
 
-    double w1_hqpik2_[3];
-    double w2_hqpik2_[3];
-    double w3_hqpik2_[3];
-    double w4_hqpik2_[3];
-    double w5_hqpik2_[3];
-    double w6_hqpik2_[3];
+    double w1_hqpik2_[3];   //task
+    double w2_hqpik2_[3];   //kinetic energy
+    double w3_hqpik2_[3];   //acceleration
     
     Eigen::MatrixXd H_hqpik2_[3], A_hqpik2_[3];
     Eigen::MatrixXd J_hqpik2_[3];
