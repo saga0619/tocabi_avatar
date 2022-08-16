@@ -49,11 +49,11 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dyros/data/dg/random_walking_.txt",
-        "/home/dyros/data/dg/1_foot_.txt",
-        "/home/dyros/data/dg/2_zmp_.txt",
-        "/home/dyros/data/dg/3_lstm_float_.txt",
-        "/home/dyros/data/dg/q_qdot_.txt"
+        "/home/dg/data/dg/random_walking_.txt",
+        "/home/dg/data/dg/1_foot_.txt",
+        "/home/dg/data/dg/2_zmp_.txt",
+        "/home/dg/data/dg/3_lstm_float_.txt",
+        "/home/dg/data/dg/q_qdot_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -1518,7 +1518,7 @@ public:
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
-    void calculateFootStepTotal_reactive(double target_x, bool is_right_foot_swing);
+    void calculateFootStepTotal_reactive(Eigen::Vector3d collision_position, Eigen::Vector3d external_force, bool is_right_foot_swing);
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
