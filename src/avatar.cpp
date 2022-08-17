@@ -62,7 +62,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
 
-    opto_ftsensor_sub = nh_avatar_.subscribe("optoforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this);
+    opto_ftsensor_sub = nh_avatar_.subscribe("/atiforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this);
 
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
@@ -727,7 +727,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -1399,12 +1399,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             initial_flag = 2;
         }
     }
@@ -2530,6 +2530,7 @@ void AvatarController::floatingBaseMOB()
 
     // l_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_lfoot_lstm_, l_ft_LPF, 2000, 6);
     // r_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_rfoot_lstm_, r_ft_LPF, 2000, 6);
+
     // torque_from_r_ft_ =  jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.RF_CF_FT;
 
     // MatrixXd j_pelv_temp;
@@ -12828,9 +12829,11 @@ void AvatarController::printOutTextFile()
     //         << rfoot_transform_current_from_support_.translation()(0) << "\t" << rfoot_transform_current_from_support_.translation()(1) << "\t" << rfoot_transform_current_from_support_.translation()(2) << "\t" //7
     //         << swing_foot_pos_trajectory_from_support_(0) << "\t" << swing_foot_pos_trajectory_from_support_(1) << "\t" << swing_foot_pos_trajectory_from_support_(2) << endl;                                    //28
 
-    if (walking_tick_mj % 20 == 0)
+    // if (walking_tick_mj % 20 == 0)
+    if(true)
     {
-        if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
+        // if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
+        if(true)
         {
             file[1] << rd_.control_time_ << "\t" << lfoot_local_current_.translation()(0) << "\t" << lfoot_local_current_.translation()(1) << "\t" << lfoot_local_current_.translation()(2) << "\t";
             file[1] << rfoot_local_current_.translation()(0) << "\t" << rfoot_local_current_.translation()(1) << "\t" << rfoot_local_current_.translation()(2) << "\t";
@@ -13557,11 +13560,12 @@ void AvatarController::getRobotState()
 
     // r_cf_ft_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(0, 3);
     // r_cf_ft_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(3, 3);
-    // if( walking_tick_mj % 1000 == 0 )
-    // {
-    //     cout<<"l_ft_: "<<l_ft_.transpose()<<endl;
-    //     cout<<"r_ft_: "<<r_ft_.transpose()<<endl;
-    // }
+    if( walking_tick_mj % 1000 == 0 )
+    {
+        // cout<<"l_ft_: "<<l_ft_.transpose()<<endl;
+        // cout<<"r_ft_: "<<r_ft_.transpose()<<endl;
+        cout<<"opto_ft_: "<<opto_ft_.transpose()<<endl;
+    }
 
     // MJ_graph << l_ft_LPF(2) << "," << l_ft_LPF(3) << "," << l_ft_LPF(4) << "," << r_ft_LPF(2) << "," << r_ft_LPF(3) << "," << r_ft_LPF(4) << endl;
     //  Eigen::Vector2d left_zmp, right_zmp;
@@ -13910,7 +13914,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 3; // total foot step number
+        middle_total_step_number = 200; // total foot step number
         dlength = 0;
     }
 
@@ -16175,7 +16179,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 1.0;
+    target_x_ = 0.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;

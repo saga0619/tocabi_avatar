@@ -49,11 +49,11 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dg/data/dg/random_walking_.txt",
-        "/home/dg/data/dg/1_foot_.txt",
-        "/home/dg/data/dg/2_zmp_.txt",
-        "/home/dg/data/dg/3_lstm_float_.txt",
-        "/home/dg/data/dg/q_qdot_.txt"
+        "/home/dyros/data/dg/random_walking_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_float_.txt",
+        "/home/dyros/data/dg/q_qdot_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
