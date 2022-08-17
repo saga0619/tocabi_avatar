@@ -9575,7 +9575,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double tau_nom = 0;
     double T_gap = 0;
         
-    double w1_step = 1.0, w2_step = 0.005, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
+    double w1_step = 1.0, w2_step = 0.05, w3_step = 3.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     // -Y 시간 얼마 안남았을때만 밑에 웨이팅이 좋다.
     // double w1_step = 1.0, w2_step = 1000.0, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     double u0_x = 0; 
@@ -9716,15 +9716,15 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         // dsp_reducer_2_ = 1 / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_2_ + (2 * M_PI * 10.0 * del_t) / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_1_;
     } 
 
-    if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_) // -x
-    {   
-        t_rest_last_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
-    } 
-    else if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // -x
-    {
-        t_rest_init_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
-        t_rest_last_ = 0.12*hz_;
-    }
+    // if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_) // -x
+    // {   
+    //     t_rest_last_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
+    // } 
+    // else if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // -x
+    // {
+    //     t_rest_init_ = (0.12 - dsp_reducer_1_prev_)* hz_;//0.0 * hz_;
+    //     t_rest_last_ = 0.12*hz_;
+    // }
     
     // if(current_step_num_ == 5) // -x (t_total_이 많이 줄어들면 못버팀)
     // {
@@ -12504,110 +12504,38 @@ void AvatarController::floatToSupportFootstep()
 void AvatarController::Joint_gain_set_MJ()
 {
     //simulation gains
-    Kp(0) = 1800.0;
-    Kd(0) = 70.0; // Left Hip yaw
-    Kp(1) = 2100.0;
-    Kd(1) = 90.0; // Left Hip roll
-    Kp(2) = 2100.0;
-    Kd(2) = 90.0; // Left Hip pitch
-    Kp(3) = 2100.0;
-    Kd(3) = 90.0; // Left Knee pitch
-    Kp(4) = 2100.0;
-    Kd(4) = 90.0; // Left Ankle pitch
-    Kp(5) = 2100.0;
-    Kd(5) = 90.0; // Left Ankle roll
+    // Kp(0) = 1800.0;
+    // Kd(0) = 70.0; // Left Hip yaw
+    // Kp(1) = 2100.0;
+    // Kd(1) = 90.0; // Left Hip roll
+    // Kp(2) = 2100.0;
+    // Kd(2) = 90.0; // Left Hip pitch
+    // Kp(3) = 2100.0;
+    // Kd(3) = 90.0; // Left Knee pitch
+    // Kp(4) = 2100.0;
+    // Kd(4) = 90.0; // Left Ankle pitch
+    // Kp(5) = 2100.0;
+    // Kd(5) = 90.0; // Left Ankle roll
 
-    Kp(6) = 1800.0;
-    Kd(6) = 70.0; // Right Hip yaw
-    Kp(7) = 2100.0;
-    Kd(7) = 90.0; // Right Hip roll
-    Kp(8) = 2100.0;
-    Kd(8) = 90.0; // Right Hip pitch
-    Kp(9) = 2100.0;
-    Kd(9) = 90.0; // Right Knee pitch
-    Kp(10) = 2100.0;
-    Kd(10) = 90.0; // Right Ankle pitch
-    Kp(11) = 2100.0;
-    Kd(11) = 90.0; // Right Ankle roll
+    // Kp(6) = 1800.0;
+    // Kd(6) = 70.0; // Right Hip yaw
+    // Kp(7) = 2100.0;
+    // Kd(7) = 90.0; // Right Hip roll
+    // Kp(8) = 2100.0;
+    // Kd(8) = 90.0; // Right Hip pitch
+    // Kp(9) = 2100.0;
+    // Kd(9) = 90.0; // Right Knee pitch
+    // Kp(10) = 2100.0;
+    // Kd(10) = 90.0; // Right Ankle pitch
+    // Kp(11) = 2100.0;
+    // Kd(11) = 90.0; // Right Ankle roll
 
-    Kp(12) = 2200.0;
-    Kd(12) = 90.0; // Waist yaw
-    Kp(13) = 2200.0;
-    Kd(13) = 90.0; // Waist pitch
-    Kp(14) = 2200.0;
-    Kd(14) = 90.0; // Waist roll
-
-    Kp(15) = 400.0;
-    Kd(15) = 10.0;
-    Kp(16) = 800.0;
-    Kd(16) = 10.0;
-    Kp(17) = 400.0;
-    Kd(17) = 10.0;
-    Kp(18) = 400.0;
-    Kd(18) = 10.0;
-    Kp(19) = 250.0;
-    Kd(19) = 2.5;
-    Kp(20) = 250.0;
-    Kd(20) = 2.0;
-    Kp(21) = 50.0;
-    Kd(21) = 2.0; // Left Wrist
-    Kp(22) = 50.0;
-    Kd(22) = 2.0; // Left Wrist
-
-    Kp(23) = 50.0;
-    Kd(23) = 2.0; // Neck
-    Kp(24) = 50.0;
-    Kd(24) = 2.0; // Neck
-
-    Kp(25) = 400.0;
-    Kd(25) = 10.0;
-    Kp(26) = 800.0;
-    Kd(26) = 10.0;
-    Kp(27) = 400.0;
-    Kd(27) = 10.0;
-    Kp(28) = 400.0;
-    Kd(28) = 10.0;
-    Kp(29) = 250.0;
-    Kd(29) = 2.5;
-    Kp(30) = 250.0;
-    Kd(30) = 2.0;
-    Kp(31) = 50.0;
-    Kd(31) = 2.0; // Right Wrist
-    Kp(32) = 50.0;
-    Kd(32) = 2.0; // Right Wrist
-
-    // Kp(0) = 2000.0;
-    // Kd(0) = 20.0; // Left Hip yaw
-    // Kp(1) = 5000.0;
-    // Kd(1) = 55.0; // Left Hip roll //55
-    // Kp(2) = 4000.0;
-    // Kd(2) = 45.0; // Left Hip pitch
-    // Kp(3) = 3700.0;
-    // Kd(3) = 40.0; // Left Knee pitch
-    // Kp(4) = 4000.0; // 5000
-    // Kd(4) = 65.0; // Left Ankle pitch /5000 / 30  //55
-    // Kp(5) = 4000.0; // 5000
-    // Kd(5) = 65.0; // Left Ankle roll /5000 / 30 //55
-
-    // Kp(6) = 2000.0;
-    // Kd(6) = 20.0; // Right Hip yaw
-    // Kp(7) = 5000.0;
-    // Kd(7) = 55.0; // Right Hip roll  //55
-    // Kp(8) = 4000.0;
-    // Kd(8) = 45.0; // Right Hip pitch
-    // Kp(9) = 3700.0;
-    // Kd(9) = 40.0; // Right Knee pitch
-    // Kp(10) = 4000.0; // 5000
-    // Kd(10) = 65.0; // Right Ankle pitch //55
-    // Kp(11) = 4000.0; // 5000
-    // Kd(11) = 65.0; // Right Ankle roll //55
-
-    // Kp(12) = 6000.0;
-    // Kd(12) = 200.0; // Waist yaw
-    // Kp(13) = 10000.0;
-    // Kd(13) = 100.0; // Waist pitch
-    // Kp(14) = 10000.0;
-    // Kd(14) = 100.0; // Waist roll
+    // Kp(12) = 2200.0;
+    // Kd(12) = 90.0; // Waist yaw
+    // Kp(13) = 2200.0;
+    // Kd(13) = 90.0; // Waist pitch
+    // Kp(14) = 2200.0;
+    // Kd(14) = 90.0; // Waist roll
 
     // Kp(15) = 400.0;
     // Kd(15) = 10.0;
@@ -12647,6 +12575,78 @@ void AvatarController::Joint_gain_set_MJ()
     // Kd(31) = 2.0; // Right Wrist
     // Kp(32) = 50.0;
     // Kd(32) = 2.0; // Right Wrist
+
+    Kp(0) = 2000.0;
+    Kd(0) = 20.0; // Left Hip yaw
+    Kp(1) = 5000.0;
+    Kd(1) = 55.0; // Left Hip roll //55
+    Kp(2) = 4000.0;
+    Kd(2) = 45.0; // Left Hip pitch
+    Kp(3) = 3700.0;
+    Kd(3) = 40.0; // Left Knee pitch
+    Kp(4) = 4000.0; // 5000
+    Kd(4) = 65.0; // Left Ankle pitch /5000 / 30  //55
+    Kp(5) = 4000.0; // 5000
+    Kd(5) = 65.0; // Left Ankle roll /5000 / 30 //55
+
+    Kp(6) = 2000.0;
+    Kd(6) = 20.0; // Right Hip yaw
+    Kp(7) = 5000.0;
+    Kd(7) = 55.0; // Right Hip roll  //55
+    Kp(8) = 4000.0;
+    Kd(8) = 45.0; // Right Hip pitch
+    Kp(9) = 3700.0;
+    Kd(9) = 40.0; // Right Knee pitch
+    Kp(10) = 4000.0; // 5000
+    Kd(10) = 65.0; // Right Ankle pitch //55
+    Kp(11) = 4000.0; // 5000
+    Kd(11) = 65.0; // Right Ankle roll //55
+
+    Kp(12) = 6000.0;
+    Kd(12) = 200.0; // Waist yaw
+    Kp(13) = 10000.0;
+    Kd(13) = 100.0; // Waist pitch
+    Kp(14) = 10000.0;
+    Kd(14) = 100.0; // Waist roll
+
+    Kp(15) = 400.0;
+    Kd(15) = 10.0;
+    Kp(16) = 800.0;
+    Kd(16) = 10.0;
+    Kp(17) = 400.0;
+    Kd(17) = 10.0;
+    Kp(18) = 400.0;
+    Kd(18) = 10.0;
+    Kp(19) = 250.0;
+    Kd(19) = 2.5;
+    Kp(20) = 250.0;
+    Kd(20) = 2.0;
+    Kp(21) = 50.0;
+    Kd(21) = 2.0; // Left Wrist
+    Kp(22) = 50.0;
+    Kd(22) = 2.0; // Left Wrist
+
+    Kp(23) = 50.0;
+    Kd(23) = 2.0; // Neck
+    Kp(24) = 50.0;
+    Kd(24) = 2.0; // Neck
+
+    Kp(25) = 400.0;
+    Kd(25) = 10.0;
+    Kp(26) = 800.0;
+    Kd(26) = 10.0;
+    Kp(27) = 400.0;
+    Kd(27) = 10.0;
+    Kp(28) = 400.0;
+    Kd(28) = 10.0;
+    Kp(29) = 250.0;
+    Kd(29) = 2.5;
+    Kp(30) = 250.0;
+    Kd(30) = 2.0;
+    Kp(31) = 50.0;
+    Kd(31) = 2.0; // Right Wrist
+    Kp(32) = 50.0;
+    Kd(32) = 2.0; // Right Wrist
 }
 
 void AvatarController::addZmpOffset()
@@ -14838,6 +14838,263 @@ void AvatarController::CP_compen_MJ_FT()
     double zmp_offset = 0;
     double alpha_new = 0;
 
+    zmp_offset = 0.015; // 0.9초
+    //   zmp_offset = 0.02; // 1.1초
+    // zmp_offset = 0.015; // 1.3초
+
+    // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
+    // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
+    if (walking_tick_mj > t_temp_)
+    {
+        if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+        {
+            if (foot_step_(current_step_num_, 6) == 1)
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+            }
+            else
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+            }
+        }
+        else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+        {
+            if (foot_step_(current_step_num_, 6) == 1)
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset;
+            }
+            else
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset;
+            }
+        }
+        else if (walking_tick_mj >= t_start_ + t_total_ - t_double2_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
+        {
+            if (foot_step_(current_step_num_, 6) == 1)
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset - zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+            }
+            else
+            {
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset + zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+            }
+        }
+        else
+        {
+            ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+        }
+    }
+    else
+    {
+        ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+    }
+
+    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
+    del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
+
+    ////////////////////////
+    //   double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
+    //   A =  (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
+    //   B = -(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+    //   X1 = ZMP_Y_REF_alpha + 0*del_zmp(1) - rfoot_support_current_.translation()(1);
+    //   Y1 = ZMP_X_REF + 0*del_zmp(0) - rfoot_support_current_.translation()(0);
+    //   L = sqrt(A*A + B*B);
+    //   d = abs(A*X1 + B*Y1) / L;
+    //   e_2 = X1*X1 + Y1*Y1;
+    //   l = sqrt(e_2 - d*d);
+    //   alpha_new = l/L;
+    alpha = (ZMP_Y_REF_alpha_ + 1 * del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+    // cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
+    //  로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
+    if (alpha > 1)
+    {
+        alpha = 1;
+    } // 왼발 지지때 alpha = 1
+    else if (alpha < 0)
+    {
+        alpha = 0;
+    }
+    //   if(alpha_new > 1)
+    //   { alpha_new = 1; } // 왼발 지지때 alpha = 1
+    //   else if(alpha_new < 0)
+    //   { alpha_new = 0; }
+
+    double real_robot_mass_offset_ = 75; // 42
+
+    F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 15);
+    F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
+
+    if (walking_tick_mj == 0)
+    {
+        F_F_input = 0.0;
+        F_T_L_x_input = 0.0;
+        F_T_R_x_input = 0.0;
+        F_T_L_y_input = 0.0;
+        F_T_R_y_input = 0.0;
+    }
+
+    //////////// Force
+    F_F_input_dot = 0.0001 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+
+    F_F_input = F_F_input + F_F_input_dot * del_t;
+
+    if (F_F_input >= 0.02) // 1.1초 0.02
+    {
+        F_F_input = 0.02;
+    }
+    else if (F_F_input <= -0.02)
+    {
+        F_F_input = -0.02;
+    }
+    //   if(F_F_input >= 0.01) // 0.9초 0.01
+    //   {
+    //     F_F_input = 0.01;
+    //   }
+    //   else if(F_F_input <= -0.01)
+    //   {
+    //     F_F_input = -0.01;
+    //   }
+    // MJ_graph << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
+
+    //////////// Torque
+    // X,Y 축을 X,Y 방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
+    Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_L);
+    Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_L);
+
+    if (Tau_all_x > 100)
+    {
+        Tau_all_x = 100;
+    }
+    else if (Tau_all_x < -100)
+    {
+        Tau_all_x = -100;
+    }
+
+    if (Tau_all_y > 100)
+    {
+        Tau_all_y = 100;
+    }
+    else if (Tau_all_y < -100)
+    {
+        Tau_all_y = -100;
+    }
+
+    Tau_R_x = (1 - alpha) * Tau_all_x;
+    Tau_L_x = (alpha)*Tau_all_x;
+
+    Tau_L_y = -alpha * Tau_all_y;
+    Tau_R_y = -(1 - alpha) * Tau_all_y;
+
+    double Kr_roll = 0.0, Kl_roll = 0.0;
+    double Kr_pitch = 0.0, Kl_pitch = 0.0;
+
+    if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+    {
+        Kr_roll = 30.0;
+        Kl_roll = 30.0;
+        Kr_pitch = 30.0;
+        Kl_pitch = 30.0;
+    }
+    else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    {
+        if (alpha == 1) // 왼발 지지
+        {
+            Kl_roll = 30.0;
+            Kr_roll = 50.0;
+            Kl_pitch = 30.0;
+            Kr_pitch = 50.0;
+        }
+        if (alpha == 0) // 오른발 지지
+        {
+            Kl_roll = 50.0;
+            Kr_roll = 30.0;
+            Kl_pitch = 50.0;
+            Kr_pitch = 30.0;
+        }
+    }
+    else
+    {
+        Kr_roll = 30.0;
+        Kl_roll = 30.0;
+        Kr_pitch = 30.0;
+        Kl_pitch = 30.0;
+    }
+
+    // Roll 방향 (-0.02/-30 0.9초)
+    //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
+    F_T_L_x_input_dot = -0.05 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
+    F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
+    //   F_T_L_x_input = 0;
+    // F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
+    F_T_R_x_input_dot = -0.05 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
+    F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
+    //   F_T_R_x_input = 0;
+
+    // Pitch 방향  (0.005/-30 0.9초)
+    // F_T_L_y_input_dot = 0.01*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
+    F_T_L_y_input_dot = 0.04 * (Tau_L_y - l_ft_LPF(4)) - 40.0 * F_T_L_y_input;
+    F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
+    //   F_T_L_y_input = 0;
+    // F_T_R_y_input_dot = 0.01*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
+    F_T_R_y_input_dot = 0.04 * (Tau_R_y - r_ft_LPF(4)) - 40.0 * F_T_R_y_input;
+    F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
+    //   F_T_R_y_input = 0;
+    // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
+    // MJ_graph << F_T_L_x_input << "," << F_T_R_x_input << "," <<  F_T_L_y_input << "," <<  F_T_R_y_input << "," << F_F_input << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
+    if (F_T_L_x_input >= 0.2) // 5 deg limit
+    {
+        F_T_L_x_input = 0.2;
+    }
+    else if (F_T_L_x_input < -0.2)
+    {
+        F_T_L_x_input = -0.2;
+    }
+
+    if (F_T_R_x_input >= 0.2) // 5 deg limit
+    {
+        F_T_R_x_input = 0.2;
+    }
+    else if (F_T_R_x_input < -0.2)
+    {
+        F_T_R_x_input = -0.2;
+    }
+
+    if (F_T_L_y_input >= 0.2) // 5 deg limit
+    {
+        F_T_L_y_input = 0.2;
+    }
+    else if (F_T_L_y_input < -0.2)
+    {
+        F_T_L_y_input = -0.2;
+    }
+
+    if (F_T_R_y_input >= 0.2) // 5 deg limit
+    {
+        F_T_R_y_input = 0.2;
+    }
+    else if (F_T_R_y_input < -0.2)
+    {
+        F_T_R_y_input = -0.2;
+    }
+
+    // MJ_joint1 << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) << endl;
+    // cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
+    // MJ_graph << alpha << "," << alpha_new << endl;
+    // MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
+    // MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_LPF(3) << "," << r_ft_LPF(3) << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_F_input << endl;
+    // MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
+    // MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
+}
+/*
+void AvatarController::CP_compen_MJ_FT()
+{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
+    double alpha = 0;
+    double F_R = 0, F_L = 0;
+    double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0;
+    double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0;
+    double zmp_offset = 0;
+    double alpha_new = 0;
+
     zmp_offset = 0.01; // zmp_offset 함수 참고
             
     // Preview를 이용한 COM 생성시 ZMP offset을 x cm 안쪽으로 넣었지만, alpha 계산은 x cm 넣으면 안되기 때문에 조정해주는 코드
@@ -15085,7 +15342,7 @@ void AvatarController::CP_compen_MJ_FT()
 
     // MJ_graph << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_ / hz_ << "," << ZMP_Y_REF_alpha_ + del_zmp(1) << "," << ZMP_Y_REF_alpha_ << endl;
 }
-
+*/
 void AvatarController::CentroidalMomentCalculator()
 {
     del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
