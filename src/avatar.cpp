@@ -2522,14 +2522,14 @@ void AvatarController::floatingBaseMOB()
     estimated_ext_force_rfoot_lstm_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_ext_torque_lstm_.segment(6, 6);
 
     //////////////////test/////////////
-    // if (walking_tick_mj == 0)
-    // {
-    //     l_ft_LPF = -estimated_ext_force_lfoot_lstm_;
-    //     r_ft_LPF = -estimated_ext_force_rfoot_lstm_;
-    // }
+    if (walking_tick_mj == 0)
+    {
+        l_ft_LPF = -estimated_ext_force_lfoot_lstm_;
+        r_ft_LPF = -estimated_ext_force_rfoot_lstm_;
+    }
 
-    // l_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_lfoot_lstm_, l_ft_LPF, 2000, 6);
-    // r_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_rfoot_lstm_, r_ft_LPF, 2000, 6);
+    l_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_lfoot_lstm_, l_ft_LPF, 2000, 6);
+    r_ft_LPF = DyrosMath::lpf<6>(-estimated_ext_force_rfoot_lstm_, r_ft_LPF, 2000, 6);
 
     // torque_from_r_ft_ =  jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * rd_.RF_CF_FT;
 
@@ -2599,7 +2599,7 @@ void AvatarController::collisionIsolation()
     double compensation_gain = 0.8;
     double foot_normal_force_threshold = 10;
 
-    VectorQd threshold_joint_torque_w_sigma = threshold_joint_torque_collision_ + 0.0*estimated_model_unct_torque_variance_slow_;
+    VectorQd threshold_joint_torque_w_sigma = threshold_joint_torque_collision_ + 2.0*estimated_model_unct_torque_variance_slow_;
 
     ///////////////////////////////////////////
 
@@ -13560,12 +13560,12 @@ void AvatarController::getRobotState()
 
     // r_cf_ft_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(0, 3);
     // r_cf_ft_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * rd_.RF_CF_FT.segment(3, 3);
-    if( walking_tick_mj % 1000 == 0 )
-    {
+    // if( walking_tick_mj % 1000 == 0 )
+    // {
         // cout<<"l_ft_: "<<l_ft_.transpose()<<endl;
         // cout<<"r_ft_: "<<r_ft_.transpose()<<endl;
-        cout<<"opto_ft_: "<<opto_ft_.transpose()<<endl;
-    }
+        // cout<<"opto_ft_: "<<opto_ft_.transpose()<<endl;
+    // }
 
     // MJ_graph << l_ft_LPF(2) << "," << l_ft_LPF(3) << "," << l_ft_LPF(4) << "," << r_ft_LPF(2) << "," << r_ft_LPF(3) << "," << r_ft_LPF(4) << endl;
     //  Eigen::Vector2d left_zmp, right_zmp;
@@ -15469,7 +15469,7 @@ void AvatarController::getPelvTrajectory()
         P_angle_input = -5 * DEG2RAD;
         // cout << "b" << endl;
     }
-    // Trunk_trajectory_euler(0) = R_angle_input;
+    Trunk_trajectory_euler(0) = R_angle_input;
     Trunk_trajectory_euler(1) = P_angle_input;
 
     pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2)) * DyrosMath::rotateWithY(Trunk_trajectory_euler(1)) * DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
@@ -16179,7 +16179,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.04;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -16734,7 +16734,7 @@ void AvatarController::CP_compen_MJ_FT()
     //   e_2 = X1*X1 + Y1*Y1;
     //   l = sqrt(e_2 - d*d);
     //   alpha_new = l/L;
-    alpha = (ZMP_Y_REF_alpha + 0 * del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+    alpha = (ZMP_Y_REF_alpha + del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
     // cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
     //  로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
     if (alpha > 1)
@@ -16745,15 +16745,21 @@ void AvatarController::CP_compen_MJ_FT()
     {
         alpha = 0;
     }
+
+    // if( walking_tick_mj%500 == 0)
+    // {
+    //     cout <<"alpha: "<< alpha << endl;
+    // }
     //   if(alpha_new > 1)
     //   { alpha_new = 1; } // 왼발 지지때 alpha = 1
     //   else if(alpha_new < 0)
     //   { alpha_new = 0; }
 
-    double real_robot_mass_offset_ = 75; // 75: no baterry, no hands, w/ avatar head
+    double real_robot_mass_offset_ = 52; // 75: no baterry, no hands, w/ avatar head
+    double right_left_force_diff = -0.0;  // heavy foot: 15, small foot: -15
 
-    F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 15);
-    F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
+    F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + right_left_force_diff);
+    F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - right_left_force_diff); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
     
     if (walking_tick_mj == 0)
     {
@@ -16772,10 +16778,12 @@ void AvatarController::CP_compen_MJ_FT()
     if (F_F_input >= 0.02) // 1.1초 0.02
     {
         F_F_input = 0.02;
+        cout<<"F_F_input max"<<endl;
     }
     else if (F_F_input <= -0.02)
     {
         F_F_input = -0.02;
+        cout<<"F_F_input min"<<endl;
     }
     //   if(F_F_input >= 0.01) // 0.9초 0.01
     //   {
@@ -16851,23 +16859,23 @@ void AvatarController::CP_compen_MJ_FT()
         Kl_pitch = 30.0;
     }
 
-    // Roll 방향 (-0.02/-30 0.9초)
+    // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.05 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.07 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
     //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.05 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.07 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
 
-    // Pitch 방향  (0.005/-30 0.9초)
+    // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
     //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-    F_T_L_y_input_dot = 0.04 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.060 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //   F_T_L_y_input = 0;
     //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-    F_T_R_y_input_dot = 0.04 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.060 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //   F_T_R_y_input = 0;
     // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
@@ -16875,19 +16883,23 @@ void AvatarController::CP_compen_MJ_FT()
     if (F_T_L_x_input >= 0.2) // 5 deg limit
     {
         F_T_L_x_input = 0.2;
+        cout<<"F_T_L_x_input max"<<endl;
     }
     else if (F_T_L_x_input < -0.2)
     {
         F_T_L_x_input = -0.2;
+        cout<<"F_T_L_x_input min"<<endl;
     }
 
     if (F_T_R_x_input >= 0.2) // 5 deg limit
     {
         F_T_R_x_input = 0.2;
+        cout<<"F_T_R_x_input max"<<endl;
     }
     else if (F_T_R_x_input < -0.2)
     {
         F_T_R_x_input = -0.2;
+        cout<<"F_T_R_x_input min"<<endl;
     }
 
     if (F_T_L_y_input >= 0.2) // 5 deg limit
@@ -16936,15 +16948,17 @@ void AvatarController::CentroidalMomentCalculator()
 
     Eigen::Vector2d cmp_limit_;
     Eigen::Vector2d del_tau_limit_;
-    double foot_width_x = 0.120; // margin = 0.8 / original foot width in urdf -> 0.18/0.12
-    double foot_width_y = 0.052; // margin = 0.8 / original foot width in urdf -> 0.065
+
+    double foot_width_x_front = 0.160; // margin = 0.8 / original foot width in urdf -> 0.18/0.12, small foot: 0.16/0.10
+    double foot_width_x_back = 0.100;
+    double foot_width_y = 0.05; // margin = 0.8 / original foot width in urdf -> 0.065, small foot: 0.05
     double support_margin = 0.8;
     // del tau output limitation (220118/ DLR's CAM output is an approximately 20 Nm (maximum) and TORO has a weight of 79.2 kg)
     del_tau_limit_(0) = 20.0;
     del_tau_limit_(1) = 20.0;
 
-    del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -(0.12 * support_margin + del_tau_limit_(0) / M_G), 0.18 * support_margin + del_tau_limit_(0) / M_G);
-    del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -(0.065 * support_margin + del_tau_limit_(1) / M_G), 0.065 * support_margin + del_tau_limit_(1) / M_G);
+    del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -(foot_width_x_back * support_margin + del_tau_limit_(0) / M_G), foot_width_x_front * support_margin + del_tau_limit_(0) / M_G);
+    del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -(foot_width_y * support_margin + del_tau_limit_(1) / M_G), foot_width_y * support_margin + del_tau_limit_(1) / M_G);
 
     if (walking_tick_mj == 0)
     {
@@ -16959,34 +16973,34 @@ void AvatarController::CentroidalMomentCalculator()
     double recovery_damping = 7.0; // damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
 
     // X direction CP control
-    if (del_cmp(0) > 0.18 * support_margin)
+    if (del_cmp(0) > foot_width_x_front * support_margin)
     {
-        del_zmp(0) = 0.18 * support_margin;
+        del_zmp(0) = foot_width_x_front * support_margin;
         del_tau_(1) = (del_cmp(0) - del_zmp(0)) * M_G; // Y axis delta angular moment , X direction CP control
         torque_flag_x = 0;
     }
-    else if (del_cmp(0) <= 0.18 * support_margin && del_cmp(0) > -0.12 * support_margin)
+    else if (del_cmp(0) <= foot_width_x_front * support_margin && del_cmp(0) > -foot_width_x_back * support_margin)
     {
         del_zmp(0) = del_cmp(0);
         del_tau_(1) = -recovery_damping * del_ang_momentum_(1);
-        del_tau_(1) = DyrosMath::minmax_cut(del_tau_(1), (-0.12 * support_margin * rbs_ratio - zmp_measured_mj_(0)) * M_G, (0.18 * support_margin * rbs_ratio - zmp_measured_mj_(0)) * M_G);
+        del_tau_(1) = DyrosMath::minmax_cut(del_tau_(1), (-foot_width_x_back * support_margin * rbs_ratio - zmp_measured_mj_(0)) * M_G, (foot_width_x_front * support_margin * rbs_ratio - zmp_measured_mj_(0)) * M_G);
         torque_flag_x = 1;
     }
-    else if (del_cmp(0) < -0.12 * support_margin)
+    else if (del_cmp(0) < -foot_width_x_back* support_margin)
     {
-        del_zmp(0) = -0.12 * support_margin;
+        del_zmp(0) = -foot_width_x_back * support_margin;
         del_tau_(1) = (del_cmp(0) - del_zmp(0)) * M_G;
         torque_flag_x = 0;
     }
 
     // Y direction CP control
-    if (del_cmp(1) > foot_width_y)
+    if (del_cmp(1) > foot_width_y * support_margin)
     {
-        del_zmp(1) = foot_width_y;
+        del_zmp(1) = foot_width_y * support_margin;
         del_tau_(0) = -(del_cmp(1) - del_zmp(1)) * M_G;
         torque_flag_y = 0;
     }
-    else if (del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
+    else if (del_cmp(1) <= foot_width_y * support_margin && del_cmp(1) > -foot_width_y * support_margin)
     {
         torque_flag_y = 1;
         del_zmp(1) = del_cmp(1);
@@ -17009,10 +17023,10 @@ void AvatarController::CentroidalMomentCalculator()
         //      }
         //  }
     }
-    else if (del_cmp(1) < -foot_width_y)
+    else if (del_cmp(1) < -foot_width_y * support_margin)
     {
         torque_flag_y = 0;
-        del_zmp(1) = -foot_width_y;
+        del_zmp(1) = -foot_width_y * support_margin;
         del_tau_(0) = -(del_cmp(1) - del_zmp(1)) * M_G;
     }
 
