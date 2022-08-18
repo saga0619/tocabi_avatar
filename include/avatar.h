@@ -1282,6 +1282,8 @@ public:
 
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
+    Eigen::Vector6d desired_swing_foot_prev_;
+    Eigen::Vector6d desired_swing_foot_LPF_;
     Eigen::Vector6d fixed_swing_foot;
     Eigen::Vector6d fixed_swing_foot_del_F_;
     Eigen::MatrixXd modified_del_zmp_; 

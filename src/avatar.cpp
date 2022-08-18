@@ -4,8 +4,8 @@ using namespace TOCABI;
 
 ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
 ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
+// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
 
 // ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
@@ -9581,7 +9581,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double tau_nom = 0;
     double T_gap = 0;
         
-    double w1_step = 1.0, w2_step = 0.05, w3_step = 3.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
+    double w1_step = 1.0, w2_step = 0.02, w3_step = 3.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     // -Y 시간 얼마 안남았을때만 밑에 웨이팅이 좋다.
     // double w1_step = 1.0, w2_step = 1000.0, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     double u0_x = 0; 
@@ -9604,7 +9604,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
     W_nom = del_F_y_; // 0;
-    L_min = L_nom - 0.05;
+    L_min = L_nom - 0.10; // back step 
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.03;
     W_max = W_nom + 0.03;
@@ -9742,10 +9742,10 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_err.setZero();
     }    
 
-    dsp_scaler_dot_(0) = 100.0 * stepping_err(0) - 20.0 * dsp_scaler_(0); // 300, -10
+    dsp_scaler_dot_(0) = 70.0 * stepping_err(0) - 50.0 * dsp_scaler_(0); // 300, -10
     dsp_scaler_(0) = dsp_scaler_(0) + dsp_scaler_dot_(0)*del_t;
 
-    dsp_scaler_dot_(1) = 100.0 * stepping_err(1) - 20.0 * dsp_scaler_(1); // 300, -10
+    dsp_scaler_dot_(1) = 70.0 * stepping_err(1) - 50.0 * dsp_scaler_(1); // 300, -10
     dsp_scaler_(1) = dsp_scaler_(1) + dsp_scaler_dot_(1)*del_t;
     
     // MJ_graph << target_swing_foot(1) + del_F_(1) << "," << desired_swing_foot(1) << "," << del_F_y_ << "," << stepping_err(1) << "," << dsp_scaler_(1) << "," <<  dsp_scaler_.norm() << "," << dsp_time_reducer_fixed_ << endl;
@@ -9845,7 +9845,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(1) = 0;
     }
     
-    // MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
+    MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -10352,7 +10352,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         
         weighting_cp_.setZero(N_cp, N_cp);
         weighting_zmp_diff_.setZero(N_cp, N_cp);
-        double weighting_foot = 0.01;// 100.0;  //0.01;
+        double weighting_foot = 0.001;// 100.0;  //0.01;
 
         // Weighting parameter
         for(int i = 0; i < N_cp; i++) // N_cp = 75
@@ -10506,11 +10506,11 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     for(int i = 0; i < N_cp; i++)  
     {
         zmp_bound_x(i) = 0.1;
-        zmp_bound_y(i) = 0.07;  
+        zmp_bound_y(i) = 0.07; // original foot : 0.07
     }
     
-    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x;
-    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound_x;
+    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x*0.5;
+    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound_x*1.3;
 
     lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound_y; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
     ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound_y; // However, Ref. ZMP without ZMP offset is required for CP control.
@@ -10610,12 +10610,12 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         cpmpc_y_update_ = true;
     }
 
-    Eigen::VectorXd cp_predicted_x(N_cp);        
-    Eigen::VectorXd cp_predicted_y(N_cp);
-    static int graph_flag = 0; 
+    // Eigen::VectorXd cp_predicted_x(N_cp);        
+    // Eigen::VectorXd cp_predicted_y(N_cp);
+    // static int graph_flag = 0; 
 
-    cp_predicted_x = F_cp_*cp_measured_mpc_(0) + F_zmp_*cpmpc_deszmp_x_.segment(0,N_cp);
-    cp_predicted_y = F_cp_*cp_measured_mpc_(1) + F_zmp_*cpmpc_deszmp_y_.segment(0,N_cp);
+    // cp_predicted_x = F_cp_*cp_measured_mpc_(0) + F_zmp_*cpmpc_deszmp_x_.segment(0,N_cp);
+    // cp_predicted_y = F_cp_*cp_measured_mpc_(1) + F_zmp_*cpmpc_deszmp_y_.segment(0,N_cp);
     
     // if(walking_tick_mj_mpc_ >= 6.36 * hz_ && graph_flag == 0)
     // {
@@ -10626,43 +10626,38 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     //     graph_flag = 1;
     // }
      
-    // swing_time_cur, swing_time_next, swing_time_n_next
-    Eigen::VectorXd cp_err_dsp_x(N_cp); 
-    Eigen::VectorXd cp_err_dsp_y(N_cp);
+    // // swing_time_cur, swing_time_next, swing_time_n_next
+    // Eigen::VectorXd cp_err_dsp_x(N_cp); 
+    // Eigen::VectorXd cp_err_dsp_y(N_cp);
 
-    if(current_step_num_mpc_ > 0)
-    { 
-        if(swing_time_cur <= dsp_time1)
-        {   
-            cp_err_dsp_x.setZero();
-            cp_err_dsp_y.setZero();
+    // if(current_step_num_mpc_ > 0)
+    // { 
+    //     if(swing_time_cur <= dsp_time1)
+    //     {   
+    //         cp_err_dsp_x.setZero();
+    //         cp_err_dsp_y.setZero();
             
-            for(int i = 0 ; i < swing_time_cur + dsp_time2 ; i ++)
-            { 
-                cp_err_dsp_x(i) = cp_predicted_x(i) - cp_x_ref(i);
-                cp_err_dsp_y(i) = cp_predicted_y(i) - cp_y_ref(i);
-                //cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i));
-            }
-        }
-        else
-        {
-            cp_err_dsp_x.setZero();
-            cp_err_dsp_y.setZero();
+    //         for(int i = 0 ; i < swing_time_cur + dsp_time2 ; i ++)
+    //         { 
+    //             cp_err_dsp_x(i) = cp_predicted_x(i) - cp_x_ref(i);
+    //             cp_err_dsp_y(i) = cp_predicted_y(i) - cp_y_ref(i);
+    //             //cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i));
+    //         }
+    //     }
+    //     else
+    //     {
+    //         cp_err_dsp_x.setZero();
+    //         cp_err_dsp_y.setZero();
 
-            for(int i = swing_time_cur - dsp_time1; i < swing_time_cur - dsp_time1 + dsp_time1 + dsp_time2 ; i ++)
-            { 
-                cp_err_dsp_x(i) = (cp_predicted_x(i) - cp_x_ref(i));
-                cp_err_dsp_y(i) = (cp_predicted_y(i) - cp_y_ref(i));
-            }  
-        }     
+    //         for(int i = swing_time_cur - dsp_time1; i < swing_time_cur - dsp_time1 + dsp_time1 + dsp_time2 ; i ++)
+    //         { 
+    //             cp_err_dsp_x(i) = (cp_predicted_x(i) - cp_x_ref(i));
+    //             cp_err_dsp_y(i) = (cp_predicted_y(i) - cp_y_ref(i));
+    //         }  
+    //     }     
            
-    }       
-    
-    if(current_step_num_mpc_ > 0)
-    {
-        //cout << desired_swing_foot(1) << "," << cp_y_ref(swing_time_cur + 8) << endl;
-        //MJ_graph2 << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << cp_y_ref(swing_time_cur + 8) << "," << desired_swing_foot(1) << "," << Z_y_ref_wo_offset(0) << "," << Z_y_ref_wo_offset(swing_time_cur + 8) << endl;
-    }
+    // }       
+     
     
     //MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << "," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     // MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << "," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
@@ -13409,8 +13404,8 @@ void AvatarController::getFootTrajectory_stepping()
             //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
         }
     }
-    MJ_graph << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << del_F_(0) << "," << desired_swing_foot(0) << "," << ssp_flag << endl;
-    MJ_graph1 << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << "," << target_swing_foot(1) + del_F_(1) << "," << desired_swing_foot(1) << "," << ssp_flag << endl;
+    MJ_graph << del_F_x_ << "," << del_F_(0) << "," << desired_swing_foot(0) << "," << ssp_flag << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << endl;
+    MJ_graph1 << del_F_y_ << "," << target_swing_foot(1) + del_F_(1) << "," << desired_swing_foot(1) << "," << ssp_flag << endl;
 }
 
 void AvatarController::preview_Parameter(double dt, int NL, Eigen::MatrixXd &Gi, Eigen::VectorXd &Gd, Eigen::MatrixXd &Gx, Eigen::MatrixXd &A, Eigen::VectorXd &B, Eigen::MatrixXd &C)
@@ -13749,7 +13744,7 @@ void AvatarController::getPelvTrajectory()
         P_angle_input = -5 * DEG2RAD;
         // cout << "b" << endl;
     }
-    //Trunk_trajectory_euler(0) = R_angle_input;
+    Trunk_trajectory_euler(0) = R_angle_input;
     Trunk_trajectory_euler(1) = P_angle_input;    
     
     pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2)) * DyrosMath::rotateWithY(Trunk_trajectory_euler(1)) * DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
@@ -14950,7 +14945,7 @@ void AvatarController::CP_compen_MJ_FT()
     //   else if(alpha_new < 0)
     //   { alpha_new = 0; }
 
-    double real_robot_mass_offset_ = 75; // 42
+    double real_robot_mass_offset_ = 52; // 42 75
 
     F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 15);
     F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
@@ -15053,11 +15048,11 @@ void AvatarController::CP_compen_MJ_FT()
 
     // Roll 방향 (-0.02/-30 0.9초)
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.05 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
     // F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.05 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
 
