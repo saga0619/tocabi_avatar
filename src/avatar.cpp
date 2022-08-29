@@ -675,66 +675,67 @@ void AvatarController::setGains()
     //// theta: tau_c, tau_s, beta1, beta2
 
     theta_joints_mat_leg_.setZero(4, 12);   
+    // left leg
+    theta_joints_mat_leg_(0, 0) = -1.9293;
+    theta_joints_mat_leg_(1, 0) = -3.600;
+    theta_joints_mat_leg_(2, 0) = 1000.0;
+    theta_joints_mat_leg_(3, 0) = -79.2458;
 
-    theta_joints_mat_leg_(0, 0) = 0.1647;
-    theta_joints_mat_leg_(1, 0) = 4.1435;
-    theta_joints_mat_leg_(2, 0) = 0.1880;
-    theta_joints_mat_leg_(3, 0) = -23.6492;
+    theta_joints_mat_leg_(0, 1) = -2.8216;
+    theta_joints_mat_leg_(1, 1) = -2.5236;
+    theta_joints_mat_leg_(2, 1) = -7.6037;
+    theta_joints_mat_leg_(3, 1) = -10.4698;
 
-    theta_joints_mat_leg_(0, 1) = 1.5185;
-    theta_joints_mat_leg_(1, 1) = 36.1316;
-    theta_joints_mat_leg_(2, 1) = -4.9055;
-    theta_joints_mat_leg_(3, 1) = -23.1976;
+    theta_joints_mat_leg_(0, 2) = -6.0104;
+    theta_joints_mat_leg_(1, 2) = -6.3947;
+    theta_joints_mat_leg_(2, 2) = -0.4556;
+    theta_joints_mat_leg_(3, 2) = -0.5007;
 
-    theta_joints_mat_leg_(0, 2) = 6.8907;
-    theta_joints_mat_leg_(1, 2) = 102.5029;
-    theta_joints_mat_leg_(2, 2) = 1.7060;
-    theta_joints_mat_leg_(3, 2) = -22.5870;
+    theta_joints_mat_leg_(0, 3) = -15.4245;
+    theta_joints_mat_leg_(1, 3) = -9.4254;
+    theta_joints_mat_leg_(2, 3) = -0.8321;
+    theta_joints_mat_leg_(3, 3) = -1.4360;
 
-    theta_joints_mat_leg_(0, 3) = -4.8858;
-    theta_joints_mat_leg_(1, 3) = 29.5489;
-    theta_joints_mat_leg_(2, 3) = -0.9996;
-    theta_joints_mat_leg_(3, 3) = -5.9714;
+    theta_joints_mat_leg_(0, 4) = -0.7039;
+    theta_joints_mat_leg_(1, 4) = 0.0;
+    theta_joints_mat_leg_(2, 4) = 1.0777;
+    theta_joints_mat_leg_(3, 4) = -9.3799;
 
-    theta_joints_mat_leg_(0, 4) = -2.9206;
-    theta_joints_mat_leg_(1, 4) = 6.5585;
-    theta_joints_mat_leg_(2, 4) = -1.5456;
-    theta_joints_mat_leg_(3, 4) = -8.5942;
+    theta_joints_mat_leg_(0, 5) = -2.6379;
+    theta_joints_mat_leg_(1, 5) = -1.0344;
+    theta_joints_mat_leg_(2, 5) = -9.2011;
+    theta_joints_mat_leg_(3, 5) = -4.8737;
 
-    theta_joints_mat_leg_(0, 5) = -1.4231;
-    theta_joints_mat_leg_(1, 5) = 5.6322;
-    theta_joints_mat_leg_(2, 5) = -0.0451;
-    theta_joints_mat_leg_(3, 5) = -2.6369;
+    // right leg
+    theta_joints_mat_leg_(0, 6) = -0.7888;
+    theta_joints_mat_leg_(1, 6) = -0.5715;
+    theta_joints_mat_leg_(2, 6) = 649.43;
+    theta_joints_mat_leg_(3, 6) = -129.7175;
 
-    theta_joints_mat_leg_(0, 6) = 0.1647;
-    theta_joints_mat_leg_(1, 6) = 4.1435;
-    theta_joints_mat_leg_(2, 6) = 0.1880;
-    theta_joints_mat_leg_(3, 6) = -23.6492;
+    theta_joints_mat_leg_(0, 7) = -1.2916;
+    theta_joints_mat_leg_(1, 7) = 1.2732;
+    theta_joints_mat_leg_(2, 7) = -10.2985;
+    theta_joints_mat_leg_(3, 7) = -10.0021;
 
-    theta_joints_mat_leg_(0, 7) = 0.1647;
-    theta_joints_mat_leg_(1, 7) = 4.1435;
-    theta_joints_mat_leg_(2, 7) = 0.1880;
-    theta_joints_mat_leg_(3, 7) = -23.6492;
+    theta_joints_mat_leg_(0, 8) = -4.6717;
+    theta_joints_mat_leg_(1, 8) = -21.8645;
+    theta_joints_mat_leg_(2, 8) = -1.3613;
+    theta_joints_mat_leg_(3, 8) = -1.7073;
 
-    theta_joints_mat_leg_(0, 8) = 0.1647;
-    theta_joints_mat_leg_(1, 8) = 4.1435;
-    theta_joints_mat_leg_(2, 8) = 0.1880;
-    theta_joints_mat_leg_(3, 8) = -23.6492;
+    theta_joints_mat_leg_(0, 9) = -5.5925;
+    theta_joints_mat_leg_(1, 9) = -18.1097;
+    theta_joints_mat_leg_(2, 9) = 0.6578;
+    theta_joints_mat_leg_(3, 9) = -6.2169;
 
-    theta_joints_mat_leg_(0, 9) = 0.1647;
-    theta_joints_mat_leg_(1, 9) = 4.1435;
-    theta_joints_mat_leg_(2, 9) = 0.1880;
-    theta_joints_mat_leg_(3, 9) = -23.6492;
+    theta_joints_mat_leg_(0, 10) = -8.7567;
+    theta_joints_mat_leg_(1, 10) = -11.5622;
+    theta_joints_mat_leg_(2, 10) = -2.8512;
+    theta_joints_mat_leg_(3, 10) = -2.6937;
 
-    theta_joints_mat_leg_(0, 10) = 0.1647;
-    theta_joints_mat_leg_(1, 10) = 4.1435;
-    theta_joints_mat_leg_(2, 10) = 0.1880;
-    theta_joints_mat_leg_(3, 10) = -23.6492;
-
-    theta_joints_mat_leg_(0, 11) = 0.1647;
-    theta_joints_mat_leg_(1, 11) = 4.1435;
-    theta_joints_mat_leg_(2, 11) = 0.1880;
-    theta_joints_mat_leg_(3, 11) = -23.6492;
+    theta_joints_mat_leg_(0, 11) = -2.0696;
+    theta_joints_mat_leg_(1, 11) = -1.0878;
+    theta_joints_mat_leg_(2, 11) = 11.9410;
+    theta_joints_mat_leg_(3, 11) = -9.8130;
 
 }
 
@@ -1987,6 +1988,11 @@ void AvatarController::initWalkingParameter()
     mob_residual_wholebody_.setZero(MODEL_DOF_VIRTUAL);
     mob_integral_wholebody_.setZero(MODEL_DOF_VIRTUAL);
 
+    mob_residual_friction_.setZero(MODEL_DOF_VIRTUAL);
+    mob_integral_friction_.setZero(MODEL_DOF_VIRTUAL);
+
+    mob_residual_friction_hpf_.setZero(MODEL_DOF_VIRTUAL);
+    
     mob_residual_jts_.setZero(MODEL_DOF);
     mob_integral_jts_.setZero(MODEL_DOF);
 
@@ -2484,7 +2490,7 @@ void AvatarController::frictionTorqueCalculator(Eigen::VectorQd q_dot, Eigen::Ve
 
         tau_f(j) = w_friction_.transpose()*theta_joints_mat_leg_.col(j);
     }   
-    
+
 }
 void AvatarController::floatingBaseMOB()
 {
@@ -2518,7 +2524,7 @@ void AvatarController::floatingBaseMOB()
 
     base_velocity = adjt_global2pelv * q_dot_virtual_Xd_global_.segment(0, 6);
 
-    Eigen::VectorXd current_torque, mob_residual_pre_wholebody;
+    Eigen::VectorXd current_torque, mob_residual_pre_wholebody, mob_residual_pre_friction;
     // Eigen::VectorXd rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g;
     // current_torque.setZero(MODEL_DOF_VIRTUAL, 1);
     // current_torque.segment(6, MODEL_DOF) = rd_.torque_desired;
@@ -2526,6 +2532,7 @@ void AvatarController::floatingBaseMOB()
     current_torque = torque_lower_ + torque_upper_;
 
     mob_residual_pre_wholebody = mob_residual_wholebody_;
+    mob_residual_pre_friction = mob_residual_friction_;
 
     Eigen::MatrixXd R_temp_lfoot, R_temp_rfoot, J_temp;
     // lfoot_ft_sensor_offset_ << 0.03, 0, -0.145;
@@ -2574,7 +2581,14 @@ void AvatarController::floatingBaseMOB()
     nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
     // nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = A_dot_mat_.block(0, 0, MODEL_DOF_VIRTUAL, 6) * base_velocity + A_dot_mat_.block(0, 6, MODEL_DOF_VIRTUAL, MODEL_DOF) * rd_.q_dot_ - nonlinear_torque_;  //local frame
     nonlinear_term_virtual = A_dot_mat_ * q_dot_virtual_Xd_global_noise_ - nonlinear_torque_;
+
     mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1 / hz_, 100);
+
+    nonlinear_term_virtual.segment(6, MODEL_DOF) += friction_model_torque_; // add friction
+
+    mob_residual_friction_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_friction, mob_integral_friction_, 1 / hz_, 50);
+
+    mob_residual_friction_hpf_ = DyrosMath::hpf<39>(mob_residual_friction_, mob_residual_pre_friction, mob_residual_friction_hpf_, 2000.0, 1.0 );
 
     if (mob_residual_wholebody_ != mob_residual_wholebody_)
     {
@@ -13041,6 +13055,14 @@ void AvatarController::printOutTextFile()
             for (int i = 0; i < 6; i++)
             {
                 file[3] << opto_ft_(i) << "\t";
+            }
+            for (int i = 6; i < 18; i++) // left + right leg
+            {
+                file[3] << mob_residual_friction_(i) << "\t";
+            }
+            for (int i = 6; i < 18; i++) // left + right leg
+            {
+                file[3] << mob_residual_friction_hpf_(i) << "\t";
             }
             file[3] << endl;
             // file[3] << stepping_input_(0) << "\t" << stepping_input_(1) << "\t" << stepping_input_(2) << endl; // bolt

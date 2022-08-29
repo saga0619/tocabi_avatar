@@ -1355,6 +1355,10 @@ public:
     Eigen::VectorXd mob_integral_wholebody_;
     Eigen::VectorXd mob_residual_wholebody_;
 
+    Eigen::VectorXd mob_integral_friction_;
+    Eigen::VectorXd mob_residual_friction_;
+    Eigen::VectorXd mob_residual_friction_hpf_;
+
     Eigen::VectorXd mob_residual_jts_;
     Eigen::VectorXd mob_integral_jts_;
 
