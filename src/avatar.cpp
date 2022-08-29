@@ -9737,15 +9737,15 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         // dsp_reducer_2_ = 1 / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_2_ + (2 * M_PI * 10.0 * del_t) / (1 + 2 * M_PI * 10.0 * del_t) * dsp_reducer_1_;
     } 
 
-    if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_) // -x
-    {   
-        t_rest_last_ = (0.12 - dsp_time_reducer_fixed_)* hz_; //0.0 * hz_;
-    } 
-    else if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // -x
-    {
-        t_rest_init_ = (0.12 - dsp_time_reducer_fixed_)* hz_; //0.0 * hz_;
-        t_rest_last_ = 0.12*hz_;
-    } 
+    // if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_) // -x
+    // {   
+    //     t_rest_last_ = (0.12 - dsp_time_reducer_fixed_)* hz_; //0.0 * hz_;
+    // } 
+    // else if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // -x
+    // {
+    //     t_rest_init_ = (0.12 - dsp_time_reducer_fixed_)* hz_; //0.0 * hz_;
+    //     t_rest_last_ = 0.12*hz_;
+    // } 
     
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
     {   // Solving the QP during only SSP
@@ -13258,7 +13258,11 @@ void AvatarController::getFootTrajectory_stepping()
     }
      
     desired_swing_foot_LPF_(0) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot_LPF_(0) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot(0);
+<<<<<<< HEAD
     del_F_LPF_(1) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * del_F_LPF_(1) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * del_F_(1);
+=======
+    desired_swing_foot_LPF_(1) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot_LPF_(1) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot(1);
+>>>>>>> f3721ceb0926f00e556502b3ad1f4ca883f7f62b
     
     if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
@@ -15109,6 +15113,10 @@ void AvatarController::CP_compen_MJ_FT()
     double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0;
     double zmp_offset = 0;
     double alpha_new = 0;
+<<<<<<< HEAD
+=======
+
+>>>>>>> f3721ceb0926f00e556502b3ad1f4ca883f7f62b
     zmp_offset = 0.01; // zmp_offset 함수 참고
             
     // Preview를 이용한 COM 생성시 ZMP offset을 x cm 안쪽으로 넣었지만, alpha 계산은 x cm 넣으면 안되기 때문에 조정해주는 코드
