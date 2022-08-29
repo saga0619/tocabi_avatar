@@ -12,6 +12,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include <fstream>
+#include "tocabi_msgs/FTsensor.h"
 // #include "tocabi_msgs/FTsensor.h"
 
 //lexls
@@ -289,7 +290,7 @@ public:
 
     void AzureKinectCallback(const visualization_msgs::MarkerArray &msg);
 
-    // void OptoforceFTCallback(const tocabi_msgs::FTsensor &msg);
+    void OptoforceFTCallback(const tocabi_msgs::FTsensor &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
