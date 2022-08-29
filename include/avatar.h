@@ -1198,6 +1198,7 @@ public:
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
     double force_temp_ = 0, theta_temp_ = 0;
+    double ssp_flag_ = 0;
     Eigen::Vector2d dsp_scaler_dot_;
     Eigen::Vector2d dsp_scaler_;
     double dsp_scaler_x_dot_ = 0;
@@ -1282,6 +1283,7 @@ public:
 
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
+    Eigen::Vector6d desired_swing_foot_LPF_;
     Eigen::Vector6d fixed_swing_foot;
     Eigen::Vector6d fixed_swing_foot_del_F_;
     Eigen::MatrixXd modified_del_zmp_; 
