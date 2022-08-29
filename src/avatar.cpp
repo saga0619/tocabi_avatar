@@ -2,25 +2,25 @@
 #include <fstream>
 using namespace TOCABI;
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
-ofstream MJ_CP_ZMP("/home/dyros/data/myeongju/MJ_CP_ZMP.txt");
-ofstream MJ_CP_ZMP1("/home/dyros/data/myeongju/MJ_CP_ZMP1.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+// ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
+// ofstream MJ_CP_ZMP("/home/dyros/data/myeongju/MJ_CP_ZMP.txt");
+// ofstream MJ_CP_ZMP1("/home/dyros/data/myeongju/MJ_CP_ZMP1.txt");
 
 // ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-// ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
-// // ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
-// // ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
-// // ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
-// ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
-// ofstream MJ_CP_ZMP1("/home/myeongju/MJ_CP_ZMP1.txt");
+ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
+// ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
+// ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
+// ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
+ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
+ofstream MJ_CP_ZMP1("/home/myeongju/MJ_CP_ZMP1.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -64,6 +64,8 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     mujoco_applied_ext_force_.data.resize(7);
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); //MJ
+
+    // opto_ftsensor_sub = nh_avatar_.subscribe("/atiforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this);
 
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
@@ -9553,7 +9555,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double tau_nom = 0;
     double T_gap = 0;
         
-    double w1_step = 1.0, w2_step = 0.02, w3_step = 3.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
+    double w1_step = 5.0, w2_step = 0.02, w3_step = 3.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     // -Y 시간 얼마 안남았을때만 밑에 웨이팅이 좋다.
     // double w1_step = 1.0, w2_step = 1000.0, w3_step = 10.0; // 1,0.05,500 / 1,0.05,250/ 1,0.05,100 // 2, 0.05,100 DCM offset +-0.1 time +-0.2 -> -440
     double u0_x = 0; 
@@ -11163,6 +11165,17 @@ void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
     hmd_tracker_status_raw_ = msg.data;
 }
  
+
+// void AvatarController::OptoforceFTCallback(const tocabi_msgs::FTsensor &msg)
+// {
+//     opto_ft_raw_(0) = msg.Fx;
+//     opto_ft_raw_(1) = msg.Fy;
+//     opto_ft_raw_(2) = msg.Fz;
+//     opto_ft_raw_(3) = msg.Tx;
+//     opto_ft_raw_(4) = msg.Ty;
+//     opto_ft_raw_(5) = msg.Tz;
+// }
+
 Eigen::MatrixXd AvatarController::discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q)
 {
     int n = a.rows(); //number of rows
@@ -11778,6 +11791,8 @@ void AvatarController::getRobotState()
     zmp_measured_mj_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
 
     wn = sqrt(GRAVITY / zc_mj_);
+
+    // opto_ft_ = opto_ft_raw_; 
 
     if (walking_tick_mj == 0)
     {
@@ -13258,11 +13273,7 @@ void AvatarController::getFootTrajectory_stepping()
     }
      
     desired_swing_foot_LPF_(0) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot_LPF_(0) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot(0);
-<<<<<<< HEAD
     del_F_LPF_(1) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * del_F_LPF_(1) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * del_F_(1);
-=======
-    desired_swing_foot_LPF_(1) = 1 / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot_LPF_(1) + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * desired_swing_foot(1);
->>>>>>> f3721ceb0926f00e556502b3ad1f4ca883f7f62b
     
     if (walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {

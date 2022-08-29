@@ -12,6 +12,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include <fstream>
+// #include "tocabi_msgs/FTsensor.h"
 
 //lexls
 // #include <lexls/lexlsi.h>
@@ -245,7 +246,7 @@ public:
     ros::Subscriber tracker_status_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
-
+    ros::Subscriber opto_ftsensor_sub;
     ros::Publisher calibration_state_pub;
     ros::Publisher calibration_state_gui_log_pub;
 
@@ -287,6 +288,8 @@ public:
     void ExosuitCallback(const geometry_msgs::PoseArray &msg);
 
     void AzureKinectCallback(const visualization_msgs::MarkerArray &msg);
+
+    // void OptoforceFTCallback(const tocabi_msgs::FTsensor &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -703,6 +706,9 @@ public:
 
     Eigen::Vector6d l_ft_LPF;
     Eigen::Vector6d r_ft_LPF;
+
+    Eigen::Vector6d opto_ft_raw_;
+    Eigen::Vector6d opto_ft_;
 
     double F_F_input_dot = 0;
     double F_F_input = 0;
@@ -1282,13 +1288,8 @@ public:
     // Eigen::Vector2d foot_diff_currentTonext_;
     Eigen::Vector6d target_swing_foot;
     Eigen::Vector6d desired_swing_foot;
-<<<<<<< HEAD
     Eigen::Vector6d desired_swing_foot_LPF_;
     Eigen::Vector2d del_F_LPF_;
-=======
-    Eigen::Vector6d desired_swing_foot_prev_;
-    Eigen::Vector6d desired_swing_foot_LPF_;
->>>>>>> f3721ceb0926f00e556502b3ad1f4ca883f7f62b
     Eigen::Vector6d fixed_swing_foot;
     Eigen::Vector6d fixed_swing_foot_del_F_;
     Eigen::MatrixXd modified_del_zmp_; 
