@@ -2,25 +2,25 @@
 #include <fstream>
 using namespace TOCABI;
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
-// ofstream MJ_CP_ZMP("/home/dyros/data/myeongju/MJ_CP_ZMP.txt");
-// ofstream MJ_CP_ZMP1("/home/dyros/data/myeongju/MJ_CP_ZMP1.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
+ofstream MJ_CP_ZMP("/home/dyros/data/myeongju/MJ_CP_ZMP.txt");
+ofstream MJ_CP_ZMP1("/home/dyros/data/myeongju/MJ_CP_ZMP1.txt");
 
 // ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
 // ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
-// ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
-// ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
-// ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
-ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
-ofstream MJ_CP_ZMP1("/home/myeongju/MJ_CP_ZMP1.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+// ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
+// // ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
+// // ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
+// // ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
+// ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
+// ofstream MJ_CP_ZMP1("/home/myeongju/MJ_CP_ZMP1.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -9578,7 +9578,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
     W_nom = del_F_y_; // 0;
-    L_min = L_nom - 0.10; // back step 
+    L_min = L_nom - 0.05; // back step 
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.03;
     W_max = W_nom + 0.03;
@@ -10501,18 +10501,18 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     
     for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
-        ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+        ub_x_foot_cp_mpc(i) = +0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+        lb_x_foot_cp_mpc(i) = -0.2;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
         if(alpha_step_mpc_ == 1) // left foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.15 - rfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - rfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.2 - rfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.2 - rfoot_support_current_.translation()(0);
         }
         else if(alpha_step_mpc_ == -1) // right foot support
         {
-            ub_x_foot_cp_mpc(0) = 0.15 - lfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - lfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc(0) = 0.2 - lfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc(0) = -0.2 - lfoot_support_current_.translation()(0);
         } 
         
     }   
@@ -15124,10 +15124,6 @@ void AvatarController::CP_compen_MJ_FT()
     double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0;
     double zmp_offset = 0;
     double alpha_new = 0;
-<<<<<<< HEAD
-=======
-
->>>>>>> f3721ceb0926f00e556502b3ad1f4ca883f7f62b
     zmp_offset = 0.01; // zmp_offset 함수 참고
             
     // Preview를 이용한 COM 생성시 ZMP offset을 x cm 안쪽으로 넣었지만, alpha 계산은 x cm 넣으면 안되기 때문에 조정해주는 코드
