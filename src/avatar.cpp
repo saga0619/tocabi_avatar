@@ -671,6 +671,72 @@ void AvatarController::setGains()
     torque_nm2cnt_(30) = 42.0; // Forearm
     torque_nm2cnt_(31) = 95.0; // wrist
     torque_nm2cnt_(32) = 95.0;
+
+    //// theta: tau_c, tau_s, beta1, beta2
+
+    theta_joints_mat_leg_.setZero(4, 12);   
+    // left leg
+    theta_joints_mat_leg_(0, 0) = -1.9293;
+    theta_joints_mat_leg_(1, 0) = -3.600;
+    theta_joints_mat_leg_(2, 0) = 1000.0;
+    theta_joints_mat_leg_(3, 0) = -79.2458;
+
+    theta_joints_mat_leg_(0, 1) = -2.8216;
+    theta_joints_mat_leg_(1, 1) = -2.5236;
+    theta_joints_mat_leg_(2, 1) = -7.6037;
+    theta_joints_mat_leg_(3, 1) = -10.4698;
+
+    theta_joints_mat_leg_(0, 2) = -6.0104;
+    theta_joints_mat_leg_(1, 2) = -6.3947;
+    theta_joints_mat_leg_(2, 2) = -0.4556;
+    theta_joints_mat_leg_(3, 2) = -0.5007;
+
+    theta_joints_mat_leg_(0, 3) = -15.4245;
+    theta_joints_mat_leg_(1, 3) = -9.4254;
+    theta_joints_mat_leg_(2, 3) = -0.8321;
+    theta_joints_mat_leg_(3, 3) = -1.4360;
+
+    theta_joints_mat_leg_(0, 4) = -0.7039;
+    theta_joints_mat_leg_(1, 4) = 0.0;
+    theta_joints_mat_leg_(2, 4) = 1.0777;
+    theta_joints_mat_leg_(3, 4) = -9.3799;
+
+    theta_joints_mat_leg_(0, 5) = -2.6379;
+    theta_joints_mat_leg_(1, 5) = -1.0344;
+    theta_joints_mat_leg_(2, 5) = -9.2011;
+    theta_joints_mat_leg_(3, 5) = -4.8737;
+
+    // right leg
+    theta_joints_mat_leg_(0, 6) = -0.7888;
+    theta_joints_mat_leg_(1, 6) = -0.5715;
+    theta_joints_mat_leg_(2, 6) = 649.43;
+    theta_joints_mat_leg_(3, 6) = -129.7175;
+
+    theta_joints_mat_leg_(0, 7) = -1.2916;
+    theta_joints_mat_leg_(1, 7) = 1.2732;
+    theta_joints_mat_leg_(2, 7) = -10.2985;
+    theta_joints_mat_leg_(3, 7) = -10.0021;
+
+    theta_joints_mat_leg_(0, 8) = -4.6717;
+    theta_joints_mat_leg_(1, 8) = -21.8645;
+    theta_joints_mat_leg_(2, 8) = -1.3613;
+    theta_joints_mat_leg_(3, 8) = -1.7073;
+
+    theta_joints_mat_leg_(0, 9) = -5.5925;
+    theta_joints_mat_leg_(1, 9) = -18.1097;
+    theta_joints_mat_leg_(2, 9) = 0.6578;
+    theta_joints_mat_leg_(3, 9) = -6.2169;
+
+    theta_joints_mat_leg_(0, 10) = -8.7567;
+    theta_joints_mat_leg_(1, 10) = -11.5622;
+    theta_joints_mat_leg_(2, 10) = -2.8512;
+    theta_joints_mat_leg_(3, 10) = -2.6937;
+
+    theta_joints_mat_leg_(0, 11) = -2.0696;
+    theta_joints_mat_leg_(1, 11) = -1.0878;
+    theta_joints_mat_leg_(2, 11) = 11.9410;
+    theta_joints_mat_leg_(3, 11) = -9.8130;
+
 }
 
 Eigen::VectorQd AvatarController::getControl()
@@ -1922,6 +1988,11 @@ void AvatarController::initWalkingParameter()
     mob_residual_wholebody_.setZero(MODEL_DOF_VIRTUAL);
     mob_integral_wholebody_.setZero(MODEL_DOF_VIRTUAL);
 
+    mob_residual_friction_.setZero(MODEL_DOF_VIRTUAL);
+    mob_integral_friction_.setZero(MODEL_DOF_VIRTUAL);
+
+    mob_residual_friction_hpf_.setZero(MODEL_DOF_VIRTUAL);
+    
     mob_residual_jts_.setZero(MODEL_DOF);
     mob_integral_jts_.setZero(MODEL_DOF);
 
@@ -2382,6 +2453,45 @@ void AvatarController::getRobotData()
 
     first_torque_supplier_ = DyrosMath::cubic(current_time_, program_start_time_ + program_ready_duration_, program_start_time_ + program_ready_duration_ + walking_control_transition_duration_, 0, 1, 0, 0);
 }
+void AvatarController::frictionTorqueCalculator(Eigen::VectorQd q_dot, Eigen::VectorQd q_dot_des, Eigen::VectorQd tau_m, Eigen::VectorQd & tau_f)
+{
+    int w1, w2, w3;
+    double abs_q_dot_threshold = 0.03;
+    tau_f.setZero();
+
+    for (int j = 0; j <12; j++) // only legs
+    {
+        if( abs(q_dot(j)) < abs_q_dot_threshold)
+        {
+            if(q_dot_des(j) == 0.0)
+            {
+                w1 = 1;
+                w2 = 0;
+            }
+            else
+            {
+                w1 = 0;
+                w2 = 1;
+            }
+            w3 = 0;
+        }
+        else
+        {   
+            w1 = 0;
+            w2 = 0;
+            w3 = 1;
+        }
+
+        w_friction_.setZero(4);
+        w_friction_(0) = w1*DyrosMath::sign(tau_m(j)) + w3*DyrosMath::sign(q_dot(j));
+        w_friction_(1) = w2*DyrosMath::sign(tau_m(j));
+        w_friction_(2) = w3*q_dot(j)*q_dot(j);
+        w_friction_(3) = w3*q_dot(j);
+
+        tau_f(j) = w_friction_.transpose()*theta_joints_mat_leg_.col(j);
+    }   
+
+}
 void AvatarController::floatingBaseMOB()
 {
     Eigen::VectorXd nonlinear_torque_temp, gravity_torque_temp;
@@ -2414,7 +2524,7 @@ void AvatarController::floatingBaseMOB()
 
     base_velocity = adjt_global2pelv * q_dot_virtual_Xd_global_.segment(0, 6);
 
-    Eigen::VectorXd current_torque, mob_residual_pre_wholebody;
+    Eigen::VectorXd current_torque, mob_residual_pre_wholebody, mob_residual_pre_friction;
     // Eigen::VectorXd rd_q_virtual, rd_q_dot_virtual, nonlinear_torque_g;
     // current_torque.setZero(MODEL_DOF_VIRTUAL, 1);
     // current_torque.segment(6, MODEL_DOF) = rd_.torque_desired;
@@ -2422,6 +2532,7 @@ void AvatarController::floatingBaseMOB()
     current_torque = torque_lower_ + torque_upper_;
 
     mob_residual_pre_wholebody = mob_residual_wholebody_;
+    mob_residual_pre_friction = mob_residual_friction_;
 
     Eigen::MatrixXd R_temp_lfoot, R_temp_rfoot, J_temp;
     // lfoot_ft_sensor_offset_ << 0.03, 0, -0.145;
@@ -2470,7 +2581,14 @@ void AvatarController::floatingBaseMOB()
     nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
     // nonlinear_term_virtual.segment(0, MODEL_DOF_VIRTUAL) = A_dot_mat_.block(0, 0, MODEL_DOF_VIRTUAL, 6) * base_velocity + A_dot_mat_.block(0, 6, MODEL_DOF_VIRTUAL, MODEL_DOF) * rd_.q_dot_ - nonlinear_torque_;  //local frame
     nonlinear_term_virtual = A_dot_mat_ * q_dot_virtual_Xd_global_noise_ - nonlinear_torque_;
+
     mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1 / hz_, 100);
+
+    nonlinear_term_virtual.segment(6, MODEL_DOF) += friction_model_torque_; // add friction
+
+    mob_residual_friction_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_friction, mob_integral_friction_, 1 / hz_, 50);
+
+    mob_residual_friction_hpf_ = DyrosMath::hpf<39>(mob_residual_friction_, mob_residual_pre_friction, mob_residual_friction_hpf_, 2000.0, 1.0 );
 
     if (mob_residual_wholebody_ != mob_residual_wholebody_)
     {
@@ -12088,7 +12206,11 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
                 lstm.real_output(i) = std::log(1 + std::exp(input)) / beta; // softplus
                 // lstm.real_output(i) = lstm.real_output(i)*lstm.output_std(i-int(lstm.n_output/2))*lstm.output_std(i-int(lstm.n_output/2));    // variance unnormalize
             }
+
+            lstm.real_output(i) = lstm.real_output(i) * lstm.output_std(i) * lstm.output_std(i);
         }
+
+        
     }
 }
 void AvatarController::savePreData()
@@ -12939,10 +13061,18 @@ void AvatarController::printOutTextFile()
             {
                 file[3] << opto_ft_(i) << "\t";
             }
+            for (int i = 6; i < 18; i++) // left + right leg
+            {
+                file[3] << mob_residual_friction_(i) << "\t";
+            }
+            for (int i = 6; i < 18; i++) // left + right leg
+            {
+                file[3] << mob_residual_friction_hpf_(i) << "\t";
+            }
             file[3] << endl;
             // file[3] << stepping_input_(0) << "\t" << stepping_input_(1) << "\t" << stepping_input_(2) << endl; // bolt
 
-            printout_cnt_ += 1;
+            // printout_cnt_ += 1;
         }
         else
         {
@@ -13438,7 +13568,7 @@ void AvatarController::getRobotState()
     // elmo current torque
     for (int i = 0; i < MODEL_DOF; i++)
     {
-        torque_current_elmo_(i) = rd_.torque_elmo_(i) / torque_nm2cnt_(i); // exterted external torque
+        torque_current_elmo_(i) = rd_.torque_elmo_(i); // motor current torque
     }
 
     l_ft_ = rd_.LF_FT; // generated force by robot left foot
@@ -13542,6 +13672,9 @@ void AvatarController::getRobotState()
     {
         dt_computeslow_ = current_time_computeslow_ - pre_time_computeslow_;
     }
+
+    //friction torque calculation
+    frictionTorqueCalculator(rd_.q_dot_, desired_q_dot_, torque_current_elmo_, friction_model_torque_);
 
     // MOB-LSTM INFERENCE
     ref_q_dot_ = (ref_q_ - ref_q_pre_) * hz_;
