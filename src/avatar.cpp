@@ -12205,7 +12205,11 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
                 lstm.real_output(i) = std::log(1 + std::exp(input)) / beta; // softplus
                 // lstm.real_output(i) = lstm.real_output(i)*lstm.output_std(i-int(lstm.n_output/2))*lstm.output_std(i-int(lstm.n_output/2));    // variance unnormalize
             }
+
+            lstm.real_output(i) = lstm.real_output(i) * lstm.output_std(i) * lstm.output_std(i);
         }
+
+        
     }
 }
 void AvatarController::savePreData()
