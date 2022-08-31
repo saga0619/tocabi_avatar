@@ -1462,10 +1462,7 @@ public:
     Eigen::VectorQd estimated_model_unct_torque_variance_slow_;
     Eigen::VectorQd estimated_model_unct_torque_variance_thread_;
 
-    //TO DO LISTS
-    // - Weight import
-    // - mean std import
-    // - code test
+
     void collectRobotInputData_acc_version();
 
     void loadLstmWeights(LSTM &lstm, std::string folder_path);
@@ -1475,6 +1472,13 @@ public:
     void calculateLstmOutput(LSTM &lstm);
 
     void loadCollisionThreshold(std::string folder_path);
+
+    // manual training data collection
+    double last_stop_time_;
+    bool stop_flag_;
+    VectorQd stop_q_training_;
+
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
