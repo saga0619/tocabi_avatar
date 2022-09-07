@@ -1043,7 +1043,7 @@ void AvatarController::computeSlow()
                 // }
                 desired_q_not_compensated_ = ref_q_;
 
-                // printOutTextFile();
+                printOutTextFile();
                 updateNextStepTime();
                 q_prev_MJ_ = rd_.q_;
                 pre_time_computeslow_ = current_time_computeslow_;
@@ -1136,6 +1136,7 @@ void AvatarController::computeSlow()
                 torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
             }
         }
+        
         /////////////////////////////////////////////////////////////////////////////////////////
         if (atb_desired_q_update_ == false)
         {
@@ -1161,7 +1162,7 @@ void AvatarController::computeSlow()
             
         // }
 
-        //// for gravity mode in air
+        // // for gravity mode in air
         // if(float_data_collect_mode_)
         // {
         //     torque_lower_.setZero();
@@ -1212,7 +1213,7 @@ void AvatarController::computeSlow()
             torque_d(i) = DyrosMath::minmax_cut(torque_d(i), torque_task_min_(i), torque_task_max_(i));
         }
         
-        printOutTextFile();
+        // printOutTextFile();
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_d;
@@ -2008,7 +2009,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    // comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); 
+    comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14255,7 +14256,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 10; // total foot step number
+        middle_total_step_number = 2000; // total foot step number
         dlength = 0;
     }
 
@@ -16490,28 +16491,28 @@ void AvatarController::parameterSetting()
     std::srand(std::time(nullptr)); // use current time as seed for random generator
 
     ////// random walking setting///////
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
-    // step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
-    // target_x_ = step_length_x_ * 10 * sin(target_theta_);
-    // target_y_ = step_length_x_ * 10 * cos(target_theta_);
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = (float(std::rand()) / float(RAND_MAX) * 90.0 - 45.0) * DEG2RAD;
+    step_length_x_ = (std::rand() % 301) * 0.001 - 0.15;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+    target_x_ = step_length_x_ * 10 * sin(target_theta_);
+    target_y_ = step_length_x_ * 10 * cos(target_theta_);
 
 
-    // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.02 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.6 * hz_ + (std::rand() % 61) * 0.01 * hz_;
+    t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.02 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.6 * hz_ + (std::rand() % 61) * 0.01 * hz_;
 
-    // // t_rest_init_ = 0.27*hz_;
-    // // t_rest_last_ = 0.27*hz_;
-    // // t_double1_ = 0.03*hz_;
-    // // t_double2_ = 0.03*hz_;
-    // // t_total_= 1.3*hz_;
-    // foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+    foot_height_ = float(std::rand()) / float(RAND_MAX) * 0.05 + 0.03; // 0.9 sec 0.05
     ///////////////////////////////////////////////
 
     //// Normal walking setting ////
@@ -16568,21 +16569,21 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.6s walking
-    target_x_ = 0.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    // target_x_ = 0.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.04*hz_;
-    t_rest_last_ = 0.04*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.6*hz_;
-    foot_height_ = 0.040;      // 0.9 sec 0.05
+    // t_rest_init_ = 0.04*hz_;
+    // t_rest_last_ = 0.04*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 0.6*hz_;
+    // foot_height_ = 0.040;      // 0.9 sec 0.05
     /////////////////////////////////
 
     // t_total_ = 0.5 * hz_;
