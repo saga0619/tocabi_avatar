@@ -335,7 +335,7 @@ public:
     bool walking_mode_on_;                                  // turns on when the walking control command is received and truns off after saving start time
     double stop_vel_threshold_;                             // acceptable capture point deviation from support foot
     bool chair_mode_;                                       // For chair sitting mode
-    bool float_data_collect_mode_ = true;                          // For data collection in the air
+    bool float_data_collect_mode_ = false;                          // For data collection in the air
 
     int foot_contact_; // 1:left,   -1:right,   0:double
     int foot_contact_pre_;
@@ -1380,7 +1380,7 @@ public:
     // lstm c++
     struct LSTM
     {
-        ~LSTM() { std::cout << "LSTM terminate" << std::endl; }
+        ~LSTM() { std::cout << "LSTM terminates" << std::endl; }
         std::atomic<bool> atb_lstm_input_update_{false};
         std::atomic<bool> atb_lstm_output_update_{false};
 
@@ -1480,6 +1480,94 @@ public:
 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////PETER GRU///////////////////////////////////////////////////////
+    // lstm c++
+    struct GRU
+    {
+        ~GRU() { std::cout << "GRU terminates" << std::endl; }
+        std::atomic<bool> atb_gru_input_update_{false};
+        std::atomic<bool> atb_gru_output_update_{false};
+
+        int n_input;
+        int n_output;
+        int n_hidden;
+
+        int buffer_size;
+        Eigen::VectorXd ring_buffer; //ring_buffer
+        int buffer_head;
+        int buffer_tail;
+
+        int input_mode_idx;
+        int output_mode_idx;
+
+        Eigen::MatrixXd input_slow;
+        Eigen::MatrixXd input_fast;
+        Eigen::MatrixXd input_thread;
+        Eigen::VectorXd input_mean;
+        Eigen::VectorXd input_std;
+
+        Eigen::VectorXd robot_input_data;
+
+        Eigen::VectorXd output;
+        Eigen::VectorXd real_output; //real out with physical dimension
+        Eigen::VectorXd output_mean;
+        Eigen::VectorXd output_std;
+
+        Eigen::MatrixXd W_ih;   // [ W_ir | W_iz | W_in ] R^{3*n_hidden X n_input}
+        Eigen::VectorXd b_ih;   // [ b_ir | b_iz | b_in ]
+        Eigen::MatrixXd W_hh;   // [ W_hr | W_hz | W_hn ]
+        Eigen::VectorXd b_hh;   // [ b_hr | b_hz | b_hn ]
+        Eigen::MatrixXd W_linear;
+        Eigen::VectorXd b_linear;
+
+        Eigen::MatrixXd h_t;    // hidden
+        Eigen::VectorXd r_t;    // reset
+        Eigen::VectorXd z_t;    // update
+        Eigen::VectorXd n_t;    // new gates
+
+        ifstream network_weights_files[3];
+        ifstream bias_files[3];
+        ifstream mean_std_files[4];
+
+        bool loadweightfile_verbose = true;
+        bool loadmeanstdfile_verbose = true;
+        bool gaussian_mode = true;
+    };
+    GRU left_leg_peter_gru_;
+    GRU right_leg_peter_gru_;
+
+    // ifstream network_weights_file_gru_[6];
+    // ifstream mean_std_file_gru_[4];
+
+    Eigen::VectorQd estimated_ext_torque_gru_;
+
+    Eigen::Vector6d estimated_ext_force_lfoot_gru_;
+    Eigen::Vector6d estimated_ext_force_rfoot_gru_;
+    Eigen::Vector6d estimated_ext_force_lhand_gru_;
+    Eigen::Vector6d estimated_ext_force_rhand_gru_;
+
+    Eigen::VectorQd estimated_external_torque_gru_fast_;
+    Eigen::VectorQd estimated_external_torque_gru_slow_;
+    Eigen::VectorQd estimated_external_torque_gru_thread_;
+    Eigen::VectorQd estimated_external_torque_gru_slow_lpf_;
+
+    Eigen::VectorQd estimated_external_torque_variance_gru_fast_;
+    Eigen::VectorQd estimated_external_torque_variance_gru_slow_;
+    Eigen::VectorQd estimated_external_torque_variance_gru_thread_;
+
+    void collectRobotInputData_peter_gru();
+
+    void loadGruWeights(GRU &gru, std::string folder_path);
+    void loadGruMeanStd(GRU &gru, std::string folder_path);
+
+    void initializeLegGRU(GRU &gru, int n_input, int n_output, int n_hidden);
+    void calculateGruInput(GRU &gru);
+    void calculateGruOutput(GRU &gru);
+
+    Eigen::VectorXd vecSigmoid(VectorXd input);
+    Eigen::VectorXd vecTanh(VectorXd input);
+    //////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
     Eigen::VectorQd fall_init_q_;
