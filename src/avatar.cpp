@@ -4568,8 +4568,8 @@ void AvatarController::motionRetargeting_HQPIK()
 
         for (int j = 0; j < constraint_size1_hqpik_; j++)
         {
-            lb_hqpik_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(j + 12) - current_q_(j + 12)), joint_vel_limit_l_(j + 12)), joint_vel_limit_h_(j + 12));
-            ub_hqpik_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(j + 12) - current_q_(j + 12)), joint_vel_limit_h_(j + 12)), joint_vel_limit_l_(j + 12));
+            lb_hqpik_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(j + 12) - motion_q_pre_(j + 12)), joint_vel_limit_l_(j + 12)), joint_vel_limit_h_(j + 12));
+            ub_hqpik_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(j + 12) - motion_q_pre_(j + 12)), joint_vel_limit_h_(j + 12)), joint_vel_limit_l_(j + 12));
         }
 
         A_hqpik_[i].setZero(constraint_size2_hqpik_[i], variable_size_hqpik_);
@@ -4593,16 +4593,16 @@ void AvatarController::motionRetargeting_HQPIK()
             for (int j = 0; j < 3; j++)
             {
                 // linear velocity limit
-                lbA_hqpik_[i](higher_task_equality_num + j) = -2;
-                ubA_hqpik_[i](higher_task_equality_num + j) = 2;
-                lbA_hqpik_[i](higher_task_equality_num + j + 6) = -2;
-                ubA_hqpik_[i](higher_task_equality_num + j + 6) = 2;
+                lbA_hqpik_[i](higher_task_equality_num + j) = -0.5;
+                ubA_hqpik_[i](higher_task_equality_num + j) = 0.5;
+                lbA_hqpik_[i](higher_task_equality_num + j + 6) = -0.5;
+                ubA_hqpik_[i](higher_task_equality_num + j + 6) = 0.5;
 
                 // angular velocity limit
-                lbA_hqpik_[i](higher_task_equality_num + j + 3) = -6;
-                ubA_hqpik_[i](higher_task_equality_num + j + 3) = 6;
-                lbA_hqpik_[i](higher_task_equality_num + j + 9) = -6;
-                ubA_hqpik_[i](higher_task_equality_num + j + 9) = 6;
+                lbA_hqpik_[i](higher_task_equality_num + j + 3) = -2*M_PI;
+                ubA_hqpik_[i](higher_task_equality_num + j + 3) = 2*M_PI;
+                lbA_hqpik_[i](higher_task_equality_num + j + 9) = -2*M_PI;
+                ubA_hqpik_[i](higher_task_equality_num + j + 9) = 2*M_PI;
             }
         }
 
@@ -4851,8 +4851,8 @@ void AvatarController::motionRetargeting_HQPIK2()
         VectorXd g1, g2, g3;
 
         H1 = J_hqpik2_[i].transpose() * J_hqpik2_[i];
-        // H2 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_);
-        H2 = A_mat_.block(18, 18, variable_size_hqpik2_, variable_size_hqpik2_) + Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (2e-2);
+        H2 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_);
+        // H2 = A_mat_.block(18, 18, variable_size_hqpik2_, variable_size_hqpik2_) + Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (2e-2);
         H2(3, 3) += 10;   // left arm 1st joint
         H2(13, 13) += 10; // right arm 1st joint
         H3 = Eigen::MatrixXd::Identity(variable_size_hqpik2_, variable_size_hqpik2_) * (1 / dt_) * (1 / dt_);
@@ -5812,8 +5812,8 @@ void AvatarController::poseCalibration()
 
     double limit_val = 4.0;
 
-    if (upper_body_mode_>=5)
-    // if(false)
+    // if (upper_body_mode_>=5)
+    if(false)
     {
         if (check_val > limit_val)
         {
