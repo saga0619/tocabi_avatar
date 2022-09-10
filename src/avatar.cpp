@@ -920,8 +920,8 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {
                 getZmpTrajectory();
-                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)
+                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)
                 // BoltController_MJ(); // Stepping Controller for DCM eos
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
@@ -1586,12 +1586,12 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             // PETER GRU
             initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
@@ -2039,7 +2039,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    // comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
+    comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -12190,9 +12190,9 @@ void AvatarController::collectRobotInputData_acc_version()
     left_leg_mob_lstm_.robot_input_data(4) = q_virtual_Xd_global_noise_(10);
     left_leg_mob_lstm_.robot_input_data(5) = q_virtual_Xd_global_noise_(11);
 
-    left_leg_mob_lstm_.robot_input_data(6) = -q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
+    left_leg_mob_lstm_.robot_input_data(6) = q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
     left_leg_mob_lstm_.robot_input_data(7) = q_dot_virtual_Xd_global_noise_(4);
-    left_leg_mob_lstm_.robot_input_data(8) = -q_dot_virtual_Xd_global_noise_(5);
+    left_leg_mob_lstm_.robot_input_data(8) = q_dot_virtual_Xd_global_noise_(5);
 
     left_leg_mob_lstm_.robot_input_data(9) = q_dot_virtual_Xd_global_noise_(6); // qdot
     left_leg_mob_lstm_.robot_input_data(10) = q_dot_virtual_Xd_global_noise_(7);
@@ -12208,9 +12208,9 @@ void AvatarController::collectRobotInputData_acc_version()
     left_leg_mob_lstm_.robot_input_data(19) = rd_.torque_desired(4);
     left_leg_mob_lstm_.robot_input_data(20) = rd_.torque_desired(5);
 
-    left_leg_mob_lstm_.robot_input_data(21) = -q_ddot_virtual_Xd_global_noise_(0); // lin acc
+    left_leg_mob_lstm_.robot_input_data(21) = q_ddot_virtual_Xd_global_noise_(0); // lin acc
     left_leg_mob_lstm_.robot_input_data(22) = q_ddot_virtual_Xd_global_noise_(1);
-    left_leg_mob_lstm_.robot_input_data(23) = -q_ddot_virtual_Xd_global_noise_(2);
+    left_leg_mob_lstm_.robot_input_data(23) = q_ddot_virtual_Xd_global_noise_(2);
 
     /////////right leg mob lstm//////////////////
     // right_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39); // quat
@@ -12225,9 +12225,9 @@ void AvatarController::collectRobotInputData_acc_version()
     right_leg_mob_lstm_.robot_input_data(4) = q_virtual_Xd_global_noise_(16);
     right_leg_mob_lstm_.robot_input_data(5) = q_virtual_Xd_global_noise_(17);
 
-    right_leg_mob_lstm_.robot_input_data(6) = -q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
+    right_leg_mob_lstm_.robot_input_data(6) = q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
     right_leg_mob_lstm_.robot_input_data(7) = q_dot_virtual_Xd_global_noise_(4);
-    right_leg_mob_lstm_.robot_input_data(8) = -q_dot_virtual_Xd_global_noise_(5);
+    right_leg_mob_lstm_.robot_input_data(8) = q_dot_virtual_Xd_global_noise_(5);
 
     right_leg_mob_lstm_.robot_input_data(9) = q_dot_virtual_Xd_global_noise_(12); // qdot
     right_leg_mob_lstm_.robot_input_data(10) = q_dot_virtual_Xd_global_noise_(13);
@@ -12243,9 +12243,9 @@ void AvatarController::collectRobotInputData_acc_version()
     right_leg_mob_lstm_.robot_input_data(19) = rd_.torque_desired(10);
     right_leg_mob_lstm_.robot_input_data(20) = rd_.torque_desired(11);
 
-    right_leg_mob_lstm_.robot_input_data(21) = -q_ddot_virtual_Xd_global_noise_(0); // lin acc
+    right_leg_mob_lstm_.robot_input_data(21) = q_ddot_virtual_Xd_global_noise_(0); // lin acc
     right_leg_mob_lstm_.robot_input_data(22) = q_ddot_virtual_Xd_global_noise_(1);
-    right_leg_mob_lstm_.robot_input_data(23) = -q_ddot_virtual_Xd_global_noise_(2);
+    right_leg_mob_lstm_.robot_input_data(23) = q_ddot_virtual_Xd_global_noise_(2);
 
     /////// with q dot pre data
     // int tick_ago_head;
@@ -12785,8 +12785,8 @@ void AvatarController::calculateGruInput(GRU &gru)
     {
         int buffer_idx = gru.buffer_head - j ;
         if (buffer_idx < 0)
-            buffer_idx += buffer_size_;
-        buffer_idx = buffer_idx % buffer_size_;
+            buffer_idx += gru.buffer_size;
+        buffer_idx = buffer_idx % gru.buffer_size;
 
         gru.input_slow(gru.n_input - j - 1, gru.input_mode_idx) = (gru.ring_buffer(buffer_idx) - gru.input_mean(gru.n_input - 1 - j)) / gru.input_std(gru.n_input - 1 - j);
     }
@@ -12812,29 +12812,34 @@ void AvatarController::calculateGruOutput(GRU &gru)
         gru.atb_gru_input_update_ = false;
     }
 
-    // GRU network
-    gru.r_t = vecSigmoid( gru.W_ih.block(0, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(0, gru.n_hidden)
-            + gru.W_hh.block(0, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(0, gru.n_hidden) );
+    while (gru.input_mode_idx != gru.output_mode_idx)
+    {
+        gru.output_mode_idx += 1;
+        gru.output_mode_idx = gru.output_mode_idx % 20;
+        // GRU network
+        gru.r_t = vecSigmoid( gru.W_ih.block(0, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(0, gru.n_hidden)
+                + gru.W_hh.block(0, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(0, gru.n_hidden) );
 
-    gru.z_t = vecSigmoid( gru.W_ih.block(gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(gru.n_hidden, gru.n_hidden)
-            + gru.W_hh.block(gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(gru.n_hidden, gru.n_hidden) );
-    VectorXd in_gate = gru.W_ih.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(2*gru.n_hidden, gru.n_hidden);
-    VectorXd hn_gate = gru.W_hh.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(2*gru.n_hidden, gru.n_hidden);
-    VectorXd r_hn;
-    r_hn.setZero(gru.n_hidden);
-    for(int i=0; i<gru.n_hidden; i++)
-    {
-        r_hn(i) = gru.r_t(i)*hn_gate(i);
+        gru.z_t = vecSigmoid( gru.W_ih.block(gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(gru.n_hidden, gru.n_hidden)
+                + gru.W_hh.block(gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(gru.n_hidden, gru.n_hidden) );
+        VectorXd in_gate = gru.W_ih.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(2*gru.n_hidden, gru.n_hidden);
+        VectorXd hn_gate = gru.W_hh.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(2*gru.n_hidden, gru.n_hidden);
+        VectorXd r_hn;
+        r_hn.setZero(gru.n_hidden);
+        for(int i=0; i<gru.n_hidden; i++)
+        {
+            r_hn(i) = gru.r_t(i)*hn_gate(i);
+        }
+        
+        gru.n_t = vecTanh(in_gate + r_hn);
+        for(int i=0; i<gru.n_hidden; i++)
+        {
+            gru.h_t(i, gru.output_mode_idx) = (1 - gru.z_t(i))*gru.n_t(i) + gru.z_t(i)*gru.h_t(i, gru.output_mode_idx);
+        } 
     }
-     
-    gru.n_t = vecTanh(in_gate + r_hn);
-    for(int i=0; i<gru.n_hidden; i++)
-    {
-        gru.h_t(i) = (1 - gru.z_t(i))*gru.n_t(i) + gru.z_t(i)*gru.h_t(i);
-    } 
- 
+
     // linear
-    gru.output = gru.W_linear*gru.h_t + gru.b_linear;
+    gru.output = gru.W_linear*gru.h_t.col(gru.output_mode_idx) + gru.b_linear;
 
     // unnormalize the mean
     for (int i = 0; i < gru.n_output; i++)
@@ -12869,10 +12874,10 @@ Eigen::VectorXd AvatarController::vecSigmoid(VectorXd input)
     int n = input.size();
     Eigen::VectorXd output;
     output.setZero(n);
-
+ 
     for(int i = 0; i < n; i++)
     {
-        output(i) = 1/(1+std::exp(input(i)));
+        output(i) = 1 / ( 1 + std::exp( -input(i) ) );
     }
 
     return output;
