@@ -771,6 +771,9 @@ public:
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
 
+    Eigen::Vector6d l_hand_ft_;
+    Eigen::Vector6d r_hand_ft_;
+
     double F_F_input_dot = 0;
     double F_F_input = 0;
 
@@ -1530,7 +1533,7 @@ public:
         ifstream bias_files[3];
         ifstream mean_std_files[4];
 
-        bool loadweightfile_verbose = true;
+        bool loadweightfile_verbose = false;
         bool loadmeanstdfile_verbose = true;
         bool gaussian_mode = true;
     };

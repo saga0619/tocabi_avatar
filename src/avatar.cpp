@@ -1774,6 +1774,15 @@ void AvatarController::computeFast()
             loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
+            // PETER GRU
+            initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
+            loadGruWeights(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            
+            initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
+            loadGruWeights(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+
             if (atb_grav_update_ == false)
             {
                 atb_grav_update_ = true;
@@ -2039,7 +2048,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
+    // comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2799,18 +2808,18 @@ void AvatarController::floatingBaseMOB()
     estimated_ext_force_rfoot_lstm_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_ext_torque_lstm_.segment(6, 6);
 
     // PETER GRU
-    if (left_leg_peter_gru_.atb_gru_output_update_ == false)
-    {
-        left_leg_peter_gru_.atb_gru_output_update_ = true;
-        estimated_external_torque_gru_slow_ = estimated_external_torque_gru_thread_;
-        estimated_external_torque_variance_gru_slow_ = estimated_external_torque_variance_gru_thread_;
-        left_leg_peter_gru_.atb_gru_output_update_ = false;
-    }
+    // if (left_leg_peter_gru_.atb_gru_output_update_ == false)
+    // {
+    //     left_leg_peter_gru_.atb_gru_output_update_ = true;
+    //     estimated_external_torque_gru_slow_ = estimated_external_torque_gru_thread_;
+    //     estimated_external_torque_variance_gru_slow_ = estimated_external_torque_variance_gru_thread_;
+    //     left_leg_peter_gru_.atb_gru_output_update_ = false;
+    // }
     
-    estimated_ext_force_lfoot_gru_.setZero();
-    estimated_ext_force_rfoot_gru_.setZero();
-    estimated_ext_force_lfoot_gru_ = R_temp_lfoot.transpose() * (jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(0, 6);
-    estimated_ext_force_rfoot_gru_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(6, 6);
+    // estimated_ext_force_lfoot_gru_.setZero();
+    // estimated_ext_force_rfoot_gru_.setZero();
+    // estimated_ext_force_lfoot_gru_ = R_temp_lfoot.transpose() * (jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(0, 6);
+    // estimated_ext_force_rfoot_gru_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(6, 6);
 
     //////////////////test/////////////
     // if (walking_tick_mj == 0)
@@ -12190,9 +12199,9 @@ void AvatarController::collectRobotInputData_acc_version()
     left_leg_mob_lstm_.robot_input_data(4) = q_virtual_Xd_global_noise_(10);
     left_leg_mob_lstm_.robot_input_data(5) = q_virtual_Xd_global_noise_(11);
 
-    left_leg_mob_lstm_.robot_input_data(6) = -q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
+    left_leg_mob_lstm_.robot_input_data(6) = q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
     left_leg_mob_lstm_.robot_input_data(7) = q_dot_virtual_Xd_global_noise_(4);
-    left_leg_mob_lstm_.robot_input_data(8) = -q_dot_virtual_Xd_global_noise_(5);
+    left_leg_mob_lstm_.robot_input_data(8) = q_dot_virtual_Xd_global_noise_(5);
 
     left_leg_mob_lstm_.robot_input_data(9) = q_dot_virtual_Xd_global_noise_(6); // qdot
     left_leg_mob_lstm_.robot_input_data(10) = q_dot_virtual_Xd_global_noise_(7);
@@ -12208,9 +12217,9 @@ void AvatarController::collectRobotInputData_acc_version()
     left_leg_mob_lstm_.robot_input_data(19) = rd_.torque_desired(4);
     left_leg_mob_lstm_.robot_input_data(20) = rd_.torque_desired(5);
 
-    left_leg_mob_lstm_.robot_input_data(21) = -q_ddot_virtual_Xd_global_noise_(0); // lin acc
+    left_leg_mob_lstm_.robot_input_data(21) = q_ddot_virtual_Xd_global_noise_(0); // lin acc
     left_leg_mob_lstm_.robot_input_data(22) = q_ddot_virtual_Xd_global_noise_(1);
-    left_leg_mob_lstm_.robot_input_data(23) = -q_ddot_virtual_Xd_global_noise_(2);
+    left_leg_mob_lstm_.robot_input_data(23) = q_ddot_virtual_Xd_global_noise_(2);
 
     /////////right leg mob lstm//////////////////
     // right_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39); // quat
@@ -12225,9 +12234,9 @@ void AvatarController::collectRobotInputData_acc_version()
     right_leg_mob_lstm_.robot_input_data(4) = q_virtual_Xd_global_noise_(16);
     right_leg_mob_lstm_.robot_input_data(5) = q_virtual_Xd_global_noise_(17);
 
-    right_leg_mob_lstm_.robot_input_data(6) = -q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
+    right_leg_mob_lstm_.robot_input_data(6) = q_dot_virtual_Xd_global_noise_(3); // pelv ang vel
     right_leg_mob_lstm_.robot_input_data(7) = q_dot_virtual_Xd_global_noise_(4);
-    right_leg_mob_lstm_.robot_input_data(8) = -q_dot_virtual_Xd_global_noise_(5);
+    right_leg_mob_lstm_.robot_input_data(8) = q_dot_virtual_Xd_global_noise_(5);
 
     right_leg_mob_lstm_.robot_input_data(9) = q_dot_virtual_Xd_global_noise_(12); // qdot
     right_leg_mob_lstm_.robot_input_data(10) = q_dot_virtual_Xd_global_noise_(13);
@@ -12243,9 +12252,9 @@ void AvatarController::collectRobotInputData_acc_version()
     right_leg_mob_lstm_.robot_input_data(19) = rd_.torque_desired(10);
     right_leg_mob_lstm_.robot_input_data(20) = rd_.torque_desired(11);
 
-    right_leg_mob_lstm_.robot_input_data(21) = -q_ddot_virtual_Xd_global_noise_(0); // lin acc
+    right_leg_mob_lstm_.robot_input_data(21) = q_ddot_virtual_Xd_global_noise_(0); // lin acc
     right_leg_mob_lstm_.robot_input_data(22) = q_ddot_virtual_Xd_global_noise_(1);
-    right_leg_mob_lstm_.robot_input_data(23) = -q_ddot_virtual_Xd_global_noise_(2);
+    right_leg_mob_lstm_.robot_input_data(23) = q_ddot_virtual_Xd_global_noise_(2);
 
     /////// with q dot pre data
     // int tick_ago_head;
@@ -12781,8 +12790,8 @@ void AvatarController::calculateGruInput(GRU &gru)
     {
         int buffer_idx = gru.buffer_head - j ;
         if (buffer_idx < 0)
-            buffer_idx += buffer_size_;
-        buffer_idx = buffer_idx % buffer_size_;
+            buffer_idx += gru.buffer_size;
+        buffer_idx = buffer_idx % gru.buffer_size;
 
         gru.input_slow(gru.n_input - j - 1, gru.input_mode_idx) = (gru.ring_buffer(buffer_idx) - gru.input_mean(gru.n_input - 1 - j)) / gru.input_std(gru.n_input - 1 - j);
     }
@@ -12808,29 +12817,34 @@ void AvatarController::calculateGruOutput(GRU &gru)
         gru.atb_gru_input_update_ = false;
     }
 
-    // GRU network
-    gru.r_t = vecSigmoid( gru.W_ih.block(0, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(0, gru.n_hidden)
-            + gru.W_hh.block(0, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(0, gru.n_hidden) );
+    while (gru.input_mode_idx != gru.output_mode_idx)
+    {
+        gru.output_mode_idx += 1;
+        gru.output_mode_idx = gru.output_mode_idx % 20;
+        // GRU network
+        gru.r_t = vecSigmoid( gru.W_ih.block(0, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(0, gru.n_hidden)
+                + gru.W_hh.block(0, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(0, gru.n_hidden) );
 
-    gru.z_t = vecSigmoid( gru.W_ih.block(gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(gru.n_hidden, gru.n_hidden)
-            + gru.W_hh.block(gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(gru.n_hidden, gru.n_hidden) );
-    VectorXd in_gate = gru.W_ih.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(2*gru.n_hidden, gru.n_hidden);
-    VectorXd hn_gate = gru.W_hh.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t + gru.b_hh.segment(2*gru.n_hidden, gru.n_hidden);
-    VectorXd r_hn;
-    r_hn.setZero(gru.n_hidden);
-    for(int i=0; i<gru.n_hidden; i++)
-    {
-        r_hn(i) = gru.r_t(i)*hn_gate(i);
+        gru.z_t = vecSigmoid( gru.W_ih.block(gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(gru.n_hidden, gru.n_hidden)
+                + gru.W_hh.block(gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(gru.n_hidden, gru.n_hidden) );
+        VectorXd in_gate = gru.W_ih.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_input)*gru.input_fast + gru.b_ih.segment(2*gru.n_hidden, gru.n_hidden);
+        VectorXd hn_gate = gru.W_hh.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(2*gru.n_hidden, gru.n_hidden);
+        VectorXd r_hn;
+        r_hn.setZero(gru.n_hidden);
+        for(int i=0; i<gru.n_hidden; i++)
+        {
+            r_hn(i) = gru.r_t(i)*hn_gate(i);
+        }
+        
+        gru.n_t = vecTanh(in_gate + r_hn);
+        for(int i=0; i<gru.n_hidden; i++)
+        {
+            gru.h_t(i, gru.output_mode_idx) = (1 - gru.z_t(i))*gru.n_t(i) + gru.z_t(i)*gru.h_t(i, gru.output_mode_idx);
+        } 
     }
-     
-    gru.n_t = vecTanh(in_gate + r_hn);
-    for(int i=0; i<gru.n_hidden; i++)
-    {
-        gru.h_t(i) = (1 - gru.z_t(i))*gru.n_t(i) + gru.z_t(i)*gru.h_t(i);
-    } 
- 
+
     // linear
-    gru.output = gru.W_linear*gru.h_t + gru.b_linear;
+    gru.output = gru.W_linear*gru.h_t.col(gru.output_mode_idx) + gru.b_linear;
 
     // unnormalize the mean
     for (int i = 0; i < gru.n_output; i++)
@@ -12865,10 +12879,10 @@ Eigen::VectorXd AvatarController::vecSigmoid(VectorXd input)
     int n = input.size();
     Eigen::VectorXd output;
     output.setZero(n);
-
+ 
     for(int i = 0; i < n; i++)
     {
-        output(i) = 1/(1+std::exp(input(i)));
+        output(i) = 1 / ( 1 + std::exp( -input(i) ) );
     }
 
     return output;
@@ -13765,7 +13779,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
-                file[3] << opto_ft_(i) << "\t";
+                file[3] << r_hand_ft_(i) << "\t";
             }
             for (int i = 6; i < 18; i++) // left + right leg
             {
@@ -14315,6 +14329,9 @@ void AvatarController::getRobotState()
 
     opto_ft_ = opto_ft_raw_; // collision test exp
 
+    l_hand_ft_ = rd_.LH_FT;
+    r_hand_ft_ = rd_.RH_FT;
+
     double foot_plate_mass = 2.326; // urdf
 
     // double foot_plate_mass = 1.866; // bolt: 41g, black plate: 211g, red plate: 1614g
@@ -14422,9 +14439,9 @@ void AvatarController::getRobotState()
     calculateLstmInput(left_leg_mob_lstm_);  // 1us
     calculateLstmInput(right_leg_mob_lstm_); // 1us
 
-    collectRobotInputData_peter_gru();
-    calculateGruInput(left_leg_peter_gru_);
-    calculateGruInput(right_leg_peter_gru_);
+    // collectRobotInputData_peter_gru();
+    // calculateGruInput(left_leg_peter_gru_);
+    // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
     collisionEstimation();
@@ -17064,7 +17081,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 1.0;
+    target_x_ = 0.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -17639,7 +17656,7 @@ void AvatarController::CP_compen_MJ_FT()
     //   else if(alpha_new < 0)
     //   { alpha_new = 0; }
 
-    double real_robot_mass_offset_ = 52; // 75: no baterry, no hands, w/ avatar head
+    double real_robot_mass_offset_ = 81; // 81: no baterry, no hands, w/ avatar head and backpack
     double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
 
     F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + right_left_force_diff);
