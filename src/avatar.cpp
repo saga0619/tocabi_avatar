@@ -1595,12 +1595,12 @@ void AvatarController::computeFast()
 
             // PETER GRU
             initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruWeights(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
+            loadGruMeanStd(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
             
             initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruWeights(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
+            loadGruMeanStd(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
 
             initial_flag = 2;
         }
