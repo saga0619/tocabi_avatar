@@ -792,7 +792,7 @@ void AvatarController::computeSlow()
             collision_detection_flag_ = false;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: " << rd_.control_time_ << endl; // dg add
 
@@ -1244,7 +1244,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
@@ -1586,21 +1586,21 @@ void AvatarController::computeFast()
 
             // MOB-LSTM INFERENCE
             initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             // PETER GRU
             initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruWeights(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
             
             initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruWeights(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
 
             initial_flag = 2;
         }
@@ -1773,6 +1773,15 @@ void AvatarController::computeFast()
             initializeLegLSTM(right_leg_mob_lstm_);
             loadLstmWeights(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
             loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+
+            // PETER GRU
+            initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
+            loadGruWeights(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(left_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            
+            initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
+            loadGruWeights(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            loadGruMeanStd(right_leg_peter_gru_, "/home/dyros/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
 
             if (atb_grav_update_ == false)
             {
@@ -2039,7 +2048,7 @@ void AvatarController::computeFast()
 
 void AvatarController::computeThread3()
 {
-    comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
+    // comGenerator_MPC_wieber(50.0, 1.0 / 50.0, 2.5, 2000 / 50.0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2799,18 +2808,18 @@ void AvatarController::floatingBaseMOB()
     estimated_ext_force_rfoot_lstm_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_ext_torque_lstm_.segment(6, 6);
 
     // PETER GRU
-    if (left_leg_peter_gru_.atb_gru_output_update_ == false)
-    {
-        left_leg_peter_gru_.atb_gru_output_update_ = true;
-        estimated_external_torque_gru_slow_ = estimated_external_torque_gru_thread_;
-        estimated_external_torque_variance_gru_slow_ = estimated_external_torque_variance_gru_thread_;
-        left_leg_peter_gru_.atb_gru_output_update_ = false;
-    }
+    // if (left_leg_peter_gru_.atb_gru_output_update_ == false)
+    // {
+    //     left_leg_peter_gru_.atb_gru_output_update_ = true;
+    //     estimated_external_torque_gru_slow_ = estimated_external_torque_gru_thread_;
+    //     estimated_external_torque_variance_gru_slow_ = estimated_external_torque_variance_gru_thread_;
+    //     left_leg_peter_gru_.atb_gru_output_update_ = false;
+    // }
     
-    estimated_ext_force_lfoot_gru_.setZero();
-    estimated_ext_force_rfoot_gru_.setZero();
-    estimated_ext_force_lfoot_gru_ = R_temp_lfoot.transpose() * (jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(0, 6);
-    estimated_ext_force_rfoot_gru_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(6, 6);
+    // estimated_ext_force_lfoot_gru_.setZero();
+    // estimated_ext_force_rfoot_gru_.setZero();
+    // estimated_ext_force_lfoot_gru_ = R_temp_lfoot.transpose() * (jac_lfoot_.block(0, 6, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(0, 6);
+    // estimated_ext_force_rfoot_gru_ = R_temp_rfoot.transpose() * (jac_rfoot_.block(0, 12, 6, 6).transpose()).inverse() * estimated_external_torque_gru_slow_.segment(6, 6);
 
     //////////////////test/////////////
     // if (walking_tick_mj == 0)
@@ -12399,7 +12408,7 @@ void AvatarController::calculateLstmOutput(LSTM &lstm)
                 // lstm.real_output(i) = lstm.real_output(i)*lstm.output_std(i-int(lstm.n_output/2))*lstm.output_std(i-int(lstm.n_output/2));    // variance unnormalize
             }
 
-            lstm.real_output(i) = lstm.real_output(i) * lstm.output_std(i);
+            lstm.real_output(i) = lstm.real_output(i) * lstm.output_std(i-int(lstm.n_output / 2)) * lstm.output_std(i-int(lstm.n_output / 2));
         }
     }
 }
@@ -12477,11 +12486,7 @@ void AvatarController::collectRobotInputData_peter_gru()
     left_leg_peter_gru_.robot_input_data(22) = rd_.q_ddot_virtual_(1);
     left_leg_peter_gru_.robot_input_data(23) = rd_.q_ddot_virtual_(2);
 
-    /////////right leg mob lstm//////////////////
-    // right_leg_mob_lstm_.robot_input_data(0) = rd_.q_virtual_(39); // quat
-    // right_leg_mob_lstm_.robot_input_data(1) = rd_.q_virtual_(3);
-    // right_leg_mob_lstm_.robot_input_data(2) = rd_.q_virtual_(4);
-    // right_leg_mob_lstm_.robot_input_data(3) = rd_.q_virtual_(5);
+    /////////right leg //////////////////
 
     right_leg_peter_gru_.robot_input_data(0) = rd_.q_virtual_(12); // q
     right_leg_peter_gru_.robot_input_data(1) = rd_.q_virtual_(13);
@@ -12804,7 +12809,7 @@ void AvatarController::calculateGruInput(GRU &gru)
 }
 void AvatarController::calculateGruOutput(GRU &gru)
 {
-    // get LSTM input from main thread
+    // get GRU input from main thread
     if (gru.atb_gru_input_update_ == false)
     {
         gru.atb_gru_input_update_ = true;
@@ -13750,6 +13755,14 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
+                file[3] << estimated_ext_force_lfoot_gru_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[3] << estimated_ext_force_rfoot_gru_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
                 file[3] << l_ft_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
@@ -13766,7 +13779,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
-                file[3] << opto_ft_(i) << "\t";
+                file[3] << r_hand_ft_(i) << "\t";
             }
             for (int i = 6; i < 18; i++) // left + right leg
             {
@@ -14316,6 +14329,9 @@ void AvatarController::getRobotState()
 
     opto_ft_ = opto_ft_raw_; // collision test exp
 
+    l_hand_ft_ = rd_.LH_FT;
+    r_hand_ft_ = rd_.RH_FT;
+
     double foot_plate_mass = 2.326; // urdf
 
     // double foot_plate_mass = 1.866; // bolt: 41g, black plate: 211g, red plate: 1614g
@@ -14423,9 +14439,9 @@ void AvatarController::getRobotState()
     calculateLstmInput(left_leg_mob_lstm_);  // 1us
     calculateLstmInput(right_leg_mob_lstm_); // 1us
 
-    collectRobotInputData_peter_gru();
-    calculateGruInput(left_leg_peter_gru_);
-    calculateGruInput(right_leg_peter_gru_);
+    // collectRobotInputData_peter_gru();
+    // calculateGruInput(left_leg_peter_gru_);
+    // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
     collisionEstimation();
@@ -17079,7 +17095,7 @@ void AvatarController::parameterSetting()
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
     t_total_ = 0.9 * hz_;
-    foot_height_ = 0.040;      // 0.9 sec 0.05
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.7s walking
     // target_x_ = 0.0;
@@ -17640,7 +17656,7 @@ void AvatarController::CP_compen_MJ_FT()
     //   else if(alpha_new < 0)
     //   { alpha_new = 0; }
 
-    double real_robot_mass_offset_ = 52; // 75: no baterry, no hands, w/ avatar head
+    double real_robot_mass_offset_ = 81; // 81: no baterry, no hands, w/ avatar head and backpack
     double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
 
     F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + right_left_force_diff);

@@ -49,11 +49,11 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
         ///change this directory when you use this code on the other computer///
-        "/home/dg/data/dg/training_data_.txt",
-        "/home/dg/data/dg/1_foot_.txt",
-        "/home/dg/data/dg/2_zmp_.txt",
-        "/home/dg/data/dg/3_lstm_float_.txt",
-        "/home/dg/data/dg/q_qdot_.txt"
+        "/home/dyros/data/dg/training_data_.txt",
+        "/home/dyros/data/dg/1_foot_.txt",
+        "/home/dyros/data/dg/2_zmp_.txt",
+        "/home/dyros/data/dg/3_lstm_float_.txt",
+        "/home/dyros/data/dg/q_qdot_.txt"
         // "/ssd2/fb_mob_learning/data/3_foot_.txt",
         // "/ssd2/fb_mob_learning/data/4_torque_.txt",
         // "/ssd2/fb_mob_learning/data/5_joint_.txt",
@@ -771,6 +771,9 @@ public:
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
 
+    Eigen::Vector6d l_hand_ft_;
+    Eigen::Vector6d r_hand_ft_;
+
     double F_F_input_dot = 0;
     double F_F_input = 0;
 
@@ -1482,7 +1485,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////PETER GRU///////////////////////////////////////////////////////
-    // lstm c++
+    // GRU c++
     struct GRU
     {
         ~GRU() { std::cout << "GRU terminates" << std::endl; }
@@ -1530,7 +1533,7 @@ public:
         ifstream bias_files[3];
         ifstream mean_std_files[4];
 
-        bool loadweightfile_verbose = true;
+        bool loadweightfile_verbose = false;
         bool loadmeanstdfile_verbose = true;
         bool gaussian_mode = true;
     };
