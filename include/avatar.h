@@ -64,6 +64,7 @@ public:
 
     void computeSlow();
     void computeFast();
+    void computeThread3();
     void computePlanner();
     void copyRobotData(RobotData &rd_l);
 
