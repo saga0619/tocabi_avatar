@@ -26,6 +26,8 @@
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
 
+#include <eigen_conversions/eigen_msg.h>
+
 const int FILE_CNT = 0;
 
 const std::string FILE_NAMES[FILE_CNT] =
@@ -209,13 +211,16 @@ public:
     ros::Subscriber hmd_posture_sub;
     ros::Subscriber left_controller_posture_sub;
     ros::Subscriber right_controller_posture_sub;
+    
     ros::Subscriber lhand_tracker_posture_sub;
     ros::Subscriber rhand_tracker_posture_sub;
     ros::Subscriber lelbow_tracker_posture_sub;
     ros::Subscriber relbow_tracker_posture_sub;
     ros::Subscriber chest_tracker_posture_sub;
     ros::Subscriber pelvis_tracker_posture_sub;
+
     ros::Subscriber tracker_status_sub;
+    ros::Subscriber tracker_pose_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
@@ -253,6 +258,8 @@ public:
     void HmdCallback(const tocabi_msgs::matrix_3_4 &msg);
     void PoseCalibrationCallback(const std_msgs::Int8 &msg);
     void TrackerStatusCallback(const std_msgs::Bool &msg);
+
+    void TrackerPoseCallback(const geometry_msgs::PoseArray &msg);
 
     void ExosuitCallback(const geometry_msgs::PoseArray &msg);
 
