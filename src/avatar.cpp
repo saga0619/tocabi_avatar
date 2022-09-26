@@ -1364,11 +1364,11 @@ void AvatarController::getRobotData()
 
     if(dt_ < 0)
     {
-        cout<<"WARNING:: 'dt' is negative in thread2: "<< dt_ <<endl;
+        cout<< cred << "WARNING: 'dt' is negative in thread2: "<< dt_ << creset << endl;
     }
     else if(dt_ > 0.002)
     {
-        cout<<"WARNING:: 'dt' is too large in thread2: "<< dt_<<endl;
+        cout<< cred <<"WARNING: 'dt' is too large in thread2: "<< dt_<< creset << endl;
     }
 
     dt_ = DyrosMath::minmax_cut(dt_, 0.0005, 0.002);
@@ -1854,8 +1854,8 @@ void AvatarController::avatarOpPedalStateMachine()
             }
             else   //disconnect
             {
-                upper_body_mode_raw_ = 9;   // connect
-                upper_body_mode_ = 9;
+                upper_body_mode_raw_ = 10;   // connect
+                upper_body_mode_ = 10;
                 upperbody_mode_recieved_ = true;
             }
         }
@@ -2146,7 +2146,7 @@ void AvatarController::motionGenerator()
     {
         if (still_pose_cali_flag_ == false)
         {
-            cout << " WARNING: Calibration[STILL POSE] is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3;
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2215,7 +2215,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3;
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2253,7 +2253,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3;
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2290,7 +2290,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3; // freezing
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2301,14 +2301,14 @@ void AvatarController::motionGenerator()
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #7 (ABSOLUTE HAND POS MAPPING)" << endl;
+                cout << "Upperbody Mode is Changed to #8 (ABSOLUTE HAND POS MAPPING)" << endl;
 
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (ABSOLUTE HAND POS MAPPING)";
+                upperbody_mode_ss << "Upperbody Mode is Changed to #8 (ABSOLUTE HAND POS MAPPING)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
                 calibration_state_gui_log_pub.publish(msg);
@@ -2328,7 +2328,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3; // freezing
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2339,14 +2339,14 @@ void AvatarController::motionGenerator()
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #8 (PROPOSITIONAL HAND POS MAPPING)" << endl;
+                cout << "Upperbody Mode is Changed to #9 (PROPOSITIONAL HAND POS MAPPING)" << endl;
 
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (PROPOSITIONAL HAND POS MAPPING)";
+                upperbody_mode_ss << "Upperbody Mode is Changed to #9 (PROPOSITIONAL HAND POS MAPPING)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
                 calibration_state_gui_log_pub.publish(msg);
@@ -2366,7 +2366,7 @@ void AvatarController::motionGenerator()
     {
         if (hmd_check_pose_calibration_[3] == false)
         {
-            cout << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << endl;
+            cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
             upper_body_mode_ = 3;
             upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
@@ -2377,14 +2377,14 @@ void AvatarController::motionGenerator()
         {
             if (upperbody_mode_recieved_ == true)
             {
-                cout << "Upperbody Mode is Changed to #10 (HQPIK1 - Direction Only)" << endl;
+                cout << "Upperbody Mode is Changed to #10 (3D Mouse Mode)" << endl;
 
                 first_loop_hqpik_ = true;
                 first_loop_qp_retargeting_ = true;
 
                 std_msgs::String msg;
                 std::stringstream upperbody_mode_ss;
-                upperbody_mode_ss << "Motion Tracking Contorol in On (HQPIK1 - Direction Only)";
+                upperbody_mode_ss << "Upperbody Mode is Changed to #10 (3D Mouse Mode)";
                 msg.data = upperbody_mode_ss.str();
                 calibration_state_pub.publish(msg);
                 calibration_state_gui_log_pub.publish(msg);
@@ -3928,7 +3928,7 @@ void AvatarController::poseCalibration()
         if (hmd_tracker_status_pre_ == true)
         {
             tracker_status_changed_time_ = current_time_;
-            cout << "tracker is detatched" << endl;
+            cout << cred << "tracker is detatched" << creset << endl;
 
             std_msgs::String msg;
             std::stringstream upperbody_mode_ss;
@@ -4344,7 +4344,7 @@ void AvatarController::poseCalibration()
                         << "r_still_basis: " << r_still_basis.transpose() << "\n"
                         << "r_tpose_basis: " << r_tpose_basis.transpose() << "\n"
                         << "r_forward_basis: " << r_forward_basis.transpose() << "\n"
-                        << "l_angle_btw_bases: " << l_angle_btw_bases.transpose() << "\n"
+                        <<  "l_angle_btw_bases: " << l_angle_btw_bases.transpose() << "\n"
                         << "r_angle_btw_bases: " << r_angle_btw_bases.transpose() << endl;
 
         msg.data = arm_length_data.str();
@@ -4353,8 +4353,8 @@ void AvatarController::poseCalibration()
 
         cout << "hmd_lshoulder_center_pos_: " << hmd_lshoulder_center_pos_.transpose() << endl;
         cout << "hmd_rshoulder_center_pos_: " << hmd_rshoulder_center_pos_.transpose() << endl;
-        cout << "hmd_larm_max_l_: " << hmd_larm_max_l_ << endl;
-        cout << "hmd_rarm_max_l_: " << hmd_rarm_max_l_ << endl;
+        cout << cblue << "hmd_larm_max_l_: " << hmd_larm_max_l_ << endl;
+        cout << "hmd_rarm_max_l_: " << hmd_rarm_max_l_ << creset << endl;
         cout << "hmd_shoulder_width_: " << hmd_shoulder_width_ << endl;
         hmd_check_pose_calibration_[3] = true;
 
@@ -4372,8 +4372,8 @@ void AvatarController::poseCalibration()
         cout << "r_tpose_basis: " << r_tpose_basis.transpose() << ", norm: " << r_tpose_basis.norm() << endl;
         cout << "r_forward_basis: " << r_forward_basis.transpose() << ", norm: " << r_forward_basis.norm() << endl;
 
-        cout << "l_angles_btw_bases(degree); should be near 90degrees: " << l_angle_btw_bases.transpose() << endl;
-        cout << "r_angles_btw_bases(degree); should be near 90degrees: " << r_angle_btw_bases.transpose() << endl;
+        cout << cblue << "l_angles_btw_bases(degree); should be near 90degrees: " << l_angle_btw_bases.transpose() << endl;
+        cout << "r_angles_btw_bases(degree); should be near 90degrees: " << r_angle_btw_bases.transpose() << creset << endl;
 
         hmd_lshoulder_pose_init_.translation() = hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose() * hmd_chest_2_lshoulder_center_pos_ + hmd_chest_pose_init_.translation();
         hmd_lshoulder_pose_init_.linear() = hmd_chest_pose_init_.linear();
@@ -4429,80 +4429,90 @@ void AvatarController::poseCalibration()
     {
         if (check_val > limit_val)
         {
-            cout << "WARNING: left hand linear velocity is over the 2.0m/s limit" << check_val << endl;
+            cout << cred << "WARNING: left hand linear velocity is over the 2.0m/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_lhand_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: left hand angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: left hand angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_rhand_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
-            cout << "WARNING: right hand linear velocity is over the 2.0m/s limit" << check_val << endl;
+            cout << cred <<"WARNING: right hand linear velocity is over the 2.0m/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_rhand_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: right hand angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: right hand angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_lupperarm_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
-            cout << "WARNING: hmd_lupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: hmd_lupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_lupperarm_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: hmd_lupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: hmd_lupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_rupperarm_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
-            cout << "WARNING: hmd_rupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: hmd_rupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_rupperarm_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: hmd_rupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: hmd_rupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_head_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: Head angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: Head angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
 
         check_val = hmd_chest_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
-            cout << "WARNING: Chest angular velocity is over the 360 degree/s limit" << check_val << endl;
+            cout << cred <<"WARNING: Chest angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
             upper_body_mode_ = 3;
+            upper_body_mode_raw_ = 3;
             upperbody_mode_recieved_ = true;
         }
     }
@@ -4551,7 +4561,7 @@ void AvatarController::getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, 
     double k_threshold = 0.1;
     if ((abs(k1 - k2) > k_threshold) || (abs(k2 - k3) > k_threshold) || (abs(k1 - k3) > k_threshold))
     {
-        cout << "WARNING: Re-Calibration is REQUIRED!" << endl;
+        cout << cred << "WARNING: Re-Calibration is REQUIRED!" << creset << endl;
     }
     CenterOfShoulder_cali = center_of_cali_plane1 - normal_to_cali_plane.normalized() * k_star;
 }
@@ -4620,6 +4630,13 @@ void AvatarController::rawMasterPoseProcessing()
         master_relative_lhand_pos_pre_ = lhand_transform_current_from_global_.translation() - rhand_transform_current_from_global_.translation();
         master_relative_rhand_pos_pre_ = rhand_transform_current_from_global_.translation() - lhand_transform_current_from_global_.translation();
 
+
+        // save start variables for 3D mosue mode
+        master_lhand_pose_start_ = lhand_transform_pre_desired_from_;
+        master_rhand_pose_start_ = rhand_transform_pre_desired_from_;
+        hmd_lhand_pose_start_ = hmd_lhand_pose_;
+        hmd_rhand_pose_start_ = hmd_rhand_pose_;
+
         upperbody_mode_recieved_ = false;
 
         hmd_init_pose_calibration_ = true;
@@ -4649,7 +4666,19 @@ void AvatarController::rawMasterPoseProcessing()
         master_lhand_pose_raw_.translation() = 0.9 * robot_arm_max_l_ / ((hmd_larm_max_l_ + hmd_rarm_max_l_) / 2) * hmd_lhand_pose_.translation() + hand_offset;
         master_rhand_pose_raw_.translation() = 0.9 * robot_arm_max_l_ / ((hmd_larm_max_l_ + hmd_rarm_max_l_) / 2) * hmd_rhand_pose_.translation() + hand_offset;
     }
+    else if (upper_body_mode_ == 10)
+    {
+        ///////3D Mouse Mode////////////
+        double translation_sensitive_gain = 1.0;
+        master_lhand_pose_raw_.translation() = master_lhand_pose_start_.translation() + 
+                                                translation_sensitive_gain*(hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
 
+        master_rhand_pose_raw_.translation() = master_rhand_pose_start_.translation() + 
+                                                translation_sensitive_gain*(hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
+
+
+        ////////////////////////////////////////////////////
+    }
     //////////////1025////////////////////////
     // master_lhand_pose_raw_ = master_lhand_pose_pre_;
     // master_rhand_pose_raw_ = master_rhand_pose_pre_;
@@ -5187,11 +5216,11 @@ void AvatarController::hmdRawDataProcessing()
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
 
-    if (upper_body_mode_ == 10)
-    {
-        hmd2robot_lhand_pos_mapping_ *= hmd_larm_max_l_ / robot_arm_max_l_;
-        hmd2robot_rhand_pos_mapping_ *= hmd_rarm_max_l_ / robot_arm_max_l_;
-    }
+    // if (upper_body_mode_ == 10)
+    // {
+    //     hmd2robot_lhand_pos_mapping_ *= hmd_larm_max_l_ / robot_arm_max_l_;
+    //     hmd2robot_rhand_pos_mapping_ *= hmd_rarm_max_l_ / robot_arm_max_l_;
+    // }
 
     // if( int(current_time_ *100000)%1000 == 0)
     // {

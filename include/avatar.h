@@ -49,7 +49,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros-laptop/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -512,6 +512,9 @@ public:
     Eigen::Vector3d master_lshoulder_rqy_;
     Eigen::Vector3d master_rshoulder_rqy_;
     
+    Eigen::Isometry3d master_lhand_pose_start_;
+    Eigen::Isometry3d master_rhand_pose_start_;
+
     Eigen::Vector3d master_head_rqy_;
 
     Eigen::Vector3d master_relative_lhand_pos_raw_;
@@ -595,6 +598,9 @@ public:
     Eigen::Isometry3d hmd_rhand_pose_init_;
     Eigen::Isometry3d hmd_chest_pose_init_;
     Eigen::Isometry3d hmd_pelv_pose_init_;
+
+    Eigen::Isometry3d hmd_lhand_pose_start_;
+    Eigen::Isometry3d hmd_rhand_pose_start_;
 
     Eigen::Vector3d hmd2robot_lhand_pos_mapping_;
 	Eigen::Vector3d hmd2robot_rhand_pos_mapping_;
