@@ -4645,7 +4645,7 @@ void AvatarController::rawMasterPoseProcessing()
         ///////Propotional hand position mapping////////////
         Vector3d hand_offset;
         hand_offset << 0.0, 0.0, 0.15;
-        // hand_offset << 0.15, 0, 0.15;
+        // hand_offset << 0.15, 0, 0.15;    // for haptic master arm
         master_lhand_pose_raw_.translation() = 0.9 * robot_arm_max_l_ / ((hmd_larm_max_l_ + hmd_rarm_max_l_) / 2) * hmd_lhand_pose_.translation() + hand_offset;
         master_rhand_pose_raw_.translation() = 0.9 * robot_arm_max_l_ / ((hmd_larm_max_l_ + hmd_rarm_max_l_) / 2) * hmd_rhand_pose_.translation() + hand_offset;
     }
