@@ -31,17 +31,21 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     // relbow_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER4", 100, &AvatarController::RightElbowTrackerCallback, this);
     // rhand_tracker_posture_sub = nh_avatar_.subscribe("/TRACKER5", 100, &AvatarController::RightHandTrackerCallback, this);
     
+    //subscribers
     tracker_status_sub = nh_avatar_.subscribe("/TRACKERSTATUS", 100, &AvatarController::TrackerStatusCallback, this);
-    tracker_pose_sub = nh_avatar_.subscribe("/tracker_pose",1,&AvatarController::TrackerPoseCallback, this, ros::TransportHints().tcpNoDelay(true));
+    tracker_pose_sub = nh_avatar_.subscribe("/tracker_pose", 1, &AvatarController::TrackerPoseCallback, this, ros::TransportHints().tcpNoDelay(true));
+    master_pose_sub = nh_avatar_.subscribe("/tocabi/haptic_poses", 1, &AvatarController::MasterPoseCallback, this, ros::TransportHints().tcpNoDelay(true));
 
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
-
-    calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
-    calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
 
     avatar_mode_pedal_sub = nh_avatar_.subscribe("/op_mode", 10, &AvatarController::AvatarPedalModeCallback, this);
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
+
+    //publishers
+    calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
+    calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
+    haptic_force_pub = nh_avatar_.advertise<std_msgs::Float32MultiArray>("/tocabi/hand_ftsensors", 5);
 
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
@@ -554,7 +558,7 @@ void AvatarController::computeSlow()
             atb_grav_update_ = false;
         }
 
-        if (atb_grav_update_ == false)
+        if (atb_grav_update_ == false &&((initial_flag == 2)) )
         {
             atb_grav_update_ = true;
             Gravity_MJ_fast_ = Gravity_MJ_;
@@ -765,7 +769,7 @@ void AvatarController::computeSlow()
             atb_grav_update_ = false;
         }
 
-        if (atb_grav_update_ == false)
+        if (atb_grav_update_ == false && (initial_flag == 2) )
         {
             atb_grav_update_ = true;
             Gravity_MJ_fast_ = Gravity_MJ_;
@@ -877,7 +881,7 @@ void AvatarController::computeSlow()
 
                 desired_q_not_compensated_ = ref_q_;
 
-                printOutTextFile();
+                // printOutTextFile();
                 updateNextStepTimeJoy();
 
                 q_dot_virtual_Xd_global_pre_ = q_dot_virtual_Xd_global_;
@@ -990,11 +994,12 @@ void AvatarController::computeSlow()
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
 
+        printOutTextFile();
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         ////////////////////////////////////////////////////////////////////////////////
 
-        // printOutTextFile();
+        
     }
     else if (rd_.tc_.mode == 14)
     {
@@ -1278,6 +1283,9 @@ void AvatarController::initWalkingParameter()
     rh_ft_wo_hw_.setZero();
     lh_ft_wo_hw_lpf_.setZero();
     rh_ft_wo_hw_lpf_.setZero();
+
+    lh_ft_wo_hw_global_.setZero();
+    rh_ft_wo_hw_global_.setZero();
 
     torque_from_lh_ft_.setZero();
     torque_from_rh_ft_.setZero();
@@ -3931,13 +3939,22 @@ void AvatarController::poseCalibration()
     }
 
     // coordinate conversion
-    hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
-    hmd_lupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lupperarm_pose_;
-    hmd_lhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lhand_pose_;
-    hmd_rupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rupperarm_pose_;
-    hmd_rhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rhand_pose_;
-    hmd_chest_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_chest_pose_;
-    // hmd_pelv_pose_.linear().setIdentity();
+    if(master_arm_mode_ == false)
+    {
+        hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
+        hmd_lupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lupperarm_pose_;
+        hmd_lhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lhand_pose_;
+        hmd_rupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rupperarm_pose_;
+        hmd_rhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rhand_pose_;
+        hmd_chest_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_chest_pose_;
+        // hmd_pelv_pose_.linear().setIdentity();
+    }
+    else
+    {
+        // orientation offset
+        hmd_lhand_pose_.linear() = hmd_lhand_pose_.linear()*DyrosMath::rotateWithY(-90*DEG2RAD);
+        hmd_rhand_pose_.linear() = hmd_rhand_pose_.linear()*DyrosMath::rotateWithY(-90*DEG2RAD);
+    }
 
     Eigen::Vector3d tracker_offset;
     // tracker_offset << -0.08, 0, 0; // bebop
@@ -5661,7 +5678,6 @@ void AvatarController::UpperbodyModeCallback(const std_msgs::Int8 &msg)
 }
 
 
-
 void AvatarController::ArmJointGainCallback(const std_msgs::Float32MultiArray &msg)
 {
     // left arm kp
@@ -5962,11 +5978,13 @@ void AvatarController::TrackerPoseCallback(const geometry_msgs::PoseArray &msg)
     tf::poseMsgToEigen(msg.poses[3],hmd_lhand_pose_raw_);
     tf::poseMsgToEigen(msg.poses[4],hmd_rupperarm_pose_raw_);
     tf::poseMsgToEigen(msg.poses[5],hmd_rhand_pose_raw_);
-    
     tf::poseMsgToEigen(msg.poses[6],hmd_head_pose_raw_);
-
 }
-
+void AvatarController::MasterPoseCallback(const geometry_msgs::PoseArray &msg)
+{
+    tf::poseMsgToEigen(msg.poses[0], hmd_lhand_pose_raw_);
+    tf::poseMsgToEigen(msg.poses[1], hmd_rhand_pose_raw_);
+}
 void AvatarController::AvatarPedalModeCallback(const std_msgs::Bool &msg)
 {
     avatar_op_pedal_raw_ = msg.data;
@@ -6049,27 +6067,43 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
-                file[0] << lh_ft_(i) << "\t";
+                file[0] << -lh_ft_wo_hw_global_lpf_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
-                file[0] << rh_ft_(i) << "\t";
+                file[0] << -rh_ft_wo_hw_global_lpf_(i) << "\t";
             }
-            for (int i = 0; i < 6; i++)
-            {
-                file[0] << torque_from_lh_ft_lpf_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
-            }
-            for (int i = 0; i < 6; i++)
+            for (int i = 12; i < 15; i++)
             {
                 file[0] << torque_from_lh_ft_(i) << "\t";
             }
-            for (int i = 0; i < 6; i++)
+            for (int i = 15; i < 23; i++)
+            {
+                file[0] << torque_from_lh_ft_(i) << "\t";
+            }
+            for (int i = 12; i < 15; i++)
             {
                 file[0] << torque_from_rh_ft_(6 + i) << "\t";
+            }
+            for (int i = 25; i < 33; i++)
+            {
+                file[0] << torque_from_rh_ft_(6 + i) << "\t";
+            }
+            for (int i = 12; i < 15; i++)
+            {
+                file[0] << torque_from_lh_ft_lpf_(i) << "\t";
+            }
+            for (int i = 15; i < 23; i++)
+            {
+                file[0] << torque_from_lh_ft_lpf_(i) << "\t";
+            }
+            for (int i = 12; i < 15; i++)
+            {
+                file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
+            }
+            for (int i = 25; i < 33; i++)
+            {
+                file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
             }
             file[0] << endl;
         }
@@ -6406,7 +6440,7 @@ void AvatarController::getRobotState()
     double tocabi_lhand_mass = 0.350;
     Vector6d wrench_lhand;
     wrench_lhand.setZero();
-    wrench_lhand(2) = tocabi_lhand_mass*9.81;
+    wrench_lhand(2) = -tocabi_lhand_mass*9.81;
     Vector3d lh_com(0.00063, 0.0636, -0.08);
     Vector3d lh_ft_point(0, 0, -0.035);
     Vector3d lh_com2cp = lh_ft_point - lh_com; 
@@ -6421,10 +6455,13 @@ void AvatarController::getRobotState()
     lh_ft_wo_hw_ = lh_ft_ + adt_lh * (rotlh.transpose() * wrench_lhand);
     lh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_, lh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
 
+    lh_ft_wo_hw_global_ = rotlh * lh_ft_wo_hw_;
+    lh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_global_, lh_ft_wo_hw_global_lpf_, 2000, 5);
+
     double tocabi_rhand_mass = 0.350;
     Vector6d wrench_rhand;
     wrench_rhand.setZero();
-    wrench_rhand(2) = tocabi_rhand_mass*9.81;
+    wrench_rhand(2) = -tocabi_rhand_mass*9.81;
     Vector3d rh_com(0.00063, -0.0636, -0.08);
     Vector3d rh_ft_point(0.0, 0.0, -0.035);
     Vector3d rh_com2cp = rh_ft_point - rh_com; 
@@ -6439,6 +6476,16 @@ void AvatarController::getRobotState()
     rh_ft_wo_hw_ = rh_ft_ + adt_rh * (rotrh.transpose() * wrench_rhand);
     rh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_, rh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
 
+    rh_ft_wo_hw_global_ = rotrh * rh_ft_wo_hw_;
+    rh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_global_, rh_ft_wo_hw_global_lpf_, 2000, 5);
+    std_msgs::Float32MultiArray hand_ft_msg;
+    hand_ft_msg.data.resize(12);
+    for(int i=0; i<6; i++)
+    {
+        hand_ft_msg.data[i] = -lh_ft_wo_hw_global_lpf_(i);
+        hand_ft_msg.data[i+6] = -rh_ft_wo_hw_global_lpf_(i);
+    }
+    haptic_force_pub.publish(hand_ft_msg);
 
     Eigen::MatrixXd J_temp, R_lh, R_rh;
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);

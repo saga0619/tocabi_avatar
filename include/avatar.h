@@ -33,7 +33,7 @@ const int FILE_CNT = 1;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/training_data.txt"
+    "/home/dyros-laptop/data/dg/training_data.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -166,6 +166,7 @@ public:
 
     ros::Subscriber tracker_status_sub;
     ros::Subscriber tracker_pose_sub;
+    ros::Subscriber master_pose_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
@@ -175,6 +176,7 @@ public:
     ros::Publisher calibration_state_gui_log_pub;
 
     ros::Publisher upperbodymode_pub;
+    ros::Publisher haptic_force_pub;
 
     void UpperbodyModeCallback(const std_msgs::Int8 &msg);
 
@@ -195,6 +197,8 @@ public:
     void TrackerStatusCallback(const std_msgs::Bool &msg);
 
     void TrackerPoseCallback(const geometry_msgs::PoseArray &msg);
+
+    void MasterPoseCallback(const geometry_msgs::PoseArray &msg);
 
     void AvatarPedalModeCallback(const std_msgs::Bool &msg);
     ///////////////////////////////
@@ -434,6 +438,12 @@ public:
     Eigen::Vector6d lh_ft_wo_hw_lpf_;
     Eigen::Vector6d rh_ft_wo_hw_lpf_;
 
+    Eigen::Vector6d lh_ft_wo_hw_global_;
+    Eigen::Vector6d rh_ft_wo_hw_global_;
+
+    Eigen::Vector6d lh_ft_wo_hw_global_lpf_;
+    Eigen::Vector6d rh_ft_wo_hw_global_lpf_;
+
     Eigen::VectorQd torque_from_lh_ft_;
     Eigen::VectorQd torque_from_rh_ft_;
     Eigen::VectorQd torque_from_lh_ft_lpf_;
@@ -554,7 +564,8 @@ public:
     bool hmd_tracker_status_pre_;   //1: good, 0: bad
 
     double tracker_status_changed_time_;
-  
+    
+    bool master_arm_mode_ = true;
 
     double hmd_larm_max_l_;
     double hmd_rarm_max_l_;
