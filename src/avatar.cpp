@@ -791,10 +791,10 @@ void AvatarController::computeSlow()
             }
         }
 
-        if (initial_flag == 2)
-        {
-            rd_.tc_.mode = 13;
-        }
+        // if (initial_flag == 2)
+        // {
+        //     rd_.tc_.mode = 13;
+        // }
     }
     else if (rd_.tc_.mode == 13)
     {
@@ -990,6 +990,19 @@ void AvatarController::computeSlow()
             atb_upper_update_ = false;
         }
 
+        // dg 220928 haptic master arm test
+        // desired_q_fast_(12) = 0;  //waist
+        // desired_q_fast_(13) = 0;
+        // desired_q_fast_(14) = 0;
+        // desired_q_fast_(23) = 0;  //head
+        // desired_q_fast_(24) = 0;
+
+        // desired_q_dot_fast_(12) = 0;  //waist
+        // desired_q_dot_fast_(13) = 0;
+        // desired_q_dot_fast_(14) = 0;
+        // desired_q_dot_fast_(23) = 0;  //head
+        // desired_q_dot_fast_(24) = 0;
+
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -1127,7 +1140,7 @@ void AvatarController::computeFast()
                 atb_grav_update_ = false;
             }
 
-            cout << "comutefast tc.mode =10 is initialized" << endl;
+            cout << "comutefast tc.mode =12 is initialized" << endl;
             initial_flag = 2;
         }
     }
@@ -1214,6 +1227,9 @@ void AvatarController::computeFast()
         // }
 
         motionGenerator(); // 140~240us(HQPIK)
+
+
+
         for (int i = 12; i < MODEL_DOF; i++)
         {
             desired_q_(i) = motion_q_(i);
@@ -1908,7 +1924,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 12; i < 33; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -1976,7 +1992,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 12; i < 33; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -2075,7 +2091,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(32) = 1;
         /////////////////////////////////////////////////////
 
-        for (int i = 12; i < 32; i++)
+        for (int i = 12; i < 33; i++)
         {
             motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
@@ -5980,10 +5996,14 @@ void AvatarController::TrackerPoseCallback(const geometry_msgs::PoseArray &msg)
 
     tf::poseMsgToEigen(msg.poses[1],hmd_chest_pose_raw_);
     tf::poseMsgToEigen(msg.poses[2],hmd_lupperarm_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[3],hmd_lhand_pose_raw_);
     tf::poseMsgToEigen(msg.poses[4],hmd_rupperarm_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[5],hmd_rhand_pose_raw_);
     tf::poseMsgToEigen(msg.poses[6],hmd_head_pose_raw_);
+
+    if(master_arm_mode_ == false)
+    {
+        tf::poseMsgToEigen(msg.poses[3],hmd_lhand_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[5],hmd_rhand_pose_raw_);
+    }
 }
 void AvatarController::MasterPoseCallback(const geometry_msgs::PoseArray &msg)
 {
@@ -6434,10 +6454,15 @@ void AvatarController::getRobotState()
 
     if(real_robot_mode_ == true)
     {
-        rh_ft_(1) *= -1;
-        rh_ft_(2) *= -1;
-        rh_ft_(4) *= -1;
-        rh_ft_(5) *= -1;
+        rh_ft_(1) = -rh_ft_(1);
+        rh_ft_(2) = -rh_ft_(2);
+        rh_ft_(4) = -rh_ft_(4);
+        rh_ft_(5) = -rh_ft_(5);
+    }
+    else
+    {
+        lh_ft_ = -lh_ft_;   // convert as external wrench 
+        rh_ft_ = -rh_ft_;
     }
 
     if (walking_tick_mj == 0)
@@ -6495,8 +6520,8 @@ void AvatarController::getRobotState()
     hand_ft_msg.data.resize(12);
     for(int i=0; i<6; i++)
     {
-        hand_ft_msg.data[i] = -lh_ft_wo_hw_global_lpf_(i);
-        hand_ft_msg.data[i+6] = -rh_ft_wo_hw_global_lpf_(i);
+        hand_ft_msg.data[i] = lh_ft_wo_hw_global_lpf_(i);
+        hand_ft_msg.data[i+6] = rh_ft_wo_hw_global_lpf_(i);
     }
     haptic_force_pub.publish(hand_ft_msg);
 
