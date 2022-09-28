@@ -6427,6 +6427,14 @@ void AvatarController::getRobotState()
     lh_ft_ = rd_.LH_FT;
     rh_ft_ = rd_.RH_FT;
 
+    if(real_robot_mode_ == true)
+    {
+        rh_ft_(1) *= -1;
+        rh_ft_(2) *= -1;
+        rh_ft_(4) *= -1;
+        rh_ft_(5) *= -1;
+    }
+
     if (walking_tick_mj == 0)
     {
         l_ft_LPF = l_ft_;
@@ -6449,8 +6457,8 @@ void AvatarController::getRobotState()
     adt_lh.block(3, 0, 3, 3) = DyrosMath::skm(-lh_com2cp) * Matrix3d::Identity();
     Matrix6d rotlh;
     rotlh.setZero();
-    rotlh.block(0, 0, 3, 3) = rd_.link_[Left_Hand].rotm;
-    rotlh.block(3, 3, 3, 3) = rd_.link_[Left_Hand].rotm;
+    rotlh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Left_Hand].rotm;
+    rotlh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Left_Hand].rotm;
     
     lh_ft_wo_hw_ = lh_ft_ + adt_lh * (rotlh.transpose() * wrench_lhand);
     lh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_, lh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
@@ -6470,8 +6478,8 @@ void AvatarController::getRobotState()
     adt_rh.block(3, 0, 3, 3) = DyrosMath::skm(-rh_com2cp) * Matrix3d::Identity();
     Matrix6d rotrh;
     rotrh.setZero();
-    rotrh.block(0, 0, 3, 3) = rd_.link_[Right_Hand].rotm;
-    rotrh.block(3, 3, 3, 3) = rd_.link_[Right_Hand].rotm;
+    rotrh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Right_Hand].rotm;
+    rotrh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Right_Hand].rotm;
 
     rh_ft_wo_hw_ = rh_ft_ + adt_rh * (rotrh.transpose() * wrench_rhand);
     rh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_, rh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
