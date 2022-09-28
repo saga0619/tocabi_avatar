@@ -3476,10 +3476,10 @@ void AvatarController::motionRetargeting_HQPIK()
             for (int j = 0; j < 3; j++)
             {
                 // linear velocity limit
-                lbA_hqpik_[i](higher_task_equality_num + j) = -0.5;
-                ubA_hqpik_[i](higher_task_equality_num + j) = 0.5;
-                lbA_hqpik_[i](higher_task_equality_num + j + 6) = -0.5;
-                ubA_hqpik_[i](higher_task_equality_num + j + 6) = 0.5;
+                lbA_hqpik_[i](higher_task_equality_num + j) = -0.8;
+                ubA_hqpik_[i](higher_task_equality_num + j) = 0.8;
+                lbA_hqpik_[i](higher_task_equality_num + j + 6) = -0.8;
+                ubA_hqpik_[i](higher_task_equality_num + j + 6) = 0.8;
 
                 // angular velocity limit
                 lbA_hqpik_[i](higher_task_equality_num + j + 3) = -2*M_PI;
