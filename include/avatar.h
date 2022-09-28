@@ -28,12 +28,12 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const int FILE_CNT = 0;
+const int FILE_CNT = 1;
 
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    // "/home/dyros/data/dg/0_flag_.txt",
+    "/home/dyros-laptop/data/dg/training_data.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -104,8 +104,9 @@ public:
     std::atomic<bool> atb_upper_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
-    RigidBodyDynamics::Model model_c_;  //updated by current q
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
+    RigidBodyDynamics::Model model_global_;  //state manager coordinate
+    RigidBodyDynamics::Model model_local_;  //local pelvis position gravity orientation
 
     //////////dg custom controller functions////////
     void setGains();
@@ -114,7 +115,6 @@ public:
     void motionGenerator();
 
     //estimator
-    Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
 
     //motion control
@@ -166,6 +166,7 @@ public:
 
     ros::Subscriber tracker_status_sub;
     ros::Subscriber tracker_pose_sub;
+    ros::Subscriber master_pose_sub;
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
@@ -175,6 +176,7 @@ public:
     ros::Publisher calibration_state_gui_log_pub;
 
     ros::Publisher upperbodymode_pub;
+    ros::Publisher haptic_force_pub;
 
     void UpperbodyModeCallback(const std_msgs::Int8 &msg);
 
@@ -195,6 +197,8 @@ public:
     void TrackerStatusCallback(const std_msgs::Bool &msg);
 
     void TrackerPoseCallback(const geometry_msgs::PoseArray &msg);
+
+    void MasterPoseCallback(const geometry_msgs::PoseArray &msg);
 
     void AvatarPedalModeCallback(const std_msgs::Bool &msg);
     ///////////////////////////////
@@ -266,6 +270,8 @@ public:
     Eigen::VectorVQd pre_desired_q_dot_vqd_;
     Eigen::VectorVQd pre_desired_q_ddot_vqd_;
 
+    Eigen::VectorXd q_ddot_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_dot_virtual_Xd_global_pre_, q_virtual_Xd_global_; // for model_global_ update
+    
     Eigen::VectorQd desired_q_fast_;
     Eigen::VectorQd desired_q_dot_fast_;
     Eigen::VectorQd desired_q_slow_;
@@ -386,6 +392,7 @@ public:
     Eigen::Isometry3d rarmbase_transform_pre_desired_from_;
 
     Eigen::Vector3d lhand_control_point_offset_, rhand_control_point_offset_;   //red_hand made by sy
+    Eigen::Vector3d lfoot_ft_sensor_offset_, rfoot_ft_sensor_offset_, lhand_ft_sensor_offset_, rhand_ft_sensor_offset_;
 
     Eigen::Vector6d lfoot_vel_current_from_global_;
     Eigen::Vector6d rfoot_vel_current_from_global_;
@@ -421,6 +428,26 @@ public:
 
     Eigen::Vector6d l_ft_LPF;
     Eigen::Vector6d r_ft_LPF;
+
+    Eigen::Vector6d lh_ft_;
+    Eigen::Vector6d rh_ft_;
+
+    Eigen::Vector6d lh_ft_wo_hw_;
+    Eigen::Vector6d rh_ft_wo_hw_;
+
+    Eigen::Vector6d lh_ft_wo_hw_lpf_;
+    Eigen::Vector6d rh_ft_wo_hw_lpf_;
+
+    Eigen::Vector6d lh_ft_wo_hw_global_;
+    Eigen::Vector6d rh_ft_wo_hw_global_;
+
+    Eigen::Vector6d lh_ft_wo_hw_global_lpf_;
+    Eigen::Vector6d rh_ft_wo_hw_global_lpf_;
+
+    Eigen::VectorQd torque_from_lh_ft_;
+    Eigen::VectorQd torque_from_rh_ft_;
+    Eigen::VectorQd torque_from_lh_ft_lpf_;
+    Eigen::VectorQd torque_from_rh_ft_lpf_;
 
     double F_F_input_dot = 0;
     double F_F_input = 0;
@@ -537,7 +564,8 @@ public:
     bool hmd_tracker_status_pre_;   //1: good, 0: bad
 
     double tracker_status_changed_time_;
-  
+    
+    bool master_arm_mode_ = true;
 
     double hmd_larm_max_l_;
     double hmd_rarm_max_l_;
@@ -780,8 +808,16 @@ public:
     ////////////////////////////////////////////
     
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
+    void floatingBaseMOB();
+    Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
+
     Eigen::VectorVQd mob_integral_;
     Eigen::VectorVQd mob_residual_;
+
+    Eigen::VectorXd mob_integral_wholebody_;
+    Eigen::VectorXd mob_residual_wholebody_;
+
+    Eigen::VectorQd torque_current_elmo_;
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     //fallDetection variables
@@ -815,6 +851,7 @@ private:
     bool first_loop_hqpik2_;
     bool first_loop_qp_retargeting_;
 
+    int printout_cnt_ = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
