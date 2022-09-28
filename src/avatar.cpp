@@ -790,6 +790,11 @@ void AvatarController::computeSlow()
                 rd_.torque_desired(i) = 0;
             }
         }
+
+        if (initial_flag == 2)
+        {
+            rd_.tc_.mode = 13;
+        }
     }
     else if (rd_.tc_.mode == 13)
     {
@@ -6437,7 +6442,7 @@ void AvatarController::getRobotState()
     r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
 
 
-    double tocabi_lhand_mass = 0.350;
+    double tocabi_lhand_mass = 0.00;
     Vector6d wrench_lhand;
     wrench_lhand.setZero();
     wrench_lhand(2) = -tocabi_lhand_mass*9.81;
@@ -6456,9 +6461,9 @@ void AvatarController::getRobotState()
     lh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_, lh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
 
     lh_ft_wo_hw_global_ = rotlh * lh_ft_wo_hw_;
-    lh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_global_, lh_ft_wo_hw_global_lpf_, 2000, 5);
+    lh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_global_, lh_ft_wo_hw_global_lpf_, 2000, 6.0);
 
-    double tocabi_rhand_mass = 0.350;
+    double tocabi_rhand_mass = 0.00;
     Vector6d wrench_rhand;
     wrench_rhand.setZero();
     wrench_rhand(2) = -tocabi_rhand_mass*9.81;
@@ -6477,7 +6482,7 @@ void AvatarController::getRobotState()
     rh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_, rh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
 
     rh_ft_wo_hw_global_ = rotrh * rh_ft_wo_hw_;
-    rh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_global_, rh_ft_wo_hw_global_lpf_, 2000, 5);
+    rh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_global_, rh_ft_wo_hw_global_lpf_, 2000, 6.0);
     std_msgs::Float32MultiArray hand_ft_msg;
     hand_ft_msg.data.resize(12);
     for(int i=0; i<6; i++)
