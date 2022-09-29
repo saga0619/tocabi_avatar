@@ -33,7 +33,7 @@ const int FILE_CNT = 1;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros-laptop/data/dg/training_data.txt"
+    "/home/dg/data/dg/training_data.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -49,7 +49,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros-laptop/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -128,6 +128,8 @@ public:
     // void motionRetargeting_HQPIK_lexls();
     void rawMasterPoseProcessing();
     void hmdRawDataProcessing();
+    void handPositionRetargeting();
+    void orientationRetargeting();
     void poseCalibration();
     void getCenterOfShoulderCali(Eigen::Vector3d Still_pose_cali, Eigen::Vector3d T_pose_cali, Eigen::Vector3d Forward_pose_cali, Eigen::Vector3d &CenterOfShoulder_cali);
     
@@ -170,7 +172,7 @@ public:
 
     ros::Subscriber vive_tracker_pose_calibration_sub;
 
-    ros::Subscriber avatar_mode_pedal_sub;
+    ros::Subscriber robot_hand_pos_mapping_scale_sub;
 
     ros::Publisher calibration_state_pub;
     ros::Publisher calibration_state_gui_log_pub;
@@ -200,7 +202,8 @@ public:
 
     void MasterPoseCallback(const geometry_msgs::PoseArray &msg);
 
-    void AvatarPedalModeCallback(const std_msgs::Bool &msg);
+    void HandPosMappingScaleCallback(const std_msgs::Float32 &msg);
+
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -223,9 +226,10 @@ public:
     double start_time_;
     double dt_;
     double init_leg_time_;  //for first smothing of leg joint angle
-
     
     double com_mass_;
+
+    int mode_12_count_ = 0;
 
 
     Eigen::VectorQd torque_task_max_;
@@ -276,6 +280,13 @@ public:
     Eigen::VectorQd desired_q_dot_fast_;
     Eigen::VectorQd desired_q_slow_;
     Eigen::VectorQd desired_q_dot_slow_;
+
+    //sca
+    Eigen::VectorQd q_ddot_max_slow_;
+    Eigen::VectorQd q_ddot_max_fast_;
+    Eigen::VectorQd q_ddot_max_thread_;
+    Eigen::VectorQd q_braking_stop_;
+    Eigen::VectorQd torque_max_braking_;
 
     Eigen::VectorQd motion_q_;
     Eigen::VectorQd motion_q_dot_;
@@ -555,9 +566,9 @@ public:
     double robot_upperarm_max_l_;
     double robot_lowerarm_max_l_;
     double robot_shoulder_width_;
+
+    double hand_pos_mapping_scale_raw_ = 1.0;
     ////////////HMD + VIVE TRACKER////////////
-    bool hmd_init_pose_calibration_;
-    // double hmd_init_pose_cali_time_;
 
     bool hmd_tracker_status_raw_;   //1: good, 0: bad
     bool hmd_tracker_status_;   //1: good, 0: bad
@@ -565,8 +576,8 @@ public:
 
     double tracker_status_changed_time_;
     
-    bool master_arm_mode_ = true;
-    bool real_robot_mode_ = true;
+    bool master_arm_mode_ = false;
+    bool real_robot_mode_ = false;
 
     double hmd_larm_max_l_;
     double hmd_rarm_max_l_;
@@ -754,23 +765,27 @@ public:
     ///////////////////////////////////////////////////
     
     /////////////HQPIK2//////////////////////////
-    const int hierarchy_num_hqpik2_ = 5;
+    const int hierarchy_num_hqpik2_ = 3;
     const int variable_size_hqpik2_ = 21;
 	const int constraint_size1_hqpik2_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const int constraint_size2_hqpik2_[5] = {12, 16, 19, 19, 23};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const int control_size_hqpik2_[5] = {4, 3, 12, 4, 4};		//1: head ori(2)+pos(2), 2: hand, 3: upper body ori, 4: upper arm ori(2) 5: shoulder ori(2)
+	const int constraint_size2_hqpik2_[3] = {12, 16, 16};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const int control_size_hqpik2_[3] = {4, 12, 8};		//1: head ori(2)+pos(2), 2: hand(12), 3: upperarm(4)+shoulder(4)
 
-    double w1_hqpik2_[5];
-    double w2_hqpik2_[5];
-    double w3_hqpik2_[5];
-    double w4_hqpik2_[5];
-    double w5_hqpik2_[5];
-    double w6_hqpik2_[5];
+    double w1_hqpik2_[3];   //task
+    double w2_hqpik2_[3];   //kinetic energy
+    double w3_hqpik2_[3];   //acceleration
     
-    Eigen::MatrixXd H_hqpik2_[5], A_hqpik2_[5];
-    Eigen::MatrixXd J_hqpik2_[5];
-    Eigen::VectorXd g_hqpik2_[5], u_dot_hqpik2_[5], qpres_hqpik2_, ub_hqpik2_[5],lb_hqpik2_[5], ubA_hqpik2_[5], lbA_hqpik2_[5];
-    Eigen::VectorXd q_dot_hqpik2_[5];
+    Eigen::MatrixXd H_hqpik2_[3], A_hqpik2_[3];
+    Eigen::MatrixXd J_hqpik2_[3];
+    Eigen::VectorXd g_hqpik2_[3], u_dot_hqpik2_[3], qpres_hqpik2_, ub_hqpik2_[3],lb_hqpik2_[3], ubA_hqpik2_[3], lbA_hqpik2_[3];
+    Eigen::VectorXd q_dot_hqpik2_[3];
+
+    bool hqpik2_verbose = false;
+    bool hqpik2_print_constraints = false;
+
+    bool sca_constraint_hqpik_ = false;
+    bool sca_dynamic_version_ = false;
+    const unsigned int num_sca_constraint_hqpik_ = 2;
     /////////////////////////////////////////////////////
 
     ////////////QP RETARGETING//////////////////////////////////
@@ -821,10 +836,65 @@ public:
     Eigen::VectorQd torque_current_elmo_;
     ////////////////////////////////////////////////////////////////////////////////////////////
 
-    //fallDetection variables
-    Eigen::VectorQd fall_init_q_;
-    double fall_start_time_;
-    ///////////////////////////////////////////////////////////////
+    //////////////Self Collision Avoidance Network////////////////
+    struct MLP
+    {
+        ~MLP() { std::cout << "MLP terminate" << std::endl; }
+        std::vector<Eigen::MatrixXd> weight;
+        std::vector<Eigen::VectorXd> bias;
+        std::vector<Eigen::VectorXd> hidden;
+        std::vector<Eigen::MatrixXd> hidden_derivative;
+
+        std::vector<std::string> w_path;
+        std::vector<std::string> b_path;
+
+        std::vector<ifstream> weight_files;
+        std::vector<ifstream> bias_files;
+
+        int n_input;
+        int n_output;
+        Eigen::VectorXd n_hidden;
+        int n_layer;
+        
+        Eigen::VectorXd q_to_input_mapping_vector;
+
+        Eigen::VectorXd input_slow;
+        Eigen::VectorXd input_fast;
+        Eigen::VectorXd input_thread;
+
+        Eigen::VectorXd output_slow;
+        Eigen::VectorXd output_fast;
+        Eigen::VectorXd output_thread;
+
+        Eigen::MatrixXd output_derivative_fast;
+
+        Eigen::VectorXd hx_gradient_fast;
+        Eigen::VectorXd hx_gradient_fast_lpf;
+        Eigen::VectorXd hx_gradient_fast_pre;
+
+        double hx;
+
+        bool loadweightfile_verbose = false;
+        bool loadbiasfile_verbose = false;
+    }   larm_upperbody_sca_mlp_, rarm_upperbody_sca_mlp_, btw_arms_sca_mlp_;
+    
+    void setNeuralNetworks();
+    void initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector);
+    void loadScaNetwork(MLP &mlp, std::string folder_path);
+    void calculateScaMlpInput(MLP &mlp);
+    void calculateScaMlpOutput(MLP &mlp);
+    void readWeightFile(MLP &mlp, int weight_num);
+    void readBiasFile(MLP &mlp, int bias_num);
+
+    std::atomic<bool> atb_mlp_input_update_{false};
+    std::atomic<bool> atb_mlp_output_update_{false};
+
+    Eigen::MatrixXd q_dot_buffer_slow_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_fast_;  //20 stacks
+    Eigen::MatrixXd q_dot_buffer_thread_;  //20 stacks
+
+    //////////////////////////////////////////////////////////////
+
 
 private:
     Eigen::VectorQd ControlVal_;
@@ -870,7 +940,8 @@ public:
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
-    
+    Eigen::VectorQd floatGravityTorque(Eigen::VectorQVQd q);
+
     void getZmpTrajectory();
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
