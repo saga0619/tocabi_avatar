@@ -17,7 +17,6 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     nh_avatar_.setCallbackQueue(&queue_avatar_);
 
     upperbodymode_sub = nh_avatar_.subscribe("/tocabi/avatar/upperbodymodecommand", 100, &AvatarController::UpperbodyModeCallback, this);
-    upperbodymode_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/upperbodymodecurrent", 5); 
 
     arm_pd_gain_sub = nh_avatar_.subscribe("/tocabi/dg/armpdgain", 100, &AvatarController::ArmJointGainCallback, this);
     waist_pd_gain_sub = nh_avatar_.subscribe("/tocabi/dg/waistpdgain", 100, &AvatarController::WaistJointGainCallback, this);
@@ -44,6 +43,9 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     //publishers
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
     calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
+    upperbodymode_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/upperbodymodecurrent", 5); 
+    avatar_warning_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/warningmsg", 5); 
+
     haptic_force_pub = nh_avatar_.advertise<std_msgs::Float32MultiArray>("/tocabi/hand_ftsensors", 5);
 
     bool urdfmode = false;
@@ -532,14 +534,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -1130,7 +1132,7 @@ void AvatarController::computeFast()
         getProcessedRobotData();
 
         // avatar mode pedal
-        avatarOpPedalStateMachine();
+        avatarModeStateMachine();
 
         // motion planing and control//
         motionGenerator();
@@ -1243,7 +1245,7 @@ void AvatarController::computeFast()
         // calculateScaMlpOutput(btw_arms_sca_mlp_);
 
         // avatar mode pedal
-        avatarOpPedalStateMachine();
+        avatarModeStateMachine();
         
         // if (current_q_(24) > 5 * DEG2RAD)
         // {
@@ -1476,6 +1478,7 @@ void AvatarController::getRobotData()
     if(dt_ < 0)
     {
         cout<< cred << "WARNING: 'dt' is negative in thread2: "<< dt_ << creset << endl;
+        current_time_ = pre_time_;
     }
     else if(dt_ > 0.002)
     {
@@ -1840,15 +1843,128 @@ void AvatarController::getProcessedRobotData()
     }
 }
 
-void AvatarController::avatarOpPedalStateMachine()
+void AvatarController::avatarModeStateMachine()
 {
     upper_body_mode_ = upper_body_mode_raw_;
 
+    
+    //////CHECK SELF COLLISION///////////
+    if(larm_upperbody_sca_mlp_.hx < 2.0)
+    {
+        larm_upperbody_sca_mlp_.self_collision_stop_cnt_ += 1;
+    }
+    else
+    {
+        larm_upperbody_sca_mlp_.self_collision_stop_cnt_ == 0;
+    }
+
+    if(rarm_upperbody_sca_mlp_.hx < 2.0)
+    {
+        rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ += 1;
+    }
+    else
+    {
+        rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ == 0;
+    }
+
+    if(upper_body_mode_ != 3)
+    {
+        if(larm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 100)
+        {
+            avatarUpperbodyModeUpdate(3);
+
+            larm_upperbody_sca_mlp_.self_collision_stop_cnt_ = 0;
+            cout<< cred << "WARNING: Self Collision is Detected btw Left Arm - Body" << creset << endl;
+
+            std_msgs::Int8 warning_msg_1;
+            warning_msg_1.data = 1;
+            upperbodymode_pub.publish(warning_msg_1);
+        }
+        if(rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 100)
+        {
+            avatarUpperbodyModeUpdate(3);
+
+            rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ = 0;
+            cout<< cred << "WARNING: Self Collision is Detected btw Right Arm - Body" << creset << endl;
+
+            std_msgs::Int8 warning_msg_2;
+            warning_msg_2.data = 2;
+            upperbodymode_pub.publish(warning_msg_2);
+        }
+    }
+
+    // //test
+    // if( int(rd_.control_time_*2000)%1000 == 0)
+    // {
+    //     cout<<"larm hx: "<<larm_upperbody_sca_mlp_.hx << endl;
+    //     cout<<"rarm hx: "<<rarm_upperbody_sca_mlp_.hx << endl;
+    // }
+    //////////////////////////////////////////////////////
+
+    /// @brief masterarm haptic feedback publihser
+    if(real_robot_mode_ == true)
+    {
+        lh_ft_feedback_ = lh_ft_wo_hw_global_lpf_;
+        rh_ft_feedback_ = rh_ft_wo_hw_global_lpf_;
+    }
+    else
+    {
+        lh_ft_feedback_ = -lh_ft_wo_hw_global_lpf_;
+        rh_ft_feedback_ = -rh_ft_wo_hw_global_lpf_;
+    }
+    double time_smooting = 3.0;
+    if( upper_body_mode_ < 6)
+    {
+        if( current_time_ > upperbody_command_time_+time_smooting)
+        {
+            lh_ft_feedback_.setZero();
+            rh_ft_feedback_.setZero();
+        }
+        else
+        {
+            double linear_spline;
+            linear_spline = DyrosMath::minmax_cut( 
+                1-(current_time_ - upperbody_command_time_)/time_smooting, 0.0, 1.0 );
+            
+            lh_ft_feedback_ = linear_spline*lh_ft_feedback_;
+            rh_ft_feedback_ = linear_spline*rh_ft_feedback_;
+        }
+    }
+    else
+    {
+        if( current_time_ <= upperbody_command_time_+time_smooting)
+        {
+            double linear_spline;
+            linear_spline = DyrosMath::minmax_cut( 
+                (current_time_ - upperbody_command_time_)/time_smooting, 0.0, 1.0 );
+            
+            lh_ft_feedback_ = linear_spline*lh_ft_feedback_;
+            rh_ft_feedback_ = linear_spline*rh_ft_feedback_;
+        }
+    }
+    
+    std_msgs::Float32MultiArray hand_ft_msg;
+    hand_ft_msg.data.resize(12);
+    for(int i=0; i<6; i++)
+    {
+        hand_ft_msg.data[i] = lh_ft_feedback_(i);
+        hand_ft_msg.data[i+6] = rh_ft_feedback_(i);
+    }
+    haptic_force_pub.publish(hand_ft_msg);
+    //////////////////////////////////////////////
+
+    /// @brief upper body mode publisher for GUI
     std_msgs::Int8 msg;
     msg.data = upper_body_mode_;
     upperbodymode_pub.publish(msg);
 }
-
+void AvatarController::avatarUpperbodyModeUpdate(int mode_input)
+{
+    upper_body_mode_raw_ = mode_input;
+    upperbody_mode_recieved_ = true;
+    upperbody_command_time_ = current_time_;
+    upperbody_mode_q_init_ = motion_q_pre_;
+}
 void AvatarController::motionGenerator()
 {
     motion_q_dot_.setZero();
@@ -2130,10 +2246,7 @@ void AvatarController::motionGenerator()
         if (still_pose_cali_flag_ == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2199,10 +2312,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2237,10 +2347,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2274,10 +2381,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3; // freezing
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2312,10 +2416,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3; // freezing
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2350,10 +2451,7 @@ void AvatarController::motionGenerator()
         if (hmd_check_pose_calibration_[3] == false)
         {
             cout << cred << " WARNING: Calibration is not completed! Upperbody returns to the init pose" << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
-            upperbody_command_time_ = current_time_;
+            avatarUpperbodyModeUpdate(3);
             motion_q_ = motion_q_pre_;
         }
         else
@@ -2382,10 +2480,6 @@ void AvatarController::motionGenerator()
             //     cout<<"hqpik_time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
             // }
         }
-    }
-
-    if (int(current_time_ * 1e4) % int(1e3) == 0)
-    {
     }
 
 }
@@ -3974,6 +4068,8 @@ void AvatarController::initializeScaMlp(MLP &mlp, int n_input, int n_output, Eig
     mlp.hx_gradient_fast.setZero(mlp.n_input);
     mlp.hx_gradient_fast_lpf.setZero(mlp.n_input);
     mlp.hx_gradient_fast_pre.setZero(mlp.n_input);
+
+    mlp.self_collision_stop_cnt_ = 0;
 }
 void AvatarController::loadScaNetwork(MLP &mlp, std::string folder_path)
 {
@@ -4112,12 +4208,12 @@ void AvatarController::calculateScaMlpOutput(MLP &mlp)
     mlp.hx = mlp.output_fast(1) - mlp.output_fast(0);
 
 
-    if(atb_mlp_output_update_ == false)
-    {
-        atb_mlp_output_update_ = true;
-        mlp.output_thread = mlp.output_fast;
-        atb_mlp_output_update_ = false;
-    }
+    // if(atb_mlp_output_update_ == false)
+    // {
+    //     atb_mlp_output_update_ = true;
+    //     mlp.output_thread = mlp.output_fast;
+    //     atb_mlp_output_update_ = false;
+    // }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 void AvatarController::poseCalibration()
@@ -4688,90 +4784,70 @@ void AvatarController::poseCalibration()
         if (check_val > limit_val)
         {
             cout << cred << "WARNING: left hand linear velocity is over the 2.0m/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_lhand_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: left hand angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_rhand_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
             cout << cred <<"WARNING: right hand linear velocity is over the 2.0m/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_rhand_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: right hand angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_lupperarm_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
             cout << cred <<"WARNING: hmd_lupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_lupperarm_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: hmd_lupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_rupperarm_vel_.segment(0, 3).norm();
         if ((check_val > limit_val))
         {
             cout << cred <<"WARNING: hmd_rupperarm_vel_ linear velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_rupperarm_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: hmd_rupperarm_vel_ angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_head_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: Head angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
 
         check_val = hmd_chest_vel_.segment(3, 3).norm();
         if ((check_val > limit_val * M_PI))
         {
             cout << cred <<"WARNING: Chest angular velocity is over the 360 degree/s limit" << check_val << creset << endl;
-            upper_body_mode_ = 3;
-            upper_body_mode_raw_ = 3;
-            upperbody_mode_recieved_ = true;
+            avatarUpperbodyModeUpdate(3);
         }
     }
 }
@@ -6238,8 +6314,7 @@ void AvatarController::savePreData()
 
 void AvatarController::UpperbodyModeCallback(const std_msgs::Int8 &msg)
 {
-    upper_body_mode_raw_ = msg.data;
-    upperbody_mode_recieved_ = true;
+    avatarUpperbodyModeUpdate(msg.data);
 }
 
 
@@ -7056,14 +7131,7 @@ void AvatarController::getRobotState()
 
     rh_ft_wo_hw_global_ = rotrh * rh_ft_wo_hw_;
     rh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_global_, rh_ft_wo_hw_global_lpf_, 2000, 5);
-    std_msgs::Float32MultiArray hand_ft_msg;
-    hand_ft_msg.data.resize(12);
-    for(int i=0; i<6; i++)
-    {
-        hand_ft_msg.data[i] = -lh_ft_wo_hw_global_lpf_(i);
-        hand_ft_msg.data[i+6] = -rh_ft_wo_hw_global_lpf_(i);
-    }
-    haptic_force_pub.publish(hand_ft_msg);
+    
 
     Eigen::MatrixXd J_temp, R_lh, R_rh;
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);

@@ -33,7 +33,7 @@ const int FILE_CNT = 1;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/dg/training_data.txt"
+    "/home/dyros-laptop/data/dg/training_data.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -49,7 +49,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros-laptop/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -178,6 +178,8 @@ public:
     ros::Publisher calibration_state_gui_log_pub;
 
     ros::Publisher upperbodymode_pub;
+    ros::Publisher avatar_warning_pub;
+
     ros::Publisher haptic_force_pub;
 
     void UpperbodyModeCallback(const std_msgs::Int8 &msg);
@@ -454,6 +456,9 @@ public:
 
     Eigen::Vector6d lh_ft_wo_hw_global_lpf_;
     Eigen::Vector6d rh_ft_wo_hw_global_lpf_;
+
+    Eigen::Vector6d lh_ft_feedback_;
+    Eigen::Vector6d rh_ft_feedback_;
 
     Eigen::VectorQd torque_from_lh_ft_;
     Eigen::VectorQd torque_from_rh_ft_;
@@ -820,7 +825,8 @@ public:
     int pedal_click_in_1s_ = 0;
     double first_pedal_click_time_ = 0.0;
 
-    void avatarOpPedalStateMachine();
+    void avatarModeStateMachine();
+    void avatarUpperbodyModeUpdate(int mode_input);
     ////////////////////////////////////////////
     
     /////////////////////////MOMENTUM OBSERVER////////////////////////////////////////////////
@@ -876,6 +882,8 @@ public:
 
         bool loadweightfile_verbose = false;
         bool loadbiasfile_verbose = false;
+
+        int self_collision_stop_cnt_;
     }   larm_upperbody_sca_mlp_, rarm_upperbody_sca_mlp_, btw_arms_sca_mlp_;
     
     void setNeuralNetworks();
