@@ -956,7 +956,7 @@ void AvatarController::computeSlow()
                 getComTrajectory();
                 getFootTrajectory();
                 cout << "walking finish" << endl;
-                cout << "com_desired_2: " << com_desired_ << endl;
+                // cout << "com_desired_2: " << com_desired_ << endl;
                 for (int i = 0; i < 12; i++)
                 {
                     Initial_ref_q_(i) = ref_q_(i);
@@ -967,7 +967,7 @@ void AvatarController::computeSlow()
                 initial_flag = 0;
                 init_leg_time_ = rd_.control_time_;
                 walking_end_flag = 1;
-                cout << "com_desired_3: " << com_desired_ << endl;
+                // cout << "com_desired_3: " << com_desired_ << endl;
             }
 
             getRobotState();
@@ -1029,8 +1029,8 @@ void AvatarController::computeSlow()
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
         {
-            // torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
-            torque_upper_(i) = Gravity_MJ_fast_(i);
+            torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
+            // torque_upper_(i) = Gravity_MJ_fast_(i);
             rd_.q_desired(i) = desired_q_fast_(i);  // for logging
             rd_.q_dot_desired(i) = desired_q_dot_fast_(i);  // for logging
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
@@ -1040,8 +1040,6 @@ void AvatarController::computeSlow()
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         ////////////////////////////////////////////////////////////////////////////////
-
-        
     }
     else if (rd_.tc_.mode == 14)
     {
@@ -6675,8 +6673,8 @@ double AvatarController::bandBlock(double value, double max, double min)
 
 void AvatarController::printOutTextFile()
 {
-    // if (printout_cnt_ % 20 == 0)
-    if(true)
+    if (printout_cnt_ % 20 == 0)
+    // if(true)
     {
         // if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
         if (true)
@@ -7103,9 +7101,9 @@ void AvatarController::getRobotState()
     if(real_robot_mode_ == true)
     {
         // FT local frame rotation
-        lh_ft_(1) *= -1;
+        lh_ft_(0) *= -1;
         lh_ft_(2) *= -1;
-        lh_ft_(4) *= -1;
+        lh_ft_(3) *= -1;
         lh_ft_(5) *= -1;
 
         rh_ft_(1) *= -1;
