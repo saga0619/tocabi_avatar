@@ -37,7 +37,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     vive_tracker_pose_calibration_sub = nh_avatar_.subscribe("/tocabi/avatar/pose_calibration_flag", 100, &AvatarController::PoseCalibrationCallback, this);
 
-    pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
+    // pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
 
     robot_hand_pos_mapping_scale_sub = nh_avatar_.subscribe("/tocabi/avatar/hand_pos_mapping_sclae", 100, &AvatarController::HandPosMappingScaleCallback, this);
     //publishers
@@ -1029,7 +1029,8 @@ void AvatarController::computeSlow()
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
         {
-            torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
+            // torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
+            torque_upper_(i) = Gravity_MJ_fast_(i);
             rd_.q_desired(i) = desired_q_fast_(i);  // for logging
             rd_.q_dot_desired(i) = desired_q_dot_fast_(i);  // for logging
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
@@ -6729,11 +6730,11 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
-                file[0] << -lh_ft_wo_hw_global_lpf_(i) << "\t";
+                file[0] << lh_ft_wo_hw_global_lpf_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
-                file[0] << -rh_ft_wo_hw_global_lpf_(i) << "\t";
+                file[0] << rh_ft_wo_hw_global_lpf_(i) << "\t";
             }
             for (int i = 12; i < 15; i++)
             {
@@ -6768,6 +6769,16 @@ void AvatarController::printOutTextFile()
                 file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
             }
             file[0] << endl;
+
+            for (int i = 0; i < 6; i++)
+            {
+                file[1] << lh_ft_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[1] << rh_ft_(i) << "\t";
+            }
+            file[1] << endl;
         }
         else
         {
@@ -7092,6 +7103,11 @@ void AvatarController::getRobotState()
     if(real_robot_mode_ == true)
     {
         // FT local frame rotation
+        lh_ft_(1) *= -1;
+        lh_ft_(2) *= -1;
+        lh_ft_(4) *= -1;
+        lh_ft_(5) *= -1;
+
         rh_ft_(1) *= -1;
         rh_ft_(2) *= -1;
         rh_ft_(4) *= -1;
@@ -7108,12 +7124,12 @@ void AvatarController::getRobotState()
     r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
 
 
-    double tocabi_lhand_mass = 0.350;
+    double tocabi_lhand_mass = 0.8;
     Vector6d wrench_lhand;
     wrench_lhand.setZero();
     wrench_lhand(2) = -tocabi_lhand_mass*9.81;
-    Vector3d lh_com(0.00063, 0.0636, -0.08);
-    Vector3d lh_ft_point(0, 0, -0.035);
+    Vector3d lh_com(0.0, 0.0, -0.1542);
+    Vector3d lh_ft_point(0.0, 0.0, -0.1028);
     Vector3d lh_com2cp = lh_ft_point - lh_com; 
     Matrix6d adt_lh;
     adt_lh.setIdentity();
@@ -7129,12 +7145,12 @@ void AvatarController::getRobotState()
     lh_ft_wo_hw_global_ = rotlh * lh_ft_wo_hw_;
     lh_ft_wo_hw_global_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_global_, lh_ft_wo_hw_global_lpf_, 2000, 5);
 
-    double tocabi_rhand_mass = 0.350;
+    double tocabi_rhand_mass = 0.8;
     Vector6d wrench_rhand;
     wrench_rhand.setZero();
     wrench_rhand(2) = -tocabi_rhand_mass*9.81;
-    Vector3d rh_com(0.00063, -0.0636, -0.08);
-    Vector3d rh_ft_point(0.0, 0.0, -0.035);
+    Vector3d rh_com(0.0, 0.0, -0.1542);
+    Vector3d rh_ft_point(0.0, 0.0, -0.1028);
     Vector3d rh_com2cp = rh_ft_point - rh_com; 
     Matrix6d adt_rh;
     adt_rh.setIdentity();
