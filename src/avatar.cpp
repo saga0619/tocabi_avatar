@@ -534,14 +534,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -697,7 +697,7 @@ void AvatarController::computeSlow()
 
                 desired_q_not_compensated_ = ref_q_;
 
-                printOutTextFile();
+                // printOutTextFile();
                 updateNextStepTime();
 
                 q_dot_virtual_Xd_global_pre_ = q_dot_virtual_Xd_global_;
@@ -777,7 +777,7 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_q_(i) = ref_q_(i);
             }
-            init_leg_time_ = rd_.control_time_;
+            init_leg_time_ = (double)rd_.control_time_us_/ 1000000.0;
             desired_q_fast_ = rd_.q_;
             desired_q_dot_fast_.setZero();
 
@@ -965,7 +965,7 @@ void AvatarController::computeSlow()
                 pelv_trajectory_support_init_ = pelv_trajectory_support_;
                 com_desired_(0) = 0;
                 initial_flag = 0;
-                init_leg_time_ = rd_.control_time_;
+                init_leg_time_ = (double)rd_.control_time_us_ / 1000000.0;
                 walking_end_flag = 1;
                 // cout << "com_desired_3: " << com_desired_ << endl;
             }
@@ -991,11 +991,11 @@ void AvatarController::computeSlow()
                 atb_grav_update_ = false;
             }
 
-            if (rd_.control_time_ <= init_leg_time_ + 2.0)
+            if ((double)rd_.control_time_us_ / 1000000.0 <= init_leg_time_ + 2.0)
             {
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = DyrosMath::cubic(rd_.control_time_, init_leg_time_, init_leg_time_ + 2.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
+                    ref_q_(i) = DyrosMath::cubic((double)rd_.control_time_us_ / 1000000.0, init_leg_time_, init_leg_time_ + 2.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
                 }
             }
 
@@ -1026,19 +1026,6 @@ void AvatarController::computeSlow()
             atb_upper_update_ = false;
         }
 
-        // dg 220928 haptic master arm test
-        // desired_q_fast_(12) = 0;  //waist
-        // desired_q_fast_(13) = 0;
-        // desired_q_fast_(14) = 0;
-        // desired_q_fast_(23) = 0;  //head
-        // desired_q_fast_(24) = 0;
-
-        // desired_q_dot_fast_(12) = 0;  //waist
-        // desired_q_dot_fast_(13) = 0;
-        // desired_q_dot_fast_(14) = 0;
-        // desired_q_dot_fast_(23) = 0;  //head
-        // desired_q_dot_fast_(24) = 0;
-
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -1049,7 +1036,7 @@ void AvatarController::computeSlow()
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
 
-        printOutTextFile();
+        // printOutTextFile();
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
         ////////////////////////////////////////////////////////////////////////////////
@@ -1483,7 +1470,7 @@ void AvatarController::initWalkingParameter()
 
 void AvatarController::getRobotData()
 {
-    current_time_ = rd_.control_time_;
+    current_time_ = (double)rd_.control_time_us_ / 1000000.0;
 
     if (current_time_ != pre_time_)
     {
@@ -2349,7 +2336,7 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
+            motionRetargeting_HQPIK();
             // motionRetargeting_HQPIK_lexls();
             // motionRetargeting_QPIK_upperbody();
             // if (int(current_time_ * 10000) % 10000 == 0)
@@ -2384,7 +2371,7 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
+            motionRetargeting_HQPIK();
 
             // if (int(current_time_ * 10000) % 10000 == 0)
             // {
@@ -2418,7 +2405,7 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
+            motionRetargeting_HQPIK();
             // motionRetargeting_HQPIK_lexls();
             // motionRetargeting_QPIK_upperbody();
             // if (int(current_time_ * 10000) % 10000 == 0)
@@ -2453,7 +2440,7 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
+            motionRetargeting_HQPIK();
             // motionRetargeting_HQPIK_lexls();
             // motionRetargeting_QPIK_upperbody();
             // if (int(current_time_ * 10000) % 10000 == 0)
@@ -2488,7 +2475,7 @@ void AvatarController::motionGenerator()
             }
 
             rawMasterPoseProcessing();
-            motionRetargeting_HQPIK2();
+            motionRetargeting_HQPIK();
             // motionRetargeting_HQPIK_lexls();
             // motionRetargeting_QPIK_upperbody();
             // if (int(current_time_ * 10000) % 10000 == 0)
@@ -5087,6 +5074,8 @@ void AvatarController::rawMasterPoseProcessing()
             master_lshoulder_pose_raw_.translation()(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + spline_time, lacromion_transform_pre_desired_from_.translation()(i), 0, 0, master_lshoulder_pose_raw_.translation()(i), 0, 0)(0);
             master_rshoulder_pose_raw_.translation()(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + spline_time, racromion_transform_pre_desired_from_.translation()(i), 0, 0, master_rshoulder_pose_raw_.translation()(i), 0, 0)(0);
 
+            master_head_pose_raw_.translation()(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + spline_time, head_transform_pre_desired_from_.translation()(i), 0, 0, master_head_pose_raw_.translation()(i), 0, 0)(0);
+
             master_relative_lhand_pos_raw_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + spline_time, lhand_transform_pre_desired_from_.translation()(i) - rhand_transform_pre_desired_from_.translation()(i), 0, 0, master_relative_lhand_pos_raw_(i), 0, 0)(0);
             master_relative_rhand_pos_raw_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + spline_time, rhand_transform_pre_desired_from_.translation()(i) - lhand_transform_pre_desired_from_.translation()(i), 0, 0, master_relative_rhand_pos_raw_(i), 0, 0)(0);
         }
@@ -5410,8 +5399,8 @@ void AvatarController::orientationRetargeting()
     Eigen::Matrix3d chest_diff_m, shoulder_diff_m;
     Eigen::AngleAxisd chest_ang_diff(hmd_chest_pose_.linear() * hmd_chest_pose_init_.linear().transpose());
     chest_diff_m = Eigen::AngleAxisd(chest_ang_diff.angle() * 1.0, chest_ang_diff.axis());
-    master_upperbody_pose_raw_.linear() = chest_diff_m * robot_upperbody_ori_init;
-    // master_upperbody_pose_raw_.linear() = hmd_chest_pose_.linear()*hmd_chest_pose_init_.linear().transpose()*robot_upperbody_ori_init;
+    // master_upperbody_pose_raw_.linear() = chest_diff_m * robot_upperbody_ori_init;
+    master_upperbody_pose_raw_.linear() = hmd_chest_pose_.linear()*hmd_chest_pose_init_.linear().transpose()*robot_upperbody_ori_init;
 
     master_lhand_pose_raw_.linear() = hmd_lhand_pose_.linear() * DyrosMath::rotateWithZ(M_PI / 2); // absolute orientation
 
@@ -6342,7 +6331,9 @@ void AvatarController::savePreData()
 
 void AvatarController::UpperbodyModeCallback(const std_msgs::Int8 &msg)
 {
-    avatarUpperbodyModeUpdate(msg.data);
+    // avatarUpperbodyModeUpdate(msg.data);
+    upper_body_mode_raw_ = msg.data;
+    upperbody_mode_recieved_ = true;
 }
 
 
