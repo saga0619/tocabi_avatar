@@ -40,6 +40,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     // pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
 
     robot_hand_pos_mapping_scale_sub = nh_avatar_.subscribe("/tocabi/avatar/hand_pos_mapping_sclae", 100, &AvatarController::HandPosMappingScaleCallback, this);
+    
     //publishers
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
     calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
@@ -1875,6 +1876,12 @@ void AvatarController::avatarModeStateMachine()
             std_msgs::Int8 warning_msg_1;
             warning_msg_1.data = 1;
             upperbodymode_pub.publish(warning_msg_1);
+
+            std_msgs::String msg;
+            std::stringstream larm_selfcol;
+            larm_selfcol << "Self Collision (Left Arm)";
+            msg.data = larm_selfcol.str();
+            calibration_state_gui_log_pub.publish(msg);
         }
         if(rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 100 && current_time_ > upperbody_command_time_ + 3.0)
         {
@@ -1886,6 +1893,12 @@ void AvatarController::avatarModeStateMachine()
             std_msgs::Int8 warning_msg_2;
             warning_msg_2.data = 2;
             upperbodymode_pub.publish(warning_msg_2);
+
+            std_msgs::String msg;
+            std::stringstream rarm_selfcol;
+            rarm_selfcol << "Self Collision (Right Arm)";
+            msg.data = rarm_selfcol.str();
+            calibration_state_gui_log_pub.publish(msg);
         }
     }
 
@@ -1962,8 +1975,8 @@ void AvatarController::avatarUpperbodyModeUpdate(int mode_input)
 {
     upper_body_mode_raw_ = mode_input;
     upperbody_mode_recieved_ = true;
-    upperbody_command_time_ = current_time_;
-    upperbody_mode_q_init_ = motion_q_pre_;
+    // upperbody_command_time_ = current_time_;
+    // upperbody_mode_q_init_ = motion_q_pre_;
 }
 void AvatarController::motionGenerator()
 {
@@ -4994,7 +5007,7 @@ void AvatarController::rawMasterPoseProcessing()
         Vector3d hand_offset;
         if(master_arm_mode_)
         {
-            hand_offset << 0.15, 0, 0.15;
+            hand_offset << 0.0, 0, 0.0;
         }
         else
         {
@@ -5010,7 +5023,7 @@ void AvatarController::rawMasterPoseProcessing()
         Vector3d hand_offset;
         if(master_arm_mode_)
         {
-            hand_offset << 0.15, 0, 0.15;
+            hand_offset << 0.0, 0, 0.0;
         }
         else
         {
@@ -6323,10 +6336,11 @@ void AvatarController::savePreData()
     avatar_op_pedal_pre_ = avatar_op_pedal_;
 }
 
-
 void AvatarController::UpperbodyModeCallback(const std_msgs::Int8 &msg)
 {
-    avatarUpperbodyModeUpdate(msg.data);
+    // avatarUpperbodyModeUpdate(msg.data);
+    upper_body_mode_raw_ = msg.data;
+    upperbody_mode_recieved_ = true;
 }
 
 
