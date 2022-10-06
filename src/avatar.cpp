@@ -40,7 +40,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     // pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); // MJ
 
     robot_hand_pos_mapping_scale_sub = nh_avatar_.subscribe("/tocabi/avatar/hand_pos_mapping_sclae", 100, &AvatarController::HandPosMappingScaleCallback, this);
-    
+
     //publishers
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
     calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
@@ -535,14 +535,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -1878,7 +1878,7 @@ void AvatarController::avatarModeStateMachine()
 
             std_msgs::Int8 warning_msg_1;
             warning_msg_1.data = 1;
-            upperbodymode_pub.publish(warning_msg_1);
+            avatar_warning_pub.publish(warning_msg_1);
 
             std_msgs::String msg;
             std::stringstream larm_selfcol;
@@ -1895,7 +1895,7 @@ void AvatarController::avatarModeStateMachine()
 
             std_msgs::Int8 warning_msg_2;
             warning_msg_2.data = 2;
-            upperbodymode_pub.publish(warning_msg_2);
+            avatar_warning_pub.publish(warning_msg_2);
 
             std_msgs::String msg;
             std::stringstream rarm_selfcol;
@@ -5037,18 +5037,18 @@ void AvatarController::rawMasterPoseProcessing()
         master_rhand_pose_raw_.translation() = hand_pos_mapping_scale_raw_ * robot_arm_max_l_ / ((hmd_larm_max_l_ + hmd_rarm_max_l_) / 2) * hmd_rhand_pose_.translation() + hand_offset;
 
         //dg test
-        // master_lhand_pose_raw_.translation()(0) = 0.4 + 0.15*std::sin(current_time_*2*M_PI/4);
-        // master_lhand_pose_raw_.translation()(1) = 0.05;
-        // master_lhand_pose_raw_.translation()(2) = 0.2;
+        master_lhand_pose_raw_.translation()(0) = 0.4 + 0.15*std::sin(current_time_*2*M_PI/4);
+        master_lhand_pose_raw_.translation()(1) = 0.05;
+        master_lhand_pose_raw_.translation()(2) = 0.2;
     }
     else if (upper_body_mode_ == 10)
     {
         ///////3D Mouse Mode////////////
         master_lhand_pose_raw_.translation() = master_lhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_*(hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_*1.5*(hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
 
         master_rhand_pose_raw_.translation() = master_rhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_*(hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_*1.5*(hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
         ////////////////////////////////////////////////////
     }
 
