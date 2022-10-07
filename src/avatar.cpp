@@ -638,48 +638,25 @@ void AvatarController::computeSlow()
     }
     else if (rd_.tc_.mode == 13)
     {
-
-        if(real_robot_mode_ == false)
+        if (walking_end_flag == 0)
         {
-            // double init_time_;
-            if (walking_end_flag == 0)
-            {
-                parameterSetting(); // Don't delete this!!
-                updateInitialStateJoy();
-                // updateInitialState();
-                getRobotState();
-                floatToSupportFootstep();
-                getZmpTrajectory();
-                getComTrajectory();
-                getFootTrajectory();
-                cout << "walking finish" << endl;
-                // cout << "com_desired_2: " << com_desired_ << endl;
-                for (int i = 0; i < 12; i++)
-                {
-                    Initial_ref_q_(i) = ref_q_(i);
-                    Initial_current_q_(i) = rd_.q_(i);
-                }
-                pelv_trajectory_support_init_ = pelv_trajectory_support_;
-                com_desired_(0) = 0;
-                initial_flag = 0;
-                init_leg_time_ = (double)rd_.control_time_us_ / 1000000.0;
-                walking_end_flag = 1;
-                // cout << "com_desired_3: " << com_desired_ << endl;
-            }
-
+            parameterSetting(); // Don't delete this!!
+            updateInitialStateJoy();
+            // updateInitialState();
             getRobotState();
-            getPelvTrajectory();
-            supportToFloatPattern();
-            computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
-
-            Compliant_control(q_des);
+            cout << "Control mode 13 is initilized" << endl;
             for (int i = 0; i < 12; i++)
             {
-                // ref_q_(i) = q_des(i);
-                ref_q_(i) = DOB_IK_output_(i);
+                Initial_ref_q_(i) = ref_q_(i);
+                Initial_current_q_(i) = rd_.q_(i);
             }
-
-            // hip_compensator();
+            initial_flag = 0;
+            init_leg_time_ = (double)rd_.control_time_us_ / 1000000.0;
+            walking_end_flag = 1;
+        }
+        else
+        {
+            getRobotState();
 
             if (atb_grav_update_ == false)
             {
@@ -687,71 +664,10 @@ void AvatarController::computeSlow()
                 Gravity_MJ_fast_ = Gravity_MJ_;
                 atb_grav_update_ = false;
             }
-
-            if ((double)rd_.control_time_us_ / 1000000.0 <= init_leg_time_ + 2.0)
-            {
-                for (int i = 0; i < 12; i++)
-                {
-                    ref_q_(i) = DyrosMath::cubic((double)rd_.control_time_us_ / 1000000.0, init_leg_time_, init_leg_time_ + 2.0, Initial_ref_q_(i), q_des(i), 0.0, 0.0);
-                }
-            }
-
-            if (chair_mode_)
-            {
-                for (int i = 0; i < 12; i++)
-                {
-                    ref_q_(i) = Initial_current_q_(i);
-                    Gravity_MJ_fast_(i) = 0;
-                }
-            }
-
-            torque_lower_.setZero();
-            for (int i = 0; i < 12; i++)
-            {
-                torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
-                rd_.q_desired(i) = ref_q_(i);   // for logging
-            }
         }
-        else
-        {
-            if (walking_end_flag == 0)
-            {
-                parameterSetting(); // Don't delete this!!
-                updateInitialStateJoy();
-                // updateInitialState();
-                getRobotState();
-                cout << "walking finish" << endl;
-                // cout << "com_desired_2: " << com_desired_ << endl;
-                for (int i = 0; i < 12; i++)
-                {
-                    Initial_ref_q_(i) = ref_q_(i);
-                    Initial_current_q_(i) = rd_.q_(i);
-                }
-                com_desired_(0) = 0;
-                initial_flag = 0;
-                init_leg_time_ = (double)rd_.control_time_us_ / 1000000.0;
-                walking_end_flag = 1;
-                // cout << "com_desired_3: " << com_desired_ << endl;
-            }
-            else
-            {
-                getRobotState();
 
-                if (atb_grav_update_ == false)
-                {
-                    atb_grav_update_ = true;
-                    Gravity_MJ_fast_ = Gravity_MJ_;
-                    atb_grav_update_ = false;
-                }
-            }
+        torque_lower_.setZero();
 
-            torque_lower_.setZero();
-            for (int i = 0; i < 12; i++)
-            {
-                torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
-                rd_.q_desired(i) = ref_q_(i);   // for logging
-            }
-        }
         /////////////////////////////////////////////////////////////////////////////////////////
 
         if (atb_upper_update_ == false)
@@ -786,120 +702,11 @@ void AvatarController::computeFast()
 {
     if (rd_.tc_.mode == 10)
     {
-        if (initial_flag == 1)
-        {   
-            VectorQd Gravity_MJ_local;
-            if(chair_mode_)
-            {
-                Gravity_MJ_local = floatGravityTorque(rd_.q_virtual_);
-            }
-            else
-            {
-                WBC::SetContact(rd_, 1, 1);
 
-                Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
-            }
-            
-            
-            if (atb_grav_update_ == false)
-            {
-                atb_grav_update_ = true;
-                Gravity_MJ_ = Gravity_MJ_local;
-                atb_grav_update_ = false;
-            }
-            cout << "comutefast tc.mode =10 is initialized" << endl;
-
-            initial_flag = 2;
-        }
     }
     else if (rd_.tc_.mode == 11)
     {
-        ////////////////////////////////////////////////////////////////////////////
-        /////////////////// Biped Walking Controller made by MJ ////////////////////
-        ////////////////////////////////////////////////////////////////////////////
-        if (walking_enable_ == true)
-        {
-            if (current_step_num_ < total_step_num_)
-            {
-                GravityCalculate_MJ();
-            }
-        }
-        else
-        {
-            int support_foot;
-            if (foot_step_(current_step_num_, 6) == 1)
-            {
-                support_foot = 1;
-            }
-            else
-            {
-                support_foot = 0;
-            }
 
-            VectorQd Gravity_MJ_local;
-            if(chair_mode_)
-            {
-                Gravity_MJ_local = floatGravityTorque(rd_.q_virtual_);
-            }
-            else
-            {
-                WBC::SetContact(rd_, 1, 1);
-                Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
-            }            
-
-            if (atb_grav_update_ == false)
-            {
-                atb_grav_update_ = true;
-                Gravity_MJ_ = Gravity_MJ_local;
-                atb_grav_update_ = false;
-            }
-        }
-        /////////////////////////////////////////////////////////////////////////////////////////
-
-        if (rd_.tc_init == true)
-        {
-            initWalkingParameter();
-            rd_.tc_init = false;
-        }
-
-        // data process//a
-        getRobotData();
-        getProcessedRobotData();
-
-        // avatar mode pedal
-        avatarModeStateMachine();
-
-        // motion planing and control//
-        motionGenerator();
-
-        for (int i = 12; i < MODEL_DOF; i++)
-        {
-            desired_q_(i) = motion_q_(i);
-            desired_q_dot_(i) = motion_q_dot_(i);
-            // desired_q_dot_(i) = 0;
-        }
-        if (atb_upper_update_ == false)
-        {
-            atb_upper_update_ = true;
-            desired_q_slow_ = desired_q_;
-            desired_q_dot_slow_ = desired_q_dot_;
-            atb_upper_update_ = false;
-        }
-        // if (atb_upper_update_ == false)
-        // {
-        //     atb_upper_update_ = true;
-        //     torque_upper_.setZero();
-        //     for (int i = 12; i < MODEL_DOF; i++)
-        //     {
-        //         torque_upper_(i) = (kp_joint_(i) * (desired_q_(i) - current_q_(i)) + kv_joint_(i) * (desired_q_dot_(i) - current_q_dot_(i)) + 1.0 * Gravity_MJ_(i));
-        //         torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
-        //     }
-        //     atb_upper_update_ = false;
-        // }
-
-        savePreData();
-
-        // printOutTextFile();
     }
     else if (rd_.tc_.mode == 12)
     {
@@ -921,45 +728,18 @@ void AvatarController::computeFast()
     }
     else if (rd_.tc_.mode == 13)
     {
-        if (walking_enable_ == true)
+        
+        VectorQd Gravity_MJ_local;
+        
+        Gravity_MJ_local = floatGravityTorque(rd_.q_virtual_);
+
+        if (atb_grav_update_ == false)
         {
-            if (current_step_num_ < total_step_num_)
-            {
-                GravityCalculate_MJ(); // 90~160us
-            }
+            atb_grav_update_ = true;
+            Gravity_MJ_ = Gravity_MJ_local;
+            atb_grav_update_ = false;
         }
-        else
-        {   
-            
-
-            VectorQd Gravity_MJ_local;
-            if(chair_mode_)
-            {
-                Gravity_MJ_local = floatGravityTorque(rd_.q_virtual_);
-            }
-            else
-            {
-                int support_foot = 1;
-                if (foot_step_(current_step_num_, 6) == 1)
-                {
-                    support_foot = 1;
-                }
-                else
-                {
-                    support_foot = 0;
-                }
-                WBC::SetContact(rd_, 1, 1);
-                Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
-            }   
-
-            if (atb_grav_update_ == false)
-            {
-                atb_grav_update_ = true;
-                Gravity_MJ_ = Gravity_MJ_local;
-                atb_grav_update_ = false;
-            }
-            // MJ_graph << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
-        }
+        
         /////////////////////////////////////////////////////////////////////////////////////////
 
         if (rd_.tc_init == true)
@@ -1025,6 +805,7 @@ void AvatarController::computeFast()
             desired_q_dot_(i) = motion_q_dot_(i);
             // desired_q_dot_(i) = 0;
         }
+
         if (atb_upper_update_ == false)
         {
             atb_upper_update_ = true;
@@ -1032,7 +813,6 @@ void AvatarController::computeFast()
             desired_q_dot_slow_ = desired_q_dot_;
             atb_upper_update_ = false;
         }
-
 
         savePreData();
 
