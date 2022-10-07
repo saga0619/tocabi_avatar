@@ -535,14 +535,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros-laptop/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -636,7 +636,7 @@ void AvatarController::computeSlow()
             mode_12_count_ = 0;
         }
     }
-    else if (rd_.tc_.mode == 13)
+    else if (rd_.tc_.mode == 13) //2KHZ STRICT
     {
         if (walking_end_flag == 0)
         {
@@ -653,6 +653,31 @@ void AvatarController::computeSlow()
             initial_flag = 0;
             init_leg_time_ = (double)rd_.control_time_us_ / 1000000.0;
             walking_end_flag = 1;
+
+            if(rd_.avatar_reboot_signal)
+            {
+                rd_.avatar_reboot_signal = false;
+                
+                hmd_check_pose_calibration_[0] = true;
+                hmd_check_pose_calibration_[1] = true;
+                hmd_check_pose_calibration_[2] = true;
+                hmd_check_pose_calibration_[4] = true;
+
+                still_pose_cali_flag_ = true;
+                t_pose_cali_flag_ = true;
+                forward_pose_cali_flag_ = true;
+                cout << "Reading Calibration Log File..." << endl;
+
+                std_msgs::String msg;
+                std::stringstream log_load;
+                log_load << "Calibration Pose Data is Loaded";
+                msg.data = log_load.str();
+                calibration_state_pub.publish(msg);
+                calibration_state_gui_log_pub.publish(msg);
+    
+
+                cout << "Calibration Status: [" << hmd_check_pose_calibration_[0] << ", " << hmd_check_pose_calibration_[1] << ", " << hmd_check_pose_calibration_[2] << "]" << endl;
+            }
         }
         else
         {
@@ -722,7 +747,7 @@ void AvatarController::computeFast()
                 atb_grav_update_ = false;
             }
 
-            cout << "comutefast tc.mode =12 is initialized" << endl;
+            cout << "comutefast tc.mode = 12 is initialized" << endl;
             initial_flag = 2;
         }
     }
@@ -970,7 +995,7 @@ void AvatarController::initWalkingParameter()
     hmd_tracker_status_pre_ = false;
 
     // hmd_tracker_status_ = true;
-    // hmd_tracker_status_raw_ = true;
+    // hmd_tracker_status_raw_ = true;f
     // hmd_tracker_status_pre_ = true;
 
     hmd_head_abrupt_motion_count_ = 0;
@@ -1005,14 +1030,14 @@ void AvatarController::getRobotData()
 
     dt_ = DyrosMath::minmax_cut(dt_, 0.0005, 0.002);
 
-    current_q_ = rd_.q_;
-    current_q_dot_ = rd_.q_dot_;
-    current_q_ddot_ = rd_.q_ddot_virtual_.segment(6, MODEL_DOF);
-    pelv_pos_current_ = rd_.link_[Pelvis].xpos;
-    pelv_vel_current_.segment(0, 3) = rd_.link_[Pelvis].v;
-    pelv_vel_current_.segment(3, 3) = rd_.link_[Pelvis].w;
+    current_q_ = __q_virtual.segment(6,MODEL_DOF);
+    current_q_dot_ = __q_dot_virtual.segment(6,MODEL_DOF);
+    current_q_ddot_ = __q_ddot_virtual.segment(6, MODEL_DOF);
+    pelv_pos_current_ = link_avatar_[Pelvis].xpos;
+    pelv_vel_current_.segment(0, 3) = link_avatar_[Pelvis].v;
+    pelv_vel_current_.segment(3, 3) = link_avatar_[Pelvis].w;
 
-    pelv_rot_current_ = rd_.link_[Pelvis].rotm;
+    pelv_rot_current_ = link_avatar_[Pelvis].rotm;
     pelv_rpy_current_ = DyrosMath::rot2Euler(pelv_rot_current_); // ZYX multiply
     // pelv_rpy_current_ = (pelv_rot_current_).eulerAngles(2, 1, 0);
     // pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
@@ -1023,102 +1048,102 @@ void AvatarController::getRobotData()
     pelv_transform_current_from_global_.translation().setZero();
     pelv_transform_current_from_global_.linear() = pelv_rot_current_yaw_aline_;
 
-    pelv_angvel_current_ = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Pelvis].w;
+    pelv_angvel_current_ = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Pelvis].w;
 
-    com_mass_ = rd_.link_[COM_id].mass;
+    com_mass_ = link_avatar_[COM_id].mass;
 
     /////////////////////////Feet Transformation and Velocity/////////////////////
-    lfoot_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Foot].xpos - pelv_pos_current_);
-    lfoot_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Foot].rotm;
-    rfoot_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Foot].xpos - pelv_pos_current_);
-    rfoot_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Foot].rotm;
+    lfoot_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Foot].xpos - pelv_pos_current_);
+    lfoot_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Foot].rotm;
+    rfoot_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Foot].xpos - pelv_pos_current_);
+    rfoot_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Foot].rotm;
 
-    lfoot_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Foot].v;
-    lfoot_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Foot].w;
-    rfoot_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Foot].v;
-    rfoot_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Foot].w;
+    lfoot_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Foot].v;
+    lfoot_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Foot].w;
+    rfoot_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Foot].v;
+    rfoot_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Foot].w;
     ///////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Knee Trnasformation and Velocity///////////////////////
-    lknee_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Foot - 2].xpos - pelv_pos_current_);
-    lknee_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Foot - 2].rotm;
-    rknee_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Foot - 2].xpos - pelv_pos_current_);
-    rknee_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Foot - 2].rotm;
+    lknee_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Foot - 2].xpos - pelv_pos_current_);
+    lknee_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Foot - 2].rotm;
+    rknee_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Foot - 2].xpos - pelv_pos_current_);
+    rknee_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Foot - 2].rotm;
     ///////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Hand Trnasformation and Velocity///////////////////////
-    lhand_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand].xpos - pelv_pos_current_);
-    lhand_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand].rotm;
-    rhand_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand].xpos - pelv_pos_current_);
-    rhand_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand].rotm;
+    lhand_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand].xpos - pelv_pos_current_);
+    lhand_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand].rotm;
+    rhand_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand].xpos - pelv_pos_current_);
+    rhand_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand].rotm;
 
-    lhand_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand].v;
-    lhand_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand].w;
-    rhand_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand].v;
-    rhand_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand].w;
+    lhand_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand].v;
+    lhand_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand].w;
+    rhand_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand].v;
+    rhand_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand].w;
     ///////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Elbow Trnasformation and Velocity///////////////////////
-    lelbow_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand - 3].xpos - pelv_pos_current_);
-    lelbow_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 3].rotm;
-    relbow_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand - 3].xpos - pelv_pos_current_);
-    relbow_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 3].rotm;
+    lelbow_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand - 3].xpos - pelv_pos_current_);
+    lelbow_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 3].rotm;
+    relbow_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand - 3].xpos - pelv_pos_current_);
+    relbow_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 3].rotm;
 
-    lelbow_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 3].v;
-    lelbow_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 3].w;
-    relbow_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 3].v;
-    relbow_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 3].w;
+    lelbow_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 3].v;
+    lelbow_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 3].w;
+    relbow_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 3].v;
+    relbow_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 3].w;
     ////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Upper Arm Trnasformation and Velocity////////////////////
-    lupperarm_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand - 4].xpos - pelv_pos_current_);
-    lupperarm_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 4].rotm;
-    rupperarm_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand - 4].xpos - pelv_pos_current_);
-    rupperarm_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 4].rotm;
+    lupperarm_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand - 4].xpos - pelv_pos_current_);
+    lupperarm_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 4].rotm;
+    rupperarm_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand - 4].xpos - pelv_pos_current_);
+    rupperarm_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 4].rotm;
 
-    lupperarm_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 4].v;
-    lupperarm_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 4].w;
-    rupperarm_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 4].v;
-    rupperarm_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 4].w;
+    lupperarm_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 4].v;
+    lupperarm_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 4].w;
+    rupperarm_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 4].v;
+    rupperarm_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 4].w;
     ////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Shoulder Trnasformation and Velocity////////////////////
-    lshoulder_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand - 5].xpos - pelv_pos_current_);
-    lshoulder_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 5].rotm;
-    rshoulder_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand - 5].xpos - pelv_pos_current_);
-    rshoulder_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 5].rotm;
+    lshoulder_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand - 5].xpos - pelv_pos_current_);
+    lshoulder_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 5].rotm;
+    rshoulder_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand - 5].xpos - pelv_pos_current_);
+    rshoulder_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 5].rotm;
 
-    lshoulder_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 5].v;
-    lshoulder_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 5].w;
-    rshoulder_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 5].v;
-    rshoulder_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 5].w;
+    lshoulder_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 5].v;
+    lshoulder_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 5].w;
+    rshoulder_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 5].v;
+    rshoulder_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 5].w;
     ////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Acromion Trnasformation and Velocity////////////////////
-    lacromion_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand - 6].xpos - pelv_pos_current_);
-    lacromion_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 6].rotm;
-    racromion_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand - 6].xpos - pelv_pos_current_);
-    racromion_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 6].rotm;
+    lacromion_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand - 6].xpos - pelv_pos_current_);
+    lacromion_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 6].rotm;
+    racromion_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand - 6].xpos - pelv_pos_current_);
+    racromion_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 6].rotm;
 
-    lacromion_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 6].v;
-    lacromion_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 6].w;
-    racromion_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 6].v;
-    racromion_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 6].w;
+    lacromion_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 6].v;
+    lacromion_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 6].w;
+    racromion_vel_current_from_global_.segment(0, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 6].v;
+    racromion_vel_current_from_global_.segment(3, 3) = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 6].w;
     ////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////Armbase Trasformation and ///////////////////////////////
-    larmbase_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Left_Hand - 7].xpos - pelv_pos_current_);
-    larmbase_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Left_Hand - 7].rotm;
-    rarmbase_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Right_Hand - 7].xpos - pelv_pos_current_);
-    rarmbase_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Right_Hand - 7].rotm;
+    larmbase_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Left_Hand - 7].xpos - pelv_pos_current_);
+    larmbase_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Left_Hand - 7].rotm;
+    rarmbase_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Right_Hand - 7].xpos - pelv_pos_current_);
+    rarmbase_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Right_Hand - 7].rotm;
     ////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////Head & Upperbody Trnasformation ////////////////////////
-    head_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Head].xpos - pelv_pos_current_);
-    head_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Head].rotm;
+    head_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Head].xpos - pelv_pos_current_);
+    head_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Head].rotm;
 
-    upperbody_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (rd_.link_[Upper_Body].xpos - pelv_pos_current_);
-    upperbody_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[Upper_Body].rotm;
+    upperbody_transform_current_from_global_.translation() = pelv_yaw_rot_current_from_global_.transpose() * (link_avatar_[Upper_Body].xpos - pelv_pos_current_);
+    upperbody_transform_current_from_global_.linear() = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[Upper_Body].rotm;
     ////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////Rotation Euler Angles////////////////////////////////////
@@ -1158,50 +1183,50 @@ void AvatarController::getRobotData()
     q_ddot_virtual = pre_desired_q_ddot_vqd_;
     RigidBodyDynamics::UpdateKinematicsCustom(model_d_, &q_virtual, &q_dot_virtual, &q_ddot_virtual);
 
-    lfoot_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, Eigen::Vector3d::Zero(), false);
-    lfoot_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, false)).transpose();
+    lfoot_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Foot].id, Eigen::Vector3d::Zero(), false);
+    lfoot_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Foot].id, false)).transpose();
 
-    lhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, false);
-    lhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, false)).transpose();
+    lhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, lhand_control_point_offset_, false);
+    lhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, false)).transpose();
 
-    lelbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 3].id, Eigen::Vector3d::Zero(), false);
-    lelbow_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 3].id, false).transpose();
+    lelbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 3].id, Eigen::Vector3d::Zero(), false);
+    lelbow_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 3].id, false).transpose();
 
-    lupperarm_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, Eigen::Vector3d::Zero(), false);
-    lupperarm_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, false).transpose();
+    lupperarm_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, Eigen::Vector3d::Zero(), false);
+    lupperarm_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, false).transpose();
 
-    lshoulder_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 5].id, Eigen::Vector3d::Zero(), false);
-    lshoulder_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 5].id, false).transpose();
+    lshoulder_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 5].id, Eigen::Vector3d::Zero(), false);
+    lshoulder_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 5].id, false).transpose();
 
-    lacromion_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, Eigen::Vector3d::Zero(), false);
-    lacromion_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, false).transpose();
+    lacromion_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, Eigen::Vector3d::Zero(), false);
+    lacromion_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, false).transpose();
 
-    larmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 7].id, Eigen::Vector3d::Zero(), false);
-    larmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 7].id, false).transpose();
+    larmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 7].id, Eigen::Vector3d::Zero(), false);
+    larmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 7].id, false).transpose();
 
-    rhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, false);
-    rhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, false)).transpose();
+    rhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, false);
+    rhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, false)).transpose();
 
-    relbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 3].id, Eigen::Vector3d::Zero(), false);
-    relbow_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 3].id, false).transpose();
+    relbow_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 3].id, Eigen::Vector3d::Zero(), false);
+    relbow_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 3].id, false).transpose();
 
-    rupperarm_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, Eigen::Vector3d::Zero(), false);
-    rupperarm_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, false).transpose();
+    rupperarm_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, Eigen::Vector3d::Zero(), false);
+    rupperarm_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, false).transpose();
 
-    rshoulder_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 5].id, Eigen::Vector3d::Zero(), false);
-    rshoulder_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 5].id, false).transpose();
+    rshoulder_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 5].id, Eigen::Vector3d::Zero(), false);
+    rshoulder_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 5].id, false).transpose();
 
-    racromion_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, Eigen::Vector3d::Zero(), false);
-    racromion_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, false).transpose();
+    racromion_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, Eigen::Vector3d::Zero(), false);
+    racromion_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, false).transpose();
 
-    rarmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 7].id, Eigen::Vector3d::Zero(), false);
-    rarmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 7].id, false).transpose();
+    rarmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 7].id, Eigen::Vector3d::Zero(), false);
+    rarmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 7].id, false).transpose();
 
-    head_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, Eigen::Vector3d::Zero(), false);
-    head_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, false).transpose();
+    head_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Head].id, Eigen::Vector3d::Zero(), false);
+    head_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Head].id, false).transpose();
 
-    upperbody_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, Eigen::Vector3d::Zero(), false);
-    upperbody_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, false).transpose();
+    upperbody_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Upper_Body].id, Eigen::Vector3d::Zero(), false);
+    upperbody_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Upper_Body].id, false).transpose();
 
     RigidBodyDynamics::Math::Vector3d com_pos_temp, com_vel_temp, com_accel_temp, com_ang_momentum_temp, com_ang_moment_temp;
 
@@ -1214,8 +1239,8 @@ void AvatarController::getRobotData()
     R_R.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_.transpose();
     // R_R.setIdentity();
 
-    jac_com_ = R_R * rd_.link_[COM_id].jac.cast<double>();
-    jac_com_pos_ = pelv_yaw_rot_current_from_global_.transpose() * rd_.link_[COM_id].jac_com.cast<double>().topRows(3);
+    jac_com_ = R_R * link_avatar_[COM_id].jac.cast<double>();
+    jac_com_pos_ = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[COM_id].jac_com.cast<double>().topRows(3);
     
 
 }
@@ -2111,18 +2136,18 @@ void AvatarController::motionRetargeting_QPIK_larm()
     Vector3d zero3;
     zero3.setZero();
     J_temp1.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp1, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, lhand_control_point_offset_, J_temp1, false);
     J_l_arm.block(0, 0, 3, 8) = J_temp1.block(3, 21, 3, 8); // position
     J_l_arm.block(3, 0, 3, 8) = J_temp1.block(0, 21, 3, 8); // orientation
     // J_l_arm.block(0, 0, 6, 1).setZero(); //penalize 1st joint for hand control
 
     J_temp2.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp2, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, zero3, J_temp2, false);
     J_l_upperarm.block(0, 0, 3, 8) = J_temp2.block(0, 21, 3, 8); // orientation
     // J_l_upperarm.block(0, 0, 3, 1).setZero(); //penalize 1st joint for hand control
 
     J_temp3.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp3, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, zero3, J_temp3, false);
     J_l_shoulder.block(0, 0, 3, 8) = J_temp3.block(0, 21, 3, 8); // orientation
 
     //// null space projection of hand and elbow////
@@ -2401,18 +2426,18 @@ void AvatarController::motionRetargeting_QPIK_rarm()
     Vector3d zero3;
     zero3.setZero();
     J_temp1.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp1, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, J_temp1, false);
     J_r_arm.block(0, 0, 3, 8) = J_temp1.block(3, 31, 3, 8); // position
     J_r_arm.block(3, 0, 3, 8) = J_temp1.block(0, 31, 3, 8); // orientation
     // J_r_arm.block(0, 0, 6, 1).setZero(); //penalize 1st joint for hand control
 
     J_temp2.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp2, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, zero3, J_temp2, false);
     J_r_upperarm.block(0, 0, 3, 8) = J_temp2.block(0, 31, 3, 8); // orientation
     // J_r_upperarm.block(0, 0, 3, 1).setZero(); //penalize 1st joint for hand control
 
     J_temp3.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp3, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, zero3, J_temp3, false);
     J_r_shoulder.block(0, 0, 3, 8) = J_temp3.block(0, 31, 3, 8); // orientation
 
     //// null space projection of hand and elbow////
@@ -2689,33 +2714,33 @@ void AvatarController::motionRetargeting_QPIK_upperbody()
     zero3.setZero();
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Upper_Body].id, zero3, J_temp_, false);
     J_upperbody_[0].block(0, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); // orientation
 
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_upperbody_[1].block(0, 0, 3, variable_size_upperbody_) = J_temp_.block(3, 18, 3, variable_size_upperbody_); // position
     J_upperbody_[1].block(3, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); // orientation
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
     J_upperbody_[1].block(6, 0, 3, variable_size_upperbody_) = J_temp_.block(3, 18, 3, variable_size_upperbody_); // position
     J_upperbody_[1].block(9, 0, 3, variable_size_upperbody_) = J_temp_.block(0, 18, 3, variable_size_upperbody_); // orientation
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Head].id, zero3, J_temp_, false);
     J_upperbody_[1].block(12, 0, 2, variable_size_upperbody_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_upperbody_)).block(1, 0, 2, variable_size_upperbody_); // orientation
 
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, zero3, J_temp_, false);
     J_upperbody_[2].block(0, 0, 2, variable_size_upperbody_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_upperbody_)).block(1, 0, 2, variable_size_upperbody_); // orientation
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, zero3, J_temp_, false);
     J_upperbody_[2].block(2, 0, 2, variable_size_upperbody_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_upperbody_)).block(1, 0, 2, variable_size_upperbody_); // orientation
 
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, zero3, J_temp_, false);
     J_upperbody_[3].block(0, 0, 2, variable_size_upperbody_) = (lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_upperbody_)).block(1, 0, 2, variable_size_upperbody_); // orientation
     J_temp_.setZero();
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, zero3, J_temp_, false);
     J_upperbody_[3].block(2, 0, 2, variable_size_upperbody_) = (racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_upperbody_)).block(1, 0, 2, variable_size_upperbody_); // orientation
 
     //// null space projection of tasks for strict hierarchy////
@@ -2941,7 +2966,7 @@ void AvatarController::motionRetargeting_HQPIK()
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
     ////1st Task
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Upper_Body].id, zero3, J_temp_, true);
     J_hqpik_[0].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); // orientation
 
     Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
@@ -2949,15 +2974,15 @@ void AvatarController::motionRetargeting_HQPIK()
 
     ////2nd Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_hqpik_[1].block(0, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); // position
     J_hqpik_[1].block(3, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
     J_hqpik_[1].block(6, 0, 3, variable_size_hqpik_) = J_temp_.block(3, 18, 3, variable_size_hqpik_); // position
     J_hqpik_[1].block(9, 0, 3, variable_size_hqpik_) = J_temp_.block(0, 18, 3, variable_size_hqpik_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Head].id, zero3, J_temp_, false);
     J_hqpik_[1].block(12, 0, 2, variable_size_hqpik_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); // orientation
 
     // Hand error
@@ -2979,11 +3004,11 @@ void AvatarController::motionRetargeting_HQPIK()
 
     ////3rd Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, zero3, J_temp_, false);
     J_hqpik_[2].block(0, 0, 2, variable_size_hqpik_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
 
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, zero3, J_temp_, false);
     J_hqpik_[2].block(2, 0, 2, variable_size_hqpik_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); // orientation
 
     // Upperarm error
@@ -3000,10 +3025,10 @@ void AvatarController::motionRetargeting_HQPIK()
 
     ////4th Task
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, zero3, J_temp_, false);
     J_hqpik_[3].block(0, 0, 2, variable_size_hqpik_) = (lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, zero3, J_temp_, false);
     J_hqpik_[3].block(2, 0, 2, variable_size_hqpik_) = (racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik_)).block(1, 0, 2, variable_size_hqpik_); // orientation
 
     // Shoulder error
@@ -3283,7 +3308,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     u_dot_hqpik2_[0].setZero();
 
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Head].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Head].id, zero3, J_temp_, false);
     J_hqpik2_[0].block(2, 0, 2, variable_size_hqpik2_) = J_temp_.block(3, 18, 2, variable_size_hqpik2_);                                                                                                 // x, y position
     J_hqpik2_[0].block(0, 0, 2, variable_size_hqpik2_) = (head_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // y, z orientation
     //waist
@@ -3309,11 +3334,11 @@ void AvatarController::motionRetargeting_HQPIK2()
     u_dot_hqpik2_[1].setZero();
 
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand].id, lhand_control_point_offset_, J_temp_, false);
     J_hqpik2_[1].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(3, 18, 3, variable_size_hqpik2_); // position
     J_hqpik2_[1].block(3, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, J_temp_, false);
     J_hqpik2_[1].block(6, 0, 3, variable_size_hqpik2_) = J_temp_.block(3, 18, 3, variable_size_hqpik2_); // position
     J_hqpik2_[1].block(9, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); // orientation
     // Hand error
@@ -3340,10 +3365,10 @@ void AvatarController::motionRetargeting_HQPIK2()
     
     // upperarm
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, zero3, J_temp_, false);
     J_hqpik2_[2].block(0, 0, 2, variable_size_hqpik2_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, zero3, J_temp_, false);
     J_hqpik2_[2].block(2, 0, 2, variable_size_hqpik2_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     // Upper arm error
     Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
@@ -3358,10 +3383,10 @@ void AvatarController::motionRetargeting_HQPIK2()
     double shoulder_task_w = 1.0;
 
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 6].id, zero3, J_temp_, false);
     J_hqpik2_[2].block(4, 0, 2, variable_size_hqpik2_) = shoulder_task_w*(lacromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 6].id, zero3, J_temp_, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 6].id, zero3, J_temp_, false);
     J_hqpik2_[2].block(6, 0, 2, variable_size_hqpik2_) = shoulder_task_w*(racromion_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     // Shoulder error
     Vector3d error_w_lshoulder = -DyrosMath::getPhi(lacromion_transform_pre_desired_from_.linear(), master_lshoulder_pose_.linear());
@@ -3376,7 +3401,7 @@ void AvatarController::motionRetargeting_HQPIK2()
 
     // ////3rd Task
     // J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Upper_Body].id, zero3, J_temp_, true);
+    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Upper_Body].id, zero3, J_temp_, true);
     // J_hqpik2_[1].block(0, 0, 3, variable_size_hqpik2_) = J_temp_.block(0, 18, 3, variable_size_hqpik2_); // orientation
     // // upper body error
     // Vector3d error_w_upperbody = -DyrosMath::getPhi(upperbody_transform_pre_desired_from_.linear(), master_upperbody_pose_.linear());
@@ -3385,10 +3410,10 @@ void AvatarController::motionRetargeting_HQPIK2()
 
     // ////4th Task
     // J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Hand - 4].id, zero3, J_temp_, false);
+    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 4].id, zero3, J_temp_, false);
     // J_hqpik2_[3].block(0, 0, 2, variable_size_hqpik2_) = (lupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     // J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
-    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Hand - 4].id, zero3, J_temp_, false);
+    // RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand - 4].id, zero3, J_temp_, false);
     // J_hqpik2_[3].block(2, 0, 2, variable_size_hqpik2_) = (rupperarm_transform_pre_desired_from_.linear().transpose() * J_temp_.block(0, 18, 3, variable_size_hqpik2_)).block(1, 0, 2, variable_size_hqpik2_); // orientation
     // // Upper arm error
     // Vector3d error_w_lupperarm = -DyrosMath::getPhi(lupperarm_transform_pre_desired_from_.linear(), master_lelbow_pose_.linear());
@@ -6523,22 +6548,49 @@ void AvatarController::updateInitialState()
 
 void AvatarController::getRobotState()
 {
+    //GET DATA FROM rd_ START
+    // static VectorVQd __q_dot_virtual;
+    // static VectorQVQd __q_virtual;
+    // static VectorVQd __q_ddot_virtual;
+    // static LinkData link_avatar_[LINK_NUMBER + 1];
+
+    __q_dot_virtual = rd_.q_dot_virtual_;
+    __q_virtual = rd_.q_virtual_;
+    __q_ddot_virtual = rd_.q_ddot_virtual_;
+    for (int i=0;i<LINK_NUMBER + 1; i++)
+    {
+        link_avatar_[i] = rd_.link_[i];
+    }
+    // l_ft : generated force by robot
+    l_ft_ = rd_.LF_FT;
+    r_ft_ = rd_.RF_FT;
+
+    lh_ft_ = rd_.LH_FT;
+    rh_ft_ = rd_.RH_FT;
+    // elmo current torque
+    for (int i = 0; i < MODEL_DOF; i++)
+    {
+        torque_current_elmo_(i) = rd_.torque_elmo_(i); // motor current torque
+    }
+    //GET DATA FROM rd_ END
+
+
     //////////// model_global_ UPDATE///////////////
     // Base frame is global
     if (walking_tick_mj == 0)
-        q_dot_virtual_Xd_global_pre_ = rd_.q_dot_virtual_;
-    q_dot_virtual_Xd_global_ = rd_.q_dot_virtual_;
+        q_dot_virtual_Xd_global_pre_ = __q_dot_virtual;
+    q_dot_virtual_Xd_global_ = __q_dot_virtual;
 
 
-    q_virtual_Xd_global_ = rd_.q_virtual_;
+    q_virtual_Xd_global_ = __q_virtual;
     q_ddot_virtual_Xd_global_ = (q_dot_virtual_Xd_global_ - q_dot_virtual_Xd_global_pre_) * hz_;
-    q_ddot_virtual_Xd_global_.segment(0, 6) = rd_.q_ddot_virtual_.segment(0, 6);
+    q_ddot_virtual_Xd_global_.segment(0, 6) = __q_ddot_virtual.segment(0, 6);
 
     RigidBodyDynamics::UpdateKinematicsCustom(model_global_, &q_virtual_Xd_global_, &q_dot_virtual_Xd_global_, &q_ddot_virtual_Xd_global_);
     //////////////////////////////////////////////
 
     pelv_rpy_current_mj_.setZero();
-    pelv_rpy_current_mj_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].rotm); // ZYX multiply
+    pelv_rpy_current_mj_ = DyrosMath::rot2Euler(link_avatar_[Pelvis].rotm); // ZYX multiply
 
     R_angle = pelv_rpy_current_mj_(0);
     P_angle = pelv_rpy_current_mj_(1);
@@ -6546,28 +6598,28 @@ void AvatarController::getRobotState()
 
     rfoot_rpy_current_.setZero();
     lfoot_rpy_current_.setZero();
-    rfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Right_Foot].rotm);
-    lfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Left_Foot].rotm);
+    rfoot_rpy_current_ = DyrosMath::rot2Euler(link_avatar_[Right_Foot].rotm);
+    lfoot_rpy_current_ = DyrosMath::rot2Euler(link_avatar_[Left_Foot].rotm);
 
     rfoot_roll_rot_ = DyrosMath::rotateWithX(rfoot_rpy_current_(0));
     lfoot_roll_rot_ = DyrosMath::rotateWithX(lfoot_rpy_current_(0));
     rfoot_pitch_rot_ = DyrosMath::rotateWithY(rfoot_rpy_current_(1));
     lfoot_pitch_rot_ = DyrosMath::rotateWithY(lfoot_rpy_current_(1));
 
-    pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * rd_.link_[Pelvis].rotm;
+    pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * link_avatar_[Pelvis].rotm;
 
-    pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[Pelvis].xpos);
+    pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), link_avatar_[Pelvis].xpos);
 
-    lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * rd_.link_[Left_Foot].rotm;
-    // lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].rotm;
-    lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[Left_Foot].xpos); // 지면에서 Ankle frame 위치
+    lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * link_avatar_[Left_Foot].rotm;
+    // lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * link_avatar_[Left_Foot].rotm;
+    lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), link_avatar_[Left_Foot].xpos); // 지면에서 Ankle frame 위치
 
-    rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * rd_.link_[Right_Foot].rotm;
-    // rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].rotm;
-    rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
+    rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * link_avatar_[Right_Foot].rotm;
+    // rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * link_avatar_[Right_Foot].rotm;
+    rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), link_avatar_[Right_Foot].xpos); // 지면에서 Ankle frame
 
-    com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[COM_id].xpos); // 지면에서 CoM 위치
-    com_float_current_dot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[COM_id].v);
+    com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), link_avatar_[COM_id].xpos); // 지면에서 CoM 위치
+    com_float_current_dot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), link_avatar_[COM_id].v);
 
     if (walking_tick_mj == 0)
     {
@@ -6618,18 +6670,6 @@ void AvatarController::getRobotState()
     com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
     
 
-    // elmo current torque
-    for (int i = 0; i < MODEL_DOF; i++)
-    {
-        torque_current_elmo_(i) = rd_.torque_elmo_(i); // motor current torque
-    }
-
-    // l_ft : generated force by robot
-    l_ft_ = rd_.LF_FT;
-    r_ft_ = rd_.RF_FT;
-
-    lh_ft_ = rd_.LH_FT;
-    rh_ft_ = rd_.RH_FT;
 
     if(real_robot_mode_ == true)
     {
@@ -6667,8 +6707,8 @@ void AvatarController::getRobotState()
     adt_lh.block(3, 0, 3, 3) = DyrosMath::skm(-lh_com2cp) * Matrix3d::Identity();
     Matrix6d rotlh;
     rotlh.setZero();
-    rotlh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Left_Hand].rotm;
-    rotlh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Left_Hand].rotm;
+    rotlh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*link_avatar_[Left_Hand].rotm;
+    rotlh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*link_avatar_[Left_Hand].rotm;
     
     lh_ft_wo_hw_ = lh_ft_ + adt_lh * (rotlh.transpose() * wrench_lhand);
     lh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(lh_ft_wo_hw_, lh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
@@ -6688,8 +6728,8 @@ void AvatarController::getRobotState()
     adt_rh.block(3, 0, 3, 3) = DyrosMath::skm(-rh_com2cp) * Matrix3d::Identity();
     Matrix6d rotrh;
     rotrh.setZero();
-    rotrh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Right_Hand].rotm;
-    rotrh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*rd_.link_[Right_Hand].rotm;
+    rotrh.block(0, 0, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*link_avatar_[Right_Hand].rotm;
+    rotrh.block(3, 3, 3, 3) = pelv_yaw_rot_current_from_global_mj_.linear().transpose()*link_avatar_[Right_Hand].rotm;
 
     rh_ft_wo_hw_ = rh_ft_ + adt_rh * (rotrh.transpose() * wrench_rhand);
     rh_ft_wo_hw_lpf_ = DyrosMath::lpf<6>(rh_ft_wo_hw_, rh_ft_wo_hw_lpf_, 2000, 100 / (2 * M_PI));
@@ -6700,34 +6740,34 @@ void AvatarController::getRobotState()
 
     Eigen::MatrixXd J_temp, R_lh, R_rh;
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp, false);
     jac_lfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_lfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Right_Foot].id, rfoot_ft_sensor_offset_, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Right_Foot].id, rfoot_ft_sensor_offset_, J_temp, false);
     jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
 
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Hand].id, lhand_ft_sensor_offset_, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Left_Hand].id, lhand_ft_sensor_offset_, J_temp, false);
     jac_lhand_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_lhand_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
 
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Right_Hand].id, rhand_ft_sensor_offset_, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Right_Hand].id, rhand_ft_sensor_offset_, J_temp, false);
     jac_rhand_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_rhand_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
     
     R_lh.setZero(6, 6);
-    R_lh.block(0, 0, 3, 3) = rd_.link_[Left_Hand].rotm;
-    R_lh.block(3, 3, 3, 3) = rd_.link_[Left_Hand].rotm;
+    R_lh.block(0, 0, 3, 3) = link_avatar_[Left_Hand].rotm;
+    R_lh.block(3, 3, 3, 3) = link_avatar_[Left_Hand].rotm;
 
     torque_from_lh_ft_ = jac_lhand_.block(0, 6, 6, MODEL_DOF).transpose() * R_lh * (-lh_ft_wo_hw_);
     torque_from_lh_ft_lpf_ = DyrosMath::lpf<33>(torque_from_lh_ft_, torque_from_lh_ft_lpf_, 2000, 100 / (2 * M_PI));
 
     R_rh.setZero(6, 6);
-    R_rh.block(0, 0, 3, 3) = rd_.link_[Right_Hand].rotm;
-    R_rh.block(3, 3, 3, 3) = rd_.link_[Right_Hand].rotm;
+    R_rh.block(0, 0, 3, 3) = link_avatar_[Right_Hand].rotm;
+    R_rh.block(3, 3, 3, 3) = link_avatar_[Right_Hand].rotm;
 
     torque_from_rh_ft_ = jac_rhand_.block(0, 6, 6, MODEL_DOF).transpose() * R_rh * (-rh_ft_wo_hw_);
     torque_from_rh_ft_lpf_ = DyrosMath::lpf<33>(torque_from_rh_ft_, torque_from_rh_ft_lpf_, 2000, 100 / (2 * M_PI));
@@ -8586,8 +8626,15 @@ Eigen::VectorQd AvatarController::floatGravityTorque(Eigen::VectorQVQd q)
 {
     // old version test
     Eigen::VectorQd gravity_torque;
-    WBC::SetContact(rd_, 1, 1);
-    gravity_torque = rd_.G.segment(6, MODEL_DOF);
+    // WBC::SetContact(rd_, 1, 1);
+
+    Eigen::VectorVQd G_mat;
+
+    G_mat.setZero();
+    for (int i = 0; i < MODEL_DOF + 1; i++)
+        G_mat -= link_avatar_[i].jac_com.cast<double>().topRows(3).transpose() * link_avatar_[i].mass * rd_.grav_ref;
+
+    gravity_torque = G_mat.segment(6, MODEL_DOF);
     return gravity_torque;
 }
 void AvatarController::parameterSetting()
@@ -9017,8 +9064,8 @@ void AvatarController::CP_compen_MJ()
         alpha = 0;
     }
 
-    F_R = (1 - alpha) * rd_.link_[COM_id].mass * GRAVITY;
-    F_L = alpha * rd_.link_[COM_id].mass * GRAVITY;
+    F_R = (1 - alpha) * link_avatar_[COM_id].mass * GRAVITY;
+    F_L = alpha * link_avatar_[COM_id].mass * GRAVITY;
 
     Tau_CP(4) = F_L * del_zmp(0);  // L pitch
     Tau_CP(10) = F_R * del_zmp(0); // R pitch
