@@ -747,23 +747,23 @@ public:
     /////////////////////////////////////////////
 
     /////////////HQPIK//////////////////////////
-    const unsigned int hierarchy_num_hqpik_ = 4;
+    const unsigned int hierarchy_num_hqpik_ = 3;
     const unsigned int variable_size_hqpik_ = 21;
 	const unsigned int constraint_size1_hqpik_ = 21;	//[lb <=	x	<= 	ub] form constraints
-	const unsigned int constraint_size2_hqpik_[4] = {12, 15, 17, 21};	//[lb <=	Ax 	<=	ub] or [Ax = b]
-	const unsigned int control_size_hqpik_[4] = {3, 14, 4, 4};		//1: upperbody, 2: head + hand, 3: upperarm, 4: shoulder
+	const unsigned int constraint_size2_hqpik_[3] = {12, 15, 17};	//[lb <=	Ax 	<=	ub] or [Ax = b]
+	const unsigned int control_size_hqpik_[3] = {3, 14, 8};		//1: upperbody, 2: head + hand, 3: upperarm + shoulder AAC
 
-    double w1_hqpik_[4];
-    double w2_hqpik_[4];
-    double w3_hqpik_[4];
-    double w4_hqpik_[4];
-    double w5_hqpik_[4];
-    double w6_hqpik_[4];
+    double w1_hqpik_[3];
+    double w2_hqpik_[3];
+    double w3_hqpik_[3];
+    double w4_hqpik_[3];
+    double w5_hqpik_[3];
+    double w6_hqpik_[3];
     
-    Eigen::MatrixXd H_hqpik_[4], A_hqpik_[4];
-    Eigen::MatrixXd J_hqpik_[4], J_temp_;
-    Eigen::VectorXd g_hqpik_[4], u_dot_hqpik_[4], qpres_hqpik_, ub_hqpik_[4],lb_hqpik_[4], ubA_hqpik_[4], lbA_hqpik_[4];
-    Eigen::VectorXd q_dot_hqpik_[4];
+    Eigen::MatrixXd H_hqpik_[3], A_hqpik_[3];
+    Eigen::MatrixXd J_hqpik_[3], J_temp_;
+    Eigen::VectorXd g_hqpik_[3], u_dot_hqpik_[3], qpres_hqpik_, ub_hqpik_[3],lb_hqpik_[3], ubA_hqpik_[3], lbA_hqpik_[3];
+    Eigen::VectorXd q_dot_hqpik_[3];
 
     int last_solved_hierarchy_num_;
     const double equality_condition_eps_ = 1e-8;
