@@ -50,7 +50,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros-laptop/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -108,6 +108,13 @@ public:
     RigidBodyDynamics::Model model_C_;  //for calcuating Coriolis matrix
     RigidBodyDynamics::Model model_global_;  //state manager coordinate
     RigidBodyDynamics::Model model_local_;  //local pelvis position gravity orientation
+
+
+    VectorVQd __q_dot_virtual;
+    VectorQVQd __q_virtual;
+    VectorVQd __q_ddot_virtual;
+    LinkData link_avatar_[LINK_NUMBER + 1];
+
 
     //////////dg custom controller functions////////
     void setGains();
@@ -582,8 +589,8 @@ public:
 
     double tracker_status_changed_time_;
     
-    bool master_arm_mode_ = false;
-    bool real_robot_mode_ = false;
+    bool master_arm_mode_ = true;
+    bool real_robot_mode_ = true;
 
     double hmd_larm_max_l_;
     double hmd_rarm_max_l_;
