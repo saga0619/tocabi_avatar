@@ -426,8 +426,8 @@ void AvatarController::setGains()
 
     for (int i = 0; i < MODEL_DOF; i++)
     {
-        kp_joint_(i) = kp_soft_joint_(i);
-        kv_joint_(i) = kv_soft_joint_(i);
+        kp_joint_(i) = kp_stiff_joint_(i);
+        kv_joint_(i) = kv_stiff_joint_(i);
     }
     ///////////////
 
@@ -1497,14 +1497,14 @@ void AvatarController::avatarModeStateMachine()
         }
     }
     
-    std_msgs::Float32MultiArray hand_ft_msg;
-    hand_ft_msg.data.resize(12);
-    for(int i=0; i<6; i++)
-    {
-        hand_ft_msg.data[i] = lh_ft_feedback_(i);
-        hand_ft_msg.data[i+6] = rh_ft_feedback_(i);
-    }
-    haptic_force_pub.publish(hand_ft_msg);
+    // std_msgs::Float32MultiArray hand_ft_msg;
+    // hand_ft_msg.data.resize(12);
+    // for(int i=0; i<6; i++)
+    // {
+    //     hand_ft_msg.data[i] = lh_ft_feedback_(i);
+    //     hand_ft_msg.data[i+6] = rh_ft_feedback_(i);
+    // }
+    // haptic_force_pub.publish(hand_ft_msg);
     //////////////////////////////////////////////
 
     upper_body_mode_ = upper_body_mode_raw_;
@@ -3913,6 +3913,12 @@ void AvatarController::poseCalibration()
     }
     else
     {
+        hmd_head_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_head_pose_;
+        hmd_lupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lupperarm_pose_;
+        // hmd_lhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_lhand_pose_;
+        hmd_rupperarm_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rupperarm_pose_;
+        // hmd_rhand_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_rhand_pose_;
+        hmd_chest_pose_ = hmd_pelv_pose_yaw_only.inverse() * hmd_chest_pose_;
         // orientation offset
         hmd_lhand_pose_.linear() = hmd_lhand_pose_.linear()*DyrosMath::rotateWithY(-90*DEG2RAD);
         hmd_rhand_pose_.linear() = hmd_rhand_pose_.linear()*DyrosMath::rotateWithY(-90*DEG2RAD);
@@ -4552,10 +4558,10 @@ void AvatarController::rawMasterPoseProcessing()
     {
         ///////3D Mouse Mode////////////
         master_lhand_pose_raw_.translation() = master_lhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_*1.3*(hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
 
         master_rhand_pose_raw_.translation() = master_rhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_*1.3*(hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
         ////////////////////////////////////////////////////
     }
 
@@ -4899,6 +4905,9 @@ void AvatarController::orientationRetargeting()
     // robot_rshoulder_ori_init = DyrosMath::rotateWithZ(0.3);
     robot_rshoulder_ori_init.setIdentity();
     robot_head_ori_init.setIdentity();
+
+    robot_head_ori_init = DyrosMath::rotateWithY(-10 * DEG2RAD);
+    
     robot_upperbody_ori_init.setIdentity();
 
     // robot_lelbow_ori_init << 0, 0, -1, 1, 0, 0, 0, -1, 0;
@@ -6152,25 +6161,38 @@ void AvatarController::TrackerPoseCallback(const geometry_msgs::PoseArray &msg)
 {
     // msg.poses[0];
 
-    tf::poseMsgToEigen(msg.poses[0],hmd_pelv_pose_raw_);
-    
-    hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); // tracker is behind the chair
-
-    tf::poseMsgToEigen(msg.poses[1],hmd_chest_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[2],hmd_lupperarm_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[4],hmd_rupperarm_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[6],hmd_head_pose_raw_);
-
-    if(master_arm_mode_ == false)
+    if(master_arm_mode_ == true)
     {
+        tf::poseMsgToEigen(msg.poses[0],hmd_pelv_pose_raw_);
+    
+        hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); // tracker is behind the chair
+
+        tf::poseMsgToEigen(msg.poses[1],hmd_chest_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[2],hmd_lupperarm_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[3],hmd_rupperarm_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[4],hmd_head_pose_raw_);
+    }
+    else
+    {
+        tf::poseMsgToEigen(msg.poses[0],hmd_pelv_pose_raw_);
+    
+        hmd_pelv_pose_raw_.linear() = hmd_pelv_pose_raw_.linear() * DyrosMath::rotateWithZ(M_PI); // tracker is behind the chair
+
+        tf::poseMsgToEigen(msg.poses[1],hmd_chest_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[2],hmd_lupperarm_pose_raw_);
         tf::poseMsgToEigen(msg.poses[3],hmd_lhand_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[4],hmd_rupperarm_pose_raw_);
         tf::poseMsgToEigen(msg.poses[5],hmd_rhand_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[6],hmd_head_pose_raw_);       
     }
 }
 void AvatarController::MasterPoseCallback(const geometry_msgs::PoseArray &msg)
 {
-    tf::poseMsgToEigen(msg.poses[0], hmd_lhand_pose_raw_);
-    tf::poseMsgToEigen(msg.poses[1], hmd_rhand_pose_raw_);
+    if(master_arm_mode_ == true)
+    {
+        tf::poseMsgToEigen(msg.poses[0], hmd_lhand_pose_raw_);
+        tf::poseMsgToEigen(msg.poses[1], hmd_rhand_pose_raw_);
+    }
 }
 void AvatarController::HandPosMappingScaleCallback(const std_msgs::Float32 &msg)
 {
@@ -8593,7 +8615,6 @@ Eigen::VectorQd AvatarController::floatGravityTorque(Eigen::VectorQVQd q)
 {
     // old version test
     Eigen::VectorQd gravity_torque;
-    // WBC::SetContact(rd_, 1, 1);
 
     Eigen::VectorVQd G_mat;
 
