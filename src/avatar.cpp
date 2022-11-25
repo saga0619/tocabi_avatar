@@ -10522,6 +10522,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     
     for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
+        // real robot experiment 0.2?
         ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
         lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
