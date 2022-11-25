@@ -12617,7 +12617,7 @@ void AvatarController::Joint_gain_set_MJ()
     Kd(31) = 2.0; // Right Wrist
     Kp(32) = 50.0;
     Kd(32) = 2.0; // Right Wrist
-
+    //real robot experiment
     // Kp(0) = 2000.0;
     // Kd(0) = 20.0; // Left Hip yaw
     // Kp(1) = 5000.0;
@@ -14875,7 +14875,8 @@ void AvatarController::CP_compen_MJ()
     Tau_CP(11) = -F_R * del_zmp(1); // R roll
 }
 /*
-void AvatarController::CP_compen_MJ_FT()
+//real robot experiment
+void AvatarController::CP_compen_MJ_FT() 
 { // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
     double alpha = 0;
     double F_R = 0, F_L = 0;
@@ -15132,6 +15133,7 @@ void AvatarController::CP_compen_MJ_FT()
     // MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }*/
 
+//simulation
 void AvatarController::CP_compen_MJ_FT()
 { 
     // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
