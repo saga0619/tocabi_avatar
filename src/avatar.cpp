@@ -551,14 +551,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dg/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dg/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -619,8 +619,8 @@ void AvatarController::computeSlow()
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: "<<rd_.control_time_ << endl; //dg add
 
-            WBC::SetContact(rd_, 1, 1);
-            Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
+            // WBC::SetContact(rd_, 1, 1);
+            // Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             //Gravity_MJ_.setZero();
             atb_grav_update_ = false;
             initial_flag = 1;
@@ -683,10 +683,10 @@ void AvatarController::computeSlow()
                 cout << "mode = 11" << endl;
             }
             
-
             updateInitialState();
             getRobotState();
             floatToSupportFootstep();
+
             if (current_step_num_ < total_step_num_)
             {            
                 getZmpTrajectory();
@@ -873,7 +873,7 @@ void AvatarController::computeSlow()
             parameterSetting();
             initWalkingParameter();
             updateInitialStateJoy();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros_rm/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             WBC::SetContact(rd_, 1, 1);
@@ -1165,23 +1165,22 @@ void AvatarController::computeFast()
             }
 
             // MOB-LSTM INFERENCE
-            initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // initializeLegLSTM(left_leg_mob_lstm_);
+            // loadLstmWeights(left_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
-            initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // initializeLegLSTM(right_leg_mob_lstm_);
+            // loadLstmWeights(right_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
-            // PETER GRU
-            initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
-            loadGruMeanStd(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
+            // // PETER GRU
+            // initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
+            // loadGruWeights(left_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
+            // loadGruMeanStd(left_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data3_jts_lpf_peter/");
             
-            initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
-            loadGruMeanStd(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
-
+            // initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
+            // loadGruWeights(right_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
+            // loadGruMeanStd(right_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data3_jts_lpf_peter/");
 
             initial_flag = 2;
         }
@@ -1251,52 +1250,52 @@ void AvatarController::computeFast()
         //computeCAMcontrol_HQP();
 
 
-        calculateLstmOutput(left_leg_mob_lstm_);  //20~25us
-        calculateLstmOutput(right_leg_mob_lstm_); //20~25us
+        // calculateLstmOutput(left_leg_mob_lstm_);  //20~25us
+        // calculateLstmOutput(right_leg_mob_lstm_); //20~25us
         
 
-        calculateGruOutput(left_leg_peter_gru_);
-        calculateGruOutput(right_leg_peter_gru_);
+        // calculateGruOutput(left_leg_peter_gru_);
+        // calculateGruOutput(right_leg_peter_gru_);
 
         // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-        estimated_model_unct_torque_fast_.setZero();
-        estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
-        estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
+        // estimated_model_unct_torque_fast_.setZero();
+        // estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
+        // estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
 
-        estimated_external_torque_gru_fast_.setZero();
-        estimated_external_torque_gru_fast_.segment(0, 6) = left_leg_peter_gru_.real_output.segment(0, 6);
-        estimated_external_torque_gru_fast_.segment(6, 6) = right_leg_peter_gru_.real_output.segment(0, 6);
+        // estimated_external_torque_gru_fast_.setZero();
+        // estimated_external_torque_gru_fast_.segment(0, 6) = left_leg_peter_gru_.real_output.segment(0, 6);
+        // estimated_external_torque_gru_fast_.segment(6, 6) = right_leg_peter_gru_.real_output.segment(0, 6);
 
-        if (gaussian_mode_ == true)
-        {
-            // gaussian model
-            estimated_model_unct_torque_variance_fast_.setZero();
-            estimated_model_unct_torque_variance_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(6, 6);
-            estimated_model_unct_torque_variance_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(6, 6);
-        }
-        if(left_leg_peter_gru_.gaussian_mode == true)
-        {
-            estimated_external_torque_variance_gru_fast_.setZero();
-            estimated_external_torque_variance_gru_fast_.segment(0, 6) = left_leg_peter_gru_.real_output.segment(6, 6);
-            estimated_external_torque_variance_gru_fast_.segment(6, 6) = right_leg_peter_gru_.real_output.segment(6, 6);
-        }
+        // if (gaussian_mode_ == true)
+        // {
+        //     // gaussian model
+        //     estimated_model_unct_torque_variance_fast_.setZero();
+        //     estimated_model_unct_torque_variance_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(6, 6);
+        //     estimated_model_unct_torque_variance_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(6, 6);
+        // }
+        // if(left_leg_peter_gru_.gaussian_mode == true)
+        // {
+        //     estimated_external_torque_variance_gru_fast_.setZero();
+        //     estimated_external_torque_variance_gru_fast_.segment(0, 6) = left_leg_peter_gru_.real_output.segment(6, 6);
+        //     estimated_external_torque_variance_gru_fast_.segment(6, 6) = right_leg_peter_gru_.real_output.segment(6, 6);
+        // }
 
-        if (left_leg_mob_lstm_.atb_lstm_output_update_ == false)
-        {
-            left_leg_mob_lstm_.atb_lstm_output_update_ = true;
-            estimated_model_unct_torque_thread_ = estimated_model_unct_torque_fast_;
-            estimated_model_unct_torque_variance_thread_ = estimated_model_unct_torque_variance_fast_;
-            left_leg_mob_lstm_.atb_lstm_output_update_ = false;
-        }
+        // if (left_leg_mob_lstm_.atb_lstm_output_update_ == false)
+        // {
+        //     left_leg_mob_lstm_.atb_lstm_output_update_ = true;
+        //     estimated_model_unct_torque_thread_ = estimated_model_unct_torque_fast_;
+        //     estimated_model_unct_torque_variance_thread_ = estimated_model_unct_torque_variance_fast_;
+        //     left_leg_mob_lstm_.atb_lstm_output_update_ = false;
+        // }
 
-        if (left_leg_peter_gru_.atb_gru_output_update_ == false)
-        {
-            left_leg_peter_gru_.atb_gru_output_update_ = true;
-            estimated_external_torque_gru_thread_ = estimated_external_torque_gru_fast_;
-            estimated_external_torque_variance_gru_thread_ = estimated_external_torque_variance_gru_fast_;
-            left_leg_peter_gru_.atb_gru_output_update_ = false;
-        }
+        // if (left_leg_peter_gru_.atb_gru_output_update_ == false)
+        // {
+        //     left_leg_peter_gru_.atb_gru_output_update_ = true;
+        //     estimated_external_torque_gru_thread_ = estimated_external_torque_gru_fast_;
+        //     estimated_external_torque_variance_gru_thread_ = estimated_external_torque_variance_gru_fast_;
+        //     left_leg_peter_gru_.atb_gru_output_update_ = false;
+        // }
 
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -1337,22 +1336,22 @@ void AvatarController::computeFast()
             VectorQd Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
 
             // MOB-LSTM INFERENCE
-            initializeLegLSTM(left_leg_mob_lstm_);
-            loadLstmWeights(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(left_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // initializeLegLSTM(left_leg_mob_lstm_);
+            // loadLstmWeights(left_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(left_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/left_leg/left_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
-            initializeLegLSTM(right_leg_mob_lstm_);
-            loadLstmWeights(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
-            loadLstmMeanStd(right_leg_mob_lstm_, "/home/dg/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // initializeLegLSTM(right_leg_mob_lstm_);
+            // loadLstmWeights(right_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/lstm_tocabi/weights/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
+            // loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
-            // PETER GRU
-            initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(left_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            // // PETER GRU
+            // initializeLegGRU(left_leg_peter_gru_, 24, 12, 150);
+            // loadGruWeights(left_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
+            // loadGruMeanStd(left_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/left_leg_tocabi_new_data_jts_lpf_peter/");
             
-            initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
-            loadGruWeights(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
-            loadGruMeanStd(right_leg_peter_gru_, "/home/dg/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            // initializeLegGRU(right_leg_peter_gru_, 24, 12, 150);
+            // loadGruWeights(right_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
+            // loadGruMeanStd(right_leg_peter_gru_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/right_leg_tocabi_new_data_jts_lpf_peter/");
 
             if (atb_grav_update_ == false)
             {
@@ -1413,8 +1412,8 @@ void AvatarController::computeFast()
         // motion planing and control//
 
         // Self-Collision-Avoidance Network Inferences
-        calculateScaMlpOutput(larm_upperbody_sca_mlp_);
-        calculateScaMlpOutput(rarm_upperbody_sca_mlp_);
+        // calculateScaMlpOutput(larm_upperbody_sca_mlp_);
+        // calculateScaMlpOutput(rarm_upperbody_sca_mlp_);
         // calculateScaMlpOutput(btw_arms_sca_mlp_);
 
         // avatar mode pedal
@@ -1427,29 +1426,29 @@ void AvatarController::computeFast()
         //STEP3: Compute q_dot for CAM control
         //computeCAMcontrol_HQP();
 
-        calculateLstmOutput(left_leg_mob_lstm_);  //20~25us
-        calculateLstmOutput(right_leg_mob_lstm_); //20~25us
-        // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-        // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
-        estimated_model_unct_torque_fast_.setZero();
-        estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
-        estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
+        // calculateLstmOutput(left_leg_mob_lstm_);  //20~25us
+        // calculateLstmOutput(right_leg_mob_lstm_); //20~25us
+        // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        // // cout<<"LSTM output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
+        // estimated_model_unct_torque_fast_.setZero();
+        // estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
+        // estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
 
-        if (gaussian_mode_ == true)
-        {
-            // gaussian model
-            estimated_model_unct_torque_variance_fast_.setZero();
-            estimated_model_unct_torque_variance_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(6, 6);
-            estimated_model_unct_torque_variance_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(6, 6);
-        }
+        // if (gaussian_mode_ == true)
+        // {
+        //     // gaussian model
+        //     estimated_model_unct_torque_variance_fast_.setZero();
+        //     estimated_model_unct_torque_variance_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(6, 6);
+        //     estimated_model_unct_torque_variance_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(6, 6);
+        // }
 
-        if (left_leg_mob_lstm_.atb_lstm_output_update_ == false)
-        {
-            left_leg_mob_lstm_.atb_lstm_output_update_ = true;
-            estimated_model_unct_torque_thread_ = estimated_model_unct_torque_fast_;
-            estimated_model_unct_torque_variance_thread_ = estimated_model_unct_torque_variance_fast_;
-            left_leg_mob_lstm_.atb_lstm_output_update_ = false;
-        }
+        // if (left_leg_mob_lstm_.atb_lstm_output_update_ == false)
+        // {
+        //     left_leg_mob_lstm_.atb_lstm_output_update_ = true;
+        //     estimated_model_unct_torque_thread_ = estimated_model_unct_torque_fast_;
+        //     estimated_model_unct_torque_variance_thread_ = estimated_model_unct_torque_variance_fast_;
+        //     left_leg_mob_lstm_.atb_lstm_output_update_ = false;
+        // }
 
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -9277,10 +9276,12 @@ void AvatarController::updateInitialState()
 }
 
 void AvatarController::getRobotState()
-{
+{   
+
     __q_dot_virtual = rd_.q_dot_virtual_;
     __q_virtual = rd_.q_virtual_;
     __q_ddot_virtual = rd_.q_ddot_virtual_;
+
     for (int i=0;i<LINK_NUMBER + 1; i++)
     {
         link_avatar_[i] = rd_.link_[i];
@@ -9561,18 +9562,18 @@ void AvatarController::getRobotState()
     // }
 
     //friction torque calculation
-    frictionTorqueCalculator(rd_.q_dot_, desired_q_dot_fast_, torque_current_elmo_, friction_model_torque_);
+    // frictionTorqueCalculator(rd_.q_dot_, desired_q_dot_fast_, torque_current_elmo_, friction_model_torque_);
 
-    collectRobotInputData_acc_version();     // 1us
-    calculateLstmInput(left_leg_mob_lstm_);  // 1us
-    calculateLstmInput(right_leg_mob_lstm_); // 1us
+    // collectRobotInputData_acc_version();     // 1us
+    // calculateLstmInput(left_leg_mob_lstm_);  // 1us
+    // calculateLstmInput(right_leg_mob_lstm_); // 1us
 
-    collectRobotInputData_peter_gru();
-    calculateGruInput(left_leg_peter_gru_);
-    calculateGruInput(right_leg_peter_gru_);
+    // collectRobotInputData_peter_gru();
+    // calculateGruInput(left_leg_peter_gru_);
+    // calculateGruInput(right_leg_peter_gru_);
 
-    floatingBaseMOB();                       // created by DG
-    collisionEstimation();
+    // floatingBaseMOB();                       // created by DG
+    // collisionEstimation();
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
 
