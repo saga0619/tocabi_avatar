@@ -45,7 +45,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     calibration_state_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi_status", 5);
     calibration_state_gui_log_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/guilog", 100);
     upperbodymode_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/upperbodymodecurrent", 5); 
-    avatar_warning_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/warningmsg", 5); 
+    avatar_warning_pub = nh_avatar_.advertise<std_msgs::Int8>("/tocabi/avatar/warningmsg", 100); 
 
     haptic_force_pub = nh_avatar_.advertise<std_msgs::Float32MultiArray>("/tocabi/hand_ftsensors", 5);
 
@@ -298,24 +298,24 @@ void AvatarController::setGains()
     kp_stiff_joint_(12) = 6000; // waist
     kp_stiff_joint_(13) = 10000;
     kp_stiff_joint_(14) = 10000;
-    kp_stiff_joint_(15) = 200; // left arm
-    kp_stiff_joint_(16) = 400;
-    kp_stiff_joint_(17) = 200;
-    kp_stiff_joint_(18) = 200;
-    kp_stiff_joint_(19) = 125;
-    kp_stiff_joint_(20) = 125;
-    kp_stiff_joint_(21) = 25;
-    kp_stiff_joint_(22) = 25;
+    kp_stiff_joint_(15) = 700; // left arm
+    kp_stiff_joint_(16) = 1250;
+    kp_stiff_joint_(17) = 1000;
+    kp_stiff_joint_(18) = 1000;
+    kp_stiff_joint_(19) = 450;
+    kp_stiff_joint_(20) = 450;
+    kp_stiff_joint_(21) = 200;
+    kp_stiff_joint_(22) = 200;
     kp_stiff_joint_(23) = 50; // head
     kp_stiff_joint_(24) = 50;
-    kp_stiff_joint_(25) = 200; // right arm
-    kp_stiff_joint_(26) = 400;
-    kp_stiff_joint_(27) = 200;
-    kp_stiff_joint_(28) = 200;
-    kp_stiff_joint_(29) = 125;
-    kp_stiff_joint_(30) = 125;
-    kp_stiff_joint_(31) = 25;
-    kp_stiff_joint_(32) = 25;
+    kp_stiff_joint_(25) = 700; // right arm
+    kp_stiff_joint_(26) = 1250;
+    kp_stiff_joint_(27) = 1000;
+    kp_stiff_joint_(28) = 1000;
+    kp_stiff_joint_(29) = 450;
+    kp_stiff_joint_(30) = 450;
+    kp_stiff_joint_(31) = 200;
+    kp_stiff_joint_(32) = 200;
 
     kv_stiff_joint_(0) = 15; // right leg
     kv_stiff_joint_(1) = 50;
@@ -332,24 +332,24 @@ void AvatarController::setGains()
     kv_stiff_joint_(12) = 200; // waist
     kv_stiff_joint_(13) = 100;
     kv_stiff_joint_(14) = 100;
-    kv_stiff_joint_(15) = 7; // left arm
-    kv_stiff_joint_(16) = 5;
-    kv_stiff_joint_(17) = 2.5;
-    kv_stiff_joint_(18) = 2.5;
-    kv_stiff_joint_(19) = 2.5;
-    kv_stiff_joint_(20) = 2;
-    kv_stiff_joint_(21) = 2;
-    kv_stiff_joint_(22) = 2;
+    kv_stiff_joint_(15) = 11; // left arm
+    kv_stiff_joint_(16) = 8;
+    kv_stiff_joint_(17) = 4;
+    kv_stiff_joint_(18) = 4;
+    kv_stiff_joint_(19) = 4;
+    kv_stiff_joint_(20) = 3;
+    kv_stiff_joint_(21) = 3;
+    kv_stiff_joint_(22) = 3;
     kv_stiff_joint_(23) = 2; // head
     kv_stiff_joint_(24) = 2;
-    kv_stiff_joint_(25) = 7; // right arm
-    kv_stiff_joint_(26) = 5;
-    kv_stiff_joint_(27) = 2.5;
-    kv_stiff_joint_(28) = 2.5;
-    kv_stiff_joint_(29) = 2.5;
-    kv_stiff_joint_(30) = 2;
-    kv_stiff_joint_(31) = 2;
-    kv_stiff_joint_(32) = 2;
+    kv_stiff_joint_(25) = 11; // right arm
+    kv_stiff_joint_(26) = 8;
+    kv_stiff_joint_(27) = 4;
+    kv_stiff_joint_(28) = 4;
+    kv_stiff_joint_(29) = 4;
+    kv_stiff_joint_(30) = 3;
+    kv_stiff_joint_(31) = 3;
+    kv_stiff_joint_(32) = 3;
 
     kp_soft_joint_(0) = 2000; // right leg
     kp_soft_joint_(1) = 5000;
@@ -1389,7 +1389,9 @@ void AvatarController::getProcessedRobotData()
 void AvatarController::avatarModeStateMachine()
 {
     //////CHECK SELF COLLISION///////////
-    if(larm_upperbody_sca_mlp_.hx < 0.0)
+    double sc_threshold = 2.0;
+
+    if(larm_upperbody_sca_mlp_.hx < sc_threshold)
     {
         larm_upperbody_sca_mlp_.self_collision_stop_cnt_ += 1;
     }
@@ -1398,7 +1400,7 @@ void AvatarController::avatarModeStateMachine()
         larm_upperbody_sca_mlp_.self_collision_stop_cnt_ == 0;
     }
 
-    if(rarm_upperbody_sca_mlp_.hx < 0.0)
+    if(rarm_upperbody_sca_mlp_.hx < sc_threshold)
     {
         rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ += 1;
     }
@@ -1407,6 +1409,7 @@ void AvatarController::avatarModeStateMachine()
         rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ == 0;
     }
 
+    /////////// self collision stop ///////////////////
     if(upper_body_mode_ != 3)
     {
         if(larm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 100 && current_time_ > upperbody_command_time_ + 3.0)
@@ -1418,6 +1421,8 @@ void AvatarController::avatarModeStateMachine()
 
             std_msgs::Int8 warning_msg_1;
             warning_msg_1.data = 1;
+            avatar_warning_pub.publish(warning_msg_1);
+            avatar_warning_pub.publish(warning_msg_1);
             avatar_warning_pub.publish(warning_msg_1);
 
             std_msgs::String msg;
@@ -1436,6 +1441,8 @@ void AvatarController::avatarModeStateMachine()
             std_msgs::Int8 warning_msg_2;
             warning_msg_2.data = 2;
             avatar_warning_pub.publish(warning_msg_2);
+            avatar_warning_pub.publish(warning_msg_2);
+            avatar_warning_pub.publish(warning_msg_2);
 
             std_msgs::String msg;
             std::stringstream rarm_selfcol;
@@ -1452,6 +1459,51 @@ void AvatarController::avatarModeStateMachine()
     //     cout<<"rarm hx: "<<rarm_upperbody_sca_mlp_.hx << endl;
     // }
     //////////////////////////////////////////////////////
+
+    /////////// self collision warning msg only ///////////////////
+    // int warning_msg_temp = 0;
+    // bool sc_check_larm = 0;
+    // bool sc_check_rarm = 0;
+    // if(larm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 0)
+    // {
+    //     warning_msg_temp = 1;
+    //     sc_check_larm = true;
+    // }
+
+    // if(rarm_upperbody_sca_mlp_.self_collision_stop_cnt_ > 0)
+    // {
+    //     warning_msg_temp = 2;
+    //     sc_check_rarm = true;
+    // }
+
+    // if(sc_check_larm && sc_check_rarm)
+    // {
+    //     warning_msg_temp = 3;
+    // }
+
+    // if(warning_msg_temp > 0)
+    // {
+    //     for (int i = 15; i < MODEL_DOF; i++)
+    //     {
+    //         kp_joint_(i) = kp_stiff_joint_(i)/100;
+    //         kv_joint_(i) = kv_stiff_joint_(i);
+    //     }
+    // }
+    // else
+    // {
+    //     for (int i = 15; i < MODEL_DOF; i++)
+    //     {
+    //         kp_joint_(i) = kp_stiff_joint_(i);
+    //         kv_joint_(i) = kv_stiff_joint_(i);
+    //     }
+    // }
+
+    // std_msgs::Int8 warning_msg;
+    // if( compute_fast_tick_%20 == 0)
+    // {
+    //     warning_msg.data = warning_msg_temp;
+    //     avatar_warning_pub.publish(warning_msg);
+    // }
 
     /// @brief masterarm haptic feedback publihser
     if(real_robot_mode_ == true)
@@ -1658,11 +1710,11 @@ void AvatarController::motionGenerator()
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
         motion_q_(15) = 0.3;
-        motion_q_(16) = 0.12;
-        motion_q_(17) = 1.43;
-        motion_q_(18) = -0.85;
-        motion_q_(19) = -0.45; // elbow
-        motion_q_(20) = 1;
+        motion_q_(16) = -0.7;
+        motion_q_(17) = 1.2;
+        motion_q_(18) = -1.5;
+        motion_q_(19) = -1.8; // elbow
+        motion_q_(20) = 0.5;
         motion_q_(21) = 0.0;
         motion_q_(22) = 0.0;
         pd_control_mask_(15) = 1;
@@ -1676,11 +1728,11 @@ void AvatarController::motionGenerator()
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
         motion_q_(25) = -0.3;
-        motion_q_(26) = -0.12;
-        motion_q_(27) = -1.43;
-        motion_q_(28) = 0.85;
-        motion_q_(29) = 0.45; // elbow
-        motion_q_(30) = -1;
+        motion_q_(26) = 0.7;
+        motion_q_(27) = -1.2;
+        motion_q_(28) = 1.5;
+        motion_q_(29) = 1.8; // elbow
+        motion_q_(30) = -0.5;
         motion_q_(31) = 0.0;
         motion_q_(32) = 0.0;
         pd_control_mask_(25) = 1;
@@ -1695,7 +1747,7 @@ void AvatarController::motionGenerator()
 
         for (int i = 12; i < MODEL_DOF; i++)
         {
-            motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 4, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
+            motion_q_(i) = DyrosMath::QuinticSpline(current_time_, upperbody_command_time_, upperbody_command_time_ + 2.5, upperbody_mode_q_init_(i), 0, 0, motion_q_(i), 0, 0)(0);
         }
     }
     else if (upper_body_mode_ == 3) // Freezing
@@ -1749,21 +1801,21 @@ void AvatarController::motionGenerator()
 
         ///////////////////////HEAD/////////////////////////
         motion_q_(23) = 0; // yaw
-        motion_q_(24) = 0; // pitch
+        motion_q_(24) = 0.3; // pitch
         pd_control_mask_(23) = 1;
         pd_control_mask_(24) = 1;
         /////////////////////////////////////////////////////
 
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
-        motion_q_(15) = 0.3;
-        motion_q_(16) = -0.6;
-        motion_q_(17) = 1.2;
-        motion_q_(18) = -0.80;
-        motion_q_(19) = -2.3; // elbow
-        motion_q_(20) = 1.45;
-        motion_q_(21) = 0.0;
-        motion_q_(22) = 0.0;
+        motion_q_(15) = 0.0;
+        motion_q_(16) = -0.3;
+        motion_q_(17) = 1.57;
+        motion_q_(18) = -1.2;
+        motion_q_(19) = -1.57; // elbow
+        motion_q_(20) = 1.5;
+        motion_q_(21) = 0.4;
+        motion_q_(22) = -0.2;
         pd_control_mask_(15) = 1;
         pd_control_mask_(16) = 1;
         pd_control_mask_(17) = 1;
@@ -1774,14 +1826,14 @@ void AvatarController::motionGenerator()
         pd_control_mask_(22) = 1;
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
-        motion_q_(25) = -0.3;
-        motion_q_(26) = 0.6;
-        motion_q_(27) = -1.2;
-        motion_q_(28) = 0.8;
-        motion_q_(29) = 2.3; // elbow
-        motion_q_(30) = -1.45;
-        motion_q_(31) = 0.0;
-        motion_q_(32) = 0.0;
+        motion_q_(25) = 0.0;
+        motion_q_(26) = 0.3;
+        motion_q_(27) = -1.57;
+        motion_q_(28) = 1.2;
+        motion_q_(29) = 1.57; // elbow
+        motion_q_(30) = -1.5;
+        motion_q_(31) = -0.4;
+        motion_q_(32) = 0.2;
         pd_control_mask_(25) = 1;
         pd_control_mask_(26) = 1;
         pd_control_mask_(27) = 1;
@@ -4558,10 +4610,10 @@ void AvatarController::rawMasterPoseProcessing()
     {
         ///////3D Mouse Mode////////////
         master_lhand_pose_raw_.translation() = master_lhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.3 * (hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
 
         master_rhand_pose_raw_.translation() = master_rhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.3 * (hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
         ////////////////////////////////////////////////////
     }
 
@@ -5855,6 +5907,8 @@ void AvatarController::savePreData()
     rhand_mapping_vector_pre_ = rhand_mapping_vector_;
 
     avatar_op_pedal_pre_ = avatar_op_pedal_;
+
+    compute_fast_tick_ += 1;
 }
 
 void AvatarController::UpperbodyModeCallback(const std_msgs::Int8 &msg)

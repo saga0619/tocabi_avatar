@@ -241,6 +241,7 @@ public:
 
     int mode_12_count_ = 0;
 
+    int compute_fast_tick_ = 0;
 
     Eigen::VectorQd torque_task_max_;
     Eigen::VectorQd torque_task_min_;
@@ -589,7 +590,7 @@ public:
 
     double tracker_status_changed_time_;
     
-    bool master_arm_mode_ = true;
+    bool master_arm_mode_ = false;
     bool real_robot_mode_ = true;
 
     double hmd_larm_max_l_;
