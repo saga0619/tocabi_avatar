@@ -298,7 +298,7 @@ public:
     double com_mass_;
 
     int mode_12_count_ = 0;
-
+    int setcontact_flag = 0;
 
     Eigen::VectorQd torque_task_max_;
     Eigen::VectorQd torque_task_min_;

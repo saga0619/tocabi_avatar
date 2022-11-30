@@ -917,7 +917,8 @@ void AvatarController::computeSlow()
     else if (rd_.tc_.mode == 13) //2KHZ STRICT
     {
         if (walking_enable_ == true)
-        {
+        {   
+            //cout << " test 1 " << endl;
             if (walking_tick_mj == 0)
             {
                 parameterSetting();
@@ -943,23 +944,29 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 13" << endl;
             }
-
+            //cout << " test 2 " << endl;
             updateInitialStateJoy();
+            //cout << " test 3 " << endl;
             getRobotState();
+            //cout << " test 4 " << endl;
             floatToSupportFootstep();
-
+            //cout << " test 5 " << endl;
             if (current_step_num_ < total_step_num_)
-            {
+            {   //cout << " test 6 " << endl;
                 getZmpTrajectory();
+                //cout << " test 7 " << endl;
                 getComTrajectory();
+                //cout << " test 8 " << endl;
                 CentroidalMomentCalculator();
-                
+                //cout << " test 9 " << endl;
                 getFootTrajectory();
+                //cout << " test 10 " << endl;
                 getPelvTrajectory();
+                //cout << " test 11 " << endl;
                 supportToFloatPattern();
-
+                //cout << " test 12 " << endl;
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
-
+                //cout << " test 13 " << endl;
                 // Compliant_control(q_des_);
                 for (int i = 0; i < 12; i++)
                 {
@@ -1405,16 +1412,16 @@ void AvatarController::computeFast()
     }
     else if (rd_.tc_.mode == 13)
     {
-    
+        
         if (walking_enable_ == true)
-        {
+        {   cout << " test 1 " << endl;
             if (current_step_num_ < total_step_num_)
             {
                 GravityCalculate_MJ(); // 90~160us
-            }
+            }cout << " test 2 " << endl;
         }
         else
-        {
+        {    
             WBC::SetContact(rd_, 1, 1);
             int support_foot;
             if (foot_step_(current_step_num_, 6) == 1)
@@ -1424,8 +1431,7 @@ void AvatarController::computeFast()
             else
             {
                 support_foot = 0;
-            }
-
+            } 
             if (atb_grav_update_ == false)
             {
                 VectorQd Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
@@ -1433,7 +1439,7 @@ void AvatarController::computeFast()
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
-            } 
+            }  
         }
         
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -1454,14 +1460,11 @@ void AvatarController::computeFast()
         calculateScaMlpOutput(larm_upperbody_sca_mlp_);
         calculateScaMlpOutput(rarm_upperbody_sca_mlp_);
         // calculateScaMlpOutput(btw_arms_sca_mlp_);
-
         // avatar mode pedal
         avatarModeStateMachine();
-        
 
         //motion planing and control//
         motionGenerator(); // 140~240us(HQPIK)
-
         //STEP3: Compute q_dot for CAM control
         //computeCAMcontrol_HQP();
 
@@ -1503,7 +1506,6 @@ void AvatarController::computeFast()
             desired_q_dot_slow_ = desired_q_dot_;
             atb_desired_q_update_ = false;
         }
-
         savePreData();
 
         // printOutTextFile();
@@ -9971,7 +9973,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 200; // total foot step number
+        middle_total_step_number = 6; // total foot step number
         dlength = 0;
     }
 
@@ -12909,9 +12911,15 @@ void AvatarController::GravityCalculate_MJ()
 
     if (float_data_collect_mode_ == false)
     {
-        if (walking_tick_mj < t_start_ + t_rest_init_)
+        if (walking_tick_mj < t_start_ + t_rest_init_ + 0*t_double1_)
         {
-            WBC::SetContact(rd_, 1, 1);
+            
+            if(setcontact_flag == 0)
+            {
+                WBC::SetContact(rd_, 1, 1);
+                setcontact_flag = 1;
+            }   
+            
             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
             Gravity_SSP_.setZero();
             contact_gain = 1.0;
@@ -12923,12 +12931,12 @@ void AvatarController::GravityCalculate_MJ()
             {
                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
             }
-        }
+        } // 
         else if (walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_) // 0.03 s
         {
             contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 1.0, 0.0, 0.0, 0.0);
 
-            WBC::SetContact(rd_, 1, 1);
+            // WBC::SetContact(rd_, 1, 1);
             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
             Gravity_SSP_.setZero();
             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
@@ -12943,18 +12951,28 @@ void AvatarController::GravityCalculate_MJ()
         else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_) // SSP
         {
             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
-            {
-                WBC::SetContact(rd_, 1, 0);
+            {   
+                if(setcontact_flag == 1)
+                {
+                    WBC::SetContact(rd_, 1, 0);
+                    setcontact_flag = 2;
+                }
+                
                 Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
-                Gravity_SSP_(1) = 1.0 * Gravity_SSP_(1);
-                Gravity_SSP_(5) = 1.0 * Gravity_SSP_(5);
+                // Gravity_SSP_(1) = 1.0 * Gravity_SSP_(1);
+                // Gravity_SSP_(5) = 1.0 * Gravity_SSP_(5);
             }
             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
             {
-                WBC::SetContact(rd_, 0, 1);
+                if(setcontact_flag == 1)
+                {
+                    WBC::SetContact(rd_, 0, 1);
+                    setcontact_flag = 2;
+                }
+                
                 Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
-                Gravity_SSP_(7) = 1.0 * Gravity_SSP_(7);
-                Gravity_SSP_(11) = 1.0 * Gravity_SSP_(11);
+                // Gravity_SSP_(7) = 1.0 * Gravity_SSP_(7);
+                // Gravity_SSP_(11) = 1.0 * Gravity_SSP_(11);
             }
             Gravity_DSP_.setZero();
             contact_torque_MJ.setZero();
@@ -12963,27 +12981,34 @@ void AvatarController::GravityCalculate_MJ()
         {
             contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_, t_start_ + t_total_ - t_rest_last_, 0.0, 1.0, 0.0, 0.0);
             Gravity_SSP_.setZero();
-            if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+            if(setcontact_flag == 2)
             {
                 WBC::SetContact(rd_, 1, 1);
+                setcontact_flag = 0;
+            }
+            if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+            {
+                // WBC::SetContact(rd_, 1, 1);
                 Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
             }
             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
             {
-                WBC::SetContact(rd_, 1, 1);
+                // WBC::SetContact(rd_, 1, 1);
                 Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
             }
-        }
+        }        
         else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
         {
-            contact_gain = 1.0;
-
-            WBC::SetContact(rd_, 1, 1);
+            // if(setcontact_flag == 2)
+            // {
+            //     WBC::SetContact(rd_, 1, 1);
+            //     setcontact_flag = 0;
+            // }            
             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
-
             Gravity_SSP_.setZero();
+            contact_gain = 1.0;
             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
             {
                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
@@ -12992,7 +13017,7 @@ void AvatarController::GravityCalculate_MJ()
             {
                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
             }
-        }
+        } cout << setcontact_flag << endl;
     }
     else
     {
@@ -13009,6 +13034,115 @@ void AvatarController::GravityCalculate_MJ()
         atb_grav_update_ = false;
     }
 }
+
+// void AvatarController::GravityCalculate_MJ()
+// {
+//     double contact_gain = 0.0;
+//     double eta = 0.9;
+//     VectorQd grav_;
+
+//     if (float_data_collect_mode_ == false)
+//     {
+//         if (walking_tick_mj < t_start_ + t_rest_init_)
+//         {
+//             WBC::SetContact(rd_, 1, 1);
+//             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+//             Gravity_SSP_.setZero();
+//             contact_gain = 1.0;
+//             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
+//             }
+//             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
+//             }
+//         }
+//         else if (walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_) // 0.03 s
+//         {
+//             contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 1.0, 0.0, 0.0, 0.0);
+
+//             WBC::SetContact(rd_, 1, 1);
+//             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+//             Gravity_SSP_.setZero();
+//             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
+//             }
+//             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
+//             }
+//         }
+//         else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_) // SSP
+//         {
+//             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+//             {
+//                 WBC::SetContact(rd_, 1, 0);
+//                 Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
+//                 // Gravity_SSP_(1) = 1.0 * Gravity_SSP_(1);
+//                 // Gravity_SSP_(5) = 1.0 * Gravity_SSP_(5);
+//             }
+//             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+//             {
+//                 WBC::SetContact(rd_, 0, 1);
+//                 Gravity_SSP_ = WBC::GravityCompensationTorque(rd_);
+//                 // Gravity_SSP_(7) = 1.0 * Gravity_SSP_(7);
+//                 // Gravity_SSP_(11) = 1.0 * Gravity_SSP_(11);
+//             }
+//             Gravity_DSP_.setZero();
+//             contact_torque_MJ.setZero();
+//         }
+//         else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_)
+//         {
+//             contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_, t_start_ + t_total_ - t_rest_last_, 0.0, 1.0, 0.0, 0.0);
+//             Gravity_SSP_.setZero();
+//             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+//             {
+//                 WBC::SetContact(rd_, 1, 1);
+//                 Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
+//             }
+//             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+//             {
+//                 WBC::SetContact(rd_, 1, 1);
+//                 Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
+//             }
+//         }
+//         else if (walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
+//         {
+//             contact_gain = 1.0;
+
+//             WBC::SetContact(rd_, 1, 1);
+//             Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+
+//             Gravity_SSP_.setZero();
+//             if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 1);
+//             }
+//             else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
+//             {
+//                 Gravity_DSP_ = WBC::ContactForceRedistributionTorqueWalking(rd_, Gravity_DSP_, eta, contact_gain, 0);
+//             }
+//         }
+//     }
+//     else
+//     {
+//         // Gravity_DSP_ = WBC::GravityCompensationTorque(rd_);
+//         Gravity_DSP_ = floatGravityTorque(q_virtual_Xd_global_);
+
+//         Gravity_SSP_.setZero();
+//     }
+
+//     if (atb_grav_update_ == false)
+//     {
+//         atb_grav_update_ = true;
+//         Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_; // + contact_torque_MJ;
+//         atb_grav_update_ = false;
+//     }
+// }
 Eigen::VectorQd AvatarController::floatGravityTorque(Eigen::VectorQVQd q)
 {
     // Eigen::VectorXd gravity_torque_temp, q_virtual, q_dot_virtual, qdot_zero;
