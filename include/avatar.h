@@ -660,7 +660,7 @@ public:
 
     double tracker_status_changed_time_;
     
-    bool master_arm_mode_ = true;
+    bool master_arm_mode_ = false;
     bool real_robot_mode_ = true;
 
     double hmd_larm_max_l_;

@@ -3088,21 +3088,21 @@ void AvatarController::motionGenerator()
 
         ///////////////////////HEAD/////////////////////////
         motion_q_(23) = 0; // yaw
-        motion_q_(24) = 0; // pitch
+        motion_q_(24) = 0.3; // pitch
         pd_control_mask_(23) = 1;
         pd_control_mask_(24) = 1;
         /////////////////////////////////////////////////////
 
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
-        motion_q_(15) = 0.3;
-        motion_q_(16) = -0.6;
-        motion_q_(17) = 1.2;
-        motion_q_(18) = -0.80;
-        motion_q_(19) = -2.3; // elbow
-        motion_q_(20) = 1.45;
-        motion_q_(21) = 0.0;
-        motion_q_(22) = 0.0;
+        motion_q_(15) = 0.0;
+        motion_q_(16) = -0.3;
+        motion_q_(17) = 1.57;
+        motion_q_(18) = -1.2;
+        motion_q_(19) = -1.57; // elbow
+        motion_q_(20) = 1.5;
+        motion_q_(21) = 0.4;
+        motion_q_(22) = -0.2;
         pd_control_mask_(15) = 1;
         pd_control_mask_(16) = 1;
         pd_control_mask_(17) = 1;
@@ -3113,14 +3113,14 @@ void AvatarController::motionGenerator()
         pd_control_mask_(22) = 1;
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
-        motion_q_(25) = -0.3;
-        motion_q_(26) = 0.6;
-        motion_q_(27) = -1.2;
-        motion_q_(28) = 0.8;
-        motion_q_(29) = 2.3; // elbow
-        motion_q_(30) = -1.45;
-        motion_q_(31) = 0.0;
-        motion_q_(32) = 0.0;
+        motion_q_(25) = 0.0;
+        motion_q_(26) = 0.3;
+        motion_q_(27) = -1.57;
+        motion_q_(28) = 1.2;
+        motion_q_(29) = 1.57; // elbow
+        motion_q_(30) = -1.5;
+        motion_q_(31) = -0.4;
+        motion_q_(32) = 0.2;
         pd_control_mask_(25) = 1;
         pd_control_mask_(26) = 1;
         pd_control_mask_(27) = 1;
@@ -5897,10 +5897,10 @@ void AvatarController::rawMasterPoseProcessing()
     {
         ///////3D Mouse Mode////////////
         master_lhand_pose_raw_.translation() = master_lhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.3 * (hmd_lhand_pose_.translation() - hmd_lhand_pose_start_.translation());
 
         master_rhand_pose_raw_.translation() = master_rhand_pose_start_.translation() + 
-                                                hand_pos_mapping_scale_raw_ * 1.0 * (hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
+                                                hand_pos_mapping_scale_raw_ * 1.3 * (hmd_rhand_pose_.translation() - hmd_rhand_pose_start_.translation());
         ////////////////////////////////////////////////////
     }
 
@@ -12913,7 +12913,6 @@ void AvatarController::GravityCalculate_MJ()
     {
         if (walking_tick_mj < t_start_ + t_rest_init_ + 0*t_double1_)
         {
-            
             if(setcontact_flag == 0)
             {
                 WBC::SetContact(rd_, 1, 1);
