@@ -12,13 +12,13 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
-ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
-ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
-ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
-ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+// ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
+// ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
+// ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
+// ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
+// ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -872,7 +872,6 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            // updateInitialStateJoy();
             loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
@@ -952,7 +951,7 @@ void AvatarController::computeSlow()
                 getZmpTrajectory();
                 getComTrajectory();
                 CentroidalMomentCalculator();
-                
+
                 getFootTrajectory();
                 getPelvTrajectory();
                 supportToFloatPattern();
@@ -14361,10 +14360,10 @@ void AvatarController::CentroidalMomentCalculator()
     Eigen::Vector2d cmp_limit_;
     Eigen::Vector2d del_tau_limit_;
 
-    double foot_width_x_front = 0.160; // margin = 0.8 / original foot width in urdf -> 0.18/0.12, small foot: 0.16/0.10
-    double foot_width_x_back = 0.100;
-    double foot_width_y = 0.050; // margin = 0.8 / original foot width in urdf -> 0.065, small foot: 0.05
-    double support_margin = 0.8;
+    double foot_width_x_front = 0.180; // margin = 0.8 / original foot width in urdf -> 0.18/0.12, small foot: 0.16/0.10
+    double foot_width_x_back = 0.120;
+    double foot_width_y = 0.065; // margin = 0.8 / original foot width in urdf -> 0.065, small foot: 0.05
+    double support_margin = 1.0;
     // del tau output limitation (220118/ DLR's CAM output is an approximately 20 Nm (maximum) and TORO has a weight of 79.2 kg)
     del_tau_limit_(0) = 20.0;
     del_tau_limit_(1) = 20.0;
