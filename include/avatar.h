@@ -12,6 +12,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include <fstream>
+#include <sensor_msgs/Joy.h>
 //#include "tocabi_msgs/FTsensor.h" // real robot experiment
 
 //lexls
@@ -43,8 +44,8 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/dg/training_data.txt",
-    "/home/dg/data/dg/hand_ft.txt"
+    "/home/dyros/data/dg/training_data.txt",
+    "/home/dyros/data/dg/hand_ft.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -60,7 +61,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -243,10 +244,11 @@ public:
 
     ros::Publisher haptic_force_pub;
     ros::Subscriber opto_ftsensor_sub;
-
+    
     ros::Publisher mujoco_ext_force_apply_pub;
     std_msgs::Float32MultiArray mujoco_applied_ext_force_; // 6 ext wrench + 1 link idx
 
+    ros::Subscriber joystick_command;
 
     void UpperbodyModeCallback(const std_msgs::Int8 &msg);
 
@@ -272,6 +274,7 @@ public:
 
     void HandPosMappingScaleCallback(const std_msgs::Float32 &msg);
 
+    void JoystickCommandCallback(const sensor_msgs::Joy &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -298,7 +301,7 @@ public:
     double com_mass_;
 
     int mode_12_count_ = 0;
-
+    int setcontact_flag = 0;
 
     Eigen::VectorQd torque_task_max_;
     Eigen::VectorQd torque_task_min_;
@@ -660,7 +663,7 @@ public:
 
     double tracker_status_changed_time_;
     
-    bool master_arm_mode_ = true;
+    bool master_arm_mode_ = false;
     bool real_robot_mode_ = true;
 
     double hmd_larm_max_l_;
@@ -1419,21 +1422,20 @@ private:
     Eigen::VectorQVQd q_virtual_clik_;
     Eigen::Vector8d integral;
 
-    bool first_loop_larm_;
-    bool first_loop_rarm_;
-    bool first_loop_upperbody_;
-    bool first_loop_hqpik_;
-    bool first_loop_hqpik2_;
-    bool first_loop_qp_retargeting_;
+    bool first_loop_larm_ = true;
+    bool first_loop_rarm_ = true;
+    bool first_loop_upperbody_ = true;
+    bool first_loop_hqpik_ = true;
+    bool first_loop_hqpik2_ = true;
+    bool first_loop_qp_retargeting_ = true;
 
     int printout_cnt_ = 0;
-    bool first_loop_camhqp_;
+    bool first_loop_camhqp_ = true;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
     //////////////////////////////// Myeong-Ju
-    void circling_motion();
     void computeIkControl_MJ(Eigen::Isometry3d float_trunk_transform, Eigen::Isometry3d float_lleg_transform, Eigen::Isometry3d float_rleg_transform, Eigen::Vector12d& desired_leg_q);
     void Joint_gain_set_MJ();
     void updateInitialState();
@@ -1687,7 +1689,7 @@ public:
     double zmp_start_time_mj_thread_;
     double UX_mj_, UY_mj_; 
     Eigen::Vector3d com_desired_;
-    Eigen::MatrixXd foot_step_;
+    Eigen::MatrixXd foot_step_;                         // 0~2: next step position, 3~5: next step euler angles, 6: current suppor foot (0: right, 1: left)
     Eigen::MatrixXd foot_step_support_frame_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
     
@@ -1723,7 +1725,6 @@ public:
     bool walking_enable_ ;
 
     //pedal_
-    ros::NodeHandle nh;
     ros::Subscriber pedal_command;
     void PedalCommandCallback(const tocabi_msgs::WalkingCommandConstPtr &msg);
     Eigen::Vector4d joystick_input;
@@ -1738,6 +1739,20 @@ public:
     Eigen::MatrixXd foot_step_joy_temp_;
     bool joy_enable_ = false;
     bool joy_input_enable_ = false;
+
+    void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool first_support_foot_is_left);
+    void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
+    Eigen::Isometry3d oneStepPlanner(double del_x, double del_y, double del_yaw, bool support_foot_is_left);
+    Eigen::Vector2d joy_left_stick_;
+    Eigen::Vector2d joy_right_stick_; 
+    bool current_support_foot_is_left_ = true;
+    bool walking_stop_flag_;
+    bool stopping_step_planning_trigger_;
+    const int joy_command_buffer_size_ = 30; // 0.1s
+    Eigen::Matrix<double, 3, 30> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    double del_x_command_ = 0;
+    double del_y_command_ = 0;
+    double yaw_angle_command_ = 0;
 
     Eigen::VectorQd q_mj;
     Eigen::VectorQd q_mj_prev;
