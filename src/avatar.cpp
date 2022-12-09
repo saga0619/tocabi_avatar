@@ -684,8 +684,8 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {            
                 getZmpTrajectory();
-                getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
-                // getComTrajectory_mpc(); // working with thread3 (MPC thread)   
+                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)   
                 // CPMPC_bolt_Controller_MJ(); 
                 // BoltController_MJ(); // Stepping Controller for DCM eos                
                 // MJDG CMP control
@@ -951,7 +951,8 @@ void AvatarController::computeSlow()
             {   //cout << " test 6 " << endl;
                 getZmpTrajectory();
                 //cout << " test 7 " << endl;
-                getComTrajectory();
+                // getComTrajectory();
+                getComTrajectory_mpc(); // working with thread3 (MPC thread)  
                 //cout << " test 8 " << endl;
                 CentroidalMomentCalculator();
                 //cout << " test 9 " << endl;
@@ -1068,8 +1069,8 @@ void AvatarController::computeSlow()
                 getRobotState();
                 floatToSupportFootstep();
                 getZmpTrajectory();
-                // getComTrajectory_mpc();
-                getComTrajectory();
+                getComTrajectory_mpc();
+                // getComTrajectory();
                 getFootTrajectory();
                 cout << "walking finish" << endl;
                 cout << "com_desired_2: " << com_desired_ << endl;
@@ -1514,7 +1515,7 @@ void AvatarController::computeFast()
 void AvatarController::computeThread3()
 {
     // cout<<"thread3 test 1" <<endl;
-    // comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); // Hz, T, Preview window
+    comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); // Hz, T, Preview window
     // cout<<"thread3 test 2" <<endl;
     // cpcontroller_MPC_MJDG(50.0, 1.5); // Hz, Preview window
     // cout<<"thread3 test 3" <<endl;
@@ -11855,8 +11856,8 @@ void AvatarController::getComTrajectory_mpc()
     cpmpc_interpol_cnt_y_ ++;
     
     // Reference COM, CP position // CPMPC로 대체하면 필요 X
-    // cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
-    // cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
+    cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
+    cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
 
     com_desired_(0) = x_mpc_i_(0);
     com_desired_(1) = y_mpc_i_(0);
@@ -12046,12 +12047,22 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
 
     L_C = sqrt(pow(L_r(0), 2) + pow(L_r(1), 2) + pow(L_r(2), 2));
     R_C = sqrt(pow(R_r(0), 2) + pow(R_r(1), 2) + pow(R_r(2), 2));
+     
+    double knee_acos_var_L = 0;
+    double knee_acos_var_R = 0;
 
-    q_des(3) = (-acos((pow(L_upper, 2) + pow(L_lower, 2) - pow(L_C, 2)) / (2 * L_upper * L_lower)) + M_PI);
-    q_des(9) = (-acos((pow(L_upper, 2) + pow(L_lower, 2) - pow(R_C, 2)) / (2 * L_upper * L_lower)) + M_PI);
+    knee_acos_var_L = (pow(L_upper, 2) + pow(L_lower, 2) - pow(L_C, 2))/ (2 * L_upper * L_lower);
+    knee_acos_var_R = (pow(L_upper, 2) + pow(L_lower, 2) - pow(R_C, 2))/ (2 * L_upper * L_lower);
+
+    knee_acos_var_L = DyrosMath::minmax_cut(knee_acos_var_L, -0.99, + 0.99);
+    knee_acos_var_R = DyrosMath::minmax_cut(knee_acos_var_R, -0.99, + 0.99);
+
+    q_des(3) = (-acos(knee_acos_var_L) + M_PI);  
+    q_des(9) = (-acos(knee_acos_var_R) + M_PI);
+    
     L_alpha = asin(L_upper / L_C * sin(M_PI - q_des(3)));
     R_alpha = asin(L_upper / R_C * sin(M_PI - q_des(9)));
-
+    
     q_des(4) = -atan2(L_r(0), sqrt(pow(L_r(1), 2) + pow(L_r(2), 2))) - L_alpha;
     q_des(10) = -atan2(R_r(0), sqrt(pow(R_r(1), 2) + pow(R_r(2), 2))) - R_alpha;
 
@@ -12073,6 +12084,7 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(0) = atan2(-L_Hip_rot_mat(0, 1), L_Hip_rot_mat(1, 1));                                                       // Hip yaw
     q_des(1) = atan2(L_Hip_rot_mat(2, 1), -L_Hip_rot_mat(0, 1) * sin(q_des(0)) + L_Hip_rot_mat(1, 1) * cos(q_des(0))); // Hip roll
     q_des(2) = atan2(-L_Hip_rot_mat(2, 0), L_Hip_rot_mat(2, 2));                                                       // Hip pitch
+    q_des(2) = DyrosMath::minmax_cut(q_des(2), -90*DEG2RAD, - 5*DEG2RAD);
     q_des(3) = q_des(3);                                                                                               // Knee pitch
     q_des(4) = q_des(4);                                                                                               // Ankle pitch
     q_des(5) = atan2(L_r(1), L_r(2));                                                                                  // Ankle roll
@@ -12080,6 +12092,7 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(6) = atan2(-R_Hip_rot_mat(0, 1), R_Hip_rot_mat(1, 1));
     q_des(7) = atan2(R_Hip_rot_mat(2, 1), -R_Hip_rot_mat(0, 1) * sin(q_des(6)) + R_Hip_rot_mat(1, 1) * cos(q_des(6)));
     q_des(8) = atan2(-R_Hip_rot_mat(2, 0), R_Hip_rot_mat(2, 2));
+    q_des(8) = DyrosMath::minmax_cut(q_des(8), -90*DEG2RAD, - 5*DEG2RAD);
     q_des(9) = q_des(9);
     q_des(10) = q_des(10);
     q_des(11) = atan2(R_r(1), R_r(2));
@@ -12090,12 +12103,12 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     }
 
     if (walking_tick_mj == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1) // step change 1 tick 이전
-    {                                                                                           // 5.3, 0
+    {                                                                                           //5.3, 0
         sc_joint_before.setZero();
         sc_joint_before = q_des;
     }
     if (current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
-    {                                                          // 5.3005, 1
+    {                                                          //5.3005, 1
         sc_joint_after.setZero();
         sc_joint_after = q_des;
 
@@ -12105,10 +12118,10 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     {
         for (int i = 0; i < 12; i++)
         {
-            SC_joint(i) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + 0.01 * hz_, sc_joint_err(i), 0.0, 0.0, 0.0);
+            SC_joint(i) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + 0.005 * hz_, sc_joint_err(i), 0.0, 0.0, 0.0);
         }
 
-        if (walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 0.01 * hz_)
+        if (walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 0.005 * hz_)
         {
             q_des = q_des - SC_joint;
         }
@@ -15156,7 +15169,7 @@ Eigen::Isometry3d AvatarController::oneStepPlanner(double del_x, double del_y, d
         // right swing foot planning
         next_foot_step.translation()(0) = del_x;
         next_foot_step.translation()(1) = -nominal_step_width + del_y;
-        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), -0.35, -0.18 - 0.15*sin(abs(del_yaw)));
+        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), -0.35, -0.20 - 0.15*sin(abs(del_yaw)));
         next_foot_step.translation()(2) = 0;
 
         next_foot_step.linear() = DyrosMath::rotateWithZ(del_yaw);
@@ -15166,7 +15179,7 @@ Eigen::Isometry3d AvatarController::oneStepPlanner(double del_x, double del_y, d
         // left swing foot planning
         next_foot_step.translation()(0) = del_x;
         next_foot_step.translation()(1) = nominal_step_width + del_y;
-        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), 0.18 + 0.15*sin(abs(del_yaw)), 0.35);
+        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), 0.20 + 0.15*sin(abs(del_yaw)), 0.35);
         next_foot_step.translation()(2) = 0;
 
         next_foot_step.linear() = DyrosMath::rotateWithZ(del_yaw);
