@@ -148,6 +148,7 @@ public:
 
     void computeCAMcontrol_HQP();
     void cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
+    void new_cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
 
@@ -1241,6 +1242,10 @@ public:
     double des_zmp_y_prev_stepchange_ = 0;
 
     Eigen::Vector2d des_zmp_interpol_;
+
+    // New CP-MPC
+    Eigen::MatrixXd F_cmp_;
+    //
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
     Eigen::VectorXd U_y_mpc_; 
