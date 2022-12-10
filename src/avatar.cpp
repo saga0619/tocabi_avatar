@@ -593,12 +593,12 @@ void AvatarController::computeSlow()
             {
                 Initial_ref_upper_q_(i) = ref_q_(i);
             }
-            CAM_upper_init_q_(16) = +10.0 * DEG2RAD;
-            CAM_upper_init_q_(26) = -10.0 * DEG2RAD;
-            CAM_upper_init_q_(17) = +70.0 * DEG2RAD; // Rolling dist +70.0 deg
-            CAM_upper_init_q_(27) = -70.0 * DEG2RAD; // Rolling dist -70.0 deg
-            CAM_upper_init_q_(19) = -90.0 * DEG2RAD; //-90.0
-            CAM_upper_init_q_(29) = +90.0 * DEG2RAD; //+90.0            
+            // CAM_upper_init_q_(16) = +10.0 * DEG2RAD;
+            // CAM_upper_init_q_(26) = -10.0 * DEG2RAD;
+            // CAM_upper_init_q_(17) = +70.0 * DEG2RAD; // Rolling dist +70.0 deg
+            // CAM_upper_init_q_(27) = -70.0 * DEG2RAD; // Rolling dist -70.0 deg
+            // CAM_upper_init_q_(19) = -90.0 * DEG2RAD; //-90.0
+            // CAM_upper_init_q_(29) = +90.0 * DEG2RAD; //+90.0            
             
             q_prev_MJ_ = rd_.q_;
             desired_q_slow_ = rd_.q_;
@@ -628,17 +628,17 @@ void AvatarController::computeSlow()
         }  
 
         // edited by MJ (Initial upper body trajectory generation for CAM control /220110)
-        if(initial_tick_mj <= 2.0 * hz_)
-        {
-            ref_q_(16) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(16), CAM_upper_init_q_(16), 0.0, 0.0);
-            ref_q_(17) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(17), CAM_upper_init_q_(17), 0.0, 0.0);
-            ref_q_(19) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(19), CAM_upper_init_q_(19), 0.0, 0.0);
-            ref_q_(26) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(26), CAM_upper_init_q_(26), 0.0, 0.0);
-            ref_q_(27) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(27), CAM_upper_init_q_(27), 0.0, 0.0);
-            ref_q_(29) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(29), CAM_upper_init_q_(29), 0.0, 0.0);
+        // if(initial_tick_mj <= 2.0 * hz_)
+        // {
+        //     ref_q_(16) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(16), CAM_upper_init_q_(16), 0.0, 0.0);
+        //     ref_q_(17) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(17), CAM_upper_init_q_(17), 0.0, 0.0);
+        //     ref_q_(19) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(19), CAM_upper_init_q_(19), 0.0, 0.0);
+        //     ref_q_(26) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(26), CAM_upper_init_q_(26), 0.0, 0.0);
+        //     ref_q_(27) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(27), CAM_upper_init_q_(27), 0.0, 0.0);
+        //     ref_q_(29) = DyrosMath::cubic(initial_tick_mj, 0, 2.0 * hz_, Initial_ref_upper_q_(29), CAM_upper_init_q_(29), 0.0, 0.0);
 
-            initial_tick_mj ++;         
-        }
+        //     initial_tick_mj ++;         
+        // }
         
         for (int i = 0; i < MODEL_DOF; i++)
         {
@@ -748,6 +748,7 @@ void AvatarController::computeSlow()
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + Gravity_MJ_fast_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
+                printOutTextFile();
 
                 updateNextStepTime();
                 q_prev_MJ_ = rd_.q_;
@@ -815,6 +816,7 @@ void AvatarController::computeSlow()
                 torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
             }
         }
+        
         /////////////////////////////////////////////////////////////////////////////////////////
         if (atb_desired_q_update_ == false)
         {
@@ -9654,7 +9656,7 @@ void AvatarController::getRobotState()
     // calculateGruInput(left_leg_peter_gru_);
     // calculateGruInput(right_leg_peter_gru_);
 
-    // floatingBaseMOB();                       // created by DG
+    floatingBaseMOB();                       // created by DG
     // collisionEstimation();
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
@@ -15150,13 +15152,18 @@ Eigen::Isometry3d AvatarController::oneStepPlanner(double del_x, double del_y, d
     Eigen::Isometry3d next_foot_step;
     next_foot_step.setIdentity();
     double nominal_step_width = 0.1225*2;
+    double maximum_x_dist_btw_feet = 0.15;
+    double minimum_y_dist_btw_feet = 0.20;
+    double maximum_y_dist_btw_feet = 0.35;
+    double half_foot_size_x = 0.15;
 
     if(support_foot_is_left)
     {
         // right swing foot planning
         next_foot_step.translation()(0) = del_x;
+        next_foot_step.translation()(0) = DyrosMath::minmax_cut(next_foot_step.translation()(0), -maximum_x_dist_btw_feet, maximum_x_dist_btw_feet);
         next_foot_step.translation()(1) = -nominal_step_width + del_y;
-        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), -0.35, -0.18 - 0.15*sin(abs(del_yaw)));
+        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), -maximum_y_dist_btw_feet, -minimum_y_dist_btw_feet - half_foot_size_x*sin(abs(del_yaw)));
         next_foot_step.translation()(2) = 0;
 
         next_foot_step.linear() = DyrosMath::rotateWithZ(del_yaw);
@@ -15165,8 +15172,9 @@ Eigen::Isometry3d AvatarController::oneStepPlanner(double del_x, double del_y, d
     {
         // left swing foot planning
         next_foot_step.translation()(0) = del_x;
+        next_foot_step.translation()(0) = DyrosMath::minmax_cut(next_foot_step.translation()(0), -maximum_x_dist_btw_feet, maximum_x_dist_btw_feet);
         next_foot_step.translation()(1) = nominal_step_width + del_y;
-        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), 0.18 + 0.15*sin(abs(del_yaw)), 0.35);
+        next_foot_step.translation()(1) = DyrosMath::minmax_cut(next_foot_step.translation()(1), minimum_y_dist_btw_feet + half_foot_size_x*sin(abs(del_yaw)), maximum_y_dist_btw_feet);
         next_foot_step.translation()(2) = 0;
 
         next_foot_step.linear() = DyrosMath::rotateWithZ(del_yaw);
@@ -15197,7 +15205,6 @@ void AvatarController::calculateFootStepTotalOmniEnd(bool support_foot_is_left)
             foot_step_support_frame_.setZero();
 
             next_step_observed_in_first_step.translation()(1) = -(2*support_foot_is_left - 1)*nominal_step_width/2; 
-
 
             // 
             foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);

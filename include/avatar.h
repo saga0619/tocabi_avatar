@@ -44,8 +44,8 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/training_data.txt",
-    "/home/dyros/data/dg/hand_ft.txt"
+    "/home/dg/data/dg/training_data.txt",
+    "/home/dg/data/dg/hand_ft.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -61,7 +61,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -1758,10 +1758,10 @@ public:
     Eigen::VectorQd q_mj_prev;
 private:    
     //////////////////////////////// Myeong-Ju
-    unsigned int walking_tick_mj = 0;
-    unsigned int walking_tick_mj_mpc_ = 0;
-    unsigned int walking_tick_mj_thread_ = 0;
-    unsigned int initial_tick_mj = 0;
-    unsigned int initial_flag = 0;
+    int walking_tick_mj = 0;
+    int walking_tick_mj_mpc_ = 0;
+    int walking_tick_mj_thread_ = 0;
+    int initial_tick_mj = 0;
+    int initial_flag = 0;
     const double hz_ = 2000.0;  
 };
