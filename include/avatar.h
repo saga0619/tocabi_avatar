@@ -122,6 +122,9 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
+    std::atomic<bool> atb_thread3_input_data_update_{false};
+    std::atomic<bool> atb_thread3_output_data_update_{false};
+
     std::atomic<bool> atb_mpc_x_update_{false};
     std::atomic<bool> atb_mpc_y_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
@@ -168,6 +171,9 @@ public:
     void cpcontroller_MPC_MJDG(double MPC_freq, double preview_window); //CPMPC
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
+
+    void thread3GetDataFromThread1();
+    void thread3SendDataToThread1();
 
     void CPMPC_bolt_Controller_MJ();
     void BoltController_MJ();
@@ -972,12 +978,24 @@ public:
     double del_F_y_ = 0;
     double del_F_x_thread_ = 0;
     double del_F_y_thread_ = 0;
+    double del_F_x_mpc_ = 0;
+    double del_F_y_mpc_ = 0;
     double del_F_x_next_thread_ = 0;
     double del_F_y_next_thread_ = 0;
     
     double cpmpc_des_zmp_x_thread_ = 0;
+    double cpmpc_des_zmp_y_thread_ = 0;    
+    double cpmpc_des_zmp_y_thread2_ = 0;
     double cpmpc_des_zmp_x_thread2_ = 0;
+    double cpmpc_des_zmp_y_mpc_ = 0;
+    double cpmpc_des_zmp_x_mpc_ = 0;
 
+    double cpmpc_des_zmp_y_p_mpc_ = 0;
+    double cpmpc_des_zmp_x_p_mpc_ = 0;
+    double cpmpc_des_zmp_y_p_thread_ = 0;
+    double cpmpc_des_zmp_x_p_thread_ = 0;
+    // double cpmpc_des_zmp_x_p_ = 0;
+    // double cpmpc_des_zmp_y_p_ = 0;
     ////////////AVATAR MODE PEDAL////////////////
     bool avatar_op_pedal_raw_ = false;
     bool avatar_op_pedal_ = false;
@@ -988,8 +1006,7 @@ public:
     void avatarModeStateMachine();
     void avatarUpperbodyModeUpdate(int mode_input);
     ////////////////////////////////////////////
-    double cpmpc_des_zmp_y_thread_ = 0;    
-    double cpmpc_des_zmp_y_thread2_ = 0;
+
     
     double cp_des_zmp_x_ = 0;
     double cp_des_zmp_x_prev_ = 0;
@@ -1030,8 +1047,7 @@ public:
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
-    int alpha_step_mpc_ = 0;
-    int alpha_step_mpc_thread_ = 0;
+
 
     Eigen::VectorXd alpha_mpc_;
     Eigen::VectorXd F_diff_mpc_x_;
@@ -1746,6 +1762,10 @@ public:
     Eigen::Vector2d joy_left_stick_;
     Eigen::Vector2d joy_right_stick_; 
     bool current_support_foot_is_left_ = true;
+    bool current_support_foot_is_left_thread_ = true;
+    bool current_support_foot_is_left_thread2_ = true;
+    bool current_support_foot_is_left_mpc_ = true;
+
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
     const int joy_command_buffer_size_ = 30; // 0.1s
