@@ -1024,7 +1024,7 @@ public:
     Eigen::VectorXd U_y_mpc_; 
     // Thread 2
     
-    Eigen::Vector2d del_F_;
+    Eigen::Vector2d opt_F_;
     Eigen::Vector3d x_hat_r_;
     Eigen::Vector3d x_hat_r_sc_;
     Eigen::Vector3d x_hat_r_p_sc_;
@@ -1047,7 +1047,7 @@ public:
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
-
+    int CP_MPC_first_loop_ = false;
 
     Eigen::VectorXd alpha_mpc_;
     Eigen::VectorXd F_diff_mpc_x_;
