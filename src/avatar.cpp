@@ -545,14 +545,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros_rm/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
@@ -869,7 +869,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros_rm/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             cout << "ref_q_: "<<ref_q_.transpose() << endl;
@@ -9001,8 +9001,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
     joy_right_stick_(0) = msg.axes[3];  // horizontal
     joy_right_stick_(1) = msg.axes[4];  // vertical
 
-    double max_step_l_x = 0.15;
-    double max_step_l_y = 0.10;
+    double max_step_l_x = 0.10;
+    double max_step_l_y = 0.05;
     double max_yaw_angle = 10*DEG2RAD;
 
     double del_x = joy_left_stick_(1)*max_step_l_x;
