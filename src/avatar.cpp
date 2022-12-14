@@ -588,8 +588,8 @@ void AvatarController::setGains()
     //UPPERBODY
     for (int i = 12; i < 33; i++)
     {
-        joint_vel_limit_l_(i) = -M_PI * 2;
-        joint_vel_limit_h_(i) = M_PI * 2;
+        joint_vel_limit_l_(i) = -M_PI * 1.5; // *2
+        joint_vel_limit_h_(i) = M_PI * 1.5; // *2
     }
 
     //1st arm joint vel limit
@@ -606,10 +606,10 @@ void AvatarController::setGains()
     joint_vel_limit_h_(24) = 2 * M_PI;
 
     // forearm joint vel limit
-    joint_vel_limit_l_(20) = -2 * M_PI;
-    joint_vel_limit_h_(20) = 2 * M_PI;
-    joint_vel_limit_l_(30) = -2 * M_PI;
-    joint_vel_limit_h_(30) = 2 * M_PI;
+    joint_vel_limit_l_(20) = -1.3 * M_PI; // 2 *
+    joint_vel_limit_h_(20) = 1.3 * M_PI; // 2 *
+    joint_vel_limit_l_(30) = -1.3 * M_PI; // 2 *
+    joint_vel_limit_h_(30) = 1.3 * M_PI; // 2 *
 }
 
 Eigen::VectorQd AvatarController::getControl()
@@ -729,14 +729,14 @@ void AvatarController::computeSlow()
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요  
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)   
-                CPMPC_bolt_Controller_MJ(); 
+                // CPMPC_bolt_Controller_MJ(); 
                 
                 // BoltController_MJ(); // Stepping Controller for DCM eos                
                 // MJDG CMP control
                 CentroidalMomentCalculator(); // working with computefast() (CAM controller)
 
-                // getFootTrajectory();
-                getFootTrajectory_stepping(); // working with BoltController_MJ()  
+                getFootTrajectory();
+                // getFootTrajectory_stepping(); // working with BoltController_MJ()  
                 getPelvTrajectory();
                 supportToFloatPattern();
                 
@@ -781,7 +781,8 @@ void AvatarController::computeSlow()
                     // ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(17), 50.0 * DEG2RAD, 0.0, 0.0);  // + direction angle makes the left arm down.
                     // ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(27), -50.0 * DEG2RAD, 0.0, 0.0); // - direction angle makes the right arm down.
                 }
-                
+                del_zmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+                del_zmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
                 CP_compen_MJ();
                 CP_compen_MJ_FT();
                 torque_lower_.setZero();
@@ -1230,7 +1231,7 @@ void AvatarController::computeFast()
         //motion planing and control//
         motionGenerator();
         //STEP3: Compute q_dot for CAM control
-        //computeCAMcontrol_HQP();
+        computeCAMcontrol_HQP();
 
         for (int i = 12; i < MODEL_DOF; i++)
         {
@@ -9089,35 +9090,35 @@ void AvatarController::computeCAMcontrol_HQP()
         // }
   
         // MJ's joint limit 
-        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
-        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
-        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
-        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
+        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
+        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
+        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
         // Left Shoulder pitch
-        lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
-        ub_camhqp_[i](2) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
+        lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
+        ub_camhqp_[i](2) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
         // Left Shoulder roll // pitch에서 외란에서 롤을 생각보다 많이 써서 50 -> 30
-        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
-        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
+        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
+        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
         // Left Elbow pitch
-        lb_camhqp_[i](4) = min(max(speed_reduce_rate * (-110*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
-        ub_camhqp_[i](4) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
+        lb_camhqp_[i](4) = min(max(speed_reduce_rate * (-80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
+        ub_camhqp_[i](4) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
         // Right Shoulder pitch
-        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
-        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
+        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
+        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
         // Right Shoulder roll
-        lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
-        ub_camhqp_[i](6) = max(min(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+        lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
+        ub_camhqp_[i](6) = max(min(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
         // Right Elbow pitch
-        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
-        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (110*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
+        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
 
 
         int higher_task_equality_num = 0;        
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.4, 0.0, 0.0, 0.0);
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 1.2, 0.0, 0.0, 0.0);
         }
 
         for (int h = 0; h < i; h++)
@@ -9209,340 +9210,13 @@ void AvatarController::computeCAMcontrol_HQP()
     cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
    
     //if((walking_tick_mj % 100) == 0 )
-    {
-        MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
-        MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
-        MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_ang_momentum_slow_2.norm() << "," << del_tau_(1) << "," << eps(0) << endl; 
-        MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha_ << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
-    }        
-}   
-
-void AvatarController::comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
-{   // https://doi.org/10.1016/j.robot.2018.03.004
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    if(atb_mpc_update_ == false)  
-    {
-        atb_mpc_update_ = true;
-        walking_tick_mj_mpc_ = walking_tick_mj_thread_;
-        current_step_num_mpc_ = current_step_num_thread_;
-        total_step_num_mpc_ = total_step_num_thread_;
-        zmp_start_time_mj_mpc_ = zmp_start_time_mj_thread_;
-        ref_zmp_mpc_ = ref_zmp_thread_;        
-        
-        x_hat_ = x_hat_thread2_;
-        y_hat_ = y_hat_thread2_;
-        x_hat_p_ = x_hat_p_thread2_;
-        y_hat_p_ = y_hat_p_thread2_;
-        atb_mpc_update_ = false;
-    }
-    int N = preview_window * MPC_freq; // N step horizon (1.5s x 50)
-    int mpc_tick = walking_tick_mj_mpc_ - zmp_start_time_mj_mpc_; // 
-    static int MPC_first_loop = 0;
-    int future_step_num_ = 2;
-    int state_num_ = 3;
-    Eigen::MatrixXd O_N;
-    Eigen::MatrixXd I_N(N,N);
-    Eigen::MatrixXd I_2(2,2);
-    Eigen::MatrixXd O_N_2;
-    Eigen::MatrixXd O_2_1;
-    Eigen::MatrixXd P_sel; // N x 2
-    Eigen::MatrixXd P_sel_k; // N x 2
-    Eigen::MatrixXd P_sel_alpha; // N x 2
-    O_N.setZero(N,N); // N x N Zero matrix
-    O_N_2.setZero(N,2); // N x 2 Zero matrix
-    O_2_1.setZero(2,1); // 2 x 1 Zero matrix
-    I_N.setIdentity(); // N x N Identity matrix
-    I_2.setIdentity(); // 2 x 2 Identity matrix 
-    if(MPC_first_loop == 0)
-    {
-        // Define State matrix
-        A_mpc_(0, 0) = 1.0;
-        A_mpc_(0, 1) = T;
-        A_mpc_(0, 2) = T * T * 0.5;
-        A_mpc_(1, 0) = 0;
-        A_mpc_(1, 1) = 1.0;
-        A_mpc_(1, 2) = T;
-        A_mpc_(2, 0) = 0;
-        A_mpc_(2, 1) = 0;
-        A_mpc_(2, 2) = 1.0;
-        // Define Input matrix
-        B_mpc_(0) = T * T * T / 6;
-        B_mpc_(1) = T * T / 2;
-        B_mpc_(2) = T;
-        // Define Output matrix
-        C_mpc_transpose_(0) = 1;
-        C_mpc_transpose_(1) = 0;
-        C_mpc_transpose_(2) = -0.71 / 9.81;                 
-                
-        W1_mpc_ = 0.00001; // The term alpha in wiber's paper/ Jerk
-        W2_mpc_ = 2.0; // The term gamma in wiber's paper/ ZMP error
-        W3_mpc_ = 10.1; // mu / Foot adjustment 
-        P_zs_mpc_.setZero(N,state_num_);
-        P_zu_mpc_.setZero(N,N);
-        for(int i = 0; i < N; i++)
-        {
-            // Define reculsive state matrix for MPC P_zs (N x 3)
-            P_zs_mpc_(i,0) = 1;
-            P_zs_mpc_(i,1) = (i+1)*T;
-            P_zs_mpc_(i,2) = ((i+1)*(i+1)*T*T)*0.5 - 0.71/9.81;
-            
-            // Define reculsive input matrix for MPC P_zu (N x N / Lower Triangular Toeplitz matrix)
-            for(int j = 0; j < N; j++)
-            {
-                if(j >= i)
-                {
-                    P_zu_mpc_(j,i) = (1 + 3*(j-i) + 3*(j-i)*(j-i))*(T*T*T)/6 - T*0.71/9.81;
-                }
-            }
-        }        
-        
-        Q_prime_.setZero(N,N);
-        Q_prime_ = W1_mpc_*I_N + W2_mpc_*P_zu_mpc_.transpose()*P_zu_mpc_;
-        
-        Q_mpc_.setZero(N+future_step_num_,N+future_step_num_); // N+2 x N+2  
-        Q_mpc_.block(0, 0, N, N) = Q_prime_;  
-        Q_mpc_.block(N, 0, future_step_num_, N) = O_N_2.transpose();
-        Q_mpc_.block(0, N, N, future_step_num_) = O_N_2;
-        Q_mpc_.block(N, N, future_step_num_, future_step_num_) = W3_mpc_*I_2; 
-            
-        QP_mpc_x_.InitializeProblemSize(N+future_step_num_,2*N);    
-        QP_mpc_y_.InitializeProblemSize(N+future_step_num_,2*N);
-        MPC_first_loop = 1;
-        cout << "Initialization of MPC parameters is complete." << endl;
-    }
-    Eigen::VectorXd p_x(N);
-    Eigen::VectorXd p_y(N);
-    Eigen::VectorXd p_f_x(N + future_step_num_);
-    Eigen::VectorXd p_f_y(N + future_step_num_);
-    Eigen::VectorXd Z_x_ref(N);
-    Eigen::VectorXd Z_y_ref(N);
-    
-    for(int i = 0; i < N; i ++)
-    {
-        Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 40 = Control freq (2000) / MPC_freq (50)
-        Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1);
-    }    
-    
-    int r_current = 0.0, r_next = 0.0, r_n_next = 0.0, except_dsp1 = 0.0, except_dsp2 = 0.0 ;
-    
-    if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1 ) // To define selection matrix for swingfoot adjustment
-    {
-        r_current = (t_total_ - mpc_tick)/MPC_synchro_hz_; // remaining time in one step // 109~0
-        if( N - r_current >= t_total_/MPC_synchro_hz_)
-        {
-            r_next = t_total_/MPC_synchro_hz_;
-            r_n_next = N - (t_total_/MPC_synchro_hz_ + r_current);
-            except_dsp1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
-            except_dsp2 = (t_rest_last_ + t_double2_)/MPC_synchro_hz_;
-        }
-        else
-        {
-            r_next = N - r_current;
-            r_n_next = 0.0;
-            except_dsp1 = (t_rest_init_ + t_double1_)/MPC_synchro_hz_;
-            except_dsp2 = 0.0;
-        } 
-        Eigen::VectorXd sel_swingfoot_(r_next);
-        // sel_swingfoot_.setOnes(); // vector.segment(i,n); 
-        sel_swingfoot_.setZero(); // vector.segment(i,n); 
-        sel_swingfoot_.segment(except_dsp1, r_next - except_dsp1 - except_dsp2).setOnes();
- 
-        // define selection matrix for swing foot adjustment
-        P_sel.setZero(N,future_step_num_); // N x 2  
-        P_sel.block(r_current,0,r_next,1) = sel_swingfoot_; // dynamic size block expression
-        
-        if(alpha_step_mpc_ == -1) // Left support foot
-        {
-            alpha_mpc_.setZero(N);
-            alpha_mpc_.segment(r_current, r_next).setOnes(); // starting position, element size
-            alpha_mpc_ = - alpha_mpc_; // -1 for right swing foot
-            alpha_mpc_.segment(0,r_current).setOnes();
-            alpha_mpc_.segment(r_current + r_next, r_n_next).setOnes();
-        }
-        else if(alpha_step_mpc_ == 1) // Right support foot
-        {
-            alpha_mpc_.setZero(N);            
-            alpha_mpc_.segment(0,r_current).setOnes();
-            alpha_mpc_.segment(r_current + r_next, r_n_next).setOnes();
-            alpha_mpc_ = -alpha_mpc_;
-            alpha_mpc_.segment(r_current, r_next).setOnes(); 
-        }  
-        F_diff_mpc_x_.setZero(N);
-        F_diff_mpc_y_.setZero(N);
-        
-        Eigen::VectorXd A;
-        A.setZero(r_current);
-        F_diff_mpc_x_.segment(0,r_current) =  A.Constant(r_current,1,F0_F1_mpc_x_);
-        A.setZero(r_current);
-        F_diff_mpc_y_.segment(0,r_current) =  A.Constant(r_current,1,F0_F1_mpc_y_);
-        
-        A.setZero(r_next);
-        F_diff_mpc_x_.segment(r_current,r_next)  =  A.Constant(r_next,1,F1_F2_mpc_x_);
-        A.setZero(r_next);
-        F_diff_mpc_y_.segment(r_current,r_next)  =  A.Constant(r_next,1,F1_F2_mpc_y_); 
-        
-        A.setZero(r_n_next);
-        F_diff_mpc_x_.segment(r_current + r_next, r_n_next) = A.Constant(r_n_next,1,F2_F3_mpc_x_);
-        A.setZero(r_n_next); 
-        F_diff_mpc_y_.segment(r_current + r_next, r_n_next) = A.Constant(r_n_next,1,F2_F3_mpc_y_); 
-        // define the selection matrix for kinematic constraints
-        P_sel_k.setZero(N,future_step_num_); // N x 2  
-        P_sel_k.block(r_current,0,r_next,1) = sel_swingfoot_; // dynamic-size block expression
-        P_sel_alpha = alpha_step_mpc_ * P_sel_k; //  
-    }
-    else
-    {       
-        P_sel.setZero(N,future_step_num_); // N x 2
-        P_sel_alpha.setZero(N,future_step_num_); 
-        alpha_mpc_.setZero(N);
-        F_diff_mpc_x_.setZero(N);
-        F_diff_mpc_y_.setZero(N);
-    }
-    
-    Eigen::VectorXd del_Z_x(N); 
-    Eigen::VectorXd del_Z_y(N);   
-    del_Z_x.setZero();
-    del_Z_y.setZero();
-    //if(walking_tick_mpc_mj >= 13400 && walking_tick_mpc_mj <= 14000)
-    {
-        for(int i = 0; i < N; i ++)
-        {
-            del_Z_x(i) = del_zmp(0);
-            del_Z_y(i) = del_zmp(1);
-        } 
-    }
-         
-    //define cost functions
-    p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - (Z_x_ref + del_Z_x));
-    p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - (Z_y_ref + del_Z_y));
-    
-    p_f_x.setZero(N + future_step_num_);
-    p_f_x.segment(0, N) = p_x;
-    p_f_y.setZero(N + future_step_num_);
-    p_f_y.segment(0, N) = p_y;
-    // p_f_y.segment(N, 2) = O_2_1;
-    Eigen::VectorXd lb_b_x(N);
-    Eigen::VectorXd ub_b_x(N);
-    Eigen::VectorXd lb_b_y(N);
-    Eigen::VectorXd ub_b_y(N);
-    Eigen::VectorXd lb_b_f_x(N);
-    Eigen::VectorXd ub_b_f_x(N);
-    Eigen::VectorXd lb_b_f_y(N);
-    Eigen::VectorXd ub_b_f_y(N);
-    Eigen::VectorXd lb_b_total_x(2*N);
-    Eigen::VectorXd ub_b_total_x(2*N);
-    Eigen::VectorXd lb_b_total_y(2*N);
-    Eigen::VectorXd ub_b_total_y(2*N);
-    Eigen::VectorXd zmp_bound_x(N);
-    Eigen::VectorXd zmp_bound_y(N);
-    
-    for(int i = 0; i < N; i++)  
-    {
-        zmp_bound_x(i) = 0.15;
-        zmp_bound_y(i) = 0.15;
-    }
-    // for(int i = 0; i < N_cp; i++)  
     // {
-    //     zmp_bound_x(i) = 0.1;
-    //     zmp_bound_y(i) = 0.07;  
-    // }
-
-    ///////////////
-
-    lb_b_x = Z_x_ref - zmp_bound_x - P_zs_mpc_*x_hat_;
-    ub_b_x = Z_x_ref + zmp_bound_x - P_zs_mpc_*x_hat_;
-    lb_b_y = Z_y_ref - zmp_bound_y - P_zs_mpc_*y_hat_;
-    ub_b_y = Z_y_ref + zmp_bound_y - P_zs_mpc_*y_hat_;
-    double L_min_x = 0.15, L_max_x = 0.15;
-    double L_min_y = 0.275, L_max_y = 0.325; // distant between feet during walking : +-0.245
-    for(int i = 0; i < N; i ++)
-    {
-        ub_b_f_x(i) = -alpha_mpc_(i)*F_diff_mpc_x_(i) + L_max_x;
-        lb_b_f_x(i) =  alpha_mpc_(i)*F_diff_mpc_x_(i) - L_min_x;
-    } 
-    for(int i = 0; i < N; i ++)
-    {
-        ub_b_f_y(i) = -alpha_mpc_(i)*F_diff_mpc_y_(i) + L_max_y;
-        lb_b_f_y(i) =  alpha_mpc_(i)*F_diff_mpc_y_(i) - L_min_y;
-    }   
-    lb_b_total_x.segment(0, N) = lb_b_x;
-    lb_b_total_x.segment(N, N) = lb_b_f_x;
-    ub_b_total_x.segment(0, N) = ub_b_x;
-    ub_b_total_x.segment(N, N) = ub_b_f_x; 
- 
-    lb_b_total_y.segment(0, N) = lb_b_y;
-    lb_b_total_y.segment(N, N) = lb_b_f_y;
-    ub_b_total_y.segment(0, N) = ub_b_y;
-    ub_b_total_y.segment(N, N) = ub_b_f_y; 
-    Eigen::MatrixXd A_zu_x;
-    Eigen::MatrixXd A_zu_y;
-    A_zu_x.setZero(2*N, N+future_step_num_);
-    A_zu_x.block(0, 0, N, N) = P_zu_mpc_; // N = 150 
-    A_zu_x.block(0, N, N, future_step_num_) = -P_sel; 
-    A_zu_x.block(N, 0, N, N) = O_N;
-    A_zu_x.block(N, N, N, future_step_num_) = -P_sel_alpha;
-    A_zu_y.setZero(2*N, N+future_step_num_);
-    A_zu_y.block(0, 0, N, N) = P_zu_mpc_; // N = 150 
-    A_zu_y.block(0, N, N, future_step_num_) = -P_sel; 
-    A_zu_y.block(N, 0, N, N) = O_N;
-    A_zu_y.block(N, N, N, future_step_num_) = -P_sel_alpha;     
-    
-    QP_mpc_x_.EnableEqualityCondition(equality_condition_eps_);
-    QP_mpc_x_.UpdateMinProblem(Q_mpc_,p_f_x);
-    QP_mpc_x_.DeleteSubjectToAx();          
-    QP_mpc_x_.UpdateSubjectToAx(A_zu_x, lb_b_total_x, ub_b_total_x);
- 
-    //U_x_mpc.setZero(N);  
-    if (QP_mpc_x_.SolveQPoases(500, MPC_input_x_)) 
-    {   
-        x_hat_p_ = x_hat_;      
-        U_x_mpc_ = MPC_input_x_.segment(0, N+future_step_num_);
-        x_hat_ = A_mpc_ * x_hat_ + B_mpc_ * U_x_mpc_(0);
-        
-        if(atb_mpc_x_update_ == false)
-        {
-            atb_mpc_x_update_ = true;
-            x_hat_p_thread_ = x_hat_p_;
-            x_hat_thread_ = x_hat_;
-            current_step_num_thread2_ = current_step_num_mpc_;
-            del_F_x_thread_ = U_x_mpc_(N);
-            atb_mpc_x_update_ = false;
-        }
-        mpc_x_update_ = true;
-    }
-    QP_mpc_y_.EnableEqualityCondition(equality_condition_eps_); 
-    QP_mpc_y_.UpdateMinProblem(Q_mpc_,p_f_y); 
-    QP_mpc_y_.DeleteSubjectToAx();       
-    QP_mpc_y_.UpdateSubjectToAx(A_zu_y, lb_b_total_y, ub_b_total_y);     
-    
-    if (QP_mpc_y_.SolveQPoases(500, MPC_input_y_))
-    {             
-        y_hat_p_ = y_hat_;
-        U_y_mpc_ = MPC_input_y_.segment(0, N+future_step_num_);
-        y_hat_ = A_mpc_ * y_hat_ + B_mpc_ * U_y_mpc_(0);
-        
-        if(atb_mpc_y_update_ == false)
-        {
-            atb_mpc_y_update_ = true;
-            y_hat_p_thread_ = y_hat_p_;
-            y_hat_thread_ = y_hat_;
-            current_step_num_thread2_ = current_step_num_mpc_;
-            del_F_y_thread_ = U_y_mpc_(N);
-            atb_mpc_y_update_ = false;
-        }
-        mpc_y_update_ = true;  
-    }
-     
-    Eigen::Vector2d output_zmp;
-    output_zmp(0) = C_mpc_transpose_.transpose()*x_hat_;
-    output_zmp(1) = C_mpc_transpose_.transpose()*y_hat_;
-    // MJ_graph << Z_x_ref(0) << "," << x_hat_(0) << "," << output_zmp(0) << endl;
-    //MJ_graph1 << y_hat_(0) << "," << y_hat_r(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << del_F_(0) << "," << del_F_(1) << "," << output_zmp(0) << "," << output_zmp(1) << endl;
-    // Cross check using MATLAB    
-    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // cout << "MPC calculation time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << endl; 
-}
-
+    //     MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
+    //     MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
+    //     MJ_CAM_ << cam_a(0) << "," << cam_a(1) << "," << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << "," << del_ang_momentum_slow_2.norm() << "," << del_tau_(1) << "," << eps(0) << endl; 
+    //     MJ_CP_ZMP << ZMP_X_REF << "," << ZMP_Y_REF_alpha_ << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+    // }        
+}   
 
 void AvatarController::CPMPC_bolt_Controller_MJ()
 {   
@@ -10036,9 +9710,9 @@ void AvatarController::BoltController_MJ()
 void AvatarController::computeThread3()
 {
     comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); // Hz, T, Preview window
-    cpcontroller_MPC_MJDG(50.0, 1.5); // Hz, Preview window
+    // cpcontroller_MPC_MJDG(50.0, 1.5); // Hz, Preview window
     new_cpcontroller_MPC_MJDG(50.0, 1.5);
-    // comGenerator_MPC_joe(50.0, 1.0/50.0, 1.5, 2000/50.0); // Hz, T, Preview window  
+     
 }
 
 void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_)
@@ -10160,12 +9834,17 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
     Eigen::VectorXd Z_x_ref(N);
     Eigen::VectorXd Z_y_ref(N);
     
+    Z_x_ref_cpmpc_only_.resize(N);
+    Z_y_ref_cpmpc_only_.resize(N);
+
     for(int i = 0; i < N; i ++)
     {
         Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
         Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1);
+        Z_x_ref_cpmpc_only_(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 0); // 왜 여기서 받는거랑 다르지?
+        Z_y_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*(i+1), 1); // without zmp offset
     }    
-
+    
     //define cost functions
     p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - Z_x_ref);
     p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - Z_y_ref);
@@ -10274,7 +9953,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     Eigen::VectorXd cp_y_ref(N_cp);
 
     Eigen::VectorXd Z_x_ref_wo_offset(N_cp);
-    Eigen::VectorXd Z_y_ref_wo_offset(N_cp);    
+    Eigen::VectorXd Z_y_ref_wo_offset(N_cp); 
 
     Eigen::MatrixXd zeros_Ncp_x_f(N_cp, footprint_num);
     Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
@@ -10285,7 +9964,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     zeros_Ncp_x_f.setZero();
     zeros_Ncp_x_Ncp.setZero();
     eye2.setIdentity();
-    
+
     // reference CP trajectory generation
     cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
@@ -10492,12 +10171,17 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     Eigen::VectorXd ub_y_cpStepping_mpc(N_cp + footprint_num);
     Eigen::VectorXd lb_y_cpStepping_mpc(N_cp + footprint_num);    
 
-    for(int i = 0; i < N_cp; i ++)
-    {
-        Z_x_ref_wo_offset(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
-        Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 1);
-    }  
-    
+ 
+    // for(int i = 0; i < N_cp; i ++)
+    // {
+    //     Z_x_ref_wo_offset(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
+    //     Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 1);
+    // }      
+
+    // reference zmp trajectory for ZMP constraint
+    Z_x_ref_wo_offset = Z_x_ref_cpmpc_only_.segment(0, N_cp); // without zmp offset
+    Z_y_ref_wo_offset = Z_y_ref_cpmpc_only_.segment(0, N_cp);
+
     Eigen::VectorXd zmp_bound_x(N_cp);
     Eigen::VectorXd zmp_bound_y(N_cp);
 
@@ -10615,55 +10299,10 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
 
     // cp_predicted_x = F_cp_*cp_measured_mpc_(0) + F_zmp_*cpmpc_deszmp_x_.segment(0,N_cp);
     // cp_predicted_y = F_cp_*cp_measured_mpc_(1) + F_zmp_*cpmpc_deszmp_y_.segment(0,N_cp);
-    
-    // if(walking_tick_mj_mpc_ >= 6.36 * hz_ && graph_flag == 0)
-    // {
-    //     for(int i = 0; i < N_cp; i ++)
-    //     { 
-    //         MJ_graph1 << cp_y_ref(i) << "," << cp_predicted_y(i) << endl;
-    //     }
-    //     graph_flag = 1;
-    // }
-     
-    // // swing_time_cur, swing_time_next, swing_time_n_next
-    // Eigen::VectorXd cp_err_dsp_x(N_cp); 
-    // Eigen::VectorXd cp_err_dsp_y(N_cp);
 
-    // if(current_step_num_mpc_ > 0)
-    // { 
-    //     if(swing_time_cur <= dsp_time1)
-    //     {   
-    //         cp_err_dsp_x.setZero();
-    //         cp_err_dsp_y.setZero();
-            
-    //         for(int i = 0 ; i < swing_time_cur + dsp_time2 ; i ++)
-    //         { 
-    //             cp_err_dsp_x(i) = cp_predicted_x(i) - cp_x_ref(i);
-    //             cp_err_dsp_y(i) = cp_predicted_y(i) - cp_y_ref(i);
-    //             //cp_err_integ_y_ += (cp_predicted_y(i) - cp_y_ref(i));
-    //         }
-    //     }
-    //     else
-    //     {
-    //         cp_err_dsp_x.setZero();
-    //         cp_err_dsp_y.setZero();
-
-    //         for(int i = swing_time_cur - dsp_time1; i < swing_time_cur - dsp_time1 + dsp_time1 + dsp_time2 ; i ++)
-    //         { 
-    //             cp_err_dsp_x(i) = (cp_predicted_x(i) - cp_x_ref(i));
-    //             cp_err_dsp_y(i) = (cp_predicted_y(i) - cp_y_ref(i));
-    //         }  
-    //     }                
-    // }       
     
-    // if(current_step_num_mpc_ > 0)
-    // {
-    //     cout << desired_swing_foot(1) << "," << cp_y_ref(swing_time_cur + 8) << endl;
-    //     MJ_graph2 << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << cp_y_ref(swing_time_cur + 8) << "," << desired_swing_foot(1) << "," << Z_y_ref_wo_offset(0) << "," << Z_y_ref_wo_offset(swing_time_cur + 8) << endl;
-    // }
-    
-    MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    MJ_graph << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph1 << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_prev_ = current_step_num_mpc_;
     std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
@@ -10686,11 +10325,17 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     double T = 1/MPC_freq;
     int MPC_synchro_hz = 2000.0 / MPC_freq;
 
-    Eigen::VectorXd cp_x_ref(N_cp);
-    Eigen::VectorXd cp_y_ref(N_cp);
+    Eigen::VectorXd cp_x_ref_new(N_cp);
+    Eigen::VectorXd cp_y_ref_new(N_cp);
 
-    Eigen::VectorXd Z_x_ref_wo_offset(N_cp);
-    Eigen::VectorXd Z_y_ref_wo_offset(N_cp);    
+    Eigen::VectorXd Z_x_ref_wo_offset_new(2*N_cp);
+    Eigen::VectorXd Z_y_ref_wo_offset_new(2*N_cp);  
+
+    Eigen::VectorXd Tau_x_limit(2*N_cp);
+    Eigen::VectorXd Tau_y_limit(2*N_cp);   
+
+    Eigen::VectorXd zmp_bound_x_new(2*N_cp);
+    Eigen::VectorXd zmp_bound_y_new(2*N_cp);
 
     Eigen::MatrixXd zeros_Ncp_x_f(N_cp, footprint_num);
     Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
@@ -10703,12 +10348,12 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     eye2.setIdentity();
     
     // reference CP trajectory generation
-    cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
-    cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
+    cp_x_ref_new = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
+    cp_y_ref_new = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
     
-    if(atb_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
+    if(atb_new_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
     {
-        atb_cpmpc_rcv_update_ = true;
+        atb_new_cpmpc_rcv_update_ = true;
                 
         if(current_step_num_thread_ == current_step_num_mpc_)
         {
@@ -10720,84 +10365,110 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
             cout << "MPC thread step num = " << current_step_num_mpc_ << endl;            
             cout << "stepchange was occured in only computeslow thread." << endl;
         }
-
-        if(current_step_num_mpc_ != current_step_num_mpc_prev_) // receive step change control input (stepchange state in MPC thread)
+        
+        if(current_step_num_mpc_ != current_step_num_mpc_new_prev_) // receive step change control input (stepchange state in MPC thread)
         {      
-            cpmpc_deszmp_x_(0) = cpmpc_des_zmp_x_thread2_; // To apply step change desired ZMP (computeslow) for gradient vector (thread 3/MPC)       
-            cpmpc_deszmp_y_(0) = cpmpc_des_zmp_y_thread2_; 
+            cpmpc_output_x_new_(0) = cpmpc_des_zmp_x_thread2_; // To apply step change desired ZMP (computeslow) for gradient vector (thread 3/MPC)       
+            cpmpc_output_y_new_(0) = cpmpc_des_zmp_y_thread2_;                        
         } // In this case, step change of the des.ZMP was occured in only computeslow and the step num is also increased in MPC, but MPC is not fully ended.
 
-        atb_cpmpc_rcv_update_ = false;        
+        atb_new_cpmpc_rcv_update_ = false;        
     }  
 
     if(New_CP_MPC_first_loop == 0)
     {
         // Define Input matrix
-        // Eigen::VectorXd B_cp_mpc(1);
-        // B_cp_mpc(0) = 1 - exp(wn*T);
         Eigen::MatrixXd B_cp_mpc_new(1,2);
         B_cp_mpc_new(0,0) = 1 - exp(wn*T);
         B_cp_mpc_new(0,1) = (1 - exp(wn*T))/(rd_.link_[COM_id].mass * GRAVITY);
-        // Define recursive state, input matrix
-        F_cp_.setZero(N_cp, 1);
-        // F_zmp_.setZero(N_cp, N_cp);
-        F_cmp_.setZero(N_cp, 2*N_cp);
+
+        // Define prediction state over N step, input matrix
+        F_cp_new_.setZero(N_cp, 1);
+        F_cmp_new_.setZero(N_cp, 2*N_cp);
         
         for(int i = 0; i < N_cp; i++)
         {   
-            F_cp_(i,0) = exp(wn*T*i); // N by 1
+            F_cp_new_(i,0) = exp(wn*T*i); // N X 1
         }        
         
-        for(int i = 0; i < N_cp; i++)
+        for(int i = 0; i < N_cp; i++) // N X 2N
         {   
             for(int j = 0; j < N_cp; j++)
             {
                 if(j >= i)
                 {
-                    F_cmp_(j,2*i) = exp(wn*T*(j-i))*B_cp_mpc_new(0);
-                    F_cmp_(j,2*i+1) = exp(wn*T*(j-i))*B_cp_mpc_new(1);
+                    F_cmp_new_(j,2*i) = exp(wn*T*(j-i))*B_cp_mpc_new(0);
+                    F_cmp_new_(j,2*i+1) = exp(wn*T*(j-i))*B_cp_mpc_new(1);
                 }
             }
         }  
          
-        // // Define diffence matrix
-        // diff_matrix_.setIdentity(N_cp, N_cp);
+        // Define diffence matrix
+        diff_matrix_new_.setIdentity(2*N_cp, 2*N_cp);
 
-        // for(int i = 0; i < N_cp-1; i ++)
-        // {
-        //     diff_matrix_(i+1, i) = -1.0;
-        // }
+        for(int i = 0; i < 2*(N_cp-1); i ++)
+        {
+            diff_matrix_new_(i+2, i) = -1.0; // 2N X 2N
+        }
         
-        // e1_cpmpc_.setZero(N_cp);
-        // e1_cpmpc_(0) = 1.0;
+        e1_cpmpc_new_.setZero(2*N_cp, 2);
+        e1_cpmpc_new_.block<2, 2>(0, 0) = eye2;
+        // Block of size (p,q), starting at (i,j)
+        // Fixed size block expression : matrix.block<p,q>(i,j); 
+
+        Tau_sel_.setIdentity(2*N_cp, 2*N_cp);
+
+        for(int i = 0; i < N_cp; i++) // For selecting Tau in Control input 
+        {
+            Tau_sel_(2*i,2*i) = 0.0;
+        }
+
+        weighting_cp_new_.setZero(N_cp, N_cp);
+        weighting_cmp_diff_new_.setZero(2*N_cp, 2*N_cp);
         
-        // weighting_cp_.setZero(N_cp, N_cp);
-        // weighting_zmp_diff_.setZero(N_cp, N_cp);
+        weighting_tau_regul_.setIdentity(2*N_cp, 2*N_cp);
+        weighting_tau_regul_ = 0.001*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림. 
+        // X랑 Y 따로 게인 설정해야 될 수도..
         // double weighting_foot = 0.01;// 100.0;  //0.01;
 
-        // // Weighting parameter
-        // for(int i = 0; i < N_cp; i++) // N_cp = 75
-        // {
-        //     if(i < 1)
-        //     {
-        //         weighting_cp_(i,i) = 1.0;
-        //         weighting_zmp_diff_(i,i) = 0.2; 
-        //     }
-        //     else if (i < 50)
-        //     {
-        //         weighting_cp_(i,i) = 1.0;
-        //         weighting_zmp_diff_(i,i) = 10.0;                
-        //     }
-        //     else
-        //     {
-        //         weighting_cp_(i,i) = 100.0;
-        //         weighting_zmp_diff_(i,i) = 0.10; 
-        //     }            
-        // }
-
-        // // Hessian matrix
-        // H_cpmpc_.setZero(N_cp, N_cp);
-        // H_cpmpc_ = diff_matrix_.transpose()*weighting_zmp_diff_*diff_matrix_ + F_zmp_.transpose()*weighting_cp_*F_zmp_;        
+        // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
+        for(int i = 0; i < N_cp; i++) // For cp control
+        {
+            if(i < 1)
+            {
+                weighting_cp_new_(i,i) = 1.0; 
+            }
+            else if (i < 50)
+            {
+                weighting_cp_new_(i,i) = 1.0;                
+            }
+            else
+            {
+                weighting_cp_new_(i,i) = 100.0; 
+            }            
+        }
+        for(int i = 0; i < 2*N_cp; i++) // for smoothing control input  
+        {
+            if(i < 2) // des.zmp, des.tau
+            {
+                weighting_cmp_diff_new_(i,i) = 0.2; 
+            }
+            else if (i < 100)
+            {
+                weighting_cmp_diff_new_(i,i) = 10.0;                
+            }
+            else
+            {
+                weighting_cmp_diff_new_(i,i) = 0.10; 
+            }            
+        }
+        
+        
+        
+        // Hessian matrix
+        H_cpmpc_new_.setZero(2*N_cp, 2*N_cp);
+        H_cpmpc_new_ = diff_matrix_new_.transpose()*weighting_cmp_diff_new_*diff_matrix_new_ + F_cmp_new_.transpose()*weighting_cp_new_*F_cmp_new_ + Tau_sel_.transpose()*weighting_tau_regul_*Tau_sel_;        
+        // H_cpmpc_new_ = diff_matrix_new_.transpose()*weighting_cmp_diff_new_*diff_matrix_new_ + F_cmp_new_.transpose()*weighting_cp_new_*F_cmp_new_; 
 
         // H_cpStepping_mpc_.setZero(N_cp + footprint_num, N_cp + footprint_num);
         // H_cpStepping_mpc_.block(0, 0, N_cp, N_cp) = H_cpmpc_; // CP-MPC
@@ -10805,233 +10476,273 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         // H_cpStepping_mpc_.block(0, N_cp, N_cp, footprint_num) = zeros_Ncp_x_f;
         // H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*eye2; // Foot mpc
 
-        // // Control input (desired zmp) initinalization 
+        // Control input (desired zmp, desired tau) initinalization 
         // cpmpc_deszmp_x_.setZero(N_cp + footprint_num);
         // cpmpc_deszmp_x_(0) = x_hat_(0); // Position of the CoM
+        cpmpc_output_x_new_.setZero(2*N_cp);
+        cpmpc_output_x_new_(0) = x_hat_(0); // Initial position of the CoM and ZMP is equal.
         
         // cpmpc_deszmp_y_.setZero(N_cp + footprint_num);
         // cpmpc_deszmp_y_(0) = y_hat_(0); // Position of the CoM
+        cpmpc_output_y_new_.setZero(2*N_cp);
+        cpmpc_output_y_new_(0) = y_hat_(0); // Initial position of the CoM and ZMP is equal.
         
         // QP_cpmpc_x_.InitializeProblemSize(N_cp + footprint_num, N_cp + footprint_num); // MPC variable : desired ZMP, foot position 
         // QP_cpmpc_y_.InitializeProblemSize(N_cp + footprint_num, N_cp + footprint_num);
-
-        // New_CP_MPC_first_loop = 1;
-        // cout << "Initialization of CP_MPC parameters is complete." << endl;
+        QP_cpmpc_x_new_.InitializeProblemSize(2*N_cp, 2*N_cp);
+        QP_cpmpc_y_new_.InitializeProblemSize(2*N_cp, 2*N_cp);
+        New_CP_MPC_first_loop = 1;
+        cout << "Initialization of New CP_MPC parameters is complete." << endl;
     }  
-    /*
-    // For foot adjustment
-    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0;
     
-    if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) // Define selection vector for swingfoot adjustment
-    {
-        swing_time_cur = (t_total_mpc_ - mpc_tick)/MPC_synchro_hz; // remaining sampling time in current foot. 
-
-        if(N_cp - swing_time_cur >= t_total_mpc_/MPC_synchro_hz) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
-        {
-            swing_time_next = t_total_mpc_/MPC_synchro_hz;
-            swing_time_n_next = N_cp - (t_total_mpc_/MPC_synchro_hz + swing_time_cur);
-            dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
-            dsp_time2 = (t_rest_last_mpc_ + t_double2_)/MPC_synchro_hz;
-        }
-        else // 2 footholds are included in N_cp step.(current, next foothold)
-        {
-            swing_time_next = N_cp - swing_time_cur;
-            swing_time_n_next = 0;
-            dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
-            dsp_time2 = 0;
-        } 
-
-        Eigen::VectorXd sel_swingfoot(swing_time_cur); 
-        Eigen::VectorXd sel_swingfoot_next(swing_time_next);  
-        Eigen::VectorXd sel_swingfoot_n_next(swing_time_n_next);  
-        
-        sel_swingfoot.setZero();
-        
-        sel_swingfoot_next.setOnes();
-        sel_swingfoot_next.segment(0, dsp_time1).setZero();
-        sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
-
-        P_sel.setZero(N_cp, footprint_num);  
-        P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;        
-        P_sel.block(swing_time_cur, 0, swing_time_next, 1) = sel_swingfoot_next;  
-
-        if(swing_time_n_next != 0)
-        {
-            if(swing_time_n_next < dsp_time1)
-            {
-                sel_swingfoot_n_next.setZero();
-            }
-            else
-            {
-                sel_swingfoot_n_next.setOnes();
-                sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
-            }
-            P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
-        }
-        //cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
-    }
-    else
-    {       
-        P_sel.setZero(N_cp,footprint_num); 
-    }
+    // // For foot adjustment
+    // int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0;
     
-    Eigen::VectorXd g_cpmpc_x(N_cp);
-    Eigen::VectorXd g_cpmpc_y(N_cp);
-    Eigen::VectorXd g_cpStepping_mpc_x(N_cp + footprint_num);
-    Eigen::VectorXd g_cpStepping_mpc_y(N_cp + footprint_num);
+    // if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) // Define selection vector for swingfoot adjustment
+    // {
+    //     swing_time_cur = (t_total_mpc_ - mpc_tick)/MPC_synchro_hz; // remaining sampling time in current foot. 
+
+    //     if(N_cp - swing_time_cur >= t_total_mpc_/MPC_synchro_hz) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
+    //     {
+    //         swing_time_next = t_total_mpc_/MPC_synchro_hz;
+    //         swing_time_n_next = N_cp - (t_total_mpc_/MPC_synchro_hz + swing_time_cur);
+    //         dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
+    //         dsp_time2 = (t_rest_last_mpc_ + t_double2_)/MPC_synchro_hz;
+    //     }
+    //     else // 2 footholds are included in N_cp step.(current, next foothold)
+    //     {
+    //         swing_time_next = N_cp - swing_time_cur;
+    //         swing_time_n_next = 0;
+    //         dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
+    //         dsp_time2 = 0;
+    //     } 
+
+    //     Eigen::VectorXd sel_swingfoot(swing_time_cur); 
+    //     Eigen::VectorXd sel_swingfoot_next(swing_time_next);  
+    //     Eigen::VectorXd sel_swingfoot_n_next(swing_time_n_next);  
+        
+    //     sel_swingfoot.setZero();
+        
+    //     sel_swingfoot_next.setOnes();
+    //     sel_swingfoot_next.segment(0, dsp_time1).setZero();
+    //     sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
+
+    //     P_sel.setZero(N_cp, footprint_num);  
+    //     P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;        
+    //     P_sel.block(swing_time_cur, 0, swing_time_next, 1) = sel_swingfoot_next;  
+
+    //     if(swing_time_n_next != 0)
+    //     {
+    //         if(swing_time_n_next < dsp_time1)
+    //         {
+    //             sel_swingfoot_n_next.setZero();
+    //         }
+    //         else
+    //         {
+    //             sel_swingfoot_n_next.setOnes();
+    //             sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
+    //         }
+    //         P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
+    //     }
+    //     //cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
+    // }
+    // else
+    // {       
+    //     P_sel.setZero(N_cp,footprint_num); 
+    // }
+    
+    // Eigen::VectorXd g_cpmpc_x(N_cp);
+    // Eigen::VectorXd g_cpmpc_y(N_cp);
+    Eigen::VectorXd g_cpmpc_x_new(2*N_cp);  
+    Eigen::VectorXd g_cpmpc_y_new(2*N_cp);
+    // Eigen::VectorXd g_cpStepping_mpc_x(N_cp + footprint_num);
+    // Eigen::VectorXd g_cpStepping_mpc_y(N_cp + footprint_num);
     
     // gradient vector
-    g_cpmpc_x = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc_(0) - cp_x_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_x_(0);
-    g_cpStepping_mpc_x.setZero(N_cp + footprint_num);
-    g_cpStepping_mpc_x.segment(0, N_cp) = g_cpmpc_x;
+    g_cpmpc_x_new = F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(0) - cp_x_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_x_new_.segment<2>(0);
+    // g_cpmpc_x = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc_(0) - cp_x_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_x_(0);
+    // g_cpStepping_mpc_x.setZero(N_cp + footprint_num);
+    // g_cpStepping_mpc_x.segment(0, N_cp) = g_cpmpc_x;
 
-    g_cpmpc_y = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc_(1) - cp_y_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_y_(0);
-    g_cpStepping_mpc_y.setZero(N_cp + footprint_num);
-    g_cpStepping_mpc_y.segment(0, N_cp) = g_cpmpc_y;
+    g_cpmpc_y_new = F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(1) - cp_y_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_y_new_.segment<2>(0);
+    // g_cpmpc_y = F_zmp_.transpose()*weighting_cp_*(F_cp_*cp_measured_mpc_(1) - cp_y_ref) - diff_matrix_.transpose()*weighting_zmp_diff_*e1_cpmpc_*cpmpc_deszmp_y_(0);
+    // g_cpStepping_mpc_y.setZero(N_cp + footprint_num);
+    // g_cpStepping_mpc_y.segment(0, N_cp) = g_cpmpc_y;
     
     // constraint formulation
-    Eigen::MatrixXd A_cpStepping_mpc(N_cp+footprint_num, N_cp+footprint_num);
-    Eigen::MatrixXd A_cp_mpc(N_cp, N_cp);
-    A_cp_mpc.setIdentity();
-    A_cpStepping_mpc.block(0, 0, N_cp, N_cp) = A_cp_mpc;  
-    A_cpStepping_mpc.block(0, N_cp, N_cp, footprint_num) = -P_sel;
-    A_cpStepping_mpc.block(N_cp, 0, footprint_num, N_cp) = zeros_Ncp_x_f.transpose();
-    A_cpStepping_mpc.block(N_cp, N_cp, footprint_num, footprint_num) = eye2;
+    // Eigen::MatrixXd A_cpStepping_mpc(N_cp+footprint_num, N_cp+footprint_num);
+    Eigen::MatrixXd A_cp_mpc_new(2*N_cp, 2*N_cp);  
+    A_cp_mpc_new.setIdentity();
+    // for(int i = 0; i < N_cp; i++)
+    // {
+    //     A_cp_mpc_new(2*i+1, 2*i+1) = 0.0; 
+    // }
+    // A_cpStepping_mpc.block(0, 0, N_cp, N_cp) = A_cp_mpc;  
+    // A_cpStepping_mpc.block(0, N_cp, N_cp, footprint_num) = -P_sel;
+    // A_cpStepping_mpc.block(N_cp, 0, footprint_num, N_cp) = zeros_Ncp_x_f.transpose();
+    // A_cpStepping_mpc.block(N_cp, N_cp, footprint_num, footprint_num) = eye2;
 
-    Eigen::VectorXd ub_x_cp_mpc(N_cp);
-    Eigen::VectorXd lb_x_cp_mpc(N_cp);
-    Eigen::VectorXd ub_y_cp_mpc(N_cp);
-    Eigen::VectorXd lb_y_cp_mpc(N_cp);    
+    Eigen::VectorXd ub_x_cp_mpc_new(2*N_cp);
+    Eigen::VectorXd lb_x_cp_mpc_new(2*N_cp);
+    Eigen::VectorXd ub_y_cp_mpc_new(2*N_cp);
+    Eigen::VectorXd lb_y_cp_mpc_new(2*N_cp);    
 
-    Eigen::VectorXd ub_x_foot_cp_mpc(footprint_num);
-    Eigen::VectorXd lb_x_foot_cp_mpc(footprint_num);
-    Eigen::VectorXd ub_y_foot_cp_mpc(footprint_num);
-    Eigen::VectorXd lb_y_foot_cp_mpc(footprint_num);   
+    // Eigen::VectorXd ub_x_foot_cp_mpc(footprint_num);
+    // Eigen::VectorXd lb_x_foot_cp_mpc(footprint_num);
+    // Eigen::VectorXd ub_y_foot_cp_mpc(footprint_num);
+    // Eigen::VectorXd lb_y_foot_cp_mpc(footprint_num);   
 
-    Eigen::VectorXd ub_x_cpStepping_mpc(N_cp + footprint_num);
-    Eigen::VectorXd lb_x_cpStepping_mpc(N_cp + footprint_num);
-    Eigen::VectorXd ub_y_cpStepping_mpc(N_cp + footprint_num);
-    Eigen::VectorXd lb_y_cpStepping_mpc(N_cp + footprint_num);    
-
-    for(int i = 0; i < N_cp; i ++)
-    {
-        Z_x_ref_wo_offset(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 0); // 20 = Control freq (2000) / MPC_freq (100)
-        Z_y_ref_wo_offset(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz*(i+1), 1);
-    }  
+    // Eigen::VectorXd ub_x_cpStepping_mpc(N_cp + footprint_num);
+    // Eigen::VectorXd lb_x_cpStepping_mpc(N_cp + footprint_num);
+    // Eigen::VectorXd ub_y_cpStepping_mpc(N_cp + footprint_num);
+    // Eigen::VectorXd lb_y_cpStepping_mpc(N_cp + footprint_num);    
     
-    Eigen::VectorXd zmp_bound_x(N_cp);
-    Eigen::VectorXd zmp_bound_y(N_cp);
-
+    Z_x_ref_wo_offset_new.setZero();
+    Z_y_ref_wo_offset_new.setZero();
+    zmp_bound_x_new.setZero();
+    zmp_bound_y_new.setZero();
+    
+    Tau_x_limit.setZero();
+    Tau_y_limit.setZero();
+    
     for(int i = 0; i < N_cp; i++)  
     {
-        zmp_bound_x(i) = 0.1;
-        zmp_bound_y(i) = 0.07;  
+        Z_x_ref_wo_offset_new(2*i) = Z_x_ref_cpmpc_only_(i); // 20 = Control freq (2000) / MPC_freq (100)
+        Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
+        zmp_bound_x_new(2*i) = 0.1;
+        zmp_bound_y_new(2*i) = 0.07;  
+        Tau_x_limit(2*i + 1) = 20.0;
+        Tau_y_limit(2*i + 1) = 20.0;
     }
     
-    lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x;
-    ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound_x;
+    // lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x;
+    // ub_x_cp_mpc = Z_x_ref_wo_offset + zmp_bound_x;
 
-    lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound_y; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
-    ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound_y; // However, Ref. ZMP without ZMP offset is required for CP control.
-      
-    double del_F_y_rightswing_min = -0.08, del_F_y_rightswing_max = 0.03;
-    double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.08;
-
-    ub_x_foot_cp_mpc.setZero();   
-    lb_x_foot_cp_mpc.setZero();
-    
-    for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
-    {
-        // real robot experiment 0.2?
-        ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
-        
-        if(alpha_step_mpc_ == 1) // left foot support
-        {
-            ub_x_foot_cp_mpc(0) = 0.15 - rfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - rfoot_support_current_.translation()(0);
-        }
-        else if(alpha_step_mpc_ == -1) // right foot support
-        {
-            ub_x_foot_cp_mpc(0) = 0.15 - lfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc(0) = -0.15 - lfoot_support_current_.translation()(0);
-        } 
-        
-    }   
-    ub_y_foot_cp_mpc.setZero();   
-    lb_y_foot_cp_mpc.setZero();
-
-    if(alpha_step_mpc_ == 1)// left foot support
-    {   
-        for(int i = 0; i < footprint_num; i ++)
-        {
-            ub_y_foot_cp_mpc(i) = del_F_y_rightswing_max;
-            lb_y_foot_cp_mpc(i) = del_F_y_rightswing_min;
-        }          
-    }
-    else if(alpha_step_mpc_ == -1) // right foot support
-    {
-        for(int i = 0; i < footprint_num; i ++)
-        {
-            ub_y_foot_cp_mpc(i) = del_F_y_leftswing_max;
-            lb_y_foot_cp_mpc(i) = del_F_y_leftswing_min;
-        }
-    }  
+    // lb_y_cp_mpc = Z_y_ref_wo_offset - zmp_bound_y; // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
+    // ub_y_cp_mpc = Z_y_ref_wo_offset + zmp_bound_y; // However, Ref. ZMP without ZMP offset is required for CP control.
      
-    lb_x_cpStepping_mpc.segment(0, N_cp) = lb_x_cp_mpc;
-    lb_x_cpStepping_mpc.segment(N_cp, footprint_num) = lb_x_foot_cp_mpc;
-    ub_x_cpStepping_mpc.segment(0, N_cp) = ub_x_cp_mpc;
-    ub_x_cpStepping_mpc.segment(N_cp, footprint_num) = ub_x_foot_cp_mpc; 
+    lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new) - (Tau_y_limit);
+    ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new) + (Tau_y_limit);
 
-    lb_y_cpStepping_mpc.segment(0, N_cp) = lb_y_cp_mpc;
-    lb_y_cpStepping_mpc.segment(N_cp, footprint_num) = lb_y_foot_cp_mpc;
-    ub_y_cpStepping_mpc.segment(0, N_cp) = ub_y_cp_mpc;
-    ub_y_cpStepping_mpc.segment(N_cp, footprint_num) = ub_y_foot_cp_mpc; 
+    lb_y_cp_mpc_new = (Z_y_ref_wo_offset_new - zmp_bound_y_new) - (Tau_x_limit); // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
+    ub_y_cp_mpc_new = (Z_y_ref_wo_offset_new + zmp_bound_y_new) + (Tau_x_limit); // However, Ref. ZMP without ZMP offset is required for CP control.
+    // double del_F_y_rightswing_min = -0.08, del_F_y_rightswing_max = 0.03;
+    // double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.08;
+        
+    // ub_x_foot_cp_mpc.setZero();   
+    // lb_x_foot_cp_mpc.setZero();
     
-    // Define QP problem for CP-MPC  
-    QP_cpmpc_x_.EnableEqualityCondition(equality_condition_eps_);
-    QP_cpmpc_x_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_x);
-    QP_cpmpc_x_.DeleteSubjectToAx();      
-    QP_cpmpc_x_.UpdateSubjectToAx(A_cpStepping_mpc, lb_x_cpStepping_mpc, ub_x_cpStepping_mpc);             
+    // for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
+    // {
+    //     // real robot experiment 0.2?
+    //     ub_x_foot_cp_mpc(i) = +0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+    //     lb_x_foot_cp_mpc(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+        
+    //     if(alpha_step_mpc_ == 1) // left foot support
+    //     {
+    //         ub_x_foot_cp_mpc(0) = 0.15 - rfoot_support_current_.translation()(0);
+    //         lb_x_foot_cp_mpc(0) = -0.15 - rfoot_support_current_.translation()(0);
+    //     }
+    //     else if(alpha_step_mpc_ == -1) // right foot support
+    //     {
+    //         ub_x_foot_cp_mpc(0) = 0.15 - lfoot_support_current_.translation()(0);
+    //         lb_x_foot_cp_mpc(0) = -0.15 - lfoot_support_current_.translation()(0);
+    //     } 
+        
+    // }   
+    // ub_y_foot_cp_mpc.setZero();   
+    // lb_y_foot_cp_mpc.setZero();
+
+    // if(alpha_step_mpc_ == 1)// left foot support
+    // {   
+    //     for(int i = 0; i < footprint_num; i ++)
+    //     {
+    //         ub_y_foot_cp_mpc(i) = del_F_y_rightswing_max;
+    //         lb_y_foot_cp_mpc(i) = del_F_y_rightswing_min;
+    //     }          
+    // }
+    // else if(alpha_step_mpc_ == -1) // right foot support
+    // {
+    //     for(int i = 0; i < footprint_num; i ++)
+    //     {
+    //         ub_y_foot_cp_mpc(i) = del_F_y_leftswing_max;
+    //         lb_y_foot_cp_mpc(i) = del_F_y_leftswing_min;
+    //     }
+    // }  
+     
+    // lb_x_cpStepping_mpc.segment(0, N_cp) = lb_x_cp_mpc;
+    // lb_x_cpStepping_mpc.segment(N_cp, footprint_num) = lb_x_foot_cp_mpc;
+    // ub_x_cpStepping_mpc.segment(0, N_cp) = ub_x_cp_mpc;
+    // ub_x_cpStepping_mpc.segment(N_cp, footprint_num) = ub_x_foot_cp_mpc; 
+
+    // lb_y_cpStepping_mpc.segment(0, N_cp) = lb_y_cp_mpc;
+    // lb_y_cpStepping_mpc.segment(N_cp, footprint_num) = lb_y_foot_cp_mpc;
+    // ub_y_cpStepping_mpc.segment(0, N_cp) = ub_y_cp_mpc;
+    // ub_y_cpStepping_mpc.segment(N_cp, footprint_num) = ub_y_foot_cp_mpc; 
+    
+    // Define QP problem for new CP-MPC  
+    // QP_cpmpc_x_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_cpmpc_x_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_x);
+    // QP_cpmpc_x_.DeleteSubjectToAx();      
+    // QP_cpmpc_x_.UpdateSubjectToAx(A_cpStepping_mpc, lb_x_cpStepping_mpc, ub_x_cpStepping_mpc);     
+    QP_cpmpc_x_new_.EnableEqualityCondition(equality_condition_eps_);
+    QP_cpmpc_x_new_.UpdateMinProblem(H_cpmpc_new_,g_cpmpc_x_new);
+    QP_cpmpc_x_new_.DeleteSubjectToAx();      
+    QP_cpmpc_x_new_.UpdateSubjectToAx(A_cp_mpc_new, lb_x_cp_mpc_new, ub_x_cp_mpc_new);          
       
-    if (QP_cpmpc_x_.SolveQPoases(200, cpmpc_input_x_))
+    // if (QP_cpmpc_x_.SolveQPoases(200, cpmpc_input_x_))
+    // {                     
+    //     cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp + footprint_num); 
+    //     if(atb_cpmpc_x_update_ == false)
+    //     {
+    //         atb_cpmpc_x_update_ = true;
+    //         del_F_x_thread_ = cpmpc_deszmp_x_(N_cp);
+    //         cpmpc_des_zmp_x_thread_ = cpmpc_deszmp_x_(0);
+    //         atb_cpmpc_x_update_ = false;
+    //     }       
+    //     cpmpc_x_update_ = true;
+    // }
+
+    if (QP_cpmpc_x_new_.SolveQPoases(200, cpmpc_input_x_new_))
     {                     
-        cpmpc_deszmp_x_ = cpmpc_input_x_.segment(0, N_cp + footprint_num); 
-        if(atb_cpmpc_x_update_ == false)
-        {
-            atb_cpmpc_x_update_ = true;
-            del_F_x_thread_ = cpmpc_deszmp_x_(N_cp);
-            cpmpc_des_zmp_x_thread_ = cpmpc_deszmp_x_(0);
-            atb_cpmpc_x_update_ = false;
-        }       
-        cpmpc_x_update_ = true;
+        cpmpc_output_x_new_ = cpmpc_input_x_new_.segment(0, 2*N_cp); 
+        des_tau_y_thread_ = cpmpc_output_x_new_(1);
     }
     
-    QP_cpmpc_y_.EnableEqualityCondition(equality_condition_eps_);
-    QP_cpmpc_y_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_y);
-    QP_cpmpc_y_.DeleteSubjectToAx();      
-    QP_cpmpc_y_.UpdateSubjectToAx(A_cpStepping_mpc, lb_y_cpStepping_mpc, ub_y_cpStepping_mpc);    
+    // QP_cpmpc_y_.EnableEqualityCondition(equality_condition_eps_);
+    // QP_cpmpc_y_.UpdateMinProblem(H_cpStepping_mpc_,g_cpStepping_mpc_y);
+    // QP_cpmpc_y_.DeleteSubjectToAx();      
+    // QP_cpmpc_y_.UpdateSubjectToAx(A_cpStepping_mpc, lb_y_cpStepping_mpc, ub_y_cpStepping_mpc);    
+    QP_cpmpc_y_new_.EnableEqualityCondition(equality_condition_eps_);
+    QP_cpmpc_y_new_.UpdateMinProblem(H_cpmpc_new_,g_cpmpc_y_new);
+    QP_cpmpc_y_new_.DeleteSubjectToAx();      
+    QP_cpmpc_y_new_.UpdateSubjectToAx(A_cp_mpc_new, lb_y_cp_mpc_new, ub_y_cp_mpc_new);  
     
-    if (QP_cpmpc_y_.SolveQPoases(200, cpmpc_input_y_))
-    {             
-        cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp + footprint_num); 
-        if(atb_cpmpc_y_update_ == false)
-        {
-            atb_cpmpc_y_update_ = true;
-            del_F_y_thread_ = cpmpc_deszmp_y_(N_cp);
-            cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
-            atb_cpmpc_y_update_ = false;
-        }       
-        cpmpc_y_update_ = true;
-    }
-     
+    // if (QP_cpmpc_y_.SolveQPoases(200, cpmpc_input_y_))
+    // {             
+    //     cpmpc_deszmp_y_ = cpmpc_input_y_.segment(0, N_cp + footprint_num); 
+    //     if(atb_cpmpc_y_update_ == false)
+    //     {
+    //         atb_cpmpc_y_update_ = true;
+    //         del_F_y_thread_ = cpmpc_deszmp_y_(N_cp);
+    //         cpmpc_des_zmp_y_thread_ = cpmpc_deszmp_y_(0);
+    //         atb_cpmpc_y_update_ = false;
+    //     }       
+    //     cpmpc_y_update_ = true;
+    // }
+    if (QP_cpmpc_y_new_.SolveQPoases(200, cpmpc_input_y_new_))
+    {                     
+        cpmpc_output_y_new_ = cpmpc_input_y_new_.segment(0, 2*N_cp); 
+        des_tau_x_thread_ = cpmpc_output_y_new_(1);
+    } 
     
-    MJ_graph2 << cp_x_ref(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset(0) << "," << cpmpc_deszmp_x_(0) << "," << cpmpc_deszmp_x_(N_cp) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph << cp_y_ref(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset(0) << "," << cpmpc_deszmp_y_(0) << "," << cpmpc_deszmp_y_(N_cp) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << des_tau_y_thread_ << "," << del_tau_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
-    current_step_num_mpc_prev_ = current_step_num_mpc_;
-    std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
-    */
+    current_step_num_mpc_new_prev_ = current_step_num_mpc_;
+    // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
+    
 
 }
 void AvatarController::savePreData()
@@ -14221,8 +13932,7 @@ void AvatarController::getComTrajectory_mpc()
     ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
 
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
-    
-
+        
     int alpha_step = 0;
 
     if (foot_step_(current_step_num_, 6) == 1)
@@ -14233,7 +13943,6 @@ void AvatarController::getComTrajectory_mpc()
     {
         alpha_step = -1;
     }        
-
 
     // support foot change           
     if(walking_tick_mj == t_start_ && current_step_num_ > 0)
@@ -14264,7 +13973,7 @@ void AvatarController::getComTrajectory_mpc()
         zmp_start_time_mj_thread_ = zmp_start_time_mj_;
         ref_zmp_thread_ = ref_zmp_mj_; 
         
-        ref_zmp_wo_offset_thread_ = ref_zmp_mj_wo_offset_;     
+        ref_zmp_wo_offset_thread_ = ref_zmp_mj_wo_offset_;  
         alpha_step_mpc_thread_ = alpha_step;        
         cp_measured_thread_ = cp_measured_;
 
@@ -14280,7 +13989,7 @@ void AvatarController::getComTrajectory_mpc()
             cpmpc_interpol_cnt_x_ = 1;
             cpmpc_interpol_cnt_y_ = 1;
         }
-        
+  
         atb_mpc_update_ = false;
     } 
 
@@ -14413,8 +14122,8 @@ void AvatarController::getComTrajectory_mpc()
     cpmpc_interpol_cnt_y_ ++;
     
     // Reference COM, CP position // CPMPC로 대체하면 필요 X
-    // cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
-    // cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
+    cp_desired_(0) = x_mpc_i_(0) + x_mpc_i_(1) / wn;
+    cp_desired_(1) = y_mpc_i_(0) + y_mpc_i_(1) / wn;
 
     com_desired_(0) = x_mpc_i_(0);
     com_desired_(1) = y_mpc_i_(0);
@@ -14863,144 +14572,6 @@ void AvatarController::updateNextStepTime()
     {
         walking_tick_mj++;
     }
-}
-
-void AvatarController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
-{
-    double Kp_x_ssp, Kv_x_ssp;
-    double Kp_y_ssp, Kv_y_ssp;
-    Kp_x_ssp = 30;
-    Kv_x_ssp = 2;
-    Kp_y_ssp = 40;
-    Kv_y_ssp = 2;
-    double del_t = 0.0005;
-
-    if (walking_tick_mj == 0)
-    {
-        A_x_ssp.resize(2, 2);
-        B_x_ssp.resize(2, 1);
-        Ad_x_ssp.resize(2, 2);
-        Bd_x_ssp.resize(2, 1);
-        C_x_ssp.resize(1, 2);
-        D_x_ssp.resize(1, 1);
-
-        A_y_ssp.resize(2, 2);
-        B_y_ssp.resize(2, 1);
-        Ad_y_ssp.resize(2, 2);
-        Bd_y_ssp.resize(2, 1);
-        C_y_ssp.resize(1, 2);
-        D_y_ssp.resize(1, 1);
-
-        ff_gain_x_ssp.resize(1, 1);
-        ff_gain_y_ssp.resize(1, 1);
-
-        K_x_ssp.resize(1, 2);
-        K_y_ssp.resize(1, 2);
-
-        X_x_ssp.setZero();
-        Y_x_ssp.resize(1, 1);
-
-        X_y_ssp.setZero();
-        Y_y_ssp.resize(1, 1);
-
-        K_x_ssp(0, 0) = 0.0083;
-        K_x_ssp(0, 1) = 0.19;
-        // Control pole : -5 , damping : 0.7 (실제 로봇) // Control pole : -7 , damping : 0.9 (시뮬레이션)
-        K_y_ssp(0, 0) = -0.375;
-        K_y_ssp(0, 1) = 0.125;
-
-        // Define the state space equation
-        A_x_ssp(0, 0) = 0;
-        A_x_ssp(0, 1) = 1;
-        A_x_ssp(1, 0) = -Kp_x_ssp;
-        A_x_ssp(1, 1) = -Kv_x_ssp;
-
-        B_x_ssp(0, 0) = 0;
-        B_x_ssp(1, 0) = Kp_x_ssp;
-
-        Ad_x_ssp(0, 0) = 1 - 0.5 * Kp_x_ssp * del_t * del_t;
-        Ad_x_ssp(0, 1) = del_t - 0.5 * Kv_x_ssp * del_t * del_t;
-        Ad_x_ssp(1, 0) = -Kp_x_ssp * del_t;
-        Ad_x_ssp(1, 1) = 1 - Kv_x_ssp * del_t;
-
-        Bd_x_ssp(0, 0) = 0.5 * Kp_x_ssp * del_t * del_t;
-        Bd_x_ssp(1, 0) = Kp_x_ssp * del_t;
-
-        C_x_ssp(0, 0) = 1 + zc_mj_ / GRAVITY * Kp_x_ssp;
-        C_x_ssp(0, 1) = zc_mj_ / GRAVITY * Kv_x_ssp;
-
-        D_x_ssp(0, 0) = -zc_mj_ / GRAVITY * Kp_x_ssp;
-
-        ff_gain_x_ssp = (-(C_x_ssp - D_x_ssp * K_x_ssp) * ((A_x_ssp - B_x_ssp * K_x_ssp).inverse()) * B_x_ssp + D_x_ssp).inverse();
-
-        A_y_ssp(0, 0) = 0;
-        A_y_ssp(0, 1) = 1;
-        A_y_ssp(1, 0) = -Kp_y_ssp;
-        A_y_ssp(1, 1) = -Kv_y_ssp;
-
-        B_y_ssp(0, 0) = 0;
-        B_y_ssp(1, 0) = Kp_y_ssp;
-
-        Ad_y_ssp(0, 0) = 1 - 0.5 * Kp_y_ssp * del_t * del_t;
-        Ad_y_ssp(0, 1) = del_t - 0.5 * Kv_y_ssp * del_t * del_t;
-        Ad_y_ssp(1, 0) = -Kp_y_ssp * del_t;
-        Ad_y_ssp(1, 1) = 1 - Kv_y_ssp * del_t;
-
-        Bd_y_ssp(0, 0) = 0.5 * Kp_y_ssp * del_t * del_t;
-        Bd_y_ssp(1, 0) = Kp_y_ssp * del_t;
-
-        C_y_ssp(0, 0) = 1 + zc_mj_ / GRAVITY * Kp_y_ssp;
-        C_y_ssp(0, 1) = zc_mj_ / GRAVITY * Kv_y_ssp;
-
-        D_y_ssp(0, 0) = -zc_mj_ / GRAVITY * Kp_y_ssp;
-
-        ff_gain_y_ssp = (-(C_y_ssp - D_y_ssp * K_y_ssp) * ((A_y_ssp - B_y_ssp * K_y_ssp).inverse()) * B_y_ssp + D_y_ssp).inverse();
-    }
-
-    //X_x_ssp(0) = com_float_current_(0);
-    X_x_ssp(0) = com_support_current_(0);
-
-    if (foot_step_(current_step_num_, 6) == 1) // 왼발 지지
-    {
-        X_y_ssp(0) = com_support_current_(1) - rfoot_support_current_.translation()(1) * 0.5;
-    }
-    else if (foot_step_(current_step_num_, 6) == 0)
-    {
-        X_y_ssp(0) = com_support_current_(1) - lfoot_support_current_.translation()(1) * 0.5;
-    }
-
-    U_ZMP_x_ssp = -(K_x_ssp(0, 0) * X_x_ssp(0) + K_x_ssp(0, 1) * preview_x_mj(1)) + XZMP_ref * ff_gain_x_ssp(0, 0);
-    U_ZMP_y_ssp = -(K_y_ssp(0, 0) * X_y_ssp(0) + K_y_ssp(0, 1) * preview_y_mj(1)) + YZMP_ref * ff_gain_y_ssp(0, 0);
-
-    U_ZMP_x_ssp_LPF = 1 / (1 + 2 * M_PI * 3.0 * del_t) * U_ZMP_x_ssp_LPF + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * U_ZMP_x_ssp;
-    U_ZMP_y_ssp_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * U_ZMP_y_ssp_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * U_ZMP_y_ssp;
-    if (walking_tick_mj == 0)
-    {
-        U_ZMP_x_ssp_LPF = U_ZMP_x_ssp;
-        U_ZMP_y_ssp_LPF = U_ZMP_y_ssp;
-    }
-
-    damping_x = U_ZMP_x_ssp_LPF;
-    damping_y = U_ZMP_y_ssp_LPF;
-
-    if (damping_x > 0.02)
-    {
-        damping_x = 0.02;
-    }
-    else if (damping_x < -0.02)
-    {
-        damping_x = -0.02;
-    }
-
-    if (damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
-    {
-        damping_y = 0.03;
-    }
-    else if (damping_y < -0.03)
-    {
-        damping_y = -0.03;
-    }
-
 }
 
 void AvatarController::hip_compensator()
@@ -15555,11 +15126,11 @@ void AvatarController::CP_compen_MJ_FT()
         ZMP_Y_REF_alpha_ = ZMP_Y_REF;
     }
      
-    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
-    del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
-  
-    // del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), -0.1, 0.1);
-    // del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), -0.07, 0.07); 
+    // del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
+    // del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
+     
+    del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), -0.1, 0.1);
+    del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), -0.07, 0.07); 
     ////////////////////////
     // double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
     // A = (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
@@ -15733,8 +15304,8 @@ void AvatarController::CP_compen_MJ_FT()
 
 void AvatarController::CentroidalMomentCalculator()
 {
-    del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
-    del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
+    // del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+    // del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
     double support_ratio = 0.0;
     double M_G = rd_.link_[COM_id].mass * GRAVITY;
     support_ratio = (ZMP_Y_REF_alpha_ - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
@@ -15770,83 +15341,16 @@ void AvatarController::CentroidalMomentCalculator()
 
     
     double rbs_ratio = 1.0;  //recovery bondary safety ratio
-    double recovery_damping = 7.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
+    double recovery_damping = 3.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
     
     // X direction CP control
-    if (del_cmp(0) > 0.18*support_margin)
-    {
-        del_zmp(0) = 0.18*support_margin;
-        del_tau_(1) = (del_cmp(0) - del_zmp(0)) * M_G; // Y axis delta angular moment , X direction CP control
-        torque_flag_x = 0;
-    }
-    else if (del_cmp(0) <= 0.18*support_margin && del_cmp(0) > -0.12*support_margin)  
-    {
-        del_zmp(0) = del_cmp(0);
-        del_tau_(1) = -recovery_damping*del_ang_momentum_(1);
-        del_tau_(1) = DyrosMath::minmax_cut( del_tau_(1), (-0.12*support_margin*rbs_ratio - zmp_measured_mj_(0))*M_G, (0.18*support_margin*rbs_ratio - zmp_measured_mj_(0))*M_G );
-        torque_flag_x = 1;
-    }
-    else if (del_cmp(0) < -0.12*support_margin)
-    {
-        del_zmp(0) = -0.12*support_margin;
-        del_tau_(1) = (del_cmp(0) - del_zmp(0)) * M_G;  
-        torque_flag_x = 0;
-    }
-
+  
+    del_tau_(1) = des_tau_y_thread_ - recovery_damping*del_ang_momentum_(1);
+ 
     // Y direction CP control
-    if (del_cmp(1) > foot_width_y)
-    {
-        del_zmp(1) = foot_width_y;
-        del_tau_(0) = -(del_cmp(1) - del_zmp(1)) * M_G;  
-        torque_flag_y = 0;
-    }
-    else if (del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
-    {
-        torque_flag_y = 1;
-        del_zmp(1) = del_cmp(1);
-        del_tau_(0) = -recovery_damping*del_ang_momentum_(0); 
-        //del_tau_(0) = DyrosMath::minmax_cut( del_tau_(0), -(foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G, -(-foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G );
         
-        //if(support_ratio == 1) // SSP 왼발 지지
-        // if (foot_step_(current_step_num_, 6) == 1) // 문제는 DSP때 CAM을 0으로 보내서 토크 리밋이 별 소용이없음.
-        // {
-        //     if(del_tau_(0) < -(foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G)
-        //     {
-        //         del_tau_(0) = -(foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G;
-        //     }
-        // }
-        // else
-        // {
-        //     if(del_tau_(0) > -(-foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G )
-        //     {
-        //         del_tau_(0) = -(-foot_width_y*rbs_ratio - zmp_measured_mj_(1))*M_G ;
-        //     }
-        // }        
-    }
-    else if (del_cmp(1) < -foot_width_y)
-    {   
-        torque_flag_y = 0;
-        del_zmp(1) = -foot_width_y;
-        del_tau_(0) = -(del_cmp(1) - del_zmp(1)) * M_G;  
-    }
-
-    // if(del_tau_(0) > del_tau_limit_(0))
-    // { 
-    //     del_tau_(0) = del_tau_limit_(0); 
-    // }
-    // else if(del_tau_(0) < -del_tau_limit_(0))
-    // { 
-    //     del_tau_(0) = -del_tau_limit_(0); 
-    // }
-    // if(del_tau_(1) > del_tau_limit_(1))
-    // { 
-    //     del_tau_(1) = del_tau_limit_(1); 
-    // }
-    // else if(del_tau_(1) < -del_tau_limit_(1))
-    // { 
-    //     del_tau_(1) = -del_tau_limit_(1); 
-    // }
-
+    del_tau_(0) = -des_tau_x_thread_ - recovery_damping*del_ang_momentum_(0); 
+    
     //// Integrate Centroidal Moment
     del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
@@ -15870,9 +15374,9 @@ void AvatarController::CentroidalMomentCalculator()
     { 
         del_ang_momentum_(1) = -A_limit; 
     }
-    
-    CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1)); // 원래 previewcontroller 자리에 있던 함수.
+     
 }
+
 
 void AvatarController::getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM)
 { // 1. CMM 계산 함수.

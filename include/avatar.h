@@ -95,6 +95,8 @@ public:
     CQuadraticProgram QP_steptiming_;
     CQuadraticProgram QP_cpmpc_x_;
     CQuadraticProgram QP_cpmpc_y_;
+    CQuadraticProgram QP_cpmpc_x_new_;
+    CQuadraticProgram QP_cpmpc_y_new_;
 
     Eigen::VectorQd CAM_upper_init_q_; 
     //lQR-HQP (Lexls)
@@ -117,6 +119,7 @@ public:
     std::atomic<bool> atb_cpmpc_rcv_update_{false};
     std::atomic<bool> atb_cpmpc_x_update_{false};
     std::atomic<bool> atb_cpmpc_y_update_{false};
+    std::atomic<bool> atb_new_cpmpc_rcv_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
     RigidBodyDynamics::Model model_c_;  //updated by current q
@@ -1243,8 +1246,33 @@ public:
 
     Eigen::Vector2d des_zmp_interpol_;
 
-    // New CP-MPC
-    Eigen::MatrixXd F_cmp_;
+    // New CPMPC
+    Eigen::MatrixXd F_cp_new_; 
+    Eigen::MatrixXd F_cmp_new_;
+    Eigen::MatrixXd diff_matrix_new_;
+    Eigen::MatrixXd e1_cpmpc_new_;
+    Eigen::MatrixXd weighting_cp_new_;
+    Eigen::MatrixXd weighting_cmp_diff_new_;
+    Eigen::MatrixXd H_cpmpc_new_;
+
+    Eigen::MatrixXd Tau_sel_;
+    Eigen::MatrixXd weighting_tau_regul_;
+
+    Eigen::VectorXd cpmpc_deszmp_x_new_;
+    Eigen::VectorXd cpmpc_deszmp_y_new_;
+    Eigen::VectorXd cpmpc_destau_x_new_;
+    Eigen::VectorXd cpmpc_destau_y_new_;
+    Eigen::VectorXd cpmpc_output_x_new_;
+    Eigen::VectorXd cpmpc_output_y_new_;
+
+    Eigen::VectorXd cpmpc_input_x_new_;
+    Eigen::VectorXd cpmpc_input_y_new_;
+
+    Eigen::VectorXd Z_x_ref_cpmpc_only_;
+    Eigen::VectorXd Z_y_ref_cpmpc_only_;
+
+    double des_tau_x_thread_ = 0;
+    double des_tau_y_thread_ = 0;
     //
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
@@ -1603,7 +1631,8 @@ public:
     int current_step_num_mpc_;
     int current_step_num_thread_;
     int current_step_num_thread2_;
-    int current_step_num_mpc_prev_;      
+    int current_step_num_mpc_prev_;   
+    int current_step_num_mpc_new_prev_;   
     double step_length_x_;
     double step_length_y_;
     double target_theta_;
