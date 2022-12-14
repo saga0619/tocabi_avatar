@@ -1756,7 +1756,7 @@ public:
     bool joy_enable_ = false;
     bool joy_input_enable_ = false;
 
-    void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool first_support_foot_is_left);
+    void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
     Eigen::Isometry3d oneStepPlanner(double del_x, double del_y, double del_yaw, bool support_foot_is_left);
     Eigen::Vector2d joy_left_stick_;
@@ -1765,6 +1765,7 @@ public:
     bool current_support_foot_is_left_thread_ = true;
     bool current_support_foot_is_left_thread2_ = true;
     bool current_support_foot_is_left_mpc_ = true;
+    bool current_support_foot_is_left_mpc_prev_ = true;
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
