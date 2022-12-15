@@ -1738,6 +1738,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
 
     int mpc_tick = walking_tick_mj_mpc_ - zmp_start_time_mj_mpc_;
     int N_cp = preview_window * MPC_freq; 
+    // int footprint_num = ceil(preview_window*hz_/t_total_mpc_); // 0.9s walking->2, less than 0.75s walking -> 3
     int footprint_num = 2;
     double T = 1/MPC_freq;
     int MPC_synchro_hz = 2000.0 / MPC_freq;
@@ -1750,14 +1751,14 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
 
     Eigen::MatrixXd zeros_Ncp_x_f(N_cp, footprint_num);
     Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
-    Eigen::MatrixXd eye2(2,2);
-
-    Eigen::MatrixXd P_sel;
+    Eigen::MatrixXd eyes_f(footprint_num, footprint_num);
+    Eigen::MatrixXd P_sel(N_cp, footprint_num);
 
     zeros_Ncp_x_f.setZero();
     zeros_Ncp_x_Ncp.setZero();
-    eye2.setIdentity();
-    
+    eyes_f.setIdentity();
+    P_sel.setZero();
+
     // reference CP trajectory generation
     cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
@@ -1853,7 +1854,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         H_cpStepping_mpc_.block(0, 0, N_cp, N_cp) = H_cpmpc_; // CP-MPC
         H_cpStepping_mpc_.block(N_cp, 0, footprint_num, N_cp) = zeros_Ncp_x_f.transpose();
         H_cpStepping_mpc_.block(0, N_cp, N_cp, footprint_num) = zeros_Ncp_x_f;
-        H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*eye2; // Foot mpc
+        H_cpStepping_mpc_.block(N_cp, N_cp, footprint_num, footprint_num) = weighting_foot*eyes_f; // Foot mpc
 
         // Control input (desired zmp) initinalization 
         cpmpc_deszmp_x_.setZero(N_cp + footprint_num);
@@ -1889,7 +1890,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             swing_time_n_next = 0;
             dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
             dsp_time2 = 0;
-        } 
+        }
 
         Eigen::VectorXd sel_swingfoot(swing_time_cur); 
         Eigen::VectorXd sel_swingfoot_next(swing_time_next);  
@@ -1900,8 +1901,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         sel_swingfoot_next.setOnes();
         sel_swingfoot_next.segment(0, dsp_time1).setZero();
         sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
-
-        P_sel.setZero(N_cp, footprint_num);  
+        
         P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;        
         P_sel.block(swing_time_cur, 0, swing_time_next, 1) = sel_swingfoot_next;  
 
@@ -1913,12 +1913,14 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             }
             else
             {
-                sel_swingfoot_n_next.setOnes();
-                sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
+                int swing_last_time_n_next = DyrosMath::minmax_cut(swing_time_n_next-dsp_time1, 0, int(t_total_mpc_)-dsp_time1-dsp_time2);
+
+                sel_swingfoot_n_next.setZero();
+                sel_swingfoot_n_next.segment(dsp_time1, swing_last_time_n_next).setOnes();
             }
             P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
         }
-        //cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
+        // cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
     }
     else
     {       
@@ -1946,7 +1948,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     A_cpStepping_mpc.block(0, 0, N_cp, N_cp) = A_cp_mpc;  
     A_cpStepping_mpc.block(0, N_cp, N_cp, footprint_num) = -P_sel;
     A_cpStepping_mpc.block(N_cp, 0, footprint_num, N_cp) = zeros_Ncp_x_f.transpose();
-    A_cpStepping_mpc.block(N_cp, N_cp, footprint_num, footprint_num) = eye2;
+    A_cpStepping_mpc.block(N_cp, N_cp, footprint_num, footprint_num) = eyes_f;
 
     Eigen::VectorXd ub_x_cp_mpc(N_cp);
     Eigen::VectorXd lb_x_cp_mpc(N_cp);
@@ -10632,8 +10634,8 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.015; // 0.9 초
-    rfoot_zmp_offset_ = 0.015;
+    // lfoot_zmp_offset_ = -0.015; // 0.9 초
+    // rfoot_zmp_offset_ = 0.015;
 
     // lfoot_zmp_offset_ = -0.02; // 1.1 초
     // rfoot_zmp_offset_ = 0.02;
@@ -12812,38 +12814,38 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 90 * DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = true;
-
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
-
-    //// 0.7s walking
     // target_x_ = 1.0;
     // target_y_ = 0;
     // target_z_ = 0.0;
     // com_height_ = 0.71;
-    // target_theta_ = 0*DEG2RAD;
+    // target_theta_ = 0 * DEG2RAD;
     // step_length_x_ = 0.10;
     // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    // is_right_foot_swing_ = true;
 
-    // t_rest_init_ = 0.06*hz_;
-    // t_rest_last_ = 0.06*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 0.7*hz_;
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.9 * hz_;
     // foot_height_ = 0.055;      // 0.9 sec 0.05
+
+    //// 0.7s walking
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+
+    t_rest_init_ = 0.06*hz_;
+    t_rest_last_ = 0.06*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 0.7*hz_;
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.0;
@@ -13846,8 +13848,8 @@ void AvatarController::CP_compen_MJ_FT()
     double zmp_offset = 0;
     double alpha_new = 0;
 
-    zmp_offset = 0.015; // 0.9초
-    //   zmp_offset = 0.02; // 1.1초
+    // zmp_offset = 0.015; // 0.9초
+    // zmp_offset = 0.02; // 1.1초
     // zmp_offset = 0.015; // 1.3초
 
     // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
