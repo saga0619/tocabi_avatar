@@ -14834,8 +14834,8 @@ void AvatarController::updateInitialStateJoy()
 void AvatarController::calculateFootStepTotal_MJoy()
 {
     double width = 0.1225;
-    double length = 0.15;
-    double lengthb = 0.1;
+    double length = 0.1;
+    double lengthb = 0.05;
     double theta = 10 * DEG2RAD;
     double width_buffer = 0.0;
     double temp;
