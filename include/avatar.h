@@ -44,8 +44,8 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros_rm/DG/data/mob_learning/training_data.txt",
-    "/home/dyros_rm/DG/data/mob_learning/hand_ft.txt"
+    "/home/dg/data/mob_learning/training_data.txt",
+    "/home/dg/data/mob_learning/hand_ft.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -61,7 +61,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros_rm/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -1619,6 +1619,11 @@ public:
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_thread_;
 
+    Eigen::VectorXd Z_x_ref_;
+    Eigen::VectorXd Z_y_ref_;
+    Eigen::VectorXd Z_x_ref_wo_offset_;
+    Eigen::VectorXd Z_y_ref_wo_offset_;
+
     Eigen::Vector3d xs_mj_;
     Eigen::Vector3d ys_mj_;
     Eigen::Vector3d xd_mj_;
@@ -1709,7 +1714,9 @@ public:
     Eigen::MatrixXd foot_step_;                         // 0~2: next step position, 3~5: next step euler angles, 6: current suppor foot (0: right, 1: left)
     Eigen::MatrixXd foot_step_support_frame_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
-    
+    Eigen::MatrixXd foot_step_support_frame_thread_;
+    Eigen::MatrixXd foot_step_support_frame_mpc_;
+
     // Com damping control - ZMP tracking controller
     Eigen::MatrixXd A_y_ssp;
     Eigen::MatrixXd B_y_ssp;
