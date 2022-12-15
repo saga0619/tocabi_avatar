@@ -209,6 +209,7 @@ public:
     void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
     void updateCMM_DG();
     void CentroidalMomentCalculator();
+    void CentroidalMomentCalculator_new();
 
     void getZmpTrajectory_dg();
     void savePreData();

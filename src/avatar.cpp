@@ -733,7 +733,8 @@ void AvatarController::computeSlow()
                 
                 // BoltController_MJ(); // Stepping Controller for DCM eos                
                 // MJDG CMP control
-                CentroidalMomentCalculator(); // working with computefast() (CAM controller)
+                // CentroidalMomentCalculator();
+                CentroidalMomentCalculator_new(); // working with computefast() (CAM controller)
 
                 getFootTrajectory();
                 // getFootTrajectory_stepping(); // working with BoltController_MJ()  
@@ -9018,7 +9019,7 @@ void AvatarController::computeCAMcontrol_HQP()
     cmm_selected.setZero(2, variable_size_camhqp_);
     // Defined the selection matrix //
     for(int i=0; i < variable_size_camhqp_; i++) // eight joints in upper body for CMP control
-    {
+    { 
         sel_matrix(control_joint_idx_camhqp_[i], i) = 1.0;  
     } 
     RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_MJ_, q_test, mass_matrix_temp, true);
@@ -9090,10 +9091,10 @@ void AvatarController::computeCAMcontrol_HQP()
         // }
   
         // MJ's joint limit 
-        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
-        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
-        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
-        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (22.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
+        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
+        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
+        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
         // Left Shoulder pitch
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
@@ -9118,7 +9119,7 @@ void AvatarController::computeCAMcontrol_HQP()
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 1.2, 0.0, 0.0, 0.0);
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.4, 0.0, 0.0, 0.0);
         }
 
         for (int h = 0; h < i; h++)
@@ -10386,12 +10387,12 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         F_cp_new_.setZero(N_cp, 1);
         F_cmp_new_.setZero(N_cp, 2*N_cp);
         
-        for(int i = 0; i < N_cp; i++)
+        for(int i = 0; i < N_cp; i++) // prediction state matrix, N X 1
         {   
-            F_cp_new_(i,0) = exp(wn*T*i); // N X 1
+            F_cp_new_(i,0) = exp(wn*T*i); 
         }        
         
-        for(int i = 0; i < N_cp; i++) // N X 2N
+        for(int i = 0; i < N_cp; i++) // prediction input matrix, N X 2N 
         {   
             for(int j = 0; j < N_cp; j++)
             {
@@ -10413,23 +10414,21 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         
         e1_cpmpc_new_.setZero(2*N_cp, 2);
         e1_cpmpc_new_.block<2, 2>(0, 0) = eye2;
-        // Block of size (p,q), starting at (i,j)
-        // Fixed size block expression : matrix.block<p,q>(i,j); 
 
         Tau_sel_.setIdentity(2*N_cp, 2*N_cp);
 
-        for(int i = 0; i < N_cp; i++) // For selecting Tau in Control input 
+        for(int i = 0; i < N_cp; i++) // selection matrix for variable Tau
         {
-            Tau_sel_(2*i,2*i) = 0.0;
+            Tau_sel_(2*i,2*i) = 0.0; 
         }
 
         weighting_cp_new_.setZero(N_cp, N_cp);
         weighting_cmp_diff_new_.setZero(2*N_cp, 2*N_cp);
         
         weighting_tau_regul_.setIdentity(2*N_cp, 2*N_cp);
-        weighting_tau_regul_ = 0.001*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림. 
-        // X랑 Y 따로 게인 설정해야 될 수도..
-        // double weighting_foot = 0.01;// 100.0;  //0.01;
+        weighting_tau_regul_ = 0.0005*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림.
+        // IROS 때는 des.CMP가 발안으로 들어오면 바로 damping torque로 바뀌어서 discrete 했었다.
+        // double weighting_foot = 0.01; // 100.0;
 
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
         for(int i = 0; i < N_cp; i++) // For cp control
@@ -10451,7 +10450,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         {
             if(i < 2) // des.zmp, des.tau
             {
-                weighting_cmp_diff_new_(i,i) = 0.2; 
+                weighting_cmp_diff_new_(i,i) = 0.2; // 첫번째 weighting을 낮추면 Tau를 더 발생시키는데 영향을 주긴 한다.
             }
             else if (i < 100)
             {
@@ -10462,8 +10461,6 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
                 weighting_cmp_diff_new_(i,i) = 0.10; 
             }            
         }
-        
-        
         
         // Hessian matrix
         H_cpmpc_new_.setZero(2*N_cp, 2*N_cp);
@@ -10609,10 +10606,10 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     {
         Z_x_ref_wo_offset_new(2*i) = Z_x_ref_cpmpc_only_(i); // 20 = Control freq (2000) / MPC_freq (100)
         Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
-        zmp_bound_x_new(2*i) = 0.1;
+        zmp_bound_x_new(2*i) = 0.1; 
         zmp_bound_y_new(2*i) = 0.07;  
-        Tau_x_limit(2*i + 1) = 20.0;
-        Tau_y_limit(2*i + 1) = 20.0;
+        Tau_x_limit(2*i + 1) = 15.0;
+        Tau_y_limit(2*i + 1) = 15.0;
     }
     
     // lb_x_cp_mpc = Z_x_ref_wo_offset - zmp_bound_x;
@@ -15302,34 +15299,84 @@ void AvatarController::CP_compen_MJ_FT()
     // MJ_graph << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_ / hz_ << "," << ZMP_Y_REF_alpha_ + del_zmp(1) << "," << ZMP_Y_REF_alpha_ << endl;
 }
 
-void AvatarController::CentroidalMomentCalculator()
-{
-    // del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
-    // del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
-    double support_ratio = 0.0;
-    double M_G = rd_.link_[COM_id].mass * GRAVITY;
-    support_ratio = (ZMP_Y_REF_alpha_ - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+// void AvatarController::CentroidalMomentCalculator()
+// {
+//     // del_cmp(0) = 1.4 * (cp_measured_(0) - cp_desired_(0));
+//     // del_cmp(1) = 1.3 * (cp_measured_(1) - cp_desired_(1));
+//     double support_ratio = 0.0;
+//     double M_G = rd_.link_[COM_id].mass * GRAVITY;
+//     support_ratio = (ZMP_Y_REF_alpha_ - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
     
-    if(support_ratio > 1) // 왼발 지지때 alpha = 1
-    { 
-        support_ratio = 1; 
-    } 
-    else if(support_ratio < 0)
-    { 
-        support_ratio = 0; 
-    }
+//     if(support_ratio > 1) // 왼발 지지때 alpha = 1
+//     { 
+//         support_ratio = 1; 
+//     } 
+//     else if(support_ratio < 0)
+//     { 
+//         support_ratio = 0; 
+//     }
 
-    Eigen::Vector2d del_tau_limit_;    
-    double foot_width_x = 0.120;  // margin = 0.8 / original foot width in urdf -> 0.18/0.12 
-    double foot_width_y = 0.052; // margin = 0.8 / original foot width in urdf -> 0.065 
-    double support_margin = 0.8;
-    // del tau output limitation (220118/ DLR's CAM output is an approximately 20 Nm (maximum) and TORO has a weight of 79.2 kg)
-    del_tau_limit_(0) = 20.0;
-    del_tau_limit_(1) = 20.0;
+//     Eigen::Vector2d del_tau_limit_;    
+//     double foot_width_x = 0.120;  // margin = 0.8 / original foot width in urdf -> 0.18/0.12 
+//     double foot_width_y = 0.052; // margin = 0.8 / original foot width in urdf -> 0.065 
+//     double support_margin = 0.8;
+//     // del tau output limitation (220118/ DLR's CAM output is an approximately 20 Nm (maximum) and TORO has a weight of 79.2 kg)
+//     del_tau_limit_(0) = 20.0;
+//     del_tau_limit_(1) = 20.0;
  
-    del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -(0.12*support_margin + del_tau_limit_(0)/M_G), 0.18*support_margin + del_tau_limit_(0)/M_G );
-    del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -(0.065*support_margin + del_tau_limit_(1)/M_G), 0.065*support_margin + del_tau_limit_(1)/M_G );
+//     del_cmp(0) = DyrosMath::minmax_cut(del_cmp(0), -(0.12*support_margin + del_tau_limit_(0)/M_G), 0.18*support_margin + del_tau_limit_(0)/M_G );
+//     del_cmp(1) = DyrosMath::minmax_cut(del_cmp(1), -(0.065*support_margin + del_tau_limit_(1)/M_G), 0.065*support_margin + del_tau_limit_(1)/M_G );
   
+//     if (walking_tick_mj == 0)
+//     {
+//         del_tau_.setZero();
+//         del_ang_momentum_.setZero();
+//         del_ang_momentum_prev_.setZero();
+//     }
+
+//     del_ang_momentum_prev_ = del_ang_momentum_;   
+
+    
+//     double rbs_ratio = 1.0;  //recovery bondary safety ratio
+//     double recovery_damping = 3.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
+    
+//     // X direction CP control
+  
+//     del_tau_(1) = des_tau_y_thread_ - recovery_damping*del_ang_momentum_(1);
+ 
+//     // Y direction CP control
+        
+//     del_tau_(0) = -des_tau_x_thread_ - recovery_damping*del_ang_momentum_(0); 
+    
+//     //// Integrate Centroidal Moment
+//     del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
+//     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
+
+//     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
+//     double A_limit = 15.0;
+       
+//     if(del_ang_momentum_(0) > A_limit)
+//     { 
+//         del_ang_momentum_(0) = A_limit; 
+//     }
+//     else if(del_ang_momentum_(0) < -A_limit)
+//     { 
+//         del_ang_momentum_(0) = -A_limit; 
+//     }
+//     if(del_ang_momentum_(1) > A_limit)
+//     { 
+//         del_ang_momentum_(1) = A_limit; 
+//     }
+//     else if(del_ang_momentum_(1) < -A_limit)
+//     { 
+//         del_ang_momentum_(1) = -A_limit; 
+//     }
+     
+// }
+
+void AvatarController::CentroidalMomentCalculator_new()
+{
+    
     if (walking_tick_mj == 0)
     {
         del_tau_.setZero();
@@ -15338,17 +15385,13 @@ void AvatarController::CentroidalMomentCalculator()
     }
 
     del_ang_momentum_prev_ = del_ang_momentum_;   
-
     
-    double rbs_ratio = 1.0;  //recovery bondary safety ratio
-    double recovery_damping = 3.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
-    
-    // X direction CP control
-  
+    double recovery_damping = 2.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
+    // 나중에 반대방향 토크 limit 걸어야됨.
+    // X direction CP control  
     del_tau_(1) = des_tau_y_thread_ - recovery_damping*del_ang_momentum_(1);
  
-    // Y direction CP control
-        
+    // Y direction CP control        
     del_tau_(0) = -des_tau_x_thread_ - recovery_damping*del_ang_momentum_(0); 
     
     //// Integrate Centroidal Moment
