@@ -1255,6 +1255,7 @@ public:
     Eigen::MatrixXd weighting_cp_new_;
     Eigen::MatrixXd weighting_cmp_diff_new_;
     Eigen::MatrixXd H_cpmpc_new_;
+    Eigen::MatrixXd H_cpStepping_mpc_new_;
 
     Eigen::MatrixXd Tau_sel_;
     Eigen::MatrixXd weighting_tau_regul_;
@@ -1272,8 +1273,10 @@ public:
     Eigen::VectorXd Z_x_ref_cpmpc_only_;
     Eigen::VectorXd Z_y_ref_cpmpc_only_;
 
-    double des_tau_x_thread_ = 0;
-    double des_tau_y_thread_ = 0;
+    double des_tau_x_thread_ = 0.0;
+    double des_tau_x_ = 0.0;
+    double des_tau_y_thread_ = 0.0;
+    double des_tau_y_ = 0.0;
     //
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
