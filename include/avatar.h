@@ -252,6 +252,8 @@ public:
     ros::Subscriber opto_ftsensor_sub;
     
     ros::Publisher mujoco_ext_force_apply_pub;
+    ros::Publisher joystick_tocabi_command_pub;
+
     std_msgs::Float32MultiArray mujoco_applied_ext_force_; // 6 ext wrench + 1 link idx
 
     ros::Subscriber joystick_command;
@@ -1764,11 +1766,20 @@ public:
     bool joy_enable_ = false;
     bool joy_input_enable_ = false;
 
+    bool joy_continuous_walking_flag_ = false;
+
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
     Eigen::Isometry3d oneStepPlanner(double del_x, double del_y, double del_yaw, bool support_foot_is_left);
+
     Eigen::Vector2d joy_left_stick_;
     Eigen::Vector2d joy_right_stick_; 
+    Eigen::Matrix<bool, 11, 1>  joy_buttons_raw_;
+    Eigen::Matrix<bool, 11, 1>  joy_buttons_; 
+    Eigen::Matrix<bool, 11, 1>  joy_buttons_pre_; 
+    Eigen::Matrix<bool, 11, 1>  joy_buttons_clicked_;
+    void getJoystickCommand();
+
     bool current_support_foot_is_left_ = true;
     bool current_support_foot_is_left_prev_ = true;
     bool current_support_foot_is_left_thread_ = true;

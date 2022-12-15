@@ -62,6 +62,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); //MJ
     joystick_command = nh_avatar_.subscribe("joy", 100, &AvatarController::JoystickCommandCallback, this); //DG
 
+    joystick_tocabi_command_pub = nh_avatar_.advertise<std_msgs::String>("/tocabi/command", 5);
     //opto_ftsensor_sub = nh_avatar_.subscribe("/atiforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this); // real robot experiment
 
     bool urdfmode = false;
@@ -862,7 +863,7 @@ void AvatarController::computeSlow()
             // loadCollisionThreshold("/home/dyros_rm/catkin_ws/src/tocabi_avatar/config/"); // deleted by MJ/1209
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
-            cout << "ref_q_: "<<ref_q_.transpose() << endl;
+            // cout << "ref_q_: "<<ref_q_.transpose() << endl;
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::GravityCompensationTorque(rd_);
             atb_grav_update_ = false;
@@ -902,6 +903,8 @@ void AvatarController::computeSlow()
     }
     else if (rd_.tc_.mode == 13) //2KHZ STRICT
     {
+        getJoystickCommand();
+
         if (walking_enable_ == true)
         {   
             if (walking_tick_mj == 0)
@@ -8969,6 +8972,11 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
     joy_right_stick_(0) = msg.axes[3];  // horizontal
     joy_right_stick_(1) = msg.axes[4];  // vertical
 
+    for(int i = 0; i <11; i++)
+    {
+        joy_buttons_raw_(i) = msg.buttons[i];  //continue walking (A)
+    }
+
     double max_step_l_x = 0.10;
     double max_step_l_y = 0.5;
     double max_yaw_angle = 10*DEG2RAD;
@@ -9004,7 +9012,10 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
     }
     else
     {
-        walking_stop_flag_ =  true;
+        if(!joy_continuous_walking_flag_)
+        {
+            walking_stop_flag_ =  true;
+        }
     }
 }
 
@@ -11834,14 +11845,11 @@ void AvatarController::getComTrajectory_mpc()
     if (foot_step_(current_step_num_, 6) == 1)  // left foot support
     {
         alpha_step = 1;
-        current_support_foot_is_left_ = true;
     }
     else
     {
         alpha_step = -1;
-        current_support_foot_is_left_ = false;
     }        
-
 
     // support foot change           
     if(walking_tick_mj == t_start_ && current_step_num_ > 0)
@@ -14305,9 +14313,9 @@ void AvatarController::updateInitialStateJoy()
     {
         // calculateFootStepTotal_MJoy(); // joystick&pedal Footstep
         
-        cout<<"current_step_num_: "<<current_step_num_<<endl;
-        cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
-        cout<<"foot_step_: \n"<<foot_step_<<endl;        
+        // cout<<"current_step_num_: "<<current_step_num_<<endl;
+        // cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
+        // cout<<"foot_step_: \n"<<foot_step_<<endl;        
 
         joy_enable_ = true;
         joy_input_enable_ = true;
@@ -14421,9 +14429,9 @@ void AvatarController::updateInitialStateJoy()
     }
     else if (current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
     {
-        cout<<"current_step_num_: "<<current_step_num_<<endl;
-        cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
-        cout<<"foot_step_: \n"<<foot_step_<<endl;
+        // cout<<"current_step_num_: "<<current_step_num_<<endl;
+        // cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
+        // cout<<"foot_step_: \n"<<foot_step_<<endl;
 
         pelv_rpy_current_mj_.setZero();
         pelv_rpy_current_mj_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].rotm); // ZYX multiply
@@ -14637,6 +14645,53 @@ void AvatarController::calculateFootStepTotal_MJoy_End()
     }
     cout << "-----footstep-planning-----" << endl;
 }
+void AvatarController::getJoystickCommand()
+{
+    joy_buttons_pre_ = joy_buttons_;
+    for(int i = 0; i < 11; i++)
+    {
+        joy_buttons_(i) = joy_buttons_raw_(i);
+
+        if( joy_buttons_(i) == 1 && joy_buttons_pre_(i) == 0)   // high signal
+        {
+            joy_buttons_clicked_(i) = 1;
+        }
+        else
+        {
+            joy_buttons_clicked_(i) = 0;
+        }
+    }
+
+    // Button (A)
+    if(joy_buttons_clicked_(0))
+    {
+        joy_continuous_walking_flag_ = !joy_continuous_walking_flag_;
+
+        std_msgs::String msg;
+        std::stringstream cont_walk_mode;
+        if(joy_continuous_walking_flag_)
+        {
+            cont_walk_mode << "Continuous Walking Mode is ON";
+            cout<< cont_walk_mode.str() <<endl;
+        }
+        else
+        {
+            cont_walk_mode << "Continuous Walking Mode is OFF";
+            cout<< cont_walk_mode.str() <<endl;
+        }
+        msg.data = cont_walk_mode.str();
+        calibration_state_gui_log_pub.publish(msg);        
+    }
+    
+    if(joy_buttons_clicked_(1))
+    {
+        std_msgs::String positioncontrol_msg;
+        std::stringstream position_control;
+        position_control << "positioncontrol";
+        positioncontrol_msg.data = position_control.str();
+        joystick_tocabi_command_pub.publish(positioncontrol_msg);
+    }
+}
 void AvatarController::updateNextStepTimeJoy()
 {
     if (walking_tick_mj >= t_last_)
@@ -14649,10 +14704,7 @@ void AvatarController::updateNextStepTimeJoy()
             // current_step_num_++;
             
             //joystick
-            if(true)
-            {
-                current_support_foot_is_left_ = !current_support_foot_is_left_;
-            }
+            current_support_foot_is_left_ = !current_support_foot_is_left_;
 
             current_step_num_++;
             if(walking_stop_flag_)
@@ -14664,9 +14716,9 @@ void AvatarController::updateNextStepTimeJoy()
                 current_step_num_ = DyrosMath::minmax_cut(current_step_num_, 0, 2);
             }
 
-            cout<<"current_step_num_: "<<current_step_num_<<endl;
-            cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
-            cout<<"t_start_: "<<t_start_<<endl;
+            // cout<<"current_step_num_: "<<current_step_num_<<endl;
+            // cout<<"current_support_foot_is_left_: "<<current_support_foot_is_left_<<endl;
+            // cout<<"t_start_: "<<t_start_<<endl;
         }
     }
 
@@ -14684,6 +14736,7 @@ void AvatarController::updateNextStepTimeJoy()
         }
         cout << "            end" << endl;
         cout << "___________________________" << endl;
+        current_support_foot_is_left_ = !current_support_foot_is_left_;
         joy_input_enable_ = true;
         walking_end_flag = 0;
     }
@@ -14696,6 +14749,7 @@ void AvatarController::calculateFootStepTotalOmni(double del_x, double del_y, do
     int total_foot_step_planning_num = 6;
     total_step_num_ = total_foot_step_planning_num;
     double nominal_step_width = 0.1225*2;
+    bool debugging_mode = false;
 
     right_to_left_step = oneStepPlanner(del_x, del_y, del_yaw, 1);
     left_to_right_step = oneStepPlanner(del_x, del_y, del_yaw, 0);
@@ -14790,15 +14844,19 @@ void AvatarController::calculateFootStepTotalOmni(double del_x, double del_y, do
     m_del_zmp_x.setZero(total_foot_step_planning_num, 2);
     m_del_zmp_y.setZero(total_foot_step_planning_num, 2);
 
-    if(walking_tick_mj%100 == 0)
-    {
-        cout<<"-------- COMMAND STEP ----------"<<endl;
-        cout<<"walking_tick: "<<walking_tick_mj-t_start_<<endl;
-        cout<<"current_support_foot_is_left: " << current_support_foot_is_left << endl;
-        cout<<"current_step_num_: " << current_step_num_ << endl;
-        cout<<"foot_step_next_planning_idx: " << foot_step_next_planning_idx << endl;
-        cout<<"foot_step_: \n" << foot_step_ <<endl;
-        cout<<"--------------------------------"<<endl;
+    // 
+    if(debugging_mode)
+    {   
+        if(walking_tick_mj%100 == 0)
+        {
+            cout<<"-------- COMMAND STEP ----------"<<endl;
+            cout<<"walking_tick: "<<walking_tick_mj-t_start_<<endl;
+            cout<<"current_support_foot_is_left: " << current_support_foot_is_left << endl;
+            cout<<"current_step_num_: " << current_step_num_ << endl;
+            cout<<"foot_step_next_planning_idx: " << foot_step_next_planning_idx << endl;
+            cout<<"foot_step_: \n" << foot_step_ <<endl;
+            cout<<"--------------------------------"<<endl;
+        }
     }
 
 }
@@ -14841,146 +14899,133 @@ void AvatarController::calculateFootStepTotalOmniEnd(bool support_foot_is_left)
 {
     double total_foot_step_planning_num;
     double nominal_step_width = 0.1225*2;
-
+    double one_step_stop_margin_ratio = 0.25;
+    bool debugging_mode = false;
     Eigen::Isometry3d next_step_observed_in_first_step;
     next_step_observed_in_first_step.setIdentity();
     next_step_observed_in_first_step.translation()(1) = -(2*support_foot_is_left - 1)*nominal_step_width/2; 
 
     if(walking_enable_ == true)
     {
-
         if(current_step_num_ == 0)
         {
-            total_foot_step_planning_num = 1;
-            // current_step_num_ = 1;
-            total_step_num_ = total_foot_step_planning_num;
+            if(walking_tick_mj < t_start_ + t_total_*one_step_stop_margin_ratio)
+            { 
+                total_foot_step_planning_num = 1;
+                // current_step_num_ = 1;
+                total_step_num_ = total_foot_step_planning_num;
 
-            foot_step_.resize(total_foot_step_planning_num , 7);
-            foot_step_.setZero();
+                foot_step_.resize(total_foot_step_planning_num , 7);
+                foot_step_.setZero();
 
-            next_step_observed_in_first_step.translation()(1) = -(2*support_foot_is_left - 1)*nominal_step_width/2; 
+                next_step_observed_in_first_step.translation()(1) = -(2*support_foot_is_left - 1)*nominal_step_width/2; 
 
-            // 
-            foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
-            foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
-            foot_step_(0, 6) = support_foot_is_left;
+                // stop at the first step
+                foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
+                foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
+                foot_step_(0, 6) = support_foot_is_left;
+            }
+            else
+            {
+                total_foot_step_planning_num = 2;
+                // current_step_num_ = 1;
+                total_step_num_ = total_foot_step_planning_num;
 
-            // 
-            // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, !support_foot_is_left);
-            // foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
-            // foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
-            // foot_step_(1, 6) = !support_foot_is_left;
-            // cout << "End Foot Step\n" << foot_step_ << endl;
+                foot_step_.resize(total_foot_step_planning_num , 7);
+                foot_step_.setZero();
+
+                // perform the first command step
+                foot_step_.row(0) = foot_step_joy_temp_.row(0);
+
+                for(int i = 0; i < 3; i++)
+                {
+                    next_step_observed_in_first_step.translation()(i) = foot_step_(0, i);
+                }
+                next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(0, 5));
+                
+                // stop at the second step 
+                next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, !support_foot_is_left);
+                foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
+                foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
+                foot_step_(1, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+                foot_step_(1, 6) = !support_foot_is_left;
+            }
         }
         else
         {
-            total_foot_step_planning_num = current_step_num_ + 2;
-            // current_step_num_ = 1;
-            total_step_num_ = total_foot_step_planning_num;
-
-            foot_step_.resize(total_foot_step_planning_num , 7);
-            foot_step_.setZero();
-            // 
-            // foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
-            // foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
-            // foot_step_(0, 6) = !support_foot_is_left;
-
-            // // 
-            // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
-            // foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
-            // foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
-            // foot_step_(1, 6) = support_foot_is_left;
-
-            for(int i = 0; i <= current_step_num_; i++)
+            if(walking_tick_mj < t_start_ + t_total_*one_step_stop_margin_ratio)
             {
-                foot_step_.row(i) = foot_step_joy_temp_.row(i);
+                total_foot_step_planning_num = current_step_num_ + 1;
+                // current_step_num_ = 1;
+                total_step_num_ = total_foot_step_planning_num;
+
+                foot_step_.resize(total_foot_step_planning_num , 7);
+                foot_step_.setZero();
+                // 
+                // foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
+                // foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
+                // foot_step_(0, 6) = !support_foot_is_left;
+
+                // // 
+                // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
+                // foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
+                // foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
+                // foot_step_(1, 6) = support_foot_is_left;
+
+                // save the steps until current
+                for(int i = 0; i < current_step_num_; i++)
+                {
+                    foot_step_.row(i) = foot_step_joy_temp_.row(i);
+                }
+
+                for(int i = 0; i < 3; i++)
+                {
+                    next_step_observed_in_first_step.translation()(i) = foot_step_(current_step_num_-1, i);
+                }
+                next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(current_step_num_-1, 5));
+                // stop at the first step 
+                next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
+                foot_step_(current_step_num_, 0) = next_step_observed_in_first_step.translation()(0);
+                foot_step_(current_step_num_, 1) = next_step_observed_in_first_step.translation()(1);
+                foot_step_(current_step_num_, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+                foot_step_(current_step_num_, 6) = support_foot_is_left;
             }
+            else
+            { 
+                total_foot_step_planning_num = current_step_num_ + 2;
+                // current_step_num_ = 1;
+                total_step_num_ = total_foot_step_planning_num;
 
-            for(int i = 0; i < 3; i++)
-            {
-                next_step_observed_in_first_step.translation()(i) = foot_step_(current_step_num_, i);
+                foot_step_.resize(total_foot_step_planning_num , 7);
+                foot_step_.setZero();
+                // 
+                // foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
+                // foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
+                // foot_step_(0, 6) = !support_foot_is_left;
+
+                // // 
+                // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
+                // foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
+                // foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
+                // foot_step_(1, 6) = support_foot_is_left;
+
+                for(int i = 0; i <= current_step_num_; i++)
+                {
+                    foot_step_.row(i) = foot_step_joy_temp_.row(i);
+                }
+
+                for(int i = 0; i < 3; i++)
+                {
+                    next_step_observed_in_first_step.translation()(i) = foot_step_(current_step_num_, i);
+                }
+                next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(current_step_num_, 5));
+                // 
+                next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, !support_foot_is_left);
+                foot_step_(current_step_num_+1, 0) = next_step_observed_in_first_step.translation()(0);
+                foot_step_(current_step_num_+1, 1) = next_step_observed_in_first_step.translation()(1);
+                foot_step_(current_step_num_+1, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+                foot_step_(current_step_num_+1, 6) = !support_foot_is_left;
             }
-            next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(current_step_num_, 5));
-            // 
-            next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, !support_foot_is_left);
-            foot_step_(current_step_num_+1, 0) = next_step_observed_in_first_step.translation()(0);
-            foot_step_(current_step_num_+1, 1) = next_step_observed_in_first_step.translation()(1);
-            foot_step_(current_step_num_+1, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
-            foot_step_(current_step_num_+1, 6) = !support_foot_is_left;
-            
-            //
-            // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
-            // foot_step_(3, 0) = next_step_observed_in_first_step.translation()(0);
-            // foot_step_(3, 1) = next_step_observed_in_first_step.translation()(1);
-            // foot_step_(3, 6) = support_foot_is_left;
-            // cout << "End Foot Step\n" << foot_step_ << endl;
-            
-            // if(false)
-            // {
-            //     total_foot_step_planning_num = 2;
-            //     // current_step_num_ = 1;
-            //     total_step_num_ = total_foot_step_planning_num;
-
-            //     foot_step_.resize(total_foot_step_planning_num , 7);
-            //     foot_step_.setZero();
-            //     foot_step_support_frame_.resize(total_foot_step_planning_num , 7);
-            //     foot_step_support_frame_.setZero();
-
-            //     // 
-            //     foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
-            //     foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
-            //     foot_step_(0, 6) = !support_foot_is_left;
-
-            //     // 
-            //     next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
-            //     foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
-            //     foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
-            //     foot_step_(1, 6) = support_foot_is_left;
-
-            //     cout << "End Foot Step\n" << foot_step_ << endl;
-            // }
-            // else
-            // {
-            //     total_foot_step_planning_num = 3;
-            //     // current_step_num_ = 1;
-            //     total_step_num_ = total_foot_step_planning_num;
-
-            //     foot_step_.resize(total_foot_step_planning_num , 7);
-            //     foot_step_.setZero();
-            //     foot_step_support_frame_.resize(total_foot_step_planning_num , 7);
-            //     foot_step_support_frame_.setZero();
-            //     // 
-            //     // foot_step_(0, 0) = next_step_observed_in_first_step.translation()(0);
-            //     // foot_step_(0, 1) = next_step_observed_in_first_step.translation()(1);
-            //     // foot_step_(0, 6) = !support_foot_is_left;
-
-            //     // // 
-            //     // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
-            //     // foot_step_(1, 0) = next_step_observed_in_first_step.translation()(0);
-            //     // foot_step_(1, 1) = next_step_observed_in_first_step.translation()(1);
-            //     // foot_step_(1, 6) = support_foot_is_left;
-
-            //     foot_step_.row(0) = foot_step_joy_temp_.row(0);
-            //     foot_step_.row(1) = foot_step_joy_temp_.row(1);
-
-            //     for(int i = 0; i < 3; i++)
-            //     {
-            //         next_step_observed_in_first_step.translation()(i) = foot_step_(1, i);
-            //     }
-            //     next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(1, 5));
-            //     // 
-            //     next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, !support_foot_is_left);
-            //     foot_step_(2, 0) = next_step_observed_in_first_step.translation()(0);
-            //     foot_step_(2, 1) = next_step_observed_in_first_step.translation()(1);
-            //     foot_step_(2, 6) = !support_foot_is_left;
-                
-            //     //
-            //     // next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
-            //     // foot_step_(3, 0) = next_step_observed_in_first_step.translation()(0);
-            //     // foot_step_(3, 1) = next_step_observed_in_first_step.translation()(1);
-            //     // foot_step_(3, 6) = support_foot_is_left;
-            //     cout << "End Foot Step\n" << foot_step_ << endl;
-            // }
         }
     }
     else
@@ -15022,6 +15067,7 @@ void AvatarController::calculateFootStepTotalOmniEnd(bool support_foot_is_left)
     m_del_zmp_x.setZero(total_foot_step_planning_num, 2);
     m_del_zmp_y.setZero(total_foot_step_planning_num, 2);
 
+    if(debugging_mode)
     {
         cout<<"-------- END STEP ----------"<<endl;
         cout<<"walking_tick: "<<walking_tick_mj-t_start_<<endl;
