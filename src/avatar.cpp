@@ -10431,18 +10431,18 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         weighting_tau_regul_.setIdentity(2*N_cp, 2*N_cp);
         weighting_tau_regul_ = 0.0005*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림.
         // IROS 때는 des.CMP가 발안으로 들어오면 바로 damping torque로 바뀌어서 discrete 했었다. (잘못된건 아님)
-        double weighting_foot_new = 0.01; // 100.0;
+        double weighting_foot_new = 0.1; // 100.0;
 
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
         for(int i = 0; i < N_cp; i++) // For cp control
         {
             if(i < 1)
             {
-                weighting_cp_new_(i,i) = 10.0; // 여기 높일까?
+                weighting_cp_new_(i,i) = 10.0; // 여기 높일까? // original gain 1.0  
             }
             else if (i < 50)
             {
-                weighting_cp_new_(i,i) = 1.0;                
+                weighting_cp_new_(i,i) = 5.0; // original gain 1.0               
             }
             else
             {
@@ -10453,11 +10453,11 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         {
             if(i < 2) // des.zmp, des.tau
             {
-                weighting_cmp_diff_new_(i,i) = 0.2; // 첫번째 weighting을 낮추면 Tau를 더 발생시키는데 영향을 주긴 한다.
+                weighting_cmp_diff_new_(i,i) = 0.2; // original gain 0.2 첫번째 weighting을 낮추면 Tau를 더 발생시키는데 영향을 주긴 한다.
             }
             else if (i < 100)
             {
-                weighting_cmp_diff_new_(i,i) = 10.0;                
+                weighting_cmp_diff_new_(i,i) = 10.0; // original gain 10.0               
             }
             else
             {
@@ -10518,8 +10518,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         sel_swingfoot.setZero();
         
         sel_swingfoot_next.setOnes();
-        sel_swingfoot_next.segment(0, dsp_time1).setZero();
-        sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
+        // sel_swingfoot_next.segment(0, dsp_time1).setZero();
+        // sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
 
         P_sel.setZero(N_cp, footprint_num);  
         P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;        
@@ -10527,14 +10527,14 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
 
         if(swing_time_n_next != 0)
         {
-            if(swing_time_n_next < dsp_time1)
-            {
-                sel_swingfoot_n_next.setZero();
-            }
-            else
+            // if(swing_time_n_next < dsp_time1)
+            // {
+            //     sel_swingfoot_n_next.setZero();
+            // }
+            // else
             {
                 sel_swingfoot_n_next.setOnes();
-                sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
+                // sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
             }
             P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
         }
@@ -10553,7 +10553,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
             P_sel_new(2*i,j) = P_sel(i,j);
         }        
     }
-
+    // cout << P_sel << "," << mpc_tick << "...." << endl;
     Eigen::VectorXd g_cpmpc_x_new(2*N_cp);  
     Eigen::VectorXd g_cpmpc_y_new(2*N_cp);
     Eigen::VectorXd g_cpStepping_mpc_x_new(2*N_cp + footprint_num);
