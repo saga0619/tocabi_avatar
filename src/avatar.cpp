@@ -12,13 +12,13 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("//home/dyros/data/walking_baseline/MJ_graph.txt");
-ofstream MJ_graph1("//home/dyros/data/walking_baseline/MJ_graph1.txt");
-ofstream MJ_graph2("//home/dyros/data/walking_baseline/MJ_graph2.txt");
-ofstream MJ_q_("//home/dyros/data/walking_baseline/MJ_q_.txt");
-ofstream MJ_q_dot_("//home/dyros/data/walking_baseline/MJ_q_dot_.txt");
-ofstream MJ_CAM_("//home/dyros/data/walking_baseline/MJ_CAM_.txt"); 
-ofstream MJ_CP_ZMP("//home/dyros/data/walking_baseline/MJ_CP_ZMP.txt");
+ofstream MJ_graph("/home/dg/data/walking_baseline/MJ_graph.txt");
+ofstream MJ_graph1("/home/dg/data/walking_baseline/MJ_graph1.txt");
+ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
+ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
+ofstream MJ_q_dot_("/home/dg/data/walking_baseline/MJ_q_dot_.txt");
+ofstream MJ_CAM_("/home/dg/data/walking_baseline/MJ_CAM_.txt"); 
+ofstream MJ_CP_ZMP("/home/dg/data/walking_baseline/MJ_CP_ZMP.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -546,14 +546,14 @@ void AvatarController::setNeuralNetworks()
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24;
     initializeScaMlp(larm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
+    loadScaNetwork(larm_upperbody_sca_mlp_, "/home/dg/catkin_ws/src/tocabi_avatar/sca_mlp/larm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Right Arm and Upperbody & Head Collision Detection Network /////
     n_hidden << 120, 100, 80, 60, 40, 20;
     q_to_input_mapping_vector << 12, 13, 14, 25, 26, 27, 28, 29, 30, 31, 32, 23, 24;
     initializeScaMlp(rarm_upperbody_sca_mlp_, 13, 2, n_hidden, q_to_input_mapping_vector);
-    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dyros/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
+    loadScaNetwork(rarm_upperbody_sca_mlp_, "/home/dg/catkin_ws/src/tocabi_avatar/sca_mlp/rarm_upperbody/");
     //////////////////////////////////////////////////////////////////////////////
 
     ///// Between Arms Collision Detection Network /////
