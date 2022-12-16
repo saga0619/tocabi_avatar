@@ -754,33 +754,33 @@ void AvatarController::computeSlow()
                 q_prev_MJ_ = rd_.q_;
           
                 //if((walking_tick_mj >= 5.88*hz_)&&(walking_tick_mj < 6.083*hz_)) 
-                if(current_step_num_ == 4 && (walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.2*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.2*hz_ + 0.2*hz_))
-                { // -170,175 // -350 7.5 - 7.6 //  67% 
-                    // cout << current_step_num_ << "," << t_start_ << "," << walking_tick_mj << endl;
-                    mujoco_applied_ext_force_.data[0] = -200;//0*312;//-232.0;//x-axis linear force // 
-                    mujoco_applied_ext_force_.data[1] = 0;//+126.0;  //y-axis linear force  
-                    mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
-                    mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
-                    mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
-                    mujoco_applied_ext_force_.data[5] = 0.0;  //z-axis angular moment
+                // if(current_step_num_ == 4 && (walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.2*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.2*hz_ + 0.2*hz_))
+                // { // -170,175 // -350 7.5 - 7.6 //  67% 
+                //     // cout << current_step_num_ << "," << t_start_ << "," << walking_tick_mj << endl;
+                //     mujoco_applied_ext_force_.data[0] = -200;//0*312;//-232.0;//x-axis linear force // 
+                //     mujoco_applied_ext_force_.data[1] = 0;//+126.0;  //y-axis linear force  
+                //     mujoco_applied_ext_force_.data[2] = 0.0;  //z-axis linear force
+                //     mujoco_applied_ext_force_.data[3] = 0.0;  //x-axis angular moment
+                //     mujoco_applied_ext_force_.data[4] = 0.0;  //y-axis angular moment
+                //     mujoco_applied_ext_force_.data[5] = 0.0;  //z-axis angular moment
 
-                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+                //     mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
 
-                    mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);                    
-                } 
-                else
-                {
-                    mujoco_applied_ext_force_.data[0] = 0; //x-axis linear force
-                    mujoco_applied_ext_force_.data[1] = 0; //y-axis linear force
-                    mujoco_applied_ext_force_.data[2] = 0; //z-axis linear force
-                    mujoco_applied_ext_force_.data[3] = 0; //x-axis angular moment
-                    mujoco_applied_ext_force_.data[4] = 0; //y-axis angular moment
-                    mujoco_applied_ext_force_.data[5] = 0; //z-axis angular moment
+                //     mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);                    
+                // } 
+                // else
+                // {
+                //     mujoco_applied_ext_force_.data[0] = 0; //x-axis linear force
+                //     mujoco_applied_ext_force_.data[1] = 0; //y-axis linear force
+                //     mujoco_applied_ext_force_.data[2] = 0; //z-axis linear force
+                //     mujoco_applied_ext_force_.data[3] = 0; //x-axis angular moment
+                //     mujoco_applied_ext_force_.data[4] = 0; //y-axis angular moment
+                //     mujoco_applied_ext_force_.data[5] = 0; //z-axis angular moment
 
-                    mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+                //     mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
 
-                    mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
-                }
+                //     mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+                // }
             }
         }
         else
@@ -8977,7 +8977,7 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
         joy_buttons_raw_(i) = msg.buttons[i];  //continue walking (A)
     }
 
-    double max_step_l_x = 0.10;
+    double max_step_l_x = 0.15;
     double max_step_l_y = 0.5;
     double max_yaw_angle = 10*DEG2RAD;
 
@@ -12839,24 +12839,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.7s walking
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
-
-    t_rest_init_ = 0.06*hz_;
-    t_rest_last_ = 0.06*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.7*hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
-
-    //// 0.6s walking
-    // target_x_ = 0.0;
+    // target_x_ = 1.0;
     // target_y_ = 0;
     // target_z_ = 0.0;
     // com_height_ = 0.71;
@@ -12865,12 +12848,29 @@ void AvatarController::parameterSetting()
     // step_length_y_ = 0.0;
     // is_right_foot_swing_ = 1;
 
-    // t_rest_init_ = 0.04*hz_;
-    // t_rest_last_ = 0.04*hz_;
+    // t_rest_init_ = 0.06*hz_;
+    // t_rest_last_ = 0.06*hz_;
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
-    // t_total_= 0.6*hz_;
-    // foot_height_ = 0.040;      // 0.9 sec 0.05
+    // t_total_= 0.7*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
+
+    //// 0.6s walking
+    target_x_ = 0.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+
+    t_rest_init_ = 0.04*hz_;
+    t_rest_last_ = 0.04*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 0.6*hz_;
+    foot_height_ = 0.050;      // 0.9 sec 0.05
     /////////////////////////////////
 
     // t_total_ = 0.5 * hz_;

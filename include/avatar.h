@@ -1789,7 +1789,7 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 30; // 0.1s
+    const int joy_command_buffer_size_ = 30; // 1s
     Eigen::Matrix<double, 3, 30> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
