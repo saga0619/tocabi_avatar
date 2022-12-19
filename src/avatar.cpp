@@ -10342,6 +10342,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     Eigen::MatrixXd zeros_2Ncp_x_f(2*N_cp, footprint_num);
     Eigen::MatrixXd zeros_Ncp_x_Ncp(N_cp, N_cp);
     Eigen::MatrixXd eye2(2,2);
+    Eigen::MatrixXd eyeN(N_cp, N_cp);
 
     Eigen::MatrixXd P_sel;
     Eigen::MatrixXd P_sel_new;  
@@ -10350,6 +10351,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     zeros_2Ncp_x_f.setZero();
     zeros_Ncp_x_Ncp.setZero();
     eye2.setIdentity();
+    eyeN.setIdentity();
     
     // reference CP trajectory generation
     cp_x_ref_new = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
@@ -10428,9 +10430,45 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         weighting_cp_new_.setZero(N_cp, N_cp);
         weighting_cmp_diff_new_.setZero(2*N_cp, 2*N_cp);
         
-        weighting_tau_regul_.setIdentity(2*N_cp, 2*N_cp);
-        weighting_tau_regul_ = 0.0005*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림.
-        // IROS 때는 des.CMP가 발안으로 들어오면 바로 damping torque로 바뀌어서 discrete 했었다. (잘못된건 아님)
+        // weighting_tau_regul_.setIdentity(2*N_cp, 2*N_cp); // tau regulation term 인데 damping tau의 hessian matrix안에 포함되어서 없앴음.
+        // weighting_tau_regul_ = 0.0005*weighting_tau_regul_; // 0.0001 하면 Maximum Tau에서 0되는데 3초걸림. 0.001하면 0.5초 정도 걸림.
+        // tau regulation term은 damping term까지 적게 만들어버림.
+        // damping function 
+        weighting_tau_damping_.setIdentity(N_cp, N_cp);
+        weighting_tau_damping_ = 0.0000005*weighting_tau_damping_; // tau regulation term + damping term 너무 높으면 tau 잘 안생김.
+         
+        double cam_damping_gain = 50.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
+        
+        cam_damping_mat_.setIdentity(N_cp, N_cp);
+        cam_damping_mat_ = cam_damping_gain * cam_damping_mat_;
+         
+        // Define integral matrix
+        Eigen::MatrixXd integral_matrix_temp;
+        integral_matrix_temp.setOnes(N_cp, N_cp);
+        for(int i = 0; i < N_cp; i++)
+        {
+            integral_matrix_temp(i,i) = 0.0;
+        }
+        
+        integral_matrix_.setZero(N_cp, N_cp);
+        integral_matrix_ = integral_matrix_temp.triangularView<Lower>();
+        
+        damping_integral_mat_.setZero(N_cp, N_cp);
+        damping_integral_mat_ = T * cam_damping_mat_ * integral_matrix_;         
+ 
+        Eigen::MatrixXd H_damping_Nsize, H_damping;
+        H_damping_Nsize.setZero(N_cp, N_cp);
+        H_damping.setZero(2*N_cp, 2*N_cp);
+        H_damping_Nsize = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_ * (eyeN + damping_integral_mat_);
+        
+        for(int i=0; i<N_cp; i++)
+        {
+            for(int j=0; j<N_cp; j++)
+            {
+                H_damping(2*i+1, 2*j+1) = H_damping_Nsize(i, j);
+            }            
+        }
+
         double weighting_foot_new = 0.1; // 100.0;
 
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
@@ -10438,7 +10476,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         {
             if(i < 1)
             {
-                weighting_cp_new_(i,i) = 10.0; // 여기 높일까? // original gain 1.0  
+                weighting_cp_new_(i,i) = 10.0; // 여기 높일까? // original0. gain 1.0  
             }
             else if (i < 50)
             {
@@ -10467,7 +10505,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         
         // Hessian matrix
         H_cpmpc_new_.setZero(2*N_cp, 2*N_cp);
-        H_cpmpc_new_ = diff_matrix_new_.transpose()*weighting_cmp_diff_new_*diff_matrix_new_ + F_cmp_new_.transpose()*weighting_cp_new_*F_cmp_new_ + Tau_sel_.transpose()*weighting_tau_regul_*Tau_sel_;        
+        H_cpmpc_new_ = diff_matrix_new_.transpose()*weighting_cmp_diff_new_*diff_matrix_new_ + F_cmp_new_.transpose()*weighting_cp_new_*F_cmp_new_ + H_damping;//Tau_sel_.transpose()*weighting_tau_regul_*Tau_sel_ + H_damping;        
 
         H_cpStepping_mpc_new_.setZero(2*N_cp + footprint_num, 2*N_cp + footprint_num);
         H_cpStepping_mpc_new_.block(0, 0, 2*N_cp, 2*N_cp) = H_cpmpc_new_; // CP-MPC
@@ -10490,7 +10528,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     
     // // For foot adjustment
 
-    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0, dsp_time1 = 0, dsp_time2 = 0;
+    int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0;
     
     if(current_step_num_mpc_ > 0 && current_step_num_mpc_ != total_step_num_mpc_-1) // Define selection vector for swingfoot adjustment
     {
@@ -10499,46 +10537,30 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         if(N_cp - swing_time_cur >= t_total_mpc_/MPC_synchro_hz) // 3 footholds are included in N_cp step.(current, next, n_next foothold)
         {
             swing_time_next = t_total_mpc_/MPC_synchro_hz;
-            swing_time_n_next = N_cp - (t_total_mpc_/MPC_synchro_hz + swing_time_cur);
-            dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
-            dsp_time2 = (t_rest_last_mpc_ + t_double2_)/MPC_synchro_hz;
+            swing_time_n_next = N_cp - (t_total_mpc_/MPC_synchro_hz + swing_time_cur); 
         }
         else // 2 footholds are included in N_cp step.(current, next foothold)
         {
             swing_time_next = N_cp - swing_time_cur;
             swing_time_n_next = 0;
-            dsp_time1 = (t_rest_init_mpc_ + t_double1_)/MPC_synchro_hz;
-            dsp_time2 = 0;
         } 
 
         Eigen::VectorXd sel_swingfoot(swing_time_cur); 
         Eigen::VectorXd sel_swingfoot_next(swing_time_next);  
         Eigen::VectorXd sel_swingfoot_n_next(swing_time_n_next);  
         
-        sel_swingfoot.setZero();
-        
+        sel_swingfoot.setZero();        
         sel_swingfoot_next.setOnes();
-        // sel_swingfoot_next.segment(0, dsp_time1).setZero();
-        // sel_swingfoot_next.segment(swing_time_next - dsp_time2, dsp_time2).setZero();
-
+        
         P_sel.setZero(N_cp, footprint_num);  
         P_sel.block(0, 0, swing_time_cur, 1) = sel_swingfoot;        
         P_sel.block(swing_time_cur, 0, swing_time_next, 1) = sel_swingfoot_next;  
 
         if(swing_time_n_next != 0)
-        {
-            // if(swing_time_n_next < dsp_time1)
-            // {
-            //     sel_swingfoot_n_next.setZero();
-            // }
-            // else
-            {
-                sel_swingfoot_n_next.setOnes();
-                // sel_swingfoot_n_next.segment(0, dsp_time1).setZero();
-            }
+        {            
+            sel_swingfoot_n_next.setOnes(); 
             P_sel.block(swing_time_cur + swing_time_next, 1, swing_time_n_next, 1) = sel_swingfoot_n_next;
-        }
-        //cout << P_sel << "," << swing_time_cur << "," << swing_time_next << "," << swing_time_n_next << "," << dsp_time1 << endl;
+        } 
     }
     else
     {       
@@ -10553,18 +10575,36 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
             P_sel_new(2*i,j) = P_sel(i,j);
         }        
     }
-    // cout << P_sel << "," << mpc_tick << "...." << endl;
+    
+    Eigen::VectorXd onevector_N;
+    onevector_N.setOnes(N_cp);
+    Eigen::VectorXd g_damping_Nsize_x;
+    Eigen::VectorXd g_damping_Nsize_y;
+    Eigen::VectorXd g_damping_x;
+    Eigen::VectorXd g_damping_y;
+    g_damping_Nsize_x.setZero(N_cp);
+    g_damping_Nsize_y.setZero(N_cp);
+    g_damping_x.setZero(2*N_cp);
+    g_damping_Nsize_x = (eyeN + damping_integral_mat_).transpose() * (del_ang_momentum_(1)*weighting_tau_damping_.transpose()*cam_damping_mat_*onevector_N); // 0.01에 들어가는 value를 h0로
+    g_damping_y.setZero(2*N_cp);
+    g_damping_Nsize_y = (eyeN + damping_integral_mat_).transpose() * (del_ang_momentum_(0)*weighting_tau_damping_.transpose()*cam_damping_mat_*onevector_N); // 0.01에 들어가는 value를 h0로
+    
+    for(int i=0; i<N_cp; i++)
+    {
+        g_damping_x(2*i+1) = g_damping_Nsize_x(i);
+    }       
+
     Eigen::VectorXd g_cpmpc_x_new(2*N_cp);  
     Eigen::VectorXd g_cpmpc_y_new(2*N_cp);
     Eigen::VectorXd g_cpStepping_mpc_x_new(2*N_cp + footprint_num);
     Eigen::VectorXd g_cpStepping_mpc_y_new(2*N_cp + footprint_num);
     
     // gradient vector
-    g_cpmpc_x_new = F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(0) - cp_x_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_x_new_.segment<2>(0);
+    g_cpmpc_x_new = g_damping_x + F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(0) - cp_x_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_x_new_.segment<2>(0);
     g_cpStepping_mpc_x_new.setZero(2*N_cp + footprint_num);
     g_cpStepping_mpc_x_new.segment(0, 2*N_cp) = g_cpmpc_x_new;
 
-    g_cpmpc_y_new = F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(1) - cp_y_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_y_new_.segment<2>(0);
+    g_cpmpc_y_new = g_damping_y + F_cmp_new_.transpose()*weighting_cp_new_*(F_cp_new_*cp_measured_mpc_(1) - cp_y_ref_new) - diff_matrix_new_.transpose()*weighting_cmp_diff_new_*e1_cpmpc_new_*cpmpc_output_y_new_.segment<2>(0);
     g_cpStepping_mpc_y_new.setZero(2*N_cp + footprint_num);
     g_cpStepping_mpc_y_new.segment(0, 2*N_cp) = g_cpmpc_y_new;
     
@@ -10714,7 +10754,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     } 
     
 
-    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << des_tau_y_thread_ << "," << del_F_x_thread_ << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << des_tau_y_thread_ << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
@@ -15295,13 +15335,13 @@ void AvatarController::CentroidalMomentCalculator_new()
 
     del_ang_momentum_prev_ = del_ang_momentum_;   
     
-    double recovery_damping = 2.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
+    // double recovery_damping = 2.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
     // 나중에 반대방향 토크 limit 걸어야됨.
     // X direction CP control  
-    del_tau_(1) = des_tau_y_ - recovery_damping*del_ang_momentum_(1);
+    del_tau_(1) =  des_tau_y_ ;//- recovery_damping*del_ang_momentum_(1);
  
     // Y direction CP control        
-    del_tau_(0) = -des_tau_x_ - recovery_damping*del_ang_momentum_(0); 
+    del_tau_(0) = -des_tau_x_ ;//- recovery_damping*del_ang_momentum_(0); 
     
     //// Integrate Centroidal Moment
     del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);

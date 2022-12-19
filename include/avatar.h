@@ -1251,14 +1251,19 @@ public:
     Eigen::MatrixXd F_cp_new_; 
     Eigen::MatrixXd F_cmp_new_;
     Eigen::MatrixXd diff_matrix_new_;
+    Eigen::MatrixXd integral_matrix_;
     Eigen::MatrixXd e1_cpmpc_new_;
     Eigen::MatrixXd weighting_cp_new_;
     Eigen::MatrixXd weighting_cmp_diff_new_;
     Eigen::MatrixXd H_cpmpc_new_;
     Eigen::MatrixXd H_cpStepping_mpc_new_;
 
+    Eigen::MatrixXd damping_integral_mat_;
+    Eigen::MatrixXd cam_damping_mat_;
+
     Eigen::MatrixXd Tau_sel_;
     Eigen::MatrixXd weighting_tau_regul_;
+    Eigen::MatrixXd weighting_tau_damping_;
 
     Eigen::VectorXd cpmpc_deszmp_x_new_;
     Eigen::VectorXd cpmpc_deszmp_y_new_;
