@@ -451,11 +451,36 @@ void AvatarController::setGains()
     joint_vel_limit_h_.resize(33);
 
     // LEG
-    for (int i = 0; i < 12; i++)
-    {
-        joint_limit_l_(i) = -180 * DEG2RAD;
-        joint_limit_h_(i) = 180 * DEG2RAD;
-    }
+    // for (int i = 0; i < 12; i++)
+    // {
+    //     joint_limit_l_(i) = -180 * DEG2RAD;
+    //     joint_limit_h_(i) = 180 * DEG2RAD;
+    // }
+    joint_limit_l_(0) = -20 * DEG2RAD;
+    joint_limit_h_(0) = 20 * DEG2RAD;
+    joint_limit_l_(1) = -45 * DEG2RAD;
+    joint_limit_h_(1) = 90 * DEG2RAD;
+    joint_limit_l_(2) = -80 * DEG2RAD;
+    joint_limit_h_(2) = 55 * DEG2RAD;
+    joint_limit_l_(3) = 5 * DEG2RAD;
+    joint_limit_h_(3) = 150 * DEG2RAD;
+    joint_limit_l_(4) = -60 * DEG2RAD;
+    joint_limit_h_(4) = 30 * DEG2RAD;
+    joint_limit_l_(5) = -35 * DEG2RAD;
+    joint_limit_h_(5) = 35 * DEG2RAD;
+
+    joint_limit_l_(6) = -20 * DEG2RAD;
+    joint_limit_h_(6) = 20 * DEG2RAD;
+    joint_limit_l_(7) = -90 * DEG2RAD;
+    joint_limit_h_(7) = 45 * DEG2RAD;
+    joint_limit_l_(8) = -80 * DEG2RAD;
+    joint_limit_h_(8) = 55 * DEG2RAD;
+    joint_limit_l_(9) = 5 * DEG2RAD;
+    joint_limit_h_(9) = 150 * DEG2RAD;
+    joint_limit_l_(10) = -60 * DEG2RAD;
+    joint_limit_h_(10) = 30 * DEG2RAD;
+    joint_limit_l_(11) = -35 * DEG2RAD;
+    joint_limit_h_(11) = 35 * DEG2RAD;
 
     // WAIST
     joint_limit_l_(12) = -30 * DEG2RAD;
@@ -464,6 +489,7 @@ void AvatarController::setGains()
     joint_limit_h_(13) = 30 * DEG2RAD;
     joint_limit_l_(14) = -15 * DEG2RAD;
     joint_limit_h_(14) = 15 * DEG2RAD;
+
     // LEFT ARM
     joint_limit_l_(15) = -30 * DEG2RAD;
     joint_limit_h_(15) = 30 * DEG2RAD;
@@ -481,11 +507,13 @@ void AvatarController::setGains()
     joint_limit_h_(21) = 70 * DEG2RAD;
     joint_limit_l_(22) = -60 * DEG2RAD;
     joint_limit_h_(22) = 60 * DEG2RAD;
+
     // HEAD
     joint_limit_l_(23) = -80 * DEG2RAD;
     joint_limit_h_(23) = 80 * DEG2RAD;
     joint_limit_l_(24) = -40 * DEG2RAD;
     joint_limit_h_(24) = 18 * DEG2RAD;
+
     // RIGHT ARM
     joint_limit_l_(25) = -30 * DEG2RAD;
     joint_limit_h_(25) = 30 * DEG2RAD;
@@ -701,16 +729,45 @@ void AvatarController::computeSlow()
                 if (atb_walking_traj_update_ == false)
                 {
                     atb_walking_traj_update_ = true;
+                    lfoot_trajectory_float_thread_ = lfoot_trajectory_float_;
+                    rfoot_trajectory_float_thread_ = rfoot_trajectory_float_;
                     del_ang_momentum_fast_ = del_ang_momentum_;
                     atb_walking_traj_update_ = false;
                 }
                 
-                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
                 // Compliant_control(q_des_);
+
+                if (atb_desired_q_update_ == false)
+                {
+                    atb_desired_q_update_ = true;
+                    desired_q_fast_ = desired_q_slow_;
+                    desired_q_dot_fast_ = desired_q_dot_slow_;
+                    atb_desired_q_update_ = false;
+                }
+
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = q_des_(i);
+                    // ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
+                    ref_q_(i) = desired_q_fast_(i);
+                    static bool ref_q_nan_flag = false;
+                    if (ref_q_(i) != ref_q_(i))
+                    {
+                        if (ref_q_nan_flag == false)
+                        {
+                            cout << "WARNING: ref_q(" << i << ") is NAN!!" << endl;
+                            cout << "lfoot_trajectory_float_: " << lfoot_trajectory_float_.translation().transpose() << endl;
+                            cout << "rfoot_trajectory_float_: " << rfoot_trajectory_float_.translation().transpose() << endl;
+                            cout << "pelv_trajectory_float_: " << pelv_trajectory_float_.translation().transpose() << endl;
+
+                            cout << "lfoot_trajectory_float_: " << lfoot_trajectory_float_.linear() << endl;
+                            cout << "rfoot_trajectory_float_: " << rfoot_trajectory_float_.linear() << endl;
+                            cout << "pelv_trajectory_float_: " << pelv_trajectory_float_.linear() << endl;
+                        }
+
+                        ref_q_nan_flag = true;
+                    }
                 }
                 //hip_compensator();
                 //GravityCalculate_MJ();
@@ -727,7 +784,7 @@ void AvatarController::computeSlow()
                     //for leg
                     for (int i = 0; i < 12; i++)
                     {
-                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
                     }
                     //for waist
                     // ref_q_(13) = Initial_ref_q_(13);
@@ -747,12 +804,16 @@ void AvatarController::computeSlow()
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Tau_CP(i) + Gravity_MJ_fast_(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+
+                     //compliant control after collision
+                    // torque_lower_(i) += ext_torque_compensation_(i);
                 }
-                // printOutTextFile();
+                printOutTextFile();
 
                 updateNextStepTime();
                 q_prev_MJ_ = rd_.q_;
-          
+                q_dot_virtual_Xd_global_pre_ = q_dot_virtual_Xd_global_;
+                q_dot_virtual_Xd_local_pre_ = q_dot_virtual_Xd_local_;
                 //if((walking_tick_mj >= 5.88*hz_)&&(walking_tick_mj < 6.083*hz_)) 
                 // if(current_step_num_ == 4 && (walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.2*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.2*hz_ + 0.2*hz_))
                 // { // -170,175 // -350 7.5 - 7.6 //  67% 
@@ -824,8 +885,29 @@ void AvatarController::computeSlow()
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
         }
 
+        VectorQd torque_d = torque_lower_ + torque_upper_;
+        if (torque_d != torque_d)
+        {
+            static bool torque_nan_flag = false;
+            if (torque_nan_flag == false)
+            {
+                cout << "!!!!!!!!!!! ERROR: Desired_torque is NaN !!!!!!!!!!!!" << endl;
+                printout_cnt_ = 100 * 60 * 60 * 3 + 1;
+                cout << "torque_lower_: " << torque_lower_ << endl;
+                cout << "torque_upper_: " << torque_upper_ << endl;
+                cout << "Gravity_MJ_fast_: " << Gravity_MJ_fast_ << endl;
+                cout << "ref_q_: " << ref_q_.transpose() << endl;
+                torque_nan_flag = true;
+            }
+        }
+
+        // for (int i = 0; i < MODEL_DOF; i++)
+        // {
+        //     torque_d(i) = DyrosMath::minmax_cut(torque_d(i), torque_task_min_(i), torque_task_max_(i));
+        // }
+
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
-        rd_.torque_desired = torque_lower_ + torque_upper_;
+        rd_.torque_desired = torque_d;
         ///////////////////////////////////////////////////////////////////////////////
     }
     else if (rd_.tc_.mode == 12)
@@ -1011,7 +1093,7 @@ void AvatarController::computeSlow()
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
                 
-                // printOutTextFile();
+                printOutTextFile();
                 q_prev_MJ_ = rd_.q_;
                 q_dot_virtual_Xd_global_pre_ = q_dot_virtual_Xd_global_;
                 q_dot_virtual_Xd_local_pre_ = q_dot_virtual_Xd_local_;
@@ -1238,6 +1320,8 @@ void AvatarController::computeFast()
                     if (atb_walking_traj_update_ == false)
                     {
                         atb_walking_traj_update_ = true;
+                        lfoot_trajectory_float_fast_ = lfoot_trajectory_float_thread_;
+                        rfoot_trajectory_float_fast_ = rfoot_trajectory_float_thread_;
                         del_ang_momentum_slow_ = del_ang_momentum_fast_;
                         atb_walking_traj_update_ = false;
                     }
@@ -1256,11 +1340,10 @@ void AvatarController::computeFast()
             {
                 support_foot = 0;
             }
-             
+            
+            VectorQd Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
             if (atb_grav_update_ == false)
             {
-                VectorQd Gravity_MJ_local = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, support_foot);
-
                 atb_grav_update_ = true;
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
@@ -1331,7 +1414,7 @@ void AvatarController::computeFast()
         //     left_leg_peter_gru_.atb_gru_output_update_ = false;
         // }
 
-        for (int i = 12; i < MODEL_DOF; i++)
+        for (int i = 0; i < MODEL_DOF; i++)
         {
             desired_q_(i) = motion_q_(i);
             desired_q_dot_(i) = motion_q_dot_(i); 
@@ -1502,7 +1585,175 @@ void AvatarController::computeFast()
     {
     }
 }
+void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des, Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot)
+{
+    if (first_loop_leg_qpik_)
+    {
 
+        QP_leg_qpik_.InitializeProblemSize(variable_size_leg_qpik_, constraint_size2_leg_qpik_);
+        J_leg_qpik_.setZero(control_size_leg_qpik_, variable_size_leg_qpik_);
+        u_dot_leg_qpik_.setZero(control_size_leg_qpik_);
+
+        ubA_leg_qpik_.setZero(constraint_size2_leg_qpik_);
+        lbA_leg_qpik_.setZero(constraint_size2_leg_qpik_);
+
+        H_leg_qpik_.setZero(variable_size_leg_qpik_, variable_size_leg_qpik_);
+        g_leg_qpik_.setZero(variable_size_leg_qpik_);
+
+        ub_leg_qpik_.setZero(constraint_size1_leg_qpik_);
+        lb_leg_qpik_.setZero(constraint_size1_leg_qpik_);
+
+        q_dot_leg_qpik_.setZero(variable_size_leg_qpik_);
+
+        w1_leg_qpik_ = 1;    // |A*qdot - h|
+        w2_leg_qpik_ = 1e-6; // |q_dot|
+        w3_leg_qpik_ = 0.0;  // acceleration (0.000)
+
+        first_loop_leg_qpik_ = false;
+    }
+
+    // clipping leg length
+    Vector3d pelv_to_lhipjoint, pelv_to_rhipjoint, lhipjoint_to_lfoot, rhipjoint_to_rfoot;
+    pelv_to_lhipjoint << 0.11, 0.1025, -0.1025;
+    pelv_to_rhipjoint << 0.11, -0.1025, -0.1025;
+
+    lhipjoint_to_lfoot = lfoot_t_des.translation() - pelv_to_lhipjoint;
+    rhipjoint_to_rfoot = rfoot_t_des.translation() - pelv_to_rhipjoint;
+
+    double max_leg_len = 0.98 * sqrt(0.35 * 0.35 + 0.35 * 0.35 + 2 * 0.35 * 0.35 * cos(joint_limit_l_(3)));
+    if (lhipjoint_to_lfoot.norm() > max_leg_len)
+    {
+        lfoot_t_des.translation() = pelv_to_lhipjoint + max_leg_len * lhipjoint_to_lfoot.normalized();
+    }
+
+    if (rhipjoint_to_rfoot.norm() > max_leg_len)
+    {
+        rfoot_t_des.translation() = pelv_to_rhipjoint + max_leg_len * rhipjoint_to_rfoot.normalized();
+    }
+
+    Vector3d zero3;
+    zero3.setZero();
+    ////1st Task
+    J_leg_qpik_.setZero();
+
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, zero3, J_temp_, false);
+    J_leg_qpik_.block(0, 0, 3, 6) = J_temp_.block(3, 6, 3, 6); // l foot position
+
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Left_Foot].id, zero3, J_temp_, false);
+    J_leg_qpik_.block(3, 0, 3, 6) = J_temp_.block(0, 6, 3, 6); // l foot orientation
+
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Foot].id, zero3, J_temp_, false);
+    J_leg_qpik_.block(6, 6, 3, 6) = J_temp_.block(3, 12, 3, 6); // r foot position
+
+    J_temp_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_d_, pre_desired_q_qvqd_, rd_.link_[Right_Foot].id, zero3, J_temp_, false);
+    J_leg_qpik_.block(9, 6, 3, 6) = J_temp_.block(0, 12, 3, 6); // r foot orientation
+
+    Vector6d error_v_leg_pos, error_w_leg_pos;
+    error_v_leg_pos.segment(0, 3) = lfoot_t_des.translation() - lfoot_transform_pre_desired_from_.translation();
+    error_w_leg_pos.segment(0, 3) = -DyrosMath::getPhi(lfoot_transform_pre_desired_from_.linear(), lfoot_t_des.linear());
+
+    error_v_leg_pos.segment(3, 3) = rfoot_t_des.translation() - rfoot_transform_pre_desired_from_.translation();
+    error_w_leg_pos.segment(3, 3) = -DyrosMath::getPhi(rfoot_transform_pre_desired_from_.linear(), rfoot_t_des.linear());
+
+    u_dot_leg_qpik_.segment(0, 3) = 200 * error_v_leg_pos.segment(0, 3);
+    u_dot_leg_qpik_.segment(3, 3) = 100 * error_w_leg_pos.segment(0, 3);
+
+    u_dot_leg_qpik_.segment(6, 3) = 200 * error_v_leg_pos.segment(3, 3);
+    u_dot_leg_qpik_.segment(9, 3) = 100 * error_w_leg_pos.segment(3, 3);
+
+    static bool qp_leg_is_not_solved = false;
+    if (qp_leg_is_not_solved)
+    {
+        QP_leg_qpik_.InitializeProblemSize(variable_size_leg_qpik_, constraint_size2_leg_qpik_);
+        qp_leg_is_not_solved = false;
+    }
+
+    MatrixXd H1, H2, H3;
+    VectorXd g1, g2, g3;
+    H1 = J_leg_qpik_.transpose() * J_leg_qpik_;
+    H2 = Eigen::MatrixXd::Identity(variable_size_leg_qpik_, variable_size_leg_qpik_);
+    // H2 = A_mat_.block(6, 6, variable_size_hqpik_, variable_size_hqpik_) + Eigen::MatrixXd::Identity(variable_size_hqpik_, variable_size_hqpik_) * (2e-2);
+    H3 = Eigen::MatrixXd::Identity(variable_size_leg_qpik_, variable_size_leg_qpik_) * (1 / dt_) * (1 / dt_);
+
+    g1 = -J_leg_qpik_.transpose() * u_dot_leg_qpik_;
+    g2.setZero(variable_size_leg_qpik_);
+    g3 = -motion_q_dot_pre_.segment(0, variable_size_leg_qpik_) * (1 / dt_) * (1 / dt_);
+
+    H_leg_qpik_ = w1_leg_qpik_ * H1 + w2_leg_qpik_ * H2 + w3_leg_qpik_ * H3;
+    g_leg_qpik_ = w1_leg_qpik_ * g1 + w2_leg_qpik_ * g2 + w3_leg_qpik_ * g3;
+
+    double speed_reduce_rate = 30; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
+    for (int j = 0; j < constraint_size1_leg_qpik_; j++)
+    {
+        lb_leg_qpik_(j) = min(max(speed_reduce_rate * (joint_limit_l_(j) - motion_q_pre_(j)), joint_vel_limit_l_(j)), joint_vel_limit_h_(j));
+        ub_leg_qpik_(j) = max(min(speed_reduce_rate * (joint_limit_h_(j) - motion_q_pre_(j)), joint_vel_limit_h_(j)), joint_vel_limit_l_(j));
+    }
+
+    A_leg_qpik_.setZero(constraint_size2_leg_qpik_, variable_size_leg_qpik_);
+
+    // foot velocity constraints
+    A_leg_qpik_ = J_leg_qpik_;
+
+    for (int j = 0; j < 3; j++)
+    {
+        // linear velocity limit
+        lbA_leg_qpik_(j) = -3;
+        ubA_leg_qpik_(j) = 3;
+        lbA_leg_qpik_(j + 6) = -3;
+        ubA_leg_qpik_(j + 6) = 3;
+
+        // angular velty limit
+        lbA_leg_qpik_(j + 3) = -2 * M_PI;
+        ubA_leg_qpik_(j + 3) = 2 * M_PI;
+        lbA_leg_qpik_(j + 9) = -2 * M_PI;
+        ubA_leg_qpik_(j + 9) = 2 * M_PI;
+    }
+
+    // QP_leg_qpik_[i].SetPrintLevel(PL_NONE);
+    // QP_leg_qpik_.EnableEqualityCondition(equality_condition_eps_);
+    QP_leg_qpik_.UpdateMinProblem(H_leg_qpik_, g_leg_qpik_);
+    // QP_leg_qpik_[i].DeleteSubjectToAx();
+    // QP_leg_qpik_[i].DeleteSubjectToX();
+    QP_leg_qpik_.UpdateSubjectToAx(A_leg_qpik_, lbA_leg_qpik_, ubA_leg_qpik_);
+    QP_leg_qpik_.UpdateSubjectToX(lb_leg_qpik_, ub_leg_qpik_);
+    // cout<<"test8"<<endl;
+    if (QP_leg_qpik_.SolveQPoases(500, qpres_leg_qpik_))
+    {
+        q_dot_leg_qpik_ = qpres_leg_qpik_.segment(0, variable_size_leg_qpik_);
+    }
+    else
+    {
+        static bool temp_test = true;
+        if (temp_test)
+        {
+            // std::cout << "last solved q_dot: " << q_dot_leg_qpik_.transpose() << std::endl;
+            // std::cout << "lfoot_t_des.translation(): " << lfoot_t_des.translation().transpose() << std::endl;
+            // std::cout << "rfoot_t_des.translation(): " << rfoot_t_des.translation().transpose() << std::endl;
+            // std::cout << "A_leg_hqpik_: \n" << A_leg_qpik_ << std::endl;
+            // std::cout << "com_desired_: " << com_desired_.transpose() << std::endl;
+            std::cout << "motion_q_pre_: " << motion_q_pre_.segment(0, 12).transpose() << std::endl;
+            QP_leg_qpik_.PrintSubjectToAx();
+            QP_leg_qpik_.PrintSubjectTox();
+            QP_leg_qpik_.PrintMinProb();
+            temp_test = false;
+        }
+
+        q_dot_leg_qpik_.setZero();
+        qp_leg_is_not_solved = true;
+        // cout<<"Error qpres_: \n"<< qpres_ << endl;
+    }
+
+    for (int i = 0; i < variable_size_leg_qpik_; i++)
+    {
+        desired_q_dot(i) = q_dot_leg_qpik_(i);
+        desired_q(i) = motion_q_pre_(i) + desired_q_dot(i) * dt_;
+        pd_control_mask_(i) = 1;
+    }
+}
 void AvatarController::computeThread3()
 {
     thread3GetDataFromThread1();
@@ -2277,6 +2528,11 @@ void AvatarController::initWalkingParameter()
 
     last_solved_hierarchy_num_ = hierarchy_num_hqpik_ - 1;
     joy_command_buffer_.setZero();
+
+    lfoot_trajectory_float_thread_ = lfoot_transform_pre_desired_from_;
+    rfoot_trajectory_float_thread_ = rfoot_transform_pre_desired_from_;
+    lfoot_trajectory_float_fast_ = lfoot_transform_pre_desired_from_;
+    rfoot_trajectory_float_fast_ = rfoot_transform_pre_desired_from_;
 }
 
 void AvatarController::getRobotData()
@@ -2473,6 +2729,9 @@ void AvatarController::getRobotData()
 
     larmbase_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 7].id, Eigen::Vector3d::Zero(), false);
     larmbase_transform_pre_desired_from_.linear() = RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Left_Hand - 7].id, false).transpose();
+
+    rfoot_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Foot].id, Eigen::Vector3d::Zero(), false);
+    rfoot_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Foot].id, false)).transpose();
 
     rhand_transform_pre_desired_from_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, rhand_control_point_offset_, false);
     rhand_transform_pre_desired_from_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_d_, pre_desired_q_qvqd_, link_avatar_[Right_Hand].id, false)).transpose();
@@ -2845,8 +3104,8 @@ void AvatarController::motionGenerator()
     motion_q_(4) = -0.12;
     motion_q_(5) = 0;
     pd_control_mask_(0) = 1;
-    pd_control_mask_(1) = 0;
-    pd_control_mask_(2) = 0;
+    pd_control_mask_(1) = 1;
+    pd_control_mask_(2) = 1;
     pd_control_mask_(3) = 1;
     pd_control_mask_(4) = 1;
     pd_control_mask_(5) = 1;
@@ -2859,14 +3118,16 @@ void AvatarController::motionGenerator()
     motion_q_(10) = -0.12;
     motion_q_(11) = 0;
     pd_control_mask_(6) = 1;
-    pd_control_mask_(7) = 0;
-    pd_control_mask_(8) = 0;
+    pd_control_mask_(7) = 1;
+    pd_control_mask_(8) = 1;
     pd_control_mask_(9) = 1;
     pd_control_mask_(10) = 1;
     pd_control_mask_(11) = 1;
     //////////////////////
 
     poseCalibration();
+
+    computeLeg_QPIK(lfoot_trajectory_float_fast_, rfoot_trajectory_float_fast_, motion_q_, motion_q_dot_); // update leg desired q, desired q dot
 
     if (upper_body_mode_ == 1) // init pose
     {
@@ -6993,6 +7254,44 @@ void AvatarController::floatingBaseMOB()
 
     mob_residual_wholebody_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody, mob_integral_wholebody_, 1 / hz_, 100);
 
+    // nonlinear_term_virtual.segment(6, MODEL_DOF) += friction_model_torque_; // add friction
+    // mob_residual_friction_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_friction, mob_integral_friction_, 1 / hz_, 100);
+    // mob_residual_friction_hpf_ = DyrosMath::hpf<39>(mob_residual_friction_, mob_residual_pre_friction, mob_residual_friction_hpf_, 2000.0, 0.1);
+
+    if (mob_residual_wholebody_ != mob_residual_wholebody_)
+    {
+        mob_residual_wholebody_ = mob_residual_pre_wholebody;
+        cout << "!!!!!!!!!!! ERROR: Floating Base MOB Wholebody Residual is NaN !!!!!!!!!!!!" << endl;
+    }
+
+    Eigen::MatrixXd J_temp, R_temp_lfoot, R_temp_rfoot;
+    // conversion FT wrench to external torque
+    J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Foot].id, lfoot_ft_sensor_offset_, J_temp, false);
+    jac_lfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
+    jac_lfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
+
+    J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Right_Foot].id, rfoot_ft_sensor_offset_, J_temp, false);
+    jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
+    jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
+
+    R_temp_lfoot.setZero(6, 6);
+    R_temp_lfoot.block(0, 0, 3, 3) = rd_.link_[Left_Foot].rotm;
+    R_temp_lfoot.block(3, 3, 3, 3) = rd_.link_[Left_Foot].rotm;
+    // J_temp.setZero(6, MODEL_DOF_VIRTUAL);
+    // J_temp = (rd_.link_[Left_Foot].jac).cast<double>();
+    Eigen::VectorQd torque_from_l_ft_pre = torque_from_l_ft_lpf_;
+    torque_from_l_ft_ = jac_lfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp_lfoot * (-l_ft_wo_fw_);
+    torque_from_l_ft_lpf_ = DyrosMath::lpf<33>(torque_from_l_ft_, torque_from_l_ft_pre, 2000, 100 / (2 * M_PI));
+
+    R_temp_rfoot.setZero(6, 6);
+    R_temp_rfoot.block(0, 0, 3, 3) = rd_.link_[Right_Foot].rotm;
+    R_temp_rfoot.block(3, 3, 3, 3) = rd_.link_[Right_Foot].rotm;
+
+    Eigen::VectorQd torque_from_r_ft_pre = torque_from_r_ft_lpf_;
+    torque_from_r_ft_ = jac_rfoot_.block(0, 6, 6, MODEL_DOF).transpose() * R_temp_rfoot * (-r_ft_wo_fw_);
+    torque_from_r_ft_lpf_ = DyrosMath::lpf<33>(torque_from_r_ft_, torque_from_r_ft_pre, 2000, 100 / (2 * M_PI));
 }
 Eigen::VectorXd AvatarController::momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k)
 {
@@ -9025,8 +9324,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
 
 void AvatarController::printOutTextFile()
 {
-    if (printout_cnt_ % 20 == 0)
-    // if(true)
+    // if (printout_cnt_ % 20 == 0)
+    if(true)
     {
         // if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
         if (true)
@@ -9042,84 +9341,53 @@ void AvatarController::printOutTextFile()
             {
                 file[0] << rd_.link_[Pelvis].rotm(i, 1) << "\t";
             }
-            for (int i = 18; i < 39; i++) //q
+            for (int i = 6; i < 39; i++) //q
             {
                 file[0] << rd_.q_virtual_(i) << "\t";
             }
-            for (int i = 18; i < 39; i++) //qdot
+            for (int i = 6; i < 39; i++) //qdot
             {
                 file[0] << rd_.q_dot_virtual_(i) << "\t";
             }
-            for (int i = 18; i < 39; i++) //qdot pre
+            for (int i = 6; i < 39; i++) //qdot pre
             {
                 file[0] << q_dot_virtual_Xd_global_pre_(i) << "\t";
             }
-            for (int i = 3; i < 6; i++) //ang vel
+            for (int i = 3; i < 6; i++) //local ang vel
             {
-                file[0] << rd_.q_dot_virtual_(i) << "\t";
+                file[0] << q_dot_virtual_Xd_local_(i) << "\t";
             }
-            for (int i = 0; i < 3; i++) // lin acc
+            for (int i = 0; i < 3; i++) //local lin acc
             {
-                file[0] << rd_.q_ddot_virtual_(i) << "\t";
+                file[0] << q_ddot_virtual_Xd_local_(i) << "\t";
             }
-            for (int i = 12; i < 33; i++)
+            for (int i = 0; i < 33; i++)
             {
                 file[0] << desired_q_slow_(i) << "\t";
             }
-            for (int i = 12; i < 33; i++)
+            for (int i = 0; i < 33; i++)
             {
                 file[0] << rd_.torque_desired(i) << "\t";
             }
-            for (int i = 18; i < 39; i++) // left + right leg
+            for (int i = 0; i < 39; i++) // left + right leg
             {
                 file[0] << mob_residual_wholebody_(i) << "\t";
             }
-            for (int i = 12; i < 33; i++)
+            for (int i = 0; i < 33; i++)
             {
                 file[0] << torque_current_elmo_(i) << "\t";
             }
-            for (int i = 0; i < 6; i++)
-            {
-                file[0] << lh_ft_wo_hw_global_lpf_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                file[0] << rh_ft_wo_hw_global_lpf_(i) << "\t";
-            }
-            for (int i = 12; i < 15; i++)
-            {
-                file[0] << torque_from_lh_ft_(i) << "\t";
-            }
-            for (int i = 15; i < 23; i++)
-            {
-                file[0] << torque_from_lh_ft_(i) << "\t";
-            }
-            for (int i = 12; i < 15; i++)
-            {
-                file[0] << torque_from_rh_ft_(6 + i) << "\t";
-            }
-            for (int i = 25; i < 33; i++)
-            {
-                file[0] << torque_from_rh_ft_(6 + i) << "\t";
-            }
-            for (int i = 12; i < 15; i++)
-            {
-                file[0] << torque_from_lh_ft_lpf_(i) << "\t";
-            }
-            for (int i = 15; i < 23; i++)
-            {
-                file[0] << torque_from_lh_ft_lpf_(i) << "\t";
-            }
-            for (int i = 12; i < 15; i++)
-            {
-                file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
-            }
-            for (int i = 25; i < 33; i++)
-            {
-                file[0] << torque_from_rh_ft_lpf_(6 + i) << "\t";
-            }
             file[0] << endl;
 
+            // FT related Data
+            for (int i = 0; i < 6; i++)
+            {
+                file[1] << l_ft_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[1] << r_ft_(i) << "\t";
+            }
             for (int i = 0; i < 6; i++)
             {
                 file[1] << lh_ft_(i) << "\t";
@@ -9127,6 +9395,14 @@ void AvatarController::printOutTextFile()
             for (int i = 0; i < 6; i++)
             {
                 file[1] << rh_ft_(i) << "\t";
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                file[1] << torque_from_l_ft_lpf_(i) << "\t";
+            }
+            for (int i = 6; i < 12; i++)
+            {
+                file[1] << torque_from_r_ft_lpf_(i) << "\t";
             }
             file[1] << endl;
         }
@@ -9366,10 +9642,12 @@ void AvatarController::getRobotState()
     r_ft_ = rd_.RF_FT; // generated force by robot right foot
 
     opto_ft_ = opto_ft_raw_; // collision test exp
-    
+
+    // l_hand_ft_ = rd_.LH_FT;
+    // r_hand_ft_ = rd_.RH_FT;
     // deleted by MJ/1209
-    // lh_ft_ = rd_.LH_FT;
-    // rh_ft_ = rd_.RH_FT;
+    lh_ft_ = rd_.LH_FT;
+    rh_ft_ = rd_.RH_FT;
 
     //////////// model_global_ UPDATE///////////////
 
@@ -9427,22 +9705,39 @@ void AvatarController::getRobotState()
     //////////////////////////////////////////////
     ////////////model_local_ UPDATE///////////////
     // Base frame is attatced to the pelvis
-    if (walking_tick_mj == 0)
-    {
-        q_dot_virtual_Xd_local_pre_ = rd_.q_dot_virtual_;
-        q_dot_virtual_Xd_local_pre_.segment(0, 6).setZero();
-    }
+    q_virtual_Xd_local_ = q_virtual_Xd_global_;
+    q_dot_virtual_Xd_local_ = q_dot_virtual_Xd_global_;
+    q_ddot_virtual_Xd_local_ = q_ddot_virtual_Xd_global_;
 
-    q_dot_virtual_Xd_local_ = rd_.q_dot_virtual_;
-    q_virtual_Xd_local_ = rd_.q_virtual_;
-
-    q_dot_virtual_Xd_local_.segment(0, 6).setZero();
     q_virtual_Xd_local_.segment(0, 6).setZero();
     q_virtual_Xd_local_(39) = 1;
-    q_ddot_virtual_Xd_local_ = (q_dot_virtual_Xd_local_ - q_dot_virtual_Xd_local_pre_) * hz_;
+
+    q_dot_virtual_Xd_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * q_dot_virtual_Xd_global_.segment(0, 3);
+    q_dot_virtual_Xd_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * q_dot_virtual_Xd_global_.segment(3, 3);
+
+    q_ddot_virtual_Xd_local_.segment(0, 3) = rd_.link_[Pelvis].rotm.transpose() * q_ddot_virtual_Xd_global_.segment(0, 3);
+    q_ddot_virtual_Xd_local_.segment(3, 3) = rd_.link_[Pelvis].rotm.transpose() * q_ddot_virtual_Xd_global_.segment(3, 3);
+
+    // if (walking_tick_mj == 0)
+    // {
+    //     q_dot_virtual_Xd_local_pre_ = rd_.q_dot_virtual_;
+    //     q_dot_virtual_Xd_local_pre_.segment(0, 6).setZero();
+    // }
+
+    // q_dot_virtual_Xd_local_ = rd_.q_dot_virtual_;
+    // q_virtual_Xd_local_ = rd_.q_virtual_;
+
+    // q_dot_virtual_Xd_local_.segment(0, 6).setZero();
+    // q_virtual_Xd_local_.segment(0, 6).setZero();
+    // q_virtual_Xd_local_(39) = 1;
+    // q_ddot_virtual_Xd_local_ = (q_dot_virtual_Xd_local_ - q_dot_virtual_Xd_local_pre_) * hz_;
 
     RigidBodyDynamics::UpdateKinematicsCustom(model_local_, &q_virtual_Xd_local_, &q_dot_virtual_Xd_local_, &q_ddot_virtual_Xd_local_); // global frame is fixed to the pelvis frame
 
+    lfoot_local_current_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_local_, q_virtual_Xd_local_, rd_.link_[Left_Foot].id, Eigen::Vector3d::Zero(), false);
+    lfoot_local_current_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_local_, q_virtual_Xd_local_, rd_.link_[Left_Foot].id, false)).transpose();
+    rfoot_local_current_.translation() = RigidBodyDynamics::CalcBodyToBaseCoordinates(model_local_, q_virtual_Xd_local_, rd_.link_[Right_Foot].id, Eigen::Vector3d::Zero(), false);
+    rfoot_local_current_.linear() = (RigidBodyDynamics::CalcBodyWorldOrientation(model_local_, q_virtual_Xd_local_, rd_.link_[Right_Foot].id, false)).transpose();
 
     /////////////////////////////////////////////
 
@@ -9451,6 +9746,7 @@ void AvatarController::getRobotState()
 
     R_angle = pelv_rpy_current_mj_(0);
     P_angle = pelv_rpy_current_mj_(1);
+    pelv_yaw_rot_current_from_global_mj_.setIdentity();
     pelv_yaw_rot_current_from_global_mj_ = DyrosMath::rotateWithZ(pelv_rpy_current_mj_(2));
 
     rfoot_rpy_current_.setZero();
@@ -9521,20 +9817,22 @@ void AvatarController::getRobotState()
 
     // cout << "L : " << lfoot_float_current_.linear() << "\n" <<  "R : " << rfoot_float_current_.linear() << endl;
     com_support_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_);
-    com_support_current_dot_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot);
-    com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
+    com_support_current_dot_ = (supportfoot_float_current_yaw_only.linear().transpose()) * com_float_current_dot;
+    com_support_current_dot_LPF = (supportfoot_float_current_yaw_only.linear().transpose()) * com_float_current_dot_LPF;
 
     SC_err_compen(com_support_current_(0), com_support_current_(1));
 
     wn = sqrt(GRAVITY / zc_mj_);
 
-    cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
+    // cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     // cp_measured_(0) = com_support_current_(0) + com_float_current_dot_LPF(0) / wn;
-    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
+    // cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
 
+    cp_measured_(0) = com_support_current_(0) + com_support_current_dot_LPF(0) / wn;
+    cp_measured_(1) = com_support_current_(1) + com_support_current_dot_LPF(1) / wn;
 
-
-    double foot_plate_mass = 2.326; // urdf
+    // double foot_plate_mass = 2.326; // urdf
+    double foot_plate_mass = 0.001; // urdf
 
     // double foot_plate_mass = 1.866; // bolt: 41g, black plate: 211g, red plate: 1614g
     Matrix6d adt;
@@ -9559,21 +9857,36 @@ void AvatarController::getRobotState()
     Matrix6d inertia_foot_plate; // left and right are same
     inertia_foot_plate.setZero();
     inertia_foot_plate.block(0, 0, 3, 3) = foot_plate_mass * Matrix3d::Identity();
-    inertia_foot_plate(3, 3) = 0.003386409;
-    inertia_foot_plate(4, 3) = 1.1237E-05;
-    inertia_foot_plate(5, 3) = -0.000526477;
-    inertia_foot_plate(3, 4) = 1.1237E-05;
-    inertia_foot_plate(4, 4) = 0.012600125;
-    inertia_foot_plate(5, 4) = -1.976E-06;
-    inertia_foot_plate(3, 5) = -0.000526477;
-    inertia_foot_plate(4, 5) = -1.976E-06;
-    inertia_foot_plate(5, 5) = 0.014296;
+    // inertia_foot_plate(3, 3) = 0.003386409;
+    // inertia_foot_plate(4, 3) = 1.1237E-05;
+    // inertia_foot_plate(5, 3) = -0.000526477;
+    // inertia_foot_plate(3, 4) = 1.1237E-05;
+    // inertia_foot_plate(4, 4) = 0.012600125;
+    // inertia_foot_plate(5, 4) = -1.976E-06;
+    // inertia_foot_plate(3, 5) = -0.000526477;
+    // inertia_foot_plate(4, 5) = -1.976E-06;
+    // inertia_foot_plate(5, 5) = 0.014296;
 
-    Vector6d lfoot_acceleration_temp, lfoot_acceleration;
+    //
+    inertia_foot_plate(3, 3) = 0.001;
+    inertia_foot_plate(4, 4) = 0.001;
+    inertia_foot_plate(5, 5) = 0.001;
+
+    Vector6d lfoot_acceleration_temp, lfoot_acceleration, lfoot_acceleration_local, lfoot_velocity_temp, lfoot_velocity, lfoot_velocity_local, lfoot_inertia_v, lfoot_v_cross_inertia_v;
     lfoot_acceleration_temp = RigidBodyDynamics::CalcPointAcceleration6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_ddot_virtual_Xd_global_, rd_.link_[Left_Foot].id, LF_com, false);
     lfoot_acceleration.segment(0, 3) = lfoot_acceleration_temp.segment(3, 3); // translation
     lfoot_acceleration.segment(3, 3) = lfoot_acceleration_temp.segment(0, 3); // rotation
-    // l_ft_wo_fw_ = l_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * lfoot_acceleration);
+    lfoot_acceleration_local = rotrf.transpose()*lfoot_acceleration;
+
+    lfoot_velocity_temp = RigidBodyDynamics::CalcPointVelocity6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, rd_.link_[Left_Foot].id, LF_com, false);
+    lfoot_velocity.segment(0, 3) = lfoot_velocity_temp.segment(3, 3); // translation
+    lfoot_velocity.segment(3, 3) = lfoot_velocity_temp.segment(0, 3); // rotation
+    lfoot_velocity_local = rotrf.transpose()*lfoot_velocity;
+    lfoot_inertia_v = inertia_foot_plate*lfoot_velocity_local;
+    lfoot_v_cross_inertia_v.segment(0, 3) = DyrosMath::skm(lfoot_velocity_local.segment(0, 3))*lfoot_inertia_v.segment(3, 3) + DyrosMath::skm(lfoot_velocity_local.segment(3, 3)) * lfoot_inertia_v.segment(0, 3);
+    lfoot_v_cross_inertia_v.segment(3, 3) = DyrosMath::skm(lfoot_velocity_local.segment(3, 3))*lfoot_inertia_v.segment(3, 3);
+
+    // l_ft_wo_fw_ = l_ft_ + adt2 * ((rotrf.transpose() * Wrench_foot_plate) + inertia_foot_plate * lfoot_acceleration + lfoot_v_cross_inertia_v);
     l_ft_wo_fw_ = l_ft_; // tocabi
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
@@ -9600,8 +9913,8 @@ void AvatarController::getRobotState()
     rfoot_acceleration_temp = RigidBodyDynamics::CalcPointAcceleration6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_ddot_virtual_Xd_global_, rd_.link_[Right_Foot].id, RF_com, false);
     rfoot_acceleration.segment(0, 3) = rfoot_acceleration_temp.segment(3, 3); // translation
     rfoot_acceleration.segment(3, 3) = rfoot_acceleration_temp.segment(0, 3); // rotation
-    // r_ft_wo_fw_ = r_ft_ + adt2 * (rotrf.transpose() * Wrench_foot_plate) - adt2.transpose() * inertia_foot_plate * (rotrf.transpose() * rfoot_acceleration);
-    r_ft_wo_fw_ = r_ft_; // tocabi
+    r_ft_wo_fw_ = r_ft_ + adt2 * ((rotrf.transpose() * Wrench_foot_plate) + inertia_foot_plate * (rotrf.transpose() * rfoot_acceleration) );
+    // r_ft_wo_fw_ = r_ft_; // tocabi
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
     if (walking_tick_mj == 0)
@@ -9624,12 +9937,6 @@ void AvatarController::getRobotState()
     zmp_measured_FT_(0) = (left_zmp(0) * l_ft_LPF(2) + right_zmp(0) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP X
     zmp_measured_FT_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
 
-    // current_time_computeslow_ = rd_.control_time_;
-
-    // if (current_time_computeslow_ != pre_time_computeslow_)
-    // {
-    //     dt_computeslow_ = current_time_computeslow_ - pre_time_computeslow_;
-    // }
 
     //friction torque calculation
     // frictionTorqueCalculator(rd_.q_dot_, desired_q_dot_fast_, torque_current_elmo_, friction_model_torque_);
@@ -9643,7 +9950,7 @@ void AvatarController::getRobotState()
     // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
-    // collisionEstimation();
+    collisionEstimation();
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
 
@@ -12829,38 +13136,38 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 0.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0 * DEG2RAD;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = true;
-
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
-
-    //// 0.7s walking
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
+    target_theta_ = 0 * DEG2RAD;
     step_length_x_ = 0.10;
     step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    is_right_foot_swing_ = true;
 
-    t_rest_init_ = 0.06*hz_;
-    t_rest_last_ = 0.06*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.7*hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_;
     foot_height_ = 0.055;      // 0.9 sec 0.05
+
+    //// 0.7s walking
+    // target_x_ = 1.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+
+    // t_rest_init_ = 0.06*hz_;
+    // t_rest_last_ = 0.06*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 0.7*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.0;

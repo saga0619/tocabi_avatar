@@ -44,8 +44,8 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/dg/training_data.txt",
-    "/home/dg/data/dg/hand_ft.txt"
+    "/home/dg/data/dg/robot_proprioceptive_data.txt",
+    "/home/dg/data/dg/ft_related_data.txt"
     // "/home/dyros/data/dg/1_com_.txt",
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -97,6 +97,8 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik_;        
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
+    CQuadraticProgram QP_leg_qpik_;
+    
     CQuadraticProgram QP_mpc_x_;
     CQuadraticProgram QP_mpc_y_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
@@ -1446,6 +1448,7 @@ private:
     bool first_loop_hqpik_ = true;
     bool first_loop_hqpik2_ = true;
     bool first_loop_qp_retargeting_ = true;
+    bool first_loop_leg_qpik_ = true;
 
     int printout_cnt_ = 0;
     bool first_loop_camhqp_ = true;
@@ -1524,9 +1527,11 @@ public:
 
     Eigen::Isometry3d lfoot_trajectory_float_fast_;
     Eigen::Isometry3d lfoot_trajectory_float_slow_;
+    Eigen::Isometry3d lfoot_trajectory_float_thread_;
 
     Eigen::Isometry3d rfoot_trajectory_float_fast_;
     Eigen::Isometry3d rfoot_trajectory_float_slow_;
+    Eigen::Isometry3d rfoot_trajectory_float_thread_;
 
     Eigen::Vector3d pelv_support_euler_init_;
     Eigen::Vector3d lfoot_support_euler_init_;
@@ -1582,6 +1587,9 @@ public:
     Eigen::Isometry3d lfoot_float_init_;
     Eigen::Isometry3d rfoot_float_init_;
     double wn = 0;
+
+    Eigen::Isometry3d lfoot_local_current_;
+    Eigen::Isometry3d rfoot_local_current_;
 
     Eigen::Vector2d sc_err_before;
     Eigen::Vector2d sc_err_after;
