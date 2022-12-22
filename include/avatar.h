@@ -1196,6 +1196,9 @@ public:
     Eigen::VectorXd x_cp_recur_;
     Eigen::VectorXd y_cp_recur_;
 
+    Eigen::MatrixXd H_cp_control_;
+    Eigen::MatrixXd H_change_regul_;
+    Eigen::MatrixXd H_damping_Nsize_, H_damping_;
     Eigen::MatrixXd F_cp_;
     Eigen::MatrixXd diff_matrix_;
     Eigen::MatrixXd F_zmp_;
@@ -1337,6 +1340,7 @@ public:
     Eigen::MatrixXd modified_del_zmp_; 
     Eigen::MatrixXd m_del_zmp_x;
     Eigen::MatrixXd m_del_zmp_y;
+    unsigned int number_of_foot_step_ = 0;
     double zmp_modif_time_margin_ = 0; 
     ////////////////////////////////////////////////////////////
     
@@ -1486,6 +1490,8 @@ public:
     Eigen::Vector3d lfoot_support_euler_init_;
     Eigen::Vector3d rfoot_support_euler_init_;
 
+    Eigen::Vector2d cam_mpc_init_;
+    Eigen::Vector2d cam_thread_;
     Eigen::Vector2d del_cmp;
     Eigen::Vector3d del_tau_;
     Eigen::Vector3d del_ang_momentum_;
