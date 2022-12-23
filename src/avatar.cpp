@@ -9847,19 +9847,19 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         Z_x_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 0); // 왜 여기서 받는거랑 다르지?
         Z_y_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 1); // without zmp offset
     }    
-    // static int aa = 0;
-    // if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
-    // {
-    //     aa = 1;
+    static int aa = 0;
+    if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
+    {
+        aa = 1;
 
-    //     for(int i = 0; i < N; i ++)
-    //     {
-    //         Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 0); // 20 = Control freq (2000) / MPC_freq (100)
+        for(int i = 0; i < N; i ++)
+        {
+            Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
             
-    //         MJ_graph2 << Z_x_ref(i) << endl;
-    //     }
+            MJ_graph2 << Z_y_ref(i) << endl;
+        }
             
-    // }
+    }
     //define cost functions
     p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - Z_x_ref);
     p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - Z_y_ref);
@@ -10385,7 +10385,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
         zmp_bound_x_new(2*i) = 0.1; // original 0.1 
         zmp_bound_y_new(2*i) = 0.07;  
-        Tau_x_limit(2*i + 1) = 30.0;
+        Tau_x_limit(2*i + 1) = 20.0;
         Tau_y_limit(2*i + 1) = 30.0;
     }
 
@@ -10502,20 +10502,23 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         // }
 
         double weighting_foot_new = 0.1; // 100.0;
-
+        
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
         for(int i = 0; i < N_cp; i++) // For cp control
         {
             if(i < 1)
             {
-                weighting_cp_new_(i,i) = 10.0; // 여기 높일까? // original gain 1.0  
+                // weighting_cp_new_(i,i) = 1.0; // Y dir
+                weighting_cp_new_(i,i) = 10.0; // X dir   
             }
             else if (i < 50)
             {
-                weighting_cp_new_(i,i) = 20.0; // original gain 1.0               
+                // weighting_cp_new_(i,i) = 1.00; // Y dir
+                weighting_cp_new_(i,i) = 20.00; // X dir               
             }
             else
             {
+                // weighting_cp_new_(i,i) = 100.00; // Y dir
                 weighting_cp_new_(i,i) = 100.0; 
             }            
         }
@@ -10644,11 +10647,12 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     g_damping_x.setZero(2*N_cp);
     g_damping_Nsize_x = (eyeN + damping_integral_mat_).transpose() * (cam_mpc_init_(1)*weighting_tau_damping_.transpose()*cam_damping_mat_*onevector_N); // 0.01에 들어가는 value를 h0로
     g_damping_y.setZero(2*N_cp);
-    g_damping_Nsize_y = (eyeN + damping_integral_mat_).transpose() * (cam_mpc_init_(0)*weighting_tau_damping_.transpose()*cam_damping_mat_*onevector_N); // 0.01에 들어가는 value를 h0로
+    g_damping_Nsize_y = (eyeN + damping_integral_mat_).transpose() * (-cam_mpc_init_(0)*weighting_tau_damping_.transpose()*cam_damping_mat_*onevector_N); // 0.01에 들어가는 value를 h0로
      
     for(int i=0; i<N_cp; i++)
     {
         g_damping_x(2*i+1) = g_damping_Nsize_x(i);
+        g_damping_y(2*i+1) = g_damping_Nsize_y(i);
     }       
 
     Eigen::VectorXd g_cpmpc_x_new(2*N_cp);  
@@ -10785,7 +10789,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         if(atb_cpmpc_y_update_ == false)
         {
             atb_cpmpc_y_update_ = true;
-            del_F_y_thread_ = cpmpc_output_y_new_(N_cp);
+            del_F_y_thread_ = cpmpc_output_y_new_(2*N_cp);
             cpmpc_des_zmp_y_thread_ = cpmpc_output_y_new_(0);
             des_tau_x_thread_ = cpmpc_output_y_new_(1);
             atb_cpmpc_y_update_ = false;
@@ -10794,8 +10798,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     } 
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
-    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    // MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    // MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
@@ -14210,7 +14214,7 @@ void AvatarController::getComTrajectory_mpc()
 
     ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
     ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
-    // MJ_graph1 << ZMP_X_REF << endl;
+    MJ_graph1 << ZMP_Y_REF << endl;
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
         
     int alpha_step = 0;
