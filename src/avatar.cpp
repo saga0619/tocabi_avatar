@@ -9265,7 +9265,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
     W_nom = del_F_y_; // 0;
-    L_min = L_nom - 0.03;
+    L_min = L_nom - 0.03; // 0.05
     L_max = L_nom + 0.03;
     W_min = W_nom - 0.03;
     W_max = W_nom + 0.03;
@@ -9362,7 +9362,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
-    ub_step(5) = b_nom_x + 0.05;
+    ub_step(5) = b_nom_x + 0.05; // 0.1
     ub_step(6) = b_nom_y + 0.1;    
     
     if(walking_tick_mj == 0)
@@ -9847,19 +9847,19 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         Z_x_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 0); // 왜 여기서 받는거랑 다르지?
         Z_y_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 1); // without zmp offset
     }    
-    static int aa = 0;
-    if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
-    {
-        aa = 1;
+    // static int aa = 0;
+    // if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
+    // {
+    //     aa = 1;
 
-        for(int i = 0; i < N; i ++)
-        {
-            Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 0); // 20 = Control freq (2000) / MPC_freq (100)
+    //     for(int i = 0; i < N; i ++)
+    //     {
+    //         Z_x_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 0); // 20 = Control freq (2000) / MPC_freq (100)
             
-            MJ_graph2 << Z_x_ref(i) << endl;
-        }
+    //         MJ_graph2 << Z_x_ref(i) << endl;
+    //     }
             
-    }
+    // }
     //define cost functions
     p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - Z_x_ref);
     p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - Z_y_ref);
@@ -10385,8 +10385,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
         zmp_bound_x_new(2*i) = 0.1; // original 0.1 
         zmp_bound_y_new(2*i) = 0.07;  
-        Tau_x_limit(2*i + 1) = 15.0;
-        Tau_y_limit(2*i + 1) = 15.0;
+        Tau_x_limit(2*i + 1) = 30.0;
+        Tau_y_limit(2*i + 1) = 30.0;
     }
 
     if(atb_new_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
@@ -10706,18 +10706,18 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
         // real robot experiment 0.2?
-        ub_x_foot_cp_mpc_new(i) = 0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc_new(i) = -0.15;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+        ub_x_foot_cp_mpc_new(i) = 0.17;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+        lb_x_foot_cp_mpc_new(i) = -0.17;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
         if(alpha_step_mpc_ == 1) // left foot support
         {
-            ub_x_foot_cp_mpc_new(0) = 0.15 - rfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc_new(0) = -0.15 - rfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc_new(0) = 0.17 - rfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc_new(0) = -0.17 - rfoot_support_current_.translation()(0);
         }
         else if(alpha_step_mpc_ == -1) // right foot support
         {
-            ub_x_foot_cp_mpc_new(0) = 0.15 - lfoot_support_current_.translation()(0);
-            lb_x_foot_cp_mpc_new(0) = -0.15 - lfoot_support_current_.translation()(0);
+            ub_x_foot_cp_mpc_new(0) = 0.17 - lfoot_support_current_.translation()(0);
+            lb_x_foot_cp_mpc_new(0) = -0.17 - lfoot_support_current_.translation()(0);
         } 
         
     }   
@@ -10794,7 +10794,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     } 
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
-    MJ_graph << cp_x_ref_new(0) << "," << x_com_pos_recur_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << Z_x_ref_cpmpc_only_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     // MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
@@ -14210,7 +14210,7 @@ void AvatarController::getComTrajectory_mpc()
 
     ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
     ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
-    MJ_graph1 << ZMP_X_REF << endl;
+    // MJ_graph1 << ZMP_X_REF << endl;
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
         
     int alpha_step = 0;
