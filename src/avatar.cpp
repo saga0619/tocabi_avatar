@@ -10383,7 +10383,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     {
         Z_x_ref_wo_offset_new(2*i) = Z_x_ref_cpmpc_only_(i); // 20 = Control freq (2000) / MPC_freq (100)
         Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
-        zmp_bound_x_new(2*i) = 0.1; 
+        zmp_bound_x_new(2*i) = 0.1; // original 0.1 
         zmp_bound_y_new(2*i) = 0.07;  
         Tau_x_limit(2*i + 1) = 15.0;
         Tau_y_limit(2*i + 1) = 15.0;
@@ -10691,8 +10691,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     Eigen::VectorXd lb_y_cpStepping_mpc_new(2*N_cp + footprint_num);    
        
         
-    lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new) - (Tau_y_limit);
-    ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new) + (Tau_y_limit);
+    lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new*0.9) - (Tau_y_limit);
+    ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new*1.2) + (Tau_y_limit);
 
     lb_y_cp_mpc_new = (Z_y_ref_wo_offset_new - zmp_bound_y_new) - (Tau_x_limit); // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
     ub_y_cp_mpc_new = (Z_y_ref_wo_offset_new + zmp_bound_y_new) + (Tau_x_limit); // However, Ref. ZMP without ZMP offset is required for CP control.
@@ -12001,7 +12001,7 @@ void AvatarController::calculateFootStepTotal()
 
     del_size = 1;
     number_of_foot_step = initial_total_step_number * del_size + middle_total_step_number * del_size + final_total_step_number * del_size;
-    number_of_foot_step_ = number_of_foot_step;
+    
     if (initial_total_step_number != 0 || abs(initial_residual_angle) >= 0.0001)
     {
         if (initial_total_step_number % 2 == 0)
@@ -12292,7 +12292,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     del_size = 1;
     number_of_foot_step = 2 + initial_total_step_number * del_size + middle_total_step_number * del_size + final_total_step_number * del_size;
-    number_of_foot_step_ = number_of_foot_step;
+    
     if (initial_total_step_number != 0 || abs(initial_residual_angle) >= 0.0001)
     {
         if (initial_total_step_number % 2 == 0)
@@ -13077,19 +13077,19 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
 {
     if(current_step_num_ >= 2)
     {
-        if(current_step_number == current_step_num_)
-        {
-            futurestep_first_flag_ = 0;
-            futurestep_first_num_ = current_step_number;
+        if(current_step_number == current_step_num_) // current_step_number => (current step_num_) ~ (current_step_num_ + planning_step_num)
+        {            
+            first_current_step_flag_ = 0; 
+            first_current_step_number_ = current_step_number; // save the number of first current_step_number
         }
         else
         {
-            futurestep_first_flag_ = 1;
+            first_current_step_flag_ = 1;
         }
     }
     else
     {
-        futurestep_first_flag_ = 0;
+        first_current_step_flag_ = 0;
     }
 
     temp_px.resize(t_total_);  
@@ -13198,18 +13198,18 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
             prev_stepping_flag_ = 1; // Previous second DSP (착지 이후 + Step change 이전)에서 다음 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그
             current_stepping_flag_ = 0; // First DSP (착지 이후 + Step change 이후)에서 이전 지지발과 현재 지지발의 ZMP를 이어주기 위한 플래그 
         }
-        // cout << futurestep_first_num_ << "," << current_step_number << "," << current_step_num_ << endl;
-        if(futurestep_first_flag_ == 0)
+        
+        if(first_current_step_flag_ == 0)
         {   
             Kx = foot_step_support_frame_offset_(current_step_number - 1, 0) - ((foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2);
             Ky = foot_step_support_frame_offset_(current_step_number - 1, 1) - ((foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2);
             Kx2 = (m_del_zmp_x(current_step_number, prev_stepping_flag_) + foot_step_support_frame_offset_(current_step_number, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2 - foot_step_support_frame_offset_(current_step_number - 1, 0);
-            Ky2 = (foot_step_support_frame_offset_(current_step_number, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_offset_(current_step_number - 1, 1);
+            Ky2 = (m_del_zmp_y(current_step_number, prev_stepping_flag_) + foot_step_support_frame_offset_(current_step_number, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_offset_(current_step_number - 1, 1);
 
             Kx_wo_offset = foot_step_support_frame_(current_step_number - 1, 0) - ((foot_step_support_frame_(current_step_number - 2, 0) + foot_step_support_frame_(current_step_number - 1, 0)) / 2);
             Ky_wo_offset = foot_step_support_frame_(current_step_number - 1, 1) - ((foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2);
             Kx2_wo_offset = (m_del_zmp_x(current_step_number, prev_stepping_flag_) + foot_step_support_frame_(current_step_number, 0) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 - foot_step_support_frame_(current_step_number - 1, 0);
-            Ky2_wo_offset = (foot_step_support_frame_(current_step_number, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_(current_step_number - 1, 1);
+            Ky2_wo_offset = (m_del_zmp_y(current_step_number, prev_stepping_flag_) + foot_step_support_frame_(current_step_number, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_(current_step_number - 1, 1);
             
             for (int i = 0; i < t_total_; i++)
             {                    
@@ -13220,7 +13220,6 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
 
                     temp_px_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 0) - m_del_zmp_x(current_step_number - 1, current_stepping_flag_) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 + (Kx_wo_offset + m_del_zmp_x(current_step_number -1, current_stepping_flag_)/2) / (t_rest_init_ + t_double1_) * (i + 1);
                     temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) - m_del_zmp_y(current_step_number - 1, current_stepping_flag_) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 + (Ky_wo_offset + m_del_zmp_y(current_step_number -1, current_stepping_flag_)/2) / (t_rest_init_ + t_double1_) * (i + 1);
-                
                 }
                 else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
                 {   
@@ -13235,13 +13234,13 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                     temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_));
                     temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_));
 
-                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
                 }
                              
             }
         }
-        else if(futurestep_first_flag_ == 1)
+        else if(first_current_step_flag_ == 1)
         {
             Kx = foot_step_support_frame_offset_(current_step_number - 1, 0) - ((foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0)) / 2);
             Ky = foot_step_support_frame_offset_(current_step_number - 1, 1) - ((foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1)) / 2);
@@ -13255,41 +13254,41 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
             
             for (int i = 0; i < t_total_; i++)
             {   
-                if (i < t_rest_init_ + t_double1_)  // first flag , first flag 아닌 애들은 
+                if (i < t_rest_init_ + t_double1_)  
                 {
-                    if(futurestep_first_num_ + 1 == current_step_number)
+                    if(first_current_step_number_ + 1 == current_step_number)
                     {
-                        temp_px(i) = (m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0))/2 + (Kx + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
-                        temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1))/2 + Ky / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_px(i) = (m_del_zmp_x(first_current_step_number_, prev_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0))/2 + (Kx + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_py(i) = (m_del_zmp_y(first_current_step_number_, prev_stepping_flag_) + foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1))/2 + (Ky + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
 
-                        temp_px_wo_offset(i) = (m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_) + foot_step_support_frame_(current_step_number - 2, 0) + foot_step_support_frame_(current_step_number - 1, 0))/2 + (Kx_wo_offset + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
-                        temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1))/2 + Ky_wo_offset / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_px_wo_offset(i) = (m_del_zmp_x(first_current_step_number_, prev_stepping_flag_) + foot_step_support_frame_(current_step_number - 2, 0) + foot_step_support_frame_(current_step_number - 1, 0))/2 + (Kx_wo_offset + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_py_wo_offset(i) = (m_del_zmp_y(first_current_step_number_, prev_stepping_flag_) + foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1))/2 + (Ky_wo_offset + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_)/2) / (t_rest_init_ + t_double1_)*(i+1);
                     }
                     else
                     {
-                        temp_px(i) = (foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0))/2 + Kx / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_);
-                        temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1))/2 + Ky / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_px(i) = (foot_step_support_frame_offset_(current_step_number - 2, 0) + foot_step_support_frame_offset_(current_step_number - 1, 0))/2 + Kx / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_);
+                        temp_py(i) = (foot_step_support_frame_offset_(current_step_number - 2, 1) + foot_step_support_frame_offset_(current_step_number - 1, 1))/2 + Ky / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
 
-                        temp_px_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 0) + foot_step_support_frame_(current_step_number - 1, 0))/2 + Kx_wo_offset / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_);
-                        temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1))/2 + Ky_wo_offset / (t_rest_init_ + t_double1_)*(i+1);
+                        temp_px_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 0) + foot_step_support_frame_(current_step_number - 1, 0))/2 + Kx_wo_offset / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_);
+                        temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1))/2 + Ky_wo_offset / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
                     }    
                     
                 }
                 else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
                 {   
-                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_);
-                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1);
+                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_);
+                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
                     
-                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_); 
-                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1);
+                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_); 
+                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
                 }
                 else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_)  
                 {
-                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_);
-                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_));
+                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_);
+                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
 
-                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(futurestep_first_num_, prev_stepping_flag_);
-                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag_);
+                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag_);
                 }                
             }            
         }

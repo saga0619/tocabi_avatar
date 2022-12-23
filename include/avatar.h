@@ -1340,9 +1340,9 @@ public:
     Eigen::MatrixXd modified_del_zmp_; 
     Eigen::MatrixXd m_del_zmp_x;
     Eigen::MatrixXd m_del_zmp_y;
-    int futurestep_first_flag_ = 0;
-    int futurestep_first_num_ = 0;
-    unsigned int number_of_foot_step_ = 0;
+    int first_current_step_flag_ = 0;
+    int first_current_step_number_ = 0;
+    
     double zmp_modif_time_margin_ = 0; 
     ////////////////////////////////////////////////////////////
     
