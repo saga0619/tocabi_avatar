@@ -858,7 +858,7 @@ void AvatarController::computeSlow()
             torque_lower_.setZero();
             for (int i = 0; i < 12; i++)
             {
-                torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i);
+                torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + Gravity_MJ_fast_(i);
             }
         }
         /////////////////////////////////////////////////////////////////////////////////////////
@@ -873,7 +873,7 @@ void AvatarController::computeSlow()
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
         {
-            torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - rd_.q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - rd_.q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
+            torque_upper_(i) = (kp_joint_(i) * (desired_q_fast_(i) - rd_.q_(i)) + kv_joint_(i) * (desired_q_dot_fast_(i) - rd_.q_dot_(i)) + Gravity_MJ_fast_(i));
             //Is there any problem if i write the code as below? - myeongju-
             // torque_upper_(i) = (Kp(i) * (ref_q_(i) - del_cmm_q_(i) - rd_.q_(i)) + Kd(i) * (0.0 - rd_.q_dot_(i)) + 1.0 * Gravity_MJ_fast_(i));
             // torque_upper_(i) = torque_upper_(i) * pd_control_mask_(i); // masking for joint pd control
@@ -1232,8 +1232,9 @@ void AvatarController::computeFast()
         //motion planing and control//
         motionGenerator();
         //STEP3: Compute q_dot for CAM control
+         
         computeCAMcontrol_HQP();
-
+         
         for (int i = 12; i < MODEL_DOF; i++)
         {
             desired_q_(i) = motion_q_(i);
@@ -8989,7 +8990,7 @@ void AvatarController::computeCAMcontrol_HQP()
 
         first_loop_camhqp_ = false;
     }
-
+     
     Eigen::VectorXd q_test, q_dot_test;
     q_test = rd_.q_virtual_;
     // modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame
@@ -9029,6 +9030,7 @@ void AvatarController::computeCAMcontrol_HQP()
     cmm_support = cmm_support1.block<2, MODEL_DOF>(0,0);
     
     cmm_selected = cmm_support * sel_matrix;
+
     // for(int i = 0; i < 8; i ++)
     // {
     //     cmm_selected(2,i) = 0;
@@ -9036,13 +9038,18 @@ void AvatarController::computeCAMcontrol_HQP()
     // }
     // cmm_selected(2,0) = 2; 
     Eigen::Vector2d del_ang_momentum_slow_2;
-    del_ang_momentum_slow_2 = del_ang_momentum_slow_.segment(0, 2); 
+    del_ang_momentum_slow_2 = del_ang_momentum_fast_.segment(0, 2); 
     J_camhqp_[0] = cmm_selected;
     //u_dot_camhqp_[0] = del_ang_momentum_slow_;
     u_dot_camhqp_[0] = del_ang_momentum_slow_2;
     J_camhqp_[1].setIdentity(8, 8);
     u_dot_camhqp_[1].setZero(control_size_camhqp_[1]); 
     
+    // if((walking_tick_mj % 100) == 0 )
+    // {   
+    //     MJ_graph2 << del_ang_momentum_fast_(0) << "," << del_ang_momentum_fast_(1) << "," << des_tau_x_ << "," << des_tau_y_ << endl;
+    // }  
+
     for(int i =0; i < control_size_camhqp_[1]; i++) 
     {
         // recovery strategy
@@ -9060,7 +9067,7 @@ void AvatarController::computeCAMcontrol_HQP()
     last_solved_hierarchy_num_camhqp_ = -1;
     for (int i = 0; i < hierarchy_num_camhqp_; i++)
     {
-        MatrixXd H1, H2, H3;
+        MatrixXd H1, H2;//, H3;
         VectorXd g1, g2, g3;
 
         H1 = J_camhqp_[i].transpose() * J_camhqp_[i];
@@ -9068,19 +9075,19 @@ void AvatarController::computeCAMcontrol_HQP()
         //H2.resize(variable_size_camhqp_,variable_size_camhqp_);        
         //H2.setZero();// = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_);
         //H2(0,0) = 0.1;
-        H3 = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_) * (1 / dt_) * (1 / dt_);
+        // H3 = Eigen::MatrixXd::Identity(variable_size_camhqp_, variable_size_camhqp_) * (1 / 0.0005) * (1 / 0.0005);
         //H3 = J_camhqp_[1].transpose() * J_camhqp_[1];
         g1 = -J_camhqp_[i].transpose() * u_dot_camhqp_[i]; // (variable_size_camhqp_ x 1 (i.e. 6x1))
         g2.setZero(variable_size_camhqp_); 
         g3.setZero(variable_size_camhqp_);  
-        //g3 = -J_camhqp_[1].transpose() * u_dot_camhqp_[1];
-        for(int j=0; j < variable_size_camhqp_; j++)
-        {
-            g3(j) = -motion_q_dot_pre_(control_joint_idx_camhqp_[i]) * (1 / dt_) * (1 / dt_);
-        }
         
-        H_camhqp_[i] = w1_camhqp_[i] * H1 + w2_camhqp_[i] * H2 + w3_camhqp_[i] * H3;
-        g_camhqp_[i] = w1_camhqp_[i] * g1 + w2_camhqp_[i] * g2 + w3_camhqp_[i] * g3;
+        // for(int j=0; j < variable_size_camhqp_; j++)
+        // {
+        //     g3(j) = -motion_q_dot_pre_(control_joint_idx_camhqp_[i]) * (1 / 0.0005) * (1 / 0.0005);
+        // }
+        
+        H_camhqp_[i] = w1_camhqp_[i] * H1 + w2_camhqp_[i] * H2 ;//+ w3_camhqp_[i] * H3;
+        g_camhqp_[i] = w1_camhqp_[i] * g1 + w2_camhqp_[i] * g2 ;//+ w3_camhqp_[i] * g3;
 
         double speed_reduce_rate = 40; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
 
@@ -9105,14 +9112,14 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](4) = min(max(speed_reduce_rate * (-80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
         ub_camhqp_[i](4) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
         // Right Shoulder pitch
-        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
-        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
+        lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
+        ub_camhqp_[i](5) = max(min(speed_reduce_rate * (30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
         // Right Shoulder roll
-        lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
-        ub_camhqp_[i](6) = max(min(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+        lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-70*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6]));
+        ub_camhqp_[i](6) = max(min(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6]));
         // Right Elbow pitch
-        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
-        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[5]));
+        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7]));
+        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (80*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7]));
 
 
         int higher_task_equality_num = 0;        
@@ -9159,7 +9166,7 @@ void AvatarController::computeCAMcontrol_HQP()
         }        
 
         if (QP_cam_hqp_[i].SolveQPoases(200, qpres_camhqp_))
-        {
+        {   
             q_dot_camhqp_[i] = qpres_camhqp_.segment(0, variable_size_camhqp_);
 
             last_solved_hierarchy_num_camhqp_ = i;
@@ -9167,13 +9174,10 @@ void AvatarController::computeCAMcontrol_HQP()
         else
         {
             q_dot_camhqp_[i].setZero();
-
-            // if (int(current_time_ * 2000) % 1000 == 0)
-            {
-                std::cout << "Error hierarchy: " << i << std::endl;
-                std::cout << "last solved q_dot: " << q_dot_camhqp_[last_solved_hierarchy_num_camhqp_].transpose() << std::endl;
-            }
             
+            std::cout << "Error hierarchy: " << i << std::endl;
+            std::cout << "last solved q_dot: " << q_dot_camhqp_[last_solved_hierarchy_num_camhqp_].transpose() << std::endl;
+             
             break;
         }
     }
@@ -9182,35 +9186,40 @@ void AvatarController::computeCAMcontrol_HQP()
     {
         //motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[0](i); // first hierarchy solution
         motion_q_dot_(control_joint_idx_camhqp_[i]) = q_dot_camhqp_[last_solved_hierarchy_num_camhqp_](i);
-        motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * dt_;
+        motion_q_(control_joint_idx_camhqp_[i]) = motion_q_pre_(control_joint_idx_camhqp_[i]) + motion_q_dot_(control_joint_idx_camhqp_[i]) * 0.0005;
         pd_control_mask_(control_joint_idx_camhqp_[i]) = 1;
     }
-
-    // CAM calculation based on actual joint angular velocity    
-    Eigen::VectorXd cam_a;
-    Eigen::VectorXd real_q_dot_hqp_; 
-    cam_a.setZero(3);
-    real_q_dot_hqp_.setZero(8);
     
-    for(int i = 0; i < variable_size_camhqp_; i++)
-    {
-      real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
-    }
-    cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
+    //  if((walking_tick_mj % 100) == 0 )
+    // {   
+    //     MJ_graph << q_dot_camhqp_[1](0) << "," << q_dot_camhqp_[1](1) << "," << q_dot_camhqp_[1](2) << "," << q_dot_camhqp_[1](3) << endl;
+    //     MJ_graph1 << motion_q_pre_(control_joint_idx_camhqp_[0]) << "," << motion_q_pre_(control_joint_idx_camhqp_[1]) << "," << motion_q_pre_(control_joint_idx_camhqp_[2]) << "," << motion_q_pre_(control_joint_idx_camhqp_[3]) << endl;
+    // }  
+    // // CAM calculation based on actual joint angular velocity    
+    // Eigen::VectorXd cam_a;
+    // Eigen::VectorXd real_q_dot_hqp_; 
+    // cam_a.setZero(3);
+    // real_q_dot_hqp_.setZero(8);
+    
+    // for(int i = 0; i < variable_size_camhqp_; i++)
+    // {
+    //   real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
+    // }
+    // cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
 
-    // // CAM calculation based on commanded joint angular velocity    
-    Eigen::VectorXd cam_c;
-    Eigen::VectorXd comm_q_dot_hqp_;
-    cam_c.setZero(3);
-    comm_q_dot_hqp_.setZero(8);
+    // // // CAM calculation based on commanded joint angular velocity    
+    // Eigen::VectorXd cam_c;
+    // Eigen::VectorXd cmd_q_dot_hqp_;
+    // cam_c.setZero(3);
+    // cmd_q_dot_hqp_.setZero(8);
 
-    for(int i = 0; i < variable_size_camhqp_; i++)
-    {
-      comm_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
-    }
-    cam_c = -J_camhqp_[0]*comm_q_dot_hqp_;
+    // for(int i = 0; i < variable_size_camhqp_; i++)
+    // {
+    //   cmd_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
+    // }
+    // cam_c = -J_camhqp_[0]*cmd_q_dot_hqp_;
    
-    //if((walking_tick_mj % 100) == 0 )
+    // if((walking_tick_mj % 100) == 0 )
     // {
     //     MJ_q_ << motion_q_(13) << "," << motion_q_(14) << "," << motion_q_(16) << "," << motion_q_(17) << "," << motion_q_(19) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(29) << endl;
     //     MJ_q_dot_ << motion_q_dot_(13) << "," << motion_q_dot_(14) << "," << motion_q_dot_(16) << "," << motion_q_dot_(17) << "," << motion_q_dot_(19) << "," << motion_q_dot_(26) << "," << motion_q_dot_(27) << "," << motion_q_dot_(29) << endl;
@@ -9847,19 +9856,19 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         Z_x_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 0); // 왜 여기서 받는거랑 다르지?
         Z_y_ref_cpmpc_only_(i) = ref_zmp_wo_offset_mpc_(mpc_tick + MPC_synchro_hz_*i, 1); // without zmp offset
     }    
-    static int aa = 0;
-    if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
-    {
-        aa = 1;
+    // static int aa = 0;
+    // if(walking_tick_mj_mpc_ >= 6.3*2000 && aa == 0)
+    // {
+    //     aa = 1;
 
-        for(int i = 0; i < N; i ++)
-        {
-            Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
+    //     for(int i = 0; i < N; i ++)
+    //     {
+    //         Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
             
-            MJ_graph2 << Z_y_ref(i) << endl;
-        }
+    //         MJ_graph2 << Z_y_ref(i) << endl;
+    //     }
             
-    }
+    // }
     //define cost functions
     p_x = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*x_hat_ - Z_x_ref);
     p_y = W2_mpc_*P_zu_mpc_.transpose()*(P_zs_mpc_*y_hat_ - Z_y_ref);
@@ -10799,7 +10808,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
     // MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    // MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
@@ -14214,7 +14223,7 @@ void AvatarController::getComTrajectory_mpc()
 
     ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
     ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
-    MJ_graph1 << ZMP_Y_REF << endl;
+    // MJ_graph1 << ZMP_Y_REF << endl;
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
         
     int alpha_step = 0;
@@ -15655,7 +15664,7 @@ void AvatarController::getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixX
     // MatrixXd CMM;
     CMM.setZero(3, MODEL_DOF);
     CMM = M_r * J_w;
-
+   
     // return CMM;
 }
 
