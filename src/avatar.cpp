@@ -646,8 +646,8 @@ void AvatarController::computeSlow()
             CAM_upper_init_q_(26) = -10.0 * DEG2RAD;
             CAM_upper_init_q_(17) = +70.0 * DEG2RAD; // Rolling dist +70.0 deg
             CAM_upper_init_q_(27) = -70.0 * DEG2RAD; // Rolling dist -70.0 deg
-            CAM_upper_init_q_(19) = -90.0 * DEG2RAD; //-90.0
-            CAM_upper_init_q_(29) = +90.0 * DEG2RAD; //+90.0            
+            CAM_upper_init_q_(19) = -80.0 * DEG2RAD; //-90.0
+            CAM_upper_init_q_(29) = +80.0 * DEG2RAD; //+90.0            
             
             q_prev_MJ_ = rd_.q_;
             walking_tick_mj = 0;
@@ -805,13 +805,14 @@ void AvatarController::computeSlow()
                 // std::cout << "force: " << force_temp_ << std::endl;
                 // std::cout << "theta: " << theta_temp_*DEG2RAD << std::endl;
                 // 0.13*hz ~ 0.33*hz
-                if((walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.5*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.5*hz_ + 0.2*hz_))
-                {
-                    // cout << "external force" << endl;
-                }
+                // if((walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.5*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.5*hz_ + 0.2*hz_))
+                // {
+                //     // cout << "external force" << endl;
+                // }
                 // if((walking_tick_mj >= 5.88*hz_)&&(walking_tick_mj < 6.083*hz_)) 
                 if(current_step_num_ == 4 && (walking_tick_mj >= t_start_ + 0.15*hz_ + 0.6*0.3*hz_)  && (walking_tick_mj < t_start_ + 0.15*hz_ + 0.6*0.3*hz_ + 0.2*hz_))
-                { // -170,175 // -350 7.5 - 7.6 //  67% 
+                { // -170,175 // -350 7.5 - 7.6 //  67%  
+                
                     // cout << current_step_num_ << "," << t_start_ << "," << walking_tick_mj << endl;
                     mujoco_applied_ext_force_.data[0] = force_temp_*sin(theta_temp_*DEG2RAD);//0*312;//-232.0;//x-axis linear force // 
                     mujoco_applied_ext_force_.data[1] = -force_temp_*cos(theta_temp_*DEG2RAD);//+126.0;  //y-axis linear force  
@@ -9038,7 +9039,7 @@ void AvatarController::computeCAMcontrol_HQP()
     // }
     // cmm_selected(2,0) = 2; 
     Eigen::Vector2d del_ang_momentum_slow_2;
-    del_ang_momentum_slow_2 = del_ang_momentum_fast_.segment(0, 2); 
+    del_ang_momentum_slow_2 = del_ang_momentum_slow_.segment(0, 2); 
     J_camhqp_[0] = cmm_selected;
     //u_dot_camhqp_[0] = del_ang_momentum_slow_;
     u_dot_camhqp_[0] = del_ang_momentum_slow_2;
@@ -9096,7 +9097,7 @@ void AvatarController::computeCAMcontrol_HQP()
         //     lb_camhqp_[i](j) = min(max(speed_reduce_rate * (joint_limit_l_(control_joint_idx_camhqp_[j]) - current_q_(control_joint_idx_camhqp_[j])), joint_vel_limit_l_(control_joint_idx_camhqp_[j])), joint_vel_limit_h_(control_joint_idx_camhqp_[j]));
         //     ub_camhqp_[i](j) = max(min(speed_reduce_rate * (joint_limit_h_(control_joint_idx_camhqp_[j]) - current_q_(control_joint_idx_camhqp_[j])), joint_vel_limit_h_(control_joint_idx_camhqp_[j])), joint_vel_limit_l_(control_joint_idx_camhqp_[j]));
         // }
-  
+            
         // MJ's joint limit 
         lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
         ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
@@ -10473,13 +10474,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         
              
         // damping function 
-        // weighting_tau_damping_.setIdentity(N_cp, N_cp);
-        // weighting_tau_damping_ = 0.0000005*weighting_tau_damping_; // notion 에 분석
-        // //for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
-        // // {
-        // //     eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.4, 0.0, 0.0, 0.0);
-        // // }
-        double cam_damping_gain = 50.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
+        double cam_damping_gain = 70.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
         
         cam_damping_mat_.setIdentity(N_cp, N_cp);
         cam_damping_mat_ = cam_damping_gain * cam_damping_mat_;
@@ -10547,7 +10542,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
             }            
         }
         
-        // Hessian matrix (Cp control + change regulation)
+        // Hessian matrix (cp control + change regulation)
         H_cp_control_.setZero(2*N_cp, 2*N_cp);
         H_change_regul_.setZero(2*N_cp, 2*N_cp);
         H_cp_control_ = F_cmp_new_.transpose()*weighting_cp_new_*F_cmp_new_;
@@ -10576,12 +10571,30 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     }  
     
     weighting_tau_damping_.setIdentity(N_cp, N_cp);
-    weighting_tau_damping_ = 0.0000001*weighting_tau_damping_; // notion 에 분석
-    //for(int i = 0; i < N_cp; i++)
-    // {
-    //     weighting_tau_damping_x(i, i) = DyrosMath::cubic(cpmpc_output_x_new_(2*i), 0, 3, 0.0000005, 0.0, 0.0, 0.0);
-    //     weighting_tau_damping_y(i, i) = DyrosMath::cubic(cpmpc_output_y_new_(2*i), 0, 3, 0.0000005, 0.0, 0.0, 0.0); desired zmp가 지지발에따라 위치가 다를듯 abs으로해야하나?
-    // }      
+    // weighting_tau_damping_ = 0.0000001*weighting_tau_damping_; // notion 에 분석
+    
+    for(int i = 0; i < N_cp; i++)
+    {   
+        weighting_tau_damping_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.00, 0.05, 0.0000001, 0.0, 0.0, 0.0);
+        // weighting_tau_damping_(0, 0) = 0.000001;
+        // weighting_tau_damping_y_(i, i) = DyrosMath::cubic(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i), 0, 3, 0.0000001, 0.0, 0.0, 0.0); 
+    }      
+
+    static int aa = 0;
+    if(walking_tick_mj_mpc_ >= 6.2*2000 && aa == 0)
+    {
+        aa = 1;
+
+        for(int i = 0; i < N_cp; i ++)
+        {
+            // Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
+            MJ_graph1 << Z_x_ref_wo_offset_new(2*i) << "," << cpmpc_output_x_new_(2*i) << "," <<  Z_y_ref_wo_offset_new(2*i) << "," << cpmpc_output_y_new_(2*i) << "," << weighting_tau_damping_(i, i) << endl; 
+            // MJ_graph2 << Z_y_ref(i) << endl;
+        }
+            
+    }
+    // MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    
     H_damping_Nsize_ = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_ * (eyeN + damping_integral_mat_);
     
     for(int i=0; i<N_cp; i++)
@@ -10807,7 +10820,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     } 
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
-    // MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     // MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << des_tau_x_thread_ << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;

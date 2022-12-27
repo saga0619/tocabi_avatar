@@ -1267,6 +1267,8 @@ public:
     Eigen::MatrixXd Tau_sel_;
     Eigen::MatrixXd weighting_tau_regul_;
     Eigen::MatrixXd weighting_tau_damping_;
+    Eigen::MatrixXd weighting_tau_damping_x_;
+    Eigen::MatrixXd weighting_tau_damping_y_;
 
     Eigen::VectorXd cpmpc_deszmp_x_new_;
     Eigen::VectorXd cpmpc_deszmp_y_new_;
