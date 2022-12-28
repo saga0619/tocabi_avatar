@@ -1198,7 +1198,8 @@ public:
 
     Eigen::MatrixXd H_cp_control_;
     Eigen::MatrixXd H_change_regul_;
-    Eigen::MatrixXd H_damping_Nsize_, H_damping_;
+    Eigen::MatrixXd H_damping_Nsize_x_, H_damping_Nsize_y_;
+    Eigen::MatrixXd H_damping_x_, H_damping_y_;
     Eigen::MatrixXd F_cp_;
     Eigen::MatrixXd diff_matrix_;
     Eigen::MatrixXd F_zmp_;
@@ -1258,8 +1259,10 @@ public:
     Eigen::MatrixXd e1_cpmpc_new_;
     Eigen::MatrixXd weighting_cp_new_;
     Eigen::MatrixXd weighting_cmp_diff_new_;
-    Eigen::MatrixXd H_cpmpc_new_;
-    Eigen::MatrixXd H_cpStepping_mpc_new_;
+    Eigen::MatrixXd H_cpmpc_new_x_;
+    Eigen::MatrixXd H_cpmpc_new_y_;
+    Eigen::MatrixXd H_cpStepping_mpc_new_x_;
+    Eigen::MatrixXd H_cpStepping_mpc_new_y_;
 
     Eigen::MatrixXd damping_integral_mat_;
     Eigen::MatrixXd cam_damping_mat_;
