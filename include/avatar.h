@@ -1433,7 +1433,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
-    void onestepZmp_wo_offset(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
+    void onestepZmp_wo_offset(unsigned int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1639,6 +1639,7 @@ public:
     double t_double1_;
     double t_double2_;
     double t_total_;
+    double t_total_const_;
     double t_total_thread_;
     double t_rest_init_thread_;
     double t_rest_last_thread_;

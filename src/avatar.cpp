@@ -9472,6 +9472,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
             {           
                 t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
                 t_total_ = DyrosMath::minmax_cut(t_total_, 0.75*hz_, 1.05*hz_);
+                // t_total_ = 0.8*hz_;
                 t_last_ = t_start_ + t_total_ - 1;
             }            
         }
@@ -9864,9 +9865,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     //     for(int i = 0; i < N; i ++)
     //     {
-    //         Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
-            
-    //         MJ_graph2 << Z_y_ref(i) << endl;
+    //         MJ_graph2 << Z_x_ref(i) << endl;
     //     }
             
     // }
@@ -10596,11 +10595,10 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
 
     //     for(int i = 0; i < N_cp; i ++)
     //     {
-    //         // Z_y_ref(i) = ref_zmp_mpc_(mpc_tick + MPC_synchro_hz_*(i), 1); // 20 = Control freq (2000) / MPC_freq (100)
+        
     //         MJ_graph1 << Z_x_ref_wo_offset_new(2*i) << "," << cpmpc_output_x_new_(2*i) << "," <<  Z_y_ref_wo_offset_new(2*i) << "," << cpmpc_output_y_new_(2*i) << "," << weighting_tau_damping_y_(i, i) << endl; 
     //         // MJ_graph2 << Z_y_ref(i) << endl;
-    //     }
-            
+    //     }            
     // }
     
     H_damping_Nsize_x_ = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_x_ * (eyeN + damping_integral_mat_);
@@ -10833,7 +10831,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
     // MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    // MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
@@ -12905,16 +12903,17 @@ void AvatarController::getZmpTrajectory()
     unsigned int norm_size = 0;
 
     if (current_step_num_ >= total_step_num_ - planning_step_number)
-        norm_size = (t_last_ - t_start_ + 1) * (total_step_num_ - current_step_num_) + 5.0 * hz_;
+        norm_size = t_total_const_ * (total_step_num_ - current_step_num_) + 5.0 * hz_;
     else
-        norm_size = (t_last_ - t_start_ + 1) * (planning_step_number);
-
+        norm_size = t_total_const_ * planning_step_number + 1.0 * hz_;
+        // norm_size = (t_last_ - t_start_ + 1) * (planning_step_number) + 1.0 * hz_; 
+    // t_total_ * planning step_num인데 t_total_이 현재스텝에서 0.7이면 norm size가 3.5s가 되어서 0.7 + 0.9 *(planning_step_num -1) size보다 작아서 터졌었음.
     if (current_step_num_ == 0)
         norm_size = norm_size + t_temp_ + 1;
     
     addZmpOffset(); 
     zmpGenerator(norm_size, planning_step_number);
-    
+
     ref_zmp_wo_offset_mpc_.resize(norm_size, 2);
     ref_zmp_mpc_.resize(norm_size, 2);
 }
@@ -12932,7 +12931,7 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
     Eigen::VectorXd temp_py_wo_offset;
 
     unsigned int index = 0;
-     
+    double t_total_zmp = t_total_; 
     if (current_step_num_ == 0)  
     {
         for (int i = 0; i <= t_temp_; i++) 
@@ -12968,12 +12967,32 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
     /////////////////////////////////////////////////////////////////////.
     
     if(current_step_num_ >= total_step_num_ - planning_step_num)
-    {
+    {   
         for(unsigned int i = current_step_num_; i < total_step_num_; i++)
-        {
+        {   
+            if(current_step_num_ > 1)
+            {
+                if(i == current_step_num_) // current_step_number => (current step_num_) ~ (current_step_num_ + planning_step_num)
+                {            
+                    first_current_step_flag_ = 0; 
+                    first_current_step_number_ = i; // save the value of the first current_step_number
+                    t_total_zmp = t_total_;
+                }
+                else
+                {
+                    first_current_step_flag_ = 1;
+                    t_total_zmp = t_total_const_;
+                }
+            }
+            else
+            {
+                first_current_step_flag_ = 0;
+                t_total_zmp = t_total_;
+            }
+            
             // onestepZmp(i, temp_px, temp_py);
-            onestepZmp_wo_offset(i, temp_px, temp_py, temp_px_wo_offset, temp_py_wo_offset);
-            for(unsigned int j = 0; j < t_total_; j++)
+            onestepZmp_wo_offset(i, t_total_zmp, temp_px, temp_py, temp_px_wo_offset, temp_py_wo_offset);
+            for(unsigned int j = 0; j < t_total_zmp; j++)
             {
                 ref_zmp_mj_(index + j, 0) = temp_px(j);
                 ref_zmp_mj_(index + j, 1) = temp_py(j);
@@ -12981,7 +13000,7 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
                 ref_zmp_mj_wo_offset_(index + j, 0) = temp_px_wo_offset(j);
                 ref_zmp_mj_wo_offset_(index + j, 1) = temp_py_wo_offset(j);
             }
-            index = index + t_total_;
+            index = index + t_total_zmp;
         }
 
         for(unsigned int j = 0; j < 5.0 * hz_; j++)
@@ -12995,12 +13014,33 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
         index = index + 5.0 * hz_;
     }
     else // reference ZMP during walking
-    {           
+    {       
         for (unsigned int i = current_step_num_; i < current_step_num_ + planning_step_num; i++)
-        {            
-            // onestepZmp(i, temp_px, temp_py);
-            onestepZmp_wo_offset(i, temp_px, temp_py, temp_px_wo_offset, temp_py_wo_offset); // temp px, py에 1 step의 ZMP를 planning step num 번 담는다.
-            for (unsigned int j = 0; j < t_total_; j++)  
+        {   
+            if(current_step_num_ > 1)
+            {
+                if(i == current_step_num_) // current_step_number => (current step_num_) ~ (current_step_num_ + planning_step_num)
+                {            
+                    first_current_step_flag_ = 0; 
+                    first_current_step_number_ = current_step_num_; // save the value of the first current_step_number
+                    t_total_zmp = t_total_;
+                }
+                else
+                {
+                    first_current_step_flag_ = 1;
+                    t_total_zmp = t_total_const_;
+                }
+            }
+            else
+            {
+                first_current_step_flag_ = 0;
+                t_total_zmp = t_total_;
+            }
+                     
+            // onestepZmp(i, temp_px, temp_py);             
+            onestepZmp_wo_offset(i, t_total_zmp, temp_px, temp_py, temp_px_wo_offset, temp_py_wo_offset); // temp px, py에 1 step의 ZMP를 planning step num 번 담는다.
+             
+            for (unsigned int j = 0; j < t_total_zmp; j++)  
             {
                 ref_zmp_mj_(index + j, 0) = temp_px(j);
                 ref_zmp_mj_(index + j, 1) = temp_py(j);
@@ -13008,7 +13048,7 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
                 ref_zmp_mj_wo_offset_(index + j, 0) = temp_px_wo_offset(j);
                 ref_zmp_mj_wo_offset_(index + j, 1) = temp_py_wo_offset(j);
             }
-            index = index + t_total_;                                         
+            index = index + t_total_zmp;                                                          
         }
     }
 
@@ -13115,29 +13155,29 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
 //     }
 // }
 
-void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py, Eigen::VectorXd &temp_px_wo_offset, Eigen::VectorXd &temp_py_wo_offset)
+void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, double t_total_zmp, Eigen::VectorXd &temp_px, Eigen::VectorXd &temp_py, Eigen::VectorXd &temp_px_wo_offset, Eigen::VectorXd &temp_py_wo_offset)
 {
-    if(current_step_num_ >= 2)
-    {
-        if(current_step_number == current_step_num_) // current_step_number => (current step_num_) ~ (current_step_num_ + planning_step_num)
-        {            
-            first_current_step_flag_ = 0; 
-            first_current_step_number_ = current_step_number; // save the value of the first current_step_number
-        }
-        else
-        {
-            first_current_step_flag_ = 1;
-        }
-    }
-    else
-    {
-        first_current_step_flag_ = 0;
-    }
+    // if(current_step_num_ >= 2)
+    // {
+    //     if(current_step_number == current_step_num_) // current_step_number => (current step_num_) ~ (current_step_num_ + planning_step_num)
+    //     {            
+    //         first_current_step_flag_ = 0; 
+    //         first_current_step_number_ = current_step_number; // save the value of the first current_step_number
+    //     }
+    //     else
+    //     {
+    //         first_current_step_flag_ = 1;
+    //     }
+    // }
+    // else
+    // {
+    //     first_current_step_flag_ = 0;
+    // }
     
-    temp_px.resize(t_total_);  
-    temp_py.resize(t_total_);
-    temp_px_wo_offset.resize(t_total_); 
-    temp_py_wo_offset.resize(t_total_);
+    temp_px.resize(t_total_zmp);  
+    temp_py.resize(t_total_zmp);
+    temp_px_wo_offset.resize(t_total_zmp); 
+    temp_py_wo_offset.resize(t_total_zmp);
     temp_px.setZero();
     temp_py.setZero();    
     temp_px_wo_offset.setZero();
@@ -13158,7 +13198,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
         Kx2_wo_offset = foot_step_support_frame_(current_step_number, 0) / 2 - supportfoot_support_init_(0);
         Ky2_wo_offset = foot_step_support_frame_(current_step_number, 1) / 2 - supportfoot_support_init_(1);
 
-        for (int i = 0; i < t_total_; i++)
+        for (int i = 0; i < t_total_zmp; i++)
         {
             if (i >= 0 && i < t_rest_init_ + t_double1_) //0.05 ~ 0.15초 , 10 ~ 30 tick
             {
@@ -13168,7 +13208,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                 temp_px_wo_offset(i) = Kx_wo_offset / (t_double1_ + t_rest_init_) * (i + 1);
                 temp_py_wo_offset(i) = com_support_init_(1) + Ky_wo_offset / (t_double1_ + t_rest_init_) * (i + 1);
             }
-            else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_) //0.15 ~ 1.05초 , 30 ~ 210 tick
+            else if (i >= t_rest_init_ + t_double1_ && i < t_total_zmp - t_rest_last_ - t_double2_) //0.15 ~ 1.05초 , 30 ~ 210 tick
             {
                 temp_px(i) = 0;
                 temp_py(i) = supportfoot_support_init_offset_(1);
@@ -13176,13 +13216,13 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                 temp_px_wo_offset(i) = 0;
                 temp_py_wo_offset(i) = supportfoot_support_init_(1);
             }
-            else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_) //1.05 ~ 1.15초 , 210 ~ 230 tick
+            else if (i >= t_total_zmp - t_rest_last_ - t_double2_ && i < t_total_zmp) //1.05 ~ 1.15초 , 210 ~ 230 tick
             {
-                temp_px(i) = 0 + Kx2 / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                temp_py(i) = supportfoot_support_init_offset_(1) + Ky2 / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_px(i) = 0 + Kx2 / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
+                temp_py(i) = supportfoot_support_init_offset_(1) + Ky2 / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
                 
-                temp_px_wo_offset(i) = 0 + Kx2_wo_offset / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                temp_py_wo_offset(i) = supportfoot_support_init_(1) + Ky2_wo_offset / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_px_wo_offset(i) = 0 + Kx2_wo_offset / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
+                temp_py_wo_offset(i) = supportfoot_support_init_(1) + Ky2_wo_offset / (t_rest_last_ + t_double2_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
             }
         }
     }
@@ -13198,7 +13238,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
         Kx2_wo_offset = (foot_step_support_frame_(current_step_number, 0) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 - foot_step_support_frame_(current_step_number - 1, 0);
         Ky2_wo_offset = (foot_step_support_frame_(current_step_number, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_(current_step_number - 1, 1);
 
-        for (int i = 0; i < t_total_; i++)
+        for (int i = 0; i < t_total_zmp; i++)
         {
             if (i < t_rest_init_ + t_double1_) //0.05 ~ 0.15초 , 10 ~ 30 tick
             {
@@ -13208,7 +13248,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                 temp_px_wo_offset(i) = (foot_step_support_frame_(current_step_number - 1, 0) + supportfoot_support_init_(0)) / 2 + Kx_wo_offset / (t_rest_init_ + t_double1_) * (i + 1);
                 temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 1, 1) + supportfoot_support_init_(1)) / 2 + Ky_wo_offset / (t_rest_init_ + t_double1_) * (i + 1);
             }
-            else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_) //0.15 ~ 1.05초 , 30 ~ 210 tick
+            else if (i >= t_rest_init_ + t_double1_ && i < t_total_zmp - t_rest_last_ - t_double2_) //0.15 ~ 1.05초 , 30 ~ 210 tick
             {
                 temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0);
                 temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1);
@@ -13216,13 +13256,13 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                 temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0);
                 temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1);
             }
-            else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_) //1.05 ~ 1.2초 , 210 ~ 240 tick
+            else if (i >= t_total_zmp - t_rest_last_ - t_double2_ && i < t_total_zmp) //1.05 ~ 1.2초 , 210 ~ 240 tick
             {
-                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
+                temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2 / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
 
-                temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
+                temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
             }
         }
     }
@@ -13254,7 +13294,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
             Kx2_wo_offset = (m_del_zmp_x(current_step_number, prev_stepping_flag) + foot_step_support_frame_(current_step_number, 0) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 - foot_step_support_frame_(current_step_number - 1, 0);
             Ky2_wo_offset = (m_del_zmp_y(current_step_number, prev_stepping_flag) + foot_step_support_frame_(current_step_number, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_(current_step_number - 1, 1);
             
-            for (int i = 0; i < t_total_; i++)
+            for (int i = 0; i < t_total_zmp; i++)
             {                    
                 if (i < t_rest_init_ + t_double1_) // first flag 
                 {   // when the supporting foot is change, previously adjusted footstep must be reflected in the current DSP.              
@@ -13264,7 +13304,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                     temp_px_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 0) - m_del_zmp_x(current_step_number - 1, current_stepping_flag) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 + (Kx_wo_offset + m_del_zmp_x(current_step_number -1, current_stepping_flag)/2) / (t_rest_init_ + t_double1_) * (i + 1);
                     temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) - m_del_zmp_y(current_step_number - 1, current_stepping_flag) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 + (Ky_wo_offset + m_del_zmp_y(current_step_number -1, current_stepping_flag)/2) / (t_rest_init_ + t_double1_) * (i + 1);
                 }
-                else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
+                else if (i >= t_rest_init_ + t_double1_ && i < t_total_zmp - t_rest_last_ - t_double2_)  
                 {   
                     temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0);
                     temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1);
@@ -13272,13 +13312,13 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                     temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0); 
                     temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1);
                 }
-                else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_)  
+                else if (i >= t_total_zmp - t_rest_last_ - t_double2_ && i < t_total_zmp)  
                 {
-                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_));
-                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_ - t_rest_last_ - t_double2_));
+                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_zmp - t_rest_last_ - t_double2_));
+                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i+1 -(t_total_zmp - t_rest_last_ - t_double2_));
 
-                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
-                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_));
+                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
+                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset/(t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_));
                 }
                              
             }
@@ -13295,7 +13335,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
             Kx2_wo_offset = (foot_step_support_frame_(current_step_number, 0) + foot_step_support_frame_(current_step_number - 1, 0)) / 2 - foot_step_support_frame_(current_step_number - 1, 0);
             Ky2_wo_offset = (foot_step_support_frame_(current_step_number, 1) + foot_step_support_frame_(current_step_number - 1, 1)) / 2 - foot_step_support_frame_(current_step_number - 1, 1);
             
-            for (int i = 0; i < t_total_; i++)
+            for (int i = 0; i < t_total_zmp; i++)
             {   
                 if (i < t_rest_init_ + t_double1_)  
                 {
@@ -13316,7 +13356,7 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                         temp_py_wo_offset(i) = (foot_step_support_frame_(current_step_number - 2, 1) + foot_step_support_frame_(current_step_number - 1, 1))/2 + Ky_wo_offset / (t_rest_init_ + t_double1_)*(i+1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
                     }                        
                 }
-                else if (i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_)  
+                else if (i >= t_rest_init_ + t_double1_ && i < t_total_zmp - t_rest_last_ - t_double2_)  
                 {   
                     temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag);
                     temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
@@ -13324,13 +13364,13 @@ void AvatarController::onestepZmp_wo_offset(unsigned int current_step_number, Ei
                     temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag); 
                     temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
                 }
-                else if (i >= t_total_ - t_rest_last_ - t_double2_ && i < t_total_)  
+                else if (i >= t_total_zmp - t_rest_last_ - t_double2_ && i < t_total_zmp)  
                 {
-                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i + 1 -(t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag);
-                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i + 1 -(t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
+                    temp_px(i) = foot_step_support_frame_offset_(current_step_number - 1, 0) + Kx2/(t_double2_ + t_rest_last_) * (i + 1 -(t_total_zmp - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag);
+                    temp_py(i) = foot_step_support_frame_offset_(current_step_number - 1, 1) + Ky2/(t_double2_ + t_rest_last_) * (i + 1 -(t_total_zmp - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
 
-                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag);
-                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_ - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
+                    temp_px_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 0) + Kx2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_)) + m_del_zmp_x(first_current_step_number_, prev_stepping_flag);
+                    temp_py_wo_offset(i) = foot_step_support_frame_(current_step_number - 1, 1) + Ky2_wo_offset / (t_double2_ + t_rest_last_) * (i + 1 - (t_total_zmp - t_rest_last_ - t_double2_)) + m_del_zmp_y(first_current_step_number_, prev_stepping_flag);
                 }                
             }            
         }
@@ -14843,6 +14883,7 @@ void AvatarController::parameterSetting()
     t_double1_ = 0.03 * hz_;
     t_double2_ = 0.03 * hz_;
     t_total_ = 0.9 * hz_;
+    t_total_const_ = 0.9 * hz_; 
 
     // t_rest_init_ = 0.02 * hz_; // Slack, 0.9 step time
     // t_rest_last_ = 0.02 * hz_;
