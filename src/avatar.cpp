@@ -10473,7 +10473,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         
              
         // damping function 
-        double cam_damping_gain = 70.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
+        double cam_damping_gain = 50.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
         
         cam_damping_mat_.setIdentity(N_cp, N_cp);
         cam_damping_mat_ = cam_damping_gain * cam_damping_mat_;
@@ -10506,7 +10506,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         //     }            
         // }
 
-        double weighting_foot_new = 0.1; // 100.0;
+        double weighting_foot_new = 0.001; // 100.0;
         
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
         for(int i = 0; i < N_cp; i++) // For cp control
@@ -10727,8 +10727,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     Eigen::VectorXd lb_y_cpStepping_mpc_new(2*N_cp + footprint_num);    
        
         
-    lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new*0.9) - (Tau_y_limit);
-    ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new*1.2) + (Tau_y_limit);
+    lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new * 0.9) - (Tau_y_limit);
+    ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new * 1.2) + (Tau_y_limit);
 
     lb_y_cp_mpc_new = (Z_y_ref_wo_offset_new - zmp_bound_y_new) - (Tau_x_limit); // Z_y_ref is the trajectory considering the ZMP offset for COM planning.
     ub_y_cp_mpc_new = (Z_y_ref_wo_offset_new + zmp_bound_y_new) + (Tau_x_limit); // However, Ref. ZMP without ZMP offset is required for CP control.
@@ -10830,7 +10830,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     } 
     // MJ_graph << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << Z_x_ref_cpmpc_only_(0) << endl; 
 
-    // MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
     // MJ_graph << cp_y_ref_new(0) << "," << y_com_pos_recur_(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
