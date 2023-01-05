@@ -8985,7 +8985,7 @@ void AvatarController::computeCAMcontrol_HQP()
             q_dot_camhqp_[i].setZero(variable_size_camhqp_);
 
             w1_camhqp_[0] = 2500; // |A*qdot - h|
-            w2_camhqp_[0] = 50.0; // |q_dot|
+            w2_camhqp_[0] = 50.0000050; // |q_dot|
             w3_camhqp_[0] = 0.0; //acceleration (0.000)  
             
             w1_camhqp_[1] = 2500; // |q_dot - q_dot_zero|
@@ -10526,19 +10526,10 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         H_damping_Nsize_y_.setZero(N_cp, N_cp);
         H_damping_x_.setZero(2*N_cp, 2*N_cp); 
         H_damping_y_.setZero(2*N_cp, 2*N_cp);  
-        // H_damping_Nsize = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_ * (eyeN + damping_integral_mat_);
+      
+        double weighting_foot_new = 0.001; // ICRA: 0.01
         
-        // for(int i=0; i<N_cp; i++)
-        // {
-        //     for(int j=0; j<N_cp; j++)
-        //     {
-        //         H_damping(2*i+1, 2*j+1) = H_damping_Nsize(i, j);
-        //     }            
-        // }
-
-        double weighting_foot_new = 0.001; // 100.0;
-        
-        // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75
+        // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75, 2N = 150
         for(int i = 0; i < N_cp; i++) // For cp control
         {
             if(i < 1)
@@ -10860,8 +10851,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         cpmpc_y_update_ = true;
     } 
 
-    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << cpmpc_output_x_new_(2*N_cp) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
+    MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << cpmpc_output_y_new_(2*N_cp) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
