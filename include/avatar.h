@@ -1196,7 +1196,8 @@ public:
     Eigen::VectorXd x_cp_recur_;
     Eigen::VectorXd y_cp_recur_;
 
-    Eigen::MatrixXd H_cp_control_;
+    Eigen::MatrixXd H_cp_control_x_;
+    Eigen::MatrixXd H_cp_control_y_;
     Eigen::MatrixXd H_change_regul_;
     Eigen::MatrixXd H_damping_Nsize_x_, H_damping_Nsize_y_;
     Eigen::MatrixXd H_damping_x_, H_damping_y_;
@@ -1257,7 +1258,8 @@ public:
     Eigen::MatrixXd diff_matrix_new_;
     Eigen::MatrixXd integral_matrix_;
     Eigen::MatrixXd e1_cpmpc_new_;
-    Eigen::MatrixXd weighting_cp_new_;
+    Eigen::MatrixXd weighting_cp_new_x_;
+    Eigen::MatrixXd weighting_cp_new_y_;
     Eigen::MatrixXd weighting_cmp_diff_new_;
     Eigen::MatrixXd H_cpmpc_new_x_;
     Eigen::MatrixXd H_cpmpc_new_y_;
@@ -1353,12 +1355,12 @@ public:
     
     /////////////CAM-HQP//////////////////////////
     const int hierarchy_num_camhqp_ = 2;
-    const int variable_size_camhqp_ = 10; // original number -> 6 (DG) // IROS -> 8 (MJ)
-    const int constraint_size1_camhqp_ = 10; //[lb <= x <=	ub] form constraints // original number -> 6 (DG)  // IROS -> 8 (MJ)
+    const int variable_size_camhqp_ = 12; // original number -> 6 (DG) // IROS -> 8 (MJ)
+    const int constraint_size1_camhqp_ = 12; //[lb <= x <=	ub] form constraints // original number -> 6 (DG)  // IROS -> 8 (MJ)
     //const int constraint_size2_camhqp_[2] = {0, 3};	//[lb <=	Ax 	<=	ub] or [Ax = b]/  
     const int constraint_size2_camhqp_[2] = {0, 2};	//[lb <=	Ax 	<=	ub] or [Ax = b] 
     //const int control_size_camhqp_[2] = {3, 8}; //1: CAM control, 2: init pose // original number -> 6 (DG)
-    const int control_size_camhqp_[2] = {2, 10}; //1: CAM control, 2: init pose // original number -> 6 (DG) // IROS -> 8 (MJ)  
+    const int control_size_camhqp_[2] = {2, 12}; //1: CAM control, 2: init pose // original number -> 6 (DG) // IROS -> 8 (MJ)  
 
     double w1_camhqp_[2];
     double w2_camhqp_[2];
@@ -1369,7 +1371,7 @@ public:
     Eigen::VectorXd g_camhqp_[2], u_dot_camhqp_[2], qpres_camhqp_, ub_camhqp_[2],lb_camhqp_[2], ubA_camhqp_[2], lbA_camhqp_[2];
     Eigen::VectorXd q_dot_camhqp_[2];
 
-    int control_joint_idx_camhqp_[10]; // original number -> 6 (DG) // IROS -> 8 (MJ)
+    int control_joint_idx_camhqp_[12]; // original number -> 6 (DG) // IROS -> 8 (MJ)
     int last_solved_hierarchy_num_camhqp_;
     unsigned int torque_flag_x = 0, torque_flag_y = 0; 
     ///////////////////////////////////////////////////
