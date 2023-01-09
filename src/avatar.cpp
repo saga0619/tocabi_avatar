@@ -9095,10 +9095,10 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (+20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
         // Left Shoulder pitch // Init 17 deg, CAM 10 deg
-        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-60*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
-        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (60*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
+        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3]));
+        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3]));
         // Left Shoulder roll // Init 86 deg, CAM 75 deg // 80 deg 보다 크면 몸통 부딪힘.  
-        lb_camhqp_[i](4) = min(max(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
+        lb_camhqp_[i](4) = min(max(speed_reduce_rate * (25*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4]));
         ub_camhqp_[i](4) = max(min(speed_reduce_rate * (65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4]));
         // Left elbow yaw // Init -72 deg, CAM -70 deg +40 deg 보다 크면 왼쪽 옆구리에 부딪힘. 
         lb_camhqp_[i](5) = min(max(speed_reduce_rate * (-120*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[5])), joint_vel_limit_l_(control_joint_idx_camhqp_[5])), joint_vel_limit_h_(control_joint_idx_camhqp_[5]));
@@ -9108,8 +9108,8 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6]));
         ub_camhqp_[i](6) = max(min(speed_reduce_rate * (+30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6]));
         // Right Shoulder pitch   
-        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-60*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7]));
-        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (60*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7]));
+        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7]));
+        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7]));
         // Right Shoulder roll
         lb_camhqp_[i](8) = min(max(speed_reduce_rate * (-65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8]));
         ub_camhqp_[i](8) = max(min(speed_reduce_rate * (-25*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8]));
@@ -10489,7 +10489,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         H_damping_x_.setZero(2*N_cp, 2*N_cp); 
         H_damping_y_.setZero(2*N_cp, 2*N_cp);  
       
-        double weighting_foot_new = 0.001; // ICRA: 0.01
+        double weighting_foot_new = 0.001; // ICRA: 0.01 
         
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75, 2N = 150
         for(int i = 0; i < N_cp; i++) // For cp control
@@ -10603,7 +10603,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     H_cpStepping_mpc_new_x_.block(0, 0, 2*N_cp, 2*N_cp) = H_cpmpc_new_x_; // CP-MPC
     H_cpStepping_mpc_new_y_.block(0, 0, 2*N_cp, 2*N_cp) = H_cpmpc_new_y_; // CP-MPC         
    
-    // // For foot adjustment
+    // For foot adjustment
 
     int swing_time_cur = 0, swing_time_next = 0, swing_time_n_next = 0;
     
@@ -10720,67 +10720,41 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
        
     ub_x_foot_cp_mpc_new.setZero();   
     lb_x_foot_cp_mpc_new.setZero();
-    
-    for(int i = 0; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
-    {
-        // real robot experiment 0.2?
-        ub_x_foot_cp_mpc_new(i) = 0.17;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-        lb_x_foot_cp_mpc_new(i) = -0.17;// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
-        // 1을 줄이면 0이 더 많이 생길수도?
-        if(alpha_step_mpc_ == 1) // left foot support
-        {
-            ub_x_foot_cp_mpc_new(0) = 0.17 - rfoot_support_current_mpc_.translation()(0);
-            lb_x_foot_cp_mpc_new(0) = -0.17 - rfoot_support_current_mpc_.translation()(0);
-        }
-        else if(alpha_step_mpc_ == -1) // right foot support
-        {
-            ub_x_foot_cp_mpc_new(0) = 0.17 - lfoot_support_current_mpc_.translation()(0);
-            lb_x_foot_cp_mpc_new(0) = -0.17 - lfoot_support_current_mpc_.translation()(0);
-        }        
-    }   
-
-    double del_F_y_rightswing_min = -0.08, del_F_y_rightswing_max = 0.03;
-    double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.08;
-
     ub_y_foot_cp_mpc_new.setZero();   
     lb_y_foot_cp_mpc_new.setZero();
 
-    for(int i = 0; i < footprint_num; i ++)
+    double del_F_y_rightswing_min = -0.10, del_F_y_rightswing_max = 0.03;
+    double del_F_y_leftswing_min = -0.03, del_F_y_leftswing_max = 0.10;
+      
+    // real robot experiment 0.2? 
+    // 1을 줄이면 0이 더 많이 생길수도? 별 차이없음
+    if(alpha_step_mpc_ == 1) // left foot support
     {
-        if(alpha_step_mpc_ == 1)// left foot support
-        {         
-            ub_y_foot_cp_mpc_new(0) = -0.20 - rfoot_support_current_mpc_.translation()(1); // 0.03
-            lb_y_foot_cp_mpc_new(0) = -0.34 - rfoot_support_current_mpc_.translation()(1); //-0.09
-            ub_y_foot_cp_mpc_new(1) = del_F_y_rightswing_max;
-            lb_y_foot_cp_mpc_new(1) = del_F_y_rightswing_min;
-            // cout << rfoot_support_current_.translation()(1) << endl;
-        }
-        else if(alpha_step_mpc_ == -1) // right foot support
-        {            
-            ub_y_foot_cp_mpc_new(0) =  0.34 - lfoot_support_current_mpc_.translation()(1); // 0.09
-            lb_y_foot_cp_mpc_new(0) =  0.20 - lfoot_support_current_mpc_.translation()(1);
-            ub_y_foot_cp_mpc_new(1) = del_F_y_leftswing_max;
-            lb_y_foot_cp_mpc_new(1) = del_F_y_leftswing_min;
-            // cout << lfoot_support_current_.translation()(1) << endl;
-        }
-    }  
-     
-    // if(alpha_step_mpc_ == 1)// left foot support
-    // {   
-    //     for(int i = 0; i < footprint_num; i ++)
-    //     {
-    //         ub_y_foot_cp_mpc_new(i) = del_F_y_rightswing_max;
-    //         lb_y_foot_cp_mpc_new(i) = del_F_y_rightswing_min;
-    //     }          
-    // }
-    // else if(alpha_step_mpc_ == -1) // right foot support
-    // {
-    //     for(int i = 0; i < footprint_num; i ++)
-    //     {
-    //         ub_y_foot_cp_mpc_new(i) = del_F_y_leftswing_max;
-    //         lb_y_foot_cp_mpc_new(i) = del_F_y_leftswing_min;
-    //     }
-    // }  
+        ub_x_foot_cp_mpc_new(0) = 0.17 - rfoot_support_current_mpc_.translation()(0);
+        lb_x_foot_cp_mpc_new(0) = -0.17 - rfoot_support_current_mpc_.translation()(0);
+        ub_x_foot_cp_mpc_new(1) = 0.17; 
+        lb_x_foot_cp_mpc_new(1) = -0.17; 
+
+        // standard value of rfoot_support_current = -0.25
+        ub_y_foot_cp_mpc_new(0) = -0.22 - rfoot_support_current_mpc_.translation()(1); // 0.03
+        lb_y_foot_cp_mpc_new(0) = -0.35 - rfoot_support_current_mpc_.translation()(1); //-0.1
+        ub_y_foot_cp_mpc_new(1) = del_F_y_leftswing_max;
+        lb_y_foot_cp_mpc_new(1) = del_F_y_leftswing_min; 
+    }
+    else if(alpha_step_mpc_ == -1) // right foot support
+    {
+        ub_x_foot_cp_mpc_new(0) = 0.17 - lfoot_support_current_mpc_.translation()(0);
+        lb_x_foot_cp_mpc_new(0) = -0.17 - lfoot_support_current_mpc_.translation()(0);
+        ub_x_foot_cp_mpc_new(1) = 0.17; 
+        lb_x_foot_cp_mpc_new(1) = -0.17; 
+
+        // standard value of lfoot_support_current = +0.25
+        ub_y_foot_cp_mpc_new(0) =  0.35 - lfoot_support_current_mpc_.translation()(1); // 0.1
+        lb_y_foot_cp_mpc_new(0) =  0.22 - lfoot_support_current_mpc_.translation()(1); // -0.03
+        ub_y_foot_cp_mpc_new(1) = del_F_y_rightswing_max;
+        lb_y_foot_cp_mpc_new(1) = del_F_y_rightswing_min; 
+    }   
+
     lb_x_cpStepping_mpc_new.segment(0, 2*N_cp) = lb_x_cp_mpc_new;
     lb_x_cpStepping_mpc_new.segment(2*N_cp, footprint_num) = lb_x_foot_cp_mpc_new;
     ub_x_cpStepping_mpc_new.segment(0, 2*N_cp) = ub_x_cp_mpc_new;
@@ -10832,8 +10806,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         cpmpc_y_update_ = true;
     } 
 
-    MJ_graph << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << cpmpc_output_x_new_(2*N_cp) << endl; //"," << t_total_ << "," << cp_err_norm_x << "," << weighting_dsp << "," << cp_predicted_x(0) - cp_x_ref(0) << endl;
-    MJ_graph1 << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << ub_y_foot_cp_mpc_new(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << lb_y_foot_cp_mpc_new(0) << endl; //"," << t_total_ << "," << cp_err_integ_y_ << "," << weighting_dsp <<  endl;
+    MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << del_F_(0) << endl; 
+    MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << del_F_(1) << endl; 
         
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
