@@ -9212,10 +9212,10 @@ void AvatarController::computeCAMcontrol_HQP()
     }
     cam_c = -J_camhqp_[0]*cmd_q_dot_hqp_;
    
-    if((walking_tick_mj % 200) == 0 )
-    {
-        MJ_graph2 << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << endl;
-    }        
+    // if((walking_tick_mj % 200) == 0 )
+    // {
+    //     MJ_graph2 << cam_c(0) << "," << cam_c(1) << "," << del_ang_momentum_slow_(0) << "," << del_ang_momentum_slow_(1) << endl;
+    // }        
 }   
 
 void AvatarController::CPMPC_bolt_Controller_MJ()
@@ -10452,11 +10452,18 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         e1_cpmpc_new_.setZero(2*N_cp, 2);
         e1_cpmpc_new_.block<2, 2>(0, 0) = eye2;
 
-        Tau_sel_.setIdentity(2*N_cp, 2*N_cp);
+        // Tau_sel_.setIdentity(2*N_cp, 2*N_cp);
+
+        // for(int i = 0; i < N_cp; i++) // selection matrix for variable Tau
+        // {
+        //     Tau_sel_(2*i,2*i) = 0.0; 
+        // }
+
+        desZmp_sel_.setIdentity(2*N_cp, 2*N_cp);
 
         for(int i = 0; i < N_cp; i++) // selection matrix for variable Tau
         {
-            Tau_sel_(2*i,2*i) = 0.0; 
+            desZmp_sel_(2*i+1, 2*i+1) = 0.0; 
         }
 
         weighting_cp_new_x_.setZero(N_cp, N_cp);
@@ -10488,7 +10495,9 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         H_damping_Nsize_y_.setZero(N_cp, N_cp);
         H_damping_x_.setZero(2*N_cp, 2*N_cp); 
         H_damping_y_.setZero(2*N_cp, 2*N_cp);  
-      
+
+        // weighting_zmp_regul_.setIdentity(2*N_cp, 2*N_cp);
+               
         double weighting_foot_new = 0.001; // ICRA: 0.01 
         
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75, 2N = 150
@@ -10564,8 +10573,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     }  
     
     weighting_tau_damping_x_.setIdentity(N_cp, N_cp);
-    weighting_tau_damping_y_.setIdentity(N_cp, N_cp);
-    // weighting_tau_damping_y_ = 0.0000001*weighting_tau_damping_y_; // notion 에 분석
+    weighting_tau_damping_y_.setIdentity(N_cp, N_cp); 
     
     for(int i = 0; i < N_cp; i++)
     {   
@@ -10573,18 +10581,11 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
     }      
     
-    // static int aa = 0;
-    // if(walking_tick_mj_mpc_ >= 6.2*2000 && aa == 0)
-    // {
-    //     aa = 1;
-
-    //     for(int i = 0; i < N_cp; i ++)
-    //     {
-        
-    //         MJ_graph1 << Z_x_ref_wo_offset_new(2*i) << "," << cpmpc_output_x_new_(2*i) << "," <<  Z_y_ref_wo_offset_new(2*i) << "," << cpmpc_output_y_new_(2*i) << "," << weighting_tau_damping_y_(i, i) << endl; 
-    //         // MJ_graph2 << Z_y_ref(i) << endl;
-    //     }            
-    // }
+    // for(int i = 0; i < N_cp; i++) 
+    // {   
+    //     weighting_zmp_regul_(i, i) = DyrosMath::cubic(abs(Z_x_ref_wo_offset_new(2*i)) + zmp_bound_x_new(2*i)*0.9 + abs(cpmpc_output_x_new_(2*N_cp)) - abs(cpmpc_output_x_new_(2*i)), 0.0, 0.04, 100.0, 0.0, 0.0, 0.0);
+    //     // weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
+    // }      
     
     H_damping_Nsize_x_ = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_x_ * (eyeN + damping_integral_mat_);
     H_damping_Nsize_y_ = (eyeN + damping_integral_mat_).transpose() * weighting_tau_damping_y_ * (eyeN + damping_integral_mat_);
@@ -10598,7 +10599,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         }            
     }
     
-    H_cpmpc_new_x_ = H_change_regul_ + H_cp_control_x_ + H_damping_x_;
+    H_cpmpc_new_x_ = H_change_regul_ + H_cp_control_x_ + H_damping_x_; // + desZmp_sel_.transpose()*weighting_zmp_regul_*desZmp_sel_;
     H_cpmpc_new_y_ = H_change_regul_ + H_cp_control_y_ + H_damping_y_;
     H_cpStepping_mpc_new_x_.block(0, 0, 2*N_cp, 2*N_cp) = H_cpmpc_new_x_; // CP-MPC
     H_cpStepping_mpc_new_y_.block(0, 0, 2*N_cp, 2*N_cp) = H_cpmpc_new_y_; // CP-MPC         
@@ -10805,6 +10806,18 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         }       
         cpmpc_y_update_ = true;
     } 
+
+    // static int aa = 0;
+    // if(walking_tick_mj_mpc_ >= 6.2*2000 && aa == 0)
+    // {
+    //     aa = 1;
+
+    //     for(int i = 0; i < N_cp; i ++)
+    //     {        
+    //         MJ_graph2 << (cpmpc_output_x_new_(2*i)) << "," << weighting_zmp_regul_(i,i) << endl; 
+    //         // MJ_graph2 << Z_y_ref(i) << endl;
+    //     }            
+    // }
 
     MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << del_F_(0) << endl; 
     MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << del_F_(1) << endl; 

@@ -1269,7 +1269,9 @@ public:
     Eigen::MatrixXd damping_integral_mat_;
     Eigen::MatrixXd cam_damping_mat_;
 
+    Eigen::MatrixXd desZmp_sel_;
     Eigen::MatrixXd Tau_sel_;
+    Eigen::MatrixXd weighting_zmp_regul_;
     Eigen::MatrixXd weighting_tau_regul_;
     Eigen::MatrixXd weighting_tau_damping_;
     Eigen::MatrixXd weighting_tau_damping_x_;
