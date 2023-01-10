@@ -1250,6 +1250,8 @@ public:
     double des_zmp_y_stepchange_ = 0;
     double des_zmp_y_prev_stepchange_ = 0;
 
+    Eigen::Vector2d opt_F_;
+
     Eigen::Vector2d des_zmp_interpol_;
 
     // New CPMPC
