@@ -1075,6 +1075,8 @@ public:
     Eigen::MatrixXd m_del_zmp_x;
     Eigen::MatrixXd m_del_zmp_y;
     double zmp_modif_time_margin_ = 0; 
+     int first_current_step_flag_ = 0;
+    int first_current_step_number_ = 0;
     ////////////////////////////////////////////////////////////
     
     /////////////CAM-HQP//////////////////////////
@@ -1470,7 +1472,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(int norm_size, int planning_step_num);
     void onestepZmp(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
-    void onestepZmp_wo_offset(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
+    void onestepZmp_wo_offset(int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1684,6 +1686,7 @@ public:
     double t_double2_;
     double t_total_;
     double t_total_thread_;
+    double t_total_const_;
     double t_rest_init_thread_;
     double t_rest_last_thread_;
     double t_total_mpc_;
