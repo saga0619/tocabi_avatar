@@ -1,8 +1,9 @@
 #include "tocabi_lib/robot_data.h"
 #include "wholebody_functions.h"
-#include <std_msgs/String.h>
 
 #include "math_type_define.h"
+
+#include <std_msgs/String.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/Bool.h>
@@ -10,9 +11,11 @@
 #include <geometry_msgs/PoseArray.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/String.h>
+#include <sensor_msgs/Joy.h>
+
 #include <sstream>
 #include <fstream>
-#include <sensor_msgs/Joy.h>
+
 //#include "tocabi_msgs/FTsensor.h" // real robot experiment
 
 //lexls
@@ -30,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const int FILE_CNT = 2;
+const int FILE_CNT = 3;
 
 // mob lstm
 const int n_input_ = 24;
@@ -44,9 +47,9 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/dg/robot_proprioceptive_data.txt",
-    "/home/dg/data/dg/ft_related_data.txt"
-    // "/home/dyros/data/dg/1_com_.txt",
+    "/home/dg/data/dg/robot_training_data.txt",
+    "/home/dg/data/dg/ft_related_data.txt",
+    "/home/dg/data/dg/mob_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
@@ -98,7 +101,7 @@ public:
     std::vector<CQuadraticProgram> QP_qdot_hqpik2_;
     std::vector<CQuadraticProgram> QP_cam_hqp_;
     CQuadraticProgram QP_leg_qpik_;
-    
+
     CQuadraticProgram QP_mpc_x_;
     CQuadraticProgram QP_mpc_y_;
     CQuadraticProgram QP_motion_retargeting_lhand_;
@@ -160,6 +163,7 @@ public:
     Eigen::VectorXd momentumObserverCore(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
+    Eigen::VectorXd momentumObserverDiscrete(VectorXd current_momentum, VectorXd prev_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     void collisionEstimation();
     void collisionCheck();
     void collisionIsolation();
@@ -182,7 +186,12 @@ public:
     void getComTrajectory_mpc();
     //estimator
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
-
+    void getInertiaCoriolisMatrix(RigidBodyDynamics::Model &model_, VectorXd q, VectorXd qdot, MatrixXd &M_output, MatrixXd &Mdot_output, MatrixXd &C_output);
+    Eigen::Matrix6d getSpatialInertia(RigidBodyDynamics::Model &model_, int id);
+    Eigen::Matrix6d spatialCoordinateTransform(Matrix3d Rij, Vector3d rij);
+    Eigen::Matrix6d crm(Vector6d v);
+    Eigen::Matrix6d crf(Vector6d v);
+    Eigen::Matrix6d icrf(Vector6d f);
     //motion control
 
     void motionRetargeting_QPIK_larm();
@@ -391,6 +400,7 @@ public:
     Eigen::MatrixVVd C_mat_;
     Eigen::MatrixVVd C_T_mat_;
     Eigen::VectorVQd nonlinear_torque_;
+    Eigen::VectorVQd gravity_torque_;
 
     Eigen::VectorQd kp_joint_;
 	Eigen::VectorQd kv_joint_;
@@ -517,7 +527,7 @@ public:
 
     Eigen::Vector6d lfoot_vel_current_from_support_;
     Eigen::Vector6d rfoot_vel_current_from_support_;
-    
+
     Eigen::Vector6d l_ft_;
     Eigen::Vector6d r_ft_;
 
@@ -547,6 +557,8 @@ public:
 
     Eigen::Vector6d lh_ft_feedback_;
     Eigen::Vector6d rh_ft_feedback_;
+
+    Eigen::Vector6d imu_raw_; // ang vel(3) + lin acc(3)
 
     Eigen::VectorQd torque_from_lh_ft_;
     Eigen::VectorQd torque_from_rh_ft_;
@@ -1050,6 +1062,7 @@ public:
     int cpmpc_interpol_cnt_y_ = 0;
     bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
     bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
+    bool thread3_result_update_ {false};
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
     int CP_MPC_first_loop_ = false;
 
@@ -1147,6 +1160,13 @@ public:
 
     Eigen::VectorXd mob_integral_wholebody_;
     Eigen::VectorXd mob_residual_wholebody_;
+    Eigen::VectorXd mob_residual_pre_wholebody_;
+
+    Eigen::VectorXd mob_momentum_;
+    Eigen::VectorXd mob_momentum_pre_;
+
+    Eigen::VectorXd mob_torque_current_;
+    Eigen::VectorXd mob_torque_pre_;
 
     Eigen::VectorXd mob_integral_friction_;
     Eigen::VectorXd mob_residual_friction_;
@@ -1163,10 +1183,10 @@ public:
     Eigen::MatrixXd theta_joints_mat_leg_;
     Eigen::VectorXd w_friction_;
 
-    Eigen::VectorQd torque_from_l_ft_;     //J^T*FT_F
-    Eigen::VectorQd torque_from_r_ft_;     //J^T*FT_F
-    Eigen::VectorQd torque_from_l_ft_lpf_; //J^T*FT_F
-    Eigen::VectorQd torque_from_r_ft_lpf_; //J^T*FT_F
+    Eigen::VectorVQd torque_from_l_ft_;     //J^T*FT_F
+    Eigen::VectorVQd torque_from_r_ft_;     //J^T*FT_F
+    Eigen::VectorVQd torque_from_l_ft_lpf_; //J^T*FT_F
+    Eigen::VectorVQd torque_from_r_ft_lpf_; //J^T*FT_F
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////MOB LEARNING LSTM///////////////////////////////////////////////////////
@@ -1586,6 +1606,8 @@ public:
     Eigen::Isometry3d pelv_float_init_;
     Eigen::Isometry3d lfoot_float_init_;
     Eigen::Isometry3d rfoot_float_init_;
+
+    Eigen::Matrix3d pelv_rot_current_global_;
     double wn = 0;
 
     Eigen::Isometry3d lfoot_local_current_;
