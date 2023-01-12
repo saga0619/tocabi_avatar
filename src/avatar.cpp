@@ -12320,18 +12320,18 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     W_max = W_nom + 0.03;
     l_p = foot_step_support_frame_(current_step_num_, 1);    
 
-    u0_x = 0.0;
-    u0_y = 0.0; 
-    // if(current_step_num_ != 0)
-    // {
-    //     u0_x = foot_step_support_frame_(current_step_num_-1, 0); 
-    //     u0_y = foot_step_support_frame_(current_step_num_-1, 1); 
-    // }
-    // else
-    // {
-    //     u0_x = 0.0;
-    //     u0_y = 0.0; 
-    // }    
+    // u0_x = 0.0;
+    // u0_y = 0.0; 
+    if(current_step_num_ != 0)
+    {
+        u0_x = foot_step_support_frame_(current_step_num_-1, 0); 
+        u0_y = foot_step_support_frame_(current_step_num_-1, 1); 
+    }
+    else
+    {
+        u0_x = 0.0;
+        u0_y = 0.0; 
+    }    
 
     T_gap = 0.05*hz_;
     T_nom = 0.6; // 0.6하면 370 못버팀.
@@ -12340,7 +12340,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     tau_nom = exp(wn*T_nom); 
 
     b_nom_x = L_nom/(exp(wn*T_nom)-1);
-    b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
+    b_nom_y = W_nom/(exp(wn*T_nom)-1);
+    // b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
     
     Eigen::MatrixXd H_step;
     Eigen::VectorXd g_step; 
@@ -12436,6 +12437,10 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
             {   
                 stepping_input_ = stepping_input.segment(0, 5);
             }
+            else
+            {
+                cout<<"bolt is not solved"<<endl;
+            }
         }
 
         if(stepping_input_(2) != 0)
@@ -12456,14 +12461,14 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     }
     else if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_ )
     {
-        // stepping_input_(0) = opt_F_(0);
-        // stepping_input_(1) = opt_F_(1);
+        stepping_input_(0) = opt_F_(0);
+        stepping_input_(1) = opt_F_(1);
     }
     
-    opt_F_(0) = L_nom;
-    opt_F_(1) = W_nom;
-    // opt_F_(0) = stepping_input_(0);
-    // opt_F_(1) = stepping_input_(1);
+    // opt_F_(0) = L_nom;
+    // opt_F_(1) = W_nom;
+    opt_F_(0) = stepping_input_(0);
+    opt_F_(1) = stepping_input_(1);
     // cout << opt_F_(0) << "," << t_total_*0.0005 << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // Log 함수 쓸때 주의 -> log(0) -> inf  
@@ -12829,38 +12834,38 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    // target_x_ = 0.0;
-    // target_y_ = 0;
-    // target_z_ = 0.0;
-    // com_height_ = 0.71;
-    // target_theta_ = 0 * DEG2RAD;
-    // step_length_x_ = 0.10;
-    // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = true;
-
-    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    // t_rest_last_ = 0.12 * hz_;
-    // t_double1_ = 0.03 * hz_;
-    // t_double2_ = 0.03 * hz_;
-    // t_total_ = 0.9 * hz_;
-    // foot_height_ = 0.055;      // 0.9 sec 0.05
-
-    //// 0.7s walking
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0*DEG2RAD;
+    target_theta_ = 0 * DEG2RAD;
     step_length_x_ = 0.10;
     step_length_y_ = 0.0;
-    is_right_foot_swing_ = 1;
+    is_right_foot_swing_ = true;
 
-    t_rest_init_ = 0.06*hz_;
-    t_rest_last_ = 0.06*hz_;
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 0.7*hz_;
+    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    t_rest_last_ = 0.12 * hz_;
+    t_double1_ = 0.03 * hz_;
+    t_double2_ = 0.03 * hz_;
+    t_total_ = 0.9 * hz_;
     foot_height_ = 0.055;      // 0.9 sec 0.05
+
+    //// 0.7s walking
+    // target_x_ = 1.0;
+    // target_y_ = 0;
+    // target_z_ = 0.0;
+    // com_height_ = 0.71;
+    // target_theta_ = 0*DEG2RAD;
+    // step_length_x_ = 0.10;
+    // step_length_y_ = 0.0;
+    // is_right_foot_swing_ = 1;
+
+    // t_rest_init_ = 0.06*hz_;
+    // t_rest_last_ = 0.06*hz_;
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 0.7*hz_;
+    // foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.0;
