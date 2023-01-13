@@ -2101,7 +2101,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         
         weighting_cp_.setZero(N_cp, N_cp);
         weighting_zmp_diff_.setZero(N_cp, N_cp);
-        double weighting_foot = 0.01;// 100.0;  //0.01;
+        double weighting_foot = 0.0001;// 100.0;  //0.01;
 
         // Weighting parameter
         for(int i = 0; i < N_cp; i++) // N_cp = 75
@@ -2115,8 +2115,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             }
             else if (i < 50)
             {
-                weighting_cp_(i,i) = 5.0;
-                weighting_zmp_diff_(i,i) = 10.0;                
+                weighting_cp_(i,i) = 20.0;
+                weighting_zmp_diff_(i,i) = 1.0;                
             }
             else
             {
@@ -7926,7 +7926,7 @@ void AvatarController::getInertiaCoriolisMatrix(RigidBodyDynamics::Model &model,
     // std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     
     bool linear_components_first = true;
-    bool Mdot_calculation = true;
+    bool Mdot_calculation = false;
 
     std::vector<Eigen::Matrix6d> BC, IC, I;
     std::vector<Eigen::MatrixXd> S, Sdot;
@@ -7960,7 +7960,7 @@ void AvatarController::getInertiaCoriolisMatrix(RigidBodyDynamics::Model &model,
             S[0].block(0, 0, 3, 3) = Eigen::Matrix3d::Identity();           // angular
             S[0].block(3, 3, 3, 3) = rot_pelv_T;                            // linear
 
-            v[0].segment(0, 6) = qdot_virtual.segment(3, 3);     // angular
+            v[0].segment(0, 3) = qdot_virtual.segment(3, 3);     // angular
             v[0].segment(3, 3) = rot_pelv_T*qdot_virtual.segment(0, 3);     // linear
             
             Sdot[0].setZero(6, 6);
@@ -9761,7 +9761,7 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
             joy_buttons_raw_(i) = msg.buttons[i];  //continue walking (A)
         }
 
-        double max_step_l_x = 0.15;
+        double max_step_l_x = 0.20;
         double max_step_l_y = 0.10;
         double max_yaw_angle = 20*DEG2RAD;
 
@@ -9806,8 +9806,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
 
 void AvatarController::printOutTextFile()
 {
-    // if (printout_cnt_ % 20 == 0)
-    if(true)
+    if (printout_cnt_ % 2 == 0)
+    // if(true)
     {
         // if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
         if (true)
@@ -13655,38 +13655,38 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.070;      // 0.9 sec 0.05
 
     //// 0.9s walking
-    target_x_ = 1.0;
-    target_y_ = 0;
-    target_z_ = 0.0;
-    com_height_ = 0.71;
-    target_theta_ = 0 * DEG2RAD;
-    step_length_x_ = 0.10;
-    step_length_y_ = 0.0;
-    is_right_foot_swing_ = false;
-
-    t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
-    t_rest_last_ = 0.12 * hz_;
-    t_double1_ = 0.03 * hz_;
-    t_double2_ = 0.03 * hz_;
-    t_total_ = 0.9 * hz_;
-    foot_height_ = 0.055;      // 0.9 sec 0.05
-
-    //// 0.7s walking
     // target_x_ = 1.0;
     // target_y_ = 0;
     // target_z_ = 0.0;
     // com_height_ = 0.71;
-    // target_theta_ = 0*DEG2RAD;
+    // target_theta_ = 0 * DEG2RAD;
     // step_length_x_ = 0.10;
     // step_length_y_ = 0.0;
-    // is_right_foot_swing_ = 1;
+    // is_right_foot_swing_ = false;
 
-    // t_rest_init_ = 0.06*hz_;
-    // t_rest_last_ = 0.06*hz_;
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 0.7*hz_;
+    // t_rest_init_ = 0.12 * hz_; // Slack, 0.9 step time
+    // t_rest_last_ = 0.12 * hz_;
+    // t_double1_ = 0.03 * hz_;
+    // t_double2_ = 0.03 * hz_;
+    // t_total_ = 0.9 * hz_;
     // foot_height_ = 0.055;      // 0.9 sec 0.05
+
+    //// 0.7s walking
+    target_x_ = 1.0;
+    target_y_ = 0;
+    target_z_ = 0.0;
+    com_height_ = 0.71;
+    target_theta_ = 0*DEG2RAD;
+    step_length_x_ = 0.10;
+    step_length_y_ = 0.0;
+    is_right_foot_swing_ = 1;
+
+    t_rest_init_ = 0.06*hz_;
+    t_rest_last_ = 0.06*hz_;
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 0.7*hz_;
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.0;
