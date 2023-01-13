@@ -1056,15 +1056,32 @@ void AvatarController::computeSlow()
                 getPelvTrajectory();
                 supportToFloatPattern();
 
-                computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+                if (atb_walking_traj_update_ == false)
+                {
+                    atb_walking_traj_update_ = true;
+                    lfoot_trajectory_float_thread_ = lfoot_trajectory_float_;
+                    rfoot_trajectory_float_thread_ = rfoot_trajectory_float_;
+                    del_ang_momentum_fast_ = del_ang_momentum_;
+                    atb_walking_traj_update_ = false;
+                }
+
+                // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+
+                if (atb_desired_q_update_ == false)
+                {
+                    atb_desired_q_update_ = true;
+                    desired_q_fast_ = desired_q_slow_;
+                    desired_q_dot_fast_ = desired_q_dot_slow_;
+                    atb_desired_q_update_ = false;
+                }
 
                 // Compliant_control(q_des_);
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = q_des_(i);
+                    // ref_q_(i) = q_des_(i);
                     // ref_q_(i) = DOB_IK_output_(i);
 
-                    // ref_q_(i) = desired_q_fast_(i);
+                    ref_q_(i) = desired_q_fast_(i);
                     static bool ref_q_nan_flag = false;
                     if (ref_q_(i) != ref_q_(i))
                     {
@@ -1101,7 +1118,7 @@ void AvatarController::computeSlow()
                 {
                     for (int i = 0; i < 12; i++)
                     {
-                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                        ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
                     }
                 }
 
@@ -1190,14 +1207,32 @@ void AvatarController::computeSlow()
             getRobotState();
             getPelvTrajectory();
             supportToFloatPattern();
-            computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+
+            if (atb_walking_traj_update_ == false)
+            {
+                atb_walking_traj_update_ = true;
+                lfoot_trajectory_float_thread_ = lfoot_trajectory_float_;
+                rfoot_trajectory_float_thread_ = rfoot_trajectory_float_;
+                del_ang_momentum_fast_ = del_ang_momentum_;
+                atb_walking_traj_update_ = false;
+            }
+
+            // computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
+
+            if (atb_desired_q_update_ == false)
+            {
+                atb_desired_q_update_ = true;
+                desired_q_fast_ = desired_q_slow_;
+                desired_q_dot_fast_ = desired_q_dot_slow_;
+                atb_desired_q_update_ = false;
+            }
 
             for (int i = 0; i < 12; i++)
             {
-                ref_q_(i) = q_des_(i);
+                // ref_q_(i) = q_des_(i);
                 // ref_q_(i) = DOB_IK_output_(i);
 
-                // ref_q_(i) = desired_q_fast_(i);
+                ref_q_(i) = desired_q_fast_(i);
                 static bool ref_q_nan_flag = false;
                 if (ref_q_(i) != ref_q_(i))
                 {
@@ -1230,7 +1265,7 @@ void AvatarController::computeSlow()
             {
                 for (int i = 0; i < 12; i++)
                 {
-                    ref_q_(i) = DyrosMath::cubic( (double)rd_.control_time_us_/ 1000000.0, init_leg_time_, init_leg_time_ + 2.0, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
+                    ref_q_(i) = DyrosMath::cubic( (double)rd_.control_time_us_/ 1000000.0, init_leg_time_, init_leg_time_ + 2.0, Initial_ref_q_(i), desired_q_fast_(i), 0.0, 0.0);
                 }
             }
 
@@ -1252,13 +1287,13 @@ void AvatarController::computeSlow()
 
         /////////////////////////////////////////////////////////////////////////////////////////
 
-        if (atb_desired_q_update_ == false)
-        {
-            atb_desired_q_update_ = true;
-            desired_q_fast_ = desired_q_slow_;
-            desired_q_dot_fast_ = desired_q_dot_slow_;
-            atb_desired_q_update_ = false;
-        }
+        // if (atb_desired_q_update_ == false)
+        // {
+        //     atb_desired_q_update_ = true;
+        //     desired_q_fast_ = desired_q_slow_;
+        //     desired_q_dot_fast_ = desired_q_dot_slow_;
+        //     atb_desired_q_update_ = false;
+        // }
 
         torque_upper_.setZero();
         for (int i = 12; i < MODEL_DOF; i++)
@@ -1538,6 +1573,19 @@ void AvatarController::computeFast()
             }  
         }
         
+
+        //STEP2: recieve desired AM
+        if(true)
+        {
+            if (atb_walking_traj_update_ == false)
+            {
+                atb_walking_traj_update_ = true;
+                lfoot_trajectory_float_fast_ = lfoot_trajectory_float_thread_;
+                rfoot_trajectory_float_fast_ = rfoot_trajectory_float_thread_;
+                del_ang_momentum_slow_ = del_ang_momentum_fast_;
+                atb_walking_traj_update_ = false;
+            }
+        }
         /////////////////////////////////////////////////////////////////////////////////////////
 
         // if (rd_.tc_init == true)
@@ -1557,7 +1605,7 @@ void AvatarController::computeFast()
         // calculateScaMlpOutput(rarm_upperbody_sca_mlp_);
         // calculateScaMlpOutput(btw_arms_sca_mlp_);
         // avatar mode pedal
-        avatarModeStateMachine();
+        // avatarModeStateMachine();
 
         //motion planing and control//
         motionGenerator(); // 140~240us(HQPIK)
@@ -1588,7 +1636,7 @@ void AvatarController::computeFast()
         //     left_leg_mob_lstm_.atb_lstm_output_update_ = false;
         // }
 
-        for (int i = 12; i < MODEL_DOF; i++)
+        for (int i = 0; i < MODEL_DOF; i++)
         {
             desired_q_(i) = motion_q_(i);
             desired_q_dot_(i) = motion_q_dot_(i); 
@@ -1608,6 +1656,7 @@ void AvatarController::computeFast()
     }
     else if (rd_.tc_.mode == 14)
     {
+
     }
 }
 void AvatarController::computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des, Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot)
@@ -9761,7 +9810,7 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
             joy_buttons_raw_(i) = msg.buttons[i];  //continue walking (A)
         }
 
-        double max_step_l_x = 0.20;
+        double max_step_l_x = 0.15;
         double max_step_l_y = 0.10;
         double max_yaw_angle = 20*DEG2RAD;
 
@@ -9806,8 +9855,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
 
 void AvatarController::printOutTextFile()
 {
-    if (printout_cnt_ % 2 == 0)
-    // if(true)
+    // if (printout_cnt_ % 2 == 0)
+    if(false)
     {
         // if (printout_cnt_ <= 100 * 60 * 60 * 1) // 1h
         if (true)
@@ -13247,32 +13296,32 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     }    
 
     
-    if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
-    {   // Solving the QP during only SSP
-        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
-        {
-            QP_stepping_.InitializeProblemSize(5, 7);
-            QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
-            QP_stepping_.UpdateMinProblem(H_step, g_step);
-            QP_stepping_.DeleteSubjectToAx();      
-            QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
+    // if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
+    // {   // Solving the QP during only SSP
+    //     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    //     {
+    //         QP_stepping_.InitializeProblemSize(5, 7);
+    //         QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
+    //         QP_stepping_.UpdateMinProblem(H_step, g_step);
+    //         QP_stepping_.DeleteSubjectToAx();      
+    //         QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
         
-            if(QP_stepping_.SolveQPoases(200, stepping_input))
-            {   
-                stepping_input_ = stepping_input.segment(0, 5);
-            }
-        }
+    //         if(QP_stepping_.SolveQPoases(200, stepping_input))
+    //         {   
+    //             stepping_input_ = stepping_input.segment(0, 5);
+    //         }
+    //     }
 
-        if(stepping_input_(2) != 0)
-        {
-            if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
-            {           
-                // t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
-                // t_total_ = DyrosMath::minmax_cut(t_total_, 0.75*hz_, 1.05*hz_);
-                // t_last_ = t_start_ + t_total_ - 1;
-            }            
-        }
-    }  
+    //     if(stepping_input_(2) != 0)
+    //     {
+    //         if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
+    //         {           
+    //             // t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
+    //             // t_total_ = DyrosMath::minmax_cut(t_total_, 0.75*hz_, 1.05*hz_);
+    //             // t_last_ = t_start_ + t_total_ - 1;
+    //         }            
+    //     }
+    // }  
         
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
