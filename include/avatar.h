@@ -33,6 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
+const bool simulation_mode_ = true;
 const int FILE_CNT = 3;
 
 // mob lstm

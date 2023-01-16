@@ -10380,8 +10380,15 @@ void AvatarController::getRobotState()
     cp_measured_(0) = com_support_current_(0) + com_support_current_dot_LPF(0) / wn;
     cp_measured_(1) = com_support_current_(1) + com_support_current_dot_LPF(1) / wn;
 
-    // double foot_plate_mass = 2.326; // urdf
-    double foot_plate_mass = 0.0001; // urdf
+    double foot_plate_mass;
+    if(simulation_mode_)
+    {
+        foot_plate_mass = 0.0001; // dg urdf
+    }
+    else
+    {
+        foot_plate_mass = 2.326; // real robot
+    }
 
     // double foot_plate_mass = 1.866; // bolt: 41g, black plate: 211g, red plate: 1614g
 
@@ -10411,20 +10418,28 @@ void AvatarController::getRobotState()
     inertia_foot_plate(0, 0) = foot_plate_mass;
     inertia_foot_plate(1, 1) = foot_plate_mass;
     inertia_foot_plate(2, 2) = foot_plate_mass;
-    // inertia_foot_plate(3, 3) = 0.003386409;
-    // inertia_foot_plate(4, 3) = 1.1237E-05;
-    // inertia_foot_plate(5, 3) = -0.000526477;
-    // inertia_foot_plate(3, 4) = 1.1237E-05;
-    // inertia_foot_plate(4, 4) = 0.012600125;
-    // inertia_foot_plate(5, 4) = -1.976E-06;
-    // inertia_foot_plate(3, 5) = -0.000526477;
-    // inertia_foot_plate(4, 5) = -1.976E-06;
-    // inertia_foot_plate(5, 5) = 0.014296;
 
-    //
-    inertia_foot_plate(3, 3) = 0.000001;
-    inertia_foot_plate(4, 4) = 0.000001;
-    inertia_foot_plate(5, 5) = 0.000001;
+    if(simulation_mode_)
+    {
+        inertia_foot_plate(3, 3) = 0.000001;
+        inertia_foot_plate(4, 4) = 0.000001;
+        inertia_foot_plate(5, 5) = 0.000001;
+    }
+    else
+    {
+        inertia_foot_plate(3, 3) = 0.003386409;
+        inertia_foot_plate(4, 3) = 1.1237E-05;
+        inertia_foot_plate(5, 3) = -0.000526477;
+        inertia_foot_plate(3, 4) = 1.1237E-05;
+        inertia_foot_plate(4, 4) = 0.012600125;
+        inertia_foot_plate(5, 4) = -1.976E-06;
+        inertia_foot_plate(3, 5) = -0.000526477;
+        inertia_foot_plate(4, 5) = -1.976E-06;
+        inertia_foot_plate(5, 5) = 0.014296;
+    }
+
+
+
 
     Vector6d lfoot_acceleration_temp, lfoot_acceleration, lfoot_acceleration_local, lfoot_velocity_temp, lfoot_velocity, lfoot_velocity_local, lfoot_inertia_v, lfoot_v_cross_inertia_v;
     lfoot_acceleration_temp = RigidBodyDynamics::CalcPointAcceleration6D(model_global_, q_virtual_Xd_global_, q_dot_virtual_Xd_global_, q_ddot_virtual_Xd_global_, rd_.link_[Left_Foot].id, LF_com, false);
@@ -10441,8 +10456,15 @@ void AvatarController::getRobotState()
     lfoot_v_cross_inertia_v.segment(0, 3) = DyrosMath::skm(lfoot_velocity_local.segment(3, 3))*lfoot_inertia_v.segment(0, 3);
     lfoot_v_cross_inertia_v.segment(3, 3) = DyrosMath::skm(lfoot_velocity_local.segment(0, 3))*lfoot_inertia_v.segment(0, 3) + DyrosMath::skm(lfoot_velocity_local.segment(3, 3)) * lfoot_inertia_v.segment(3, 3);
 
-    l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * lfoot_acceleration_local - 0.0*lfoot_v_cross_inertia_v);
-    // l_ft_wo_fw_ = l_ft_; // tocabi
+    if(simulation_mode_)
+    {
+        l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * lfoot_acceleration_local - 0.0*lfoot_v_cross_inertia_v);
+    }
+    else
+    {
+        l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate); // tocabi
+    }
+    
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
     // l_ft_wo_fw_ = l_ft_ + adt2*(rotrf.transpose()*Wrench_foot_plate);
@@ -10482,8 +10504,15 @@ void AvatarController::getRobotState()
     rfoot_v_cross_inertia_v.segment(0, 3) = DyrosMath::skm(rfoot_velocity_local.segment(3, 3))*rfoot_inertia_v.segment(0, 3);
     rfoot_v_cross_inertia_v.segment(3, 3) = DyrosMath::skm(rfoot_velocity_local.segment(0, 3))*rfoot_inertia_v.segment(0, 3) + DyrosMath::skm(rfoot_velocity_local.segment(3, 3)) * rfoot_inertia_v.segment(3, 3);
 
-    r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * rfoot_acceleration_local - 0.0*rfoot_v_cross_inertia_v);
-    // r_ft_wo_fw_ = r_ft_; // tocabi
+    if(simulation_mode_)
+    {
+        r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * rfoot_acceleration_local - 0.0*rfoot_v_cross_inertia_v);
+    }
+    else
+    {
+        r_ft_wo_fw_ = r_ft_; // tocabi
+    }
+    
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
     if (walking_tick_mj == 0)
@@ -10519,7 +10548,7 @@ void AvatarController::getRobotState()
     // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
-    collisionEstimation();
+    // collisionEstimation();
 
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
