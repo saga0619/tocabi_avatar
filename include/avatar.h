@@ -47,9 +47,9 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dg/data/dg/robot_training_data.txt",
-    "/home/dg/data/dg/ft_related_data.txt",
-    "/home/dg/data/dg/mob_debugging.txt"
+    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/robot_training_data.txt",
+    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/ft_related_data.txt",
+    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/mob_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
@@ -388,7 +388,7 @@ public:
     Eigen::VectorQd init_q_;
     Eigen::VectorQd zero_q_;
     Eigen::VectorQVQd init_q_virtual_;
-
+    
     Eigen::MatrixVVd A_mat_;
     Eigen::MatrixVVd A_mat_pre_;
     Eigen::MatrixVVd A_inv_mat_;
@@ -1472,6 +1472,14 @@ private:
 
     int printout_cnt_ = 0;
     bool first_loop_camhqp_ = true;
+
+    // getInertiaCoriolisMatrix
+    bool AC_mat_first_calculation_flag_ = false;
+    std::vector<Eigen::Matrix6d> BC, IC, I;
+    std::vector<Eigen::MatrixXd> S, Sdot;
+    std::vector<Eigen::Vector6d> v;
+    std::vector<Eigen::Matrix6d> X_T;    //X_T[i] = "^{i}X_{p(i)}"
+    Eigen::MatrixXd M_temp, Mdot_temp, C_temp;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////MJ CustomCuntroller//////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
