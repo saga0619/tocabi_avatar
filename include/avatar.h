@@ -1354,8 +1354,6 @@ public:
     // ifstream network_weights_file_gru_[6];
     // ifstream mean_std_file_gru_[4];
 
-    Eigen::VectorQd estimated_ext_torque_gru_;
-
     Eigen::Vector6d estimated_ext_force_lfoot_gru_;
     Eigen::Vector6d estimated_ext_force_rfoot_gru_;
     Eigen::Vector6d estimated_ext_force_lhand_gru_;
@@ -1494,7 +1492,7 @@ public:
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
-    void calculateFootStepTotal_reactive(Eigen::Vector3d collision_position, Eigen::Vector3d external_force, bool is_right_foot_swing);
+    void calculateFootStepTotal_reactive(Eigen::Isometry3d collision_foot_pose, Eigen::Vector3d external_force, bool support_foot_is_left);
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
@@ -1680,6 +1678,7 @@ public:
 
     Eigen::VectorQd Gravity_MJ_fast_;
     Eigen::VectorQd Gravity_MJ_;
+    Eigen::VectorQd Gravity_MJ_pre_;
     Eigen::VectorQd Gravity_DSP_;
     Eigen::VectorQd Gravity_DSP_last_;
     Eigen::VectorQd Gravity_SSP_;
@@ -1752,6 +1751,8 @@ public:
     double zmp_start_time_mj_thread_;
     double UX_mj_, UY_mj_; 
     Eigen::Vector3d com_desired_;
+    Eigen::Vector3d com_desired_thread_;
+    Eigen::Vector3d com_desired_slow_;
     Eigen::MatrixXd foot_step_;                         // 0~2: next step position, 3~5: next step euler angles, 6: current suppor foot (0: right, 1: left)
     Eigen::MatrixXd foot_step_support_frame_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
