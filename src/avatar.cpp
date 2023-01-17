@@ -12,7 +12,7 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-// ofstream MJ_graph("/home/dg/data/walking_baseline/MJ_graph.txt");
+ofstream MJ_graph("/home/dyros/data/dg/mob_learning/MJ_graph.txt");
 ofstream MJ_graph1("/home/dyros/data/dg/mob_learning/MJ_graph1.txt");
 // ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
 // ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
@@ -2710,6 +2710,22 @@ void AvatarController::initWalkingParameter()
     rfoot_trajectory_float_thread_ = rfoot_transform_pre_desired_from_;
     lfoot_trajectory_float_fast_ = lfoot_transform_pre_desired_from_;
     rfoot_trajectory_float_fast_ = rfoot_transform_pre_desired_from_;
+
+    Tau_L_x_error_=0;
+    Tau_L_x_error_pre_=0;
+    Tau_L_x_error_dot_=0;    
+
+    Tau_L_y_error_=0;
+    Tau_L_y_error_pre_=0;
+    Tau_L_y_error_dot_=0;    
+
+    Tau_R_x_error_=0;
+    Tau_R_x_error_pre_=0;
+    Tau_R_x_error_dot_=0;    
+
+    Tau_R_y_error_=0;
+    Tau_R_y_error_pre_=0;
+    Tau_R_y_error_dot_=0;   
 }
 
 void AvatarController::getRobotData()
@@ -10437,6 +10453,10 @@ void AvatarController::getRobotState()
     adt2.setIdentity();
     adt2.block(3, 0, 3, 3) = DyrosMath::skm(-com2sp) * Matrix3d::Identity();
 
+    Matrix6d adt_sp;
+    adt_sp.setIdentity();
+    adt_sp.block(3, 0, 3, 3) = DyrosMath::skm(rd_.link_[Left_Foot].sensor_point) * Matrix3d::Identity();
+
     Vector6d Wrench_foot_plate;
     Wrench_foot_plate.setZero();
     Wrench_foot_plate(2) = foot_plate_mass * 9.81;
@@ -10496,6 +10516,7 @@ void AvatarController::getRobotState()
     
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
+    l_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*l_ft_wo_fw_;
     // l_ft_wo_fw_ = l_ft_ + adt2*(rotrf.transpose()*Wrench_foot_plate);
     
 
@@ -10544,14 +10565,21 @@ void AvatarController::getRobotState()
     
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
+    r_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*r_ft_wo_fw_;
+
+
     if (walking_tick_mj == 0)
     {
-        l_ft_LPF = l_ft_;
-        r_ft_LPF = r_ft_;
+        // l_ft_LPF = l_ft_;
+        // r_ft_LPF = r_ft_;
+        l_ft_LPF = -l_ft_wo_fw_global_;
+        r_ft_LPF = -r_ft_wo_fw_global_;
     }
 
-    l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_;
-    r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
+    // l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_;
+    // r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
+    l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-l_ft_wo_fw_global_);
+    r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-r_ft_wo_fw_global_);
 
     Eigen::Vector2d left_zmp, right_zmp;
 
@@ -11558,8 +11586,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.015; // 0.9 초
-    rfoot_zmp_offset_ = 0.015;
+    lfoot_zmp_offset_ = -0.010; // 0.7 초
+    rfoot_zmp_offset_ = 0.010;
+
+    // lfoot_zmp_offset_ = -0.015; // 0.9 초
+    // rfoot_zmp_offset_ = 0.015;
 
     // lfoot_zmp_offset_ = -0.02; // 1.1 초
     // rfoot_zmp_offset_ = 0.02;
@@ -14790,7 +14821,8 @@ void AvatarController::CP_compen_MJ_FT()
     double zmp_offset = 0;
     double alpha_new = 0;
 
-    zmp_offset = 0.015; // 0.9초
+    zmp_offset = 0.010; // 0.7초
+    // zmp_offset = 0.015; // 0.9초
     // zmp_offset = 0.02; // 1.1초
     // zmp_offset = 0.015; // 1.3초
 
@@ -14900,8 +14932,12 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = 0.0;
     }
 
+    F_F_error_pre_ = F_F_error_;
+    F_F_error_ = (l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R);
+    F_F_error_dot_ = (F_F_error_ - F_F_error_pre_)*hz_;
     //////////// Force
-    F_F_input_dot = 0.00010 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+    // TO DO LIST: tuning the FF P gain 230117
+    F_F_input_dot = 0.00005 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) + 0.0000001*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
 
@@ -14989,24 +15025,62 @@ void AvatarController::CP_compen_MJ_FT()
         Kl_pitch = 30.0;
     }
 
+    Tau_L_x_error_pre_ = Tau_L_x_error_;
+    Tau_L_x_error_ = Tau_L_x - l_ft_LPF(3);
+    Tau_L_x_error_dot_ = (Tau_L_x_error_ - Tau_L_x_error_pre_)*hz_;
+
+    Tau_R_x_error_pre_ = Tau_R_x_error_;
+    Tau_R_x_error_ = Tau_R_x - r_ft_LPF(3);
+    Tau_R_x_error_dot_ = (Tau_R_x_error_ - Tau_R_x_error_pre_)*hz_;
+
+    Tau_L_y_error_pre_ = Tau_L_y_error_;
+    Tau_L_y_error_ = Tau_L_y - l_ft_LPF(4);
+    Tau_L_y_error_dot_ = (Tau_L_y_error_ - Tau_L_y_error_pre_)*hz_;
+
+
+    Tau_R_y_error_pre_ = Tau_R_y_error_;
+    Tau_R_y_error_ = Tau_R_y - r_ft_LPF(4);
+    Tau_R_y_error_dot_ = (Tau_R_y_error_ - Tau_R_y_error_pre_)*hz_;
+
+
     // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 10.0 * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.035 * (Tau_L_x - l_ft_LPF(3)) -0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
     //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 10.0 * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.035 * (Tau_R_x - r_ft_LPF(3)) -0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
 
     // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
     //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-    F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) - 5.0 * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.025 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //   F_T_L_y_input = 0;
     //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-    F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) - 5.0 * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.025 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
+
+    MJ_graph << Tau_L_x_error_ <<", "<< Tau_R_x_error_<<", " << Tau_L_y_error_<<", " << Tau_R_y_error_ << ", "<<F_F_error_ << endl;
+    // // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
+    // //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
+    // F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 10.0 * F_T_L_x_input;
+    // F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
+    // //   F_T_L_x_input = 0;
+    // //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
+    // F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 10.0 * F_T_R_x_input;
+    // F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
+    // //   F_T_R_x_input = 0;
+
+    // // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
+    // //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
+    // F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) - 5.0 * F_T_L_y_input;
+    // F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
+    // //   F_T_L_y_input = 0;
+    // //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
+    // F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) - 5.0 * F_T_R_y_input;
+    // F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //   F_T_R_y_input = 0;
     // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
     // MJ_graph << F_T_L_x_input << "," << F_T_R_x_input << "," <<  F_T_L_y_input << "," <<  F_T_R_y_input << "," << F_F_input << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;

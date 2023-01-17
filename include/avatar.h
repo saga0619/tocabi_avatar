@@ -538,6 +538,12 @@ public:
     Eigen::Vector6d l_ft_wo_fw_lpf_;
     Eigen::Vector6d r_ft_wo_fw_lpf_;
 
+    Eigen::Vector6d l_ft_wo_fw_global_;
+    Eigen::Vector6d r_ft_wo_fw_global_;
+
+    // Eigen::Vector6d l_ft_wo_fw_global_lpf_;
+    // Eigen::Vector6d r_ft_wo_fw_global_lpf_;
+
     Eigen::Vector6d l_ft_LPF;
     Eigen::Vector6d r_ft_LPF;
 
@@ -584,6 +590,26 @@ public:
     double F_T_L_y_input_dot = 0;
     double F_T_R_y_input = 0;
     double F_T_R_y_input_dot = 0;
+
+    double Tau_L_x_error_;
+    double Tau_L_x_error_pre_;
+    double Tau_L_x_error_dot_;    
+
+    double Tau_L_y_error_;
+    double Tau_L_y_error_pre_;
+    double Tau_L_y_error_dot_;    
+
+    double Tau_R_x_error_;
+    double Tau_R_x_error_pre_;
+    double Tau_R_x_error_dot_;    
+
+    double Tau_R_y_error_;
+    double Tau_R_y_error_pre_;
+    double Tau_R_y_error_dot_;    
+
+    double F_F_error_ = 0;
+    double F_F_error_pre_ = 0;
+    double F_F_error_dot_ = 0;   
 
     //MotionRetargeting variables
     int upperbody_mode_recieved_;
