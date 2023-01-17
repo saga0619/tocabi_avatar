@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const int FILE_CNT = 3;
 
 // mob lstm
@@ -48,9 +48,9 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/robot_training_data.txt",
-    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/ft_related_data.txt",
-    "/ssd2/fb_mob_learning/data/TRO/inertia_friction/mob_debugging.txt"
+    "/home/dyros/data/dg/mob_learning/robot_training_data.txt",
+    "/home/dyros/data/dg/mob_learning/ft_related_data.txt",
+    "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",

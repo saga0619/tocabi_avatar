@@ -13,7 +13,7 @@ using namespace TOCABI;
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
 // ofstream MJ_graph("/home/dg/data/walking_baseline/MJ_graph.txt");
-ofstream MJ_graph1("/ssd2/fb_mob_learning/data/TRO/inertia_friction/MJ_graph1.txt");
+ofstream MJ_graph1("/home/dyros/data/dg/mob_learning/MJ_graph1.txt");
 // ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
 // ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
 // ofstream MJ_q_dot_("/home/dg/data/walking_baseline/MJ_q_dot_.txt");
@@ -667,7 +667,8 @@ void AvatarController::computeSlow()
             initWalkingParameter();
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: "<<rd_.control_time_ << endl; //dg add
-
+            cout << "robot mass: " << rd_.link_[COM_id].mass*GRAVITY << endl;
+            
             WBC::SetContact(rd_, 1, 1);
             Gravity_MJ_ = WBC::ContactForceRedistributionTorqueWalking(rd_, WBC::GravityCompensationTorque(rd_), 0.9, 1, 0);
             //Gravity_MJ_.setZero();
@@ -2238,7 +2239,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             }
             else if (i < 50)
             {
-                weighting_cp_(i,i) = 20.0;
+                weighting_cp_(i,i) = 10.0;
                 weighting_zmp_diff_(i,i) = 1.0;                
             }
             else
@@ -14851,8 +14852,16 @@ void AvatarController::CP_compen_MJ_FT()
     //   else if(alpha_new < 0)
     //   { alpha_new = 0; }
 
-    // double real_robot_mass_offset_ = 72; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
-    double real_robot_mass_offset_ = 0;
+    double real_robot_mass_offset_;
+
+    if(simulation_mode_)
+    {
+        real_robot_mass_offset_ = 0;
+    }
+    else
+    {
+        real_robot_mass_offset_ = 72; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
+    }
     double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
 
     F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + right_left_force_diff);
