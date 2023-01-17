@@ -665,7 +665,7 @@ void AvatarController::computeSlow()
             walking_end_flag = 0;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
 
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: "<<rd_.control_time_ << endl; //dg add
@@ -970,7 +970,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
 
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
@@ -2229,7 +2229,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         
         weighting_cp_.setZero(N_cp, N_cp);
         weighting_zmp_diff_.setZero(N_cp, N_cp);
-        double weighting_foot = 0.0001;// 100.0;  //0.01;
+        double weighting_foot = 0.00;// 100.0;  //0.01;
 
         // Weighting parameter
         for(int i = 0; i < N_cp; i++) // N_cp = 75
@@ -2243,8 +2243,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
             }
             else if (i < 50)
             {
-                weighting_cp_(i,i) = 10.0;
-                weighting_zmp_diff_(i,i) = 1.0;                
+                weighting_cp_(i,i) = 5.0;
+                weighting_zmp_diff_(i,i) = 10.0;                
             }
             else
             {
@@ -10324,7 +10324,7 @@ void AvatarController::getRobotState()
     R_angle = pelv_rpy_current_mj_(0);
     P_angle = pelv_rpy_current_mj_(1);
     pelv_yaw_rot_current_from_global_mj_.setIdentity();
-    // pelv_yaw_rot_current_from_global_mj_.translation() = rd_.link_[Pelvis].xpos;
+    pelv_yaw_rot_current_from_global_mj_.translation() = rd_.link_[Pelvis].xpos;
     pelv_yaw_rot_current_from_global_mj_.linear() = DyrosMath::rotateWithZ(pelv_rpy_current_mj_(2));
 
     rfoot_rpy_current_.setZero();
@@ -10539,7 +10539,7 @@ void AvatarController::getRobotState()
     }
     else
     {
-        r_ft_wo_fw_ = r_ft_; // tocabi
+        r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate); // tocabi
     }
     
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
@@ -10577,7 +10577,7 @@ void AvatarController::getRobotState()
     // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
-    collisionEstimation();
+    // collisionEstimation();
 
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
@@ -13223,8 +13223,12 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         del_F_y_ = 0;
     }
 
-    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
-    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_; // 0;
+    // L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
+    // W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_; // 0;
+
+    L_nom = foot_step_support_frame_(current_step_num_, 0); // foot_step_support_frame_(current_step_num_, 0); 
+    W_nom = foot_step_support_frame_(current_step_num_, 1); // 0;
+    
     L_min = L_nom - 0.05;
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.03;
@@ -13669,10 +13673,10 @@ void AvatarController::GravityCalculate_MJ()
 
     for(int i = 0; i <MODEL_DOF; i++)
     {
-        if( abs(Gravity_local(i)-Gravity_MJ_pre_(i)) > 10.0 )
+        if( abs(Gravity_local(i)-Gravity_MJ_pre_(i)) > 20.0 )
         {
             Gravity_local = Gravity_MJ_pre_;
-            cout<<"WARNING: abrupt gravity torque changes!"<<endl;
+            // cout<<"WARNING: abrupt gravity torque changes!"<<endl;
         }
     }
 
@@ -14880,7 +14884,7 @@ void AvatarController::CP_compen_MJ_FT()
     }
     else
     {
-        real_robot_mass_offset_ = 72; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
+        real_robot_mass_offset_ = 55; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
     }
     double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
 
@@ -14987,21 +14991,21 @@ void AvatarController::CP_compen_MJ_FT()
 
     // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
+    F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 10.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
     //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
+    F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 10.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
 
     // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
     //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-    F_T_L_y_input_dot = 0.015 * (Tau_L_y - l_ft_LPF(4)) - 40.0 * F_T_L_y_input;
+    F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) - 5.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //   F_T_L_y_input = 0;
     //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-    F_T_R_y_input_dot = 0.015 * (Tau_R_y - r_ft_LPF(4)) - 40.0 * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) - 5.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     //   F_T_R_y_input = 0;
     // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
@@ -15635,7 +15639,7 @@ void AvatarController::getJoystickCommand()
     // Button (Y)
     if(walking_enable_ == false && joy_buttons_clicked_(3))
     {
-        loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+        loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
     }
 }
 void AvatarController::updateNextStepTimeJoy()
