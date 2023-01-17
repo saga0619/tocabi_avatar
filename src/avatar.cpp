@@ -665,6 +665,8 @@ void AvatarController::computeSlow()
             walking_end_flag = 0;
             parameterSetting();
             initWalkingParameter();
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: "<<rd_.control_time_ << endl; //dg add
             cout << "robot mass: " << rd_.link_[COM_id].mass*GRAVITY << endl;
@@ -968,7 +970,8 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            // loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
+
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
             cout << "robot mass: " << rd_.link_[COM_id].mass*GRAVITY << endl;
@@ -1605,6 +1608,7 @@ void AvatarController::computeFast()
                 Gravity_MJ_ = Gravity_MJ_local;
                 atb_grav_update_ = false;
             }
+            Gravity_MJ_pre_ = Gravity_MJ_;
             cout << "comutefast tc.mode = 12 is initialized" << endl;
             initial_flag = 2;
         }
@@ -2587,9 +2591,22 @@ void AvatarController::initWalkingParameter()
     torque_from_lh_ft_lpf_.setZero();
     torque_from_rh_ft_lpf_.setZero();
 
+    estimated_ext_force_lfoot_gru_.setZero();
+    estimated_ext_force_rfoot_gru_.setZero();
+    estimated_ext_force_lhand_gru_.setZero();
+    estimated_ext_force_rhand_gru_.setZero();
+
+    estimated_external_torque_gru_fast_.setZero();
+    estimated_external_torque_gru_slow_.setZero();
+    estimated_external_torque_gru_thread_.setZero();
+    estimated_external_torque_gru_slow_lpf_.setZero();
+
+    estimated_external_torque_variance_gru_fast_.setZero();
+    estimated_external_torque_variance_gru_slow_.setZero();
+    estimated_external_torque_variance_gru_thread_.setZero();
+
     motion_q_pre_ = init_q_;
     motion_q_dot_pre_.setZero();
-
 
     lhand_control_point_offset_.setZero();
     rhand_control_point_offset_.setZero();
@@ -2930,7 +2947,6 @@ void AvatarController::getRobotData()
 
     jac_com_ = R_R * link_avatar_[COM_id].jac.cast<double>();
     jac_com_pos_ = pelv_yaw_rot_current_from_global_.transpose() * link_avatar_[COM_id].jac_com.cast<double>().topRows(3);
-    
 
 }
 
@@ -7513,6 +7529,15 @@ void AvatarController::floatingBaseMOB()
     torque_from_r_ft_ = jac_rfoot_.transpose() * R_temp_rfoot * (r_ft_wo_fw_);
     torque_from_r_ft_lpf_ = DyrosMath::lpf<MODEL_DOF_VIRTUAL>(torque_from_r_ft_, torque_from_r_ft_pre, 2000, 100 / (2 * M_PI));
 
+
+    // External Torque Network 
+    Eigen::Matrix6d J_lf_T = (jac_lfoot_.block(0, 6, 6, 6)).transpose();
+    Eigen::Matrix6d J_rf_T = (jac_rfoot_.block(0, 12, 6, 6)).transpose();
+
+    estimated_external_torque_gru_slow_ = mob_residual_wholebody_.segment(6, MODEL_DOF);
+    estimated_ext_force_lfoot_gru_ = J_lf_T.transpose()*(J_lf_T*J_lf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*mob_residual_wholebody_.segment(6, 6);
+    estimated_ext_force_rfoot_gru_ = J_rf_T.transpose()*(J_rf_T*J_rf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*mob_residual_wholebody_.segment(12, 6);
+
     // for (int i = 0; i < 6; i++)
     // {
     //     file[2] << ((l_ft_wo_fw_))(i) << "\t";
@@ -7654,11 +7679,11 @@ void AvatarController::collisionIsolation()
                 cout << "estimated_external_torque_gru_slow_: \n"
                      << estimated_external_torque_gru_slow_.segment(0, 6).transpose() << endl;
                 cout << "estimated_ext_force_lfoot_gru_: \n"
-                     << estimated_ext_force_lfoot_gru_.segment(0, 6).transpose() << endl;
+                     << estimated_ext_force_lfoot_gru_.transpose() << endl;
                 cout << "maximum_collision_free_torque_: \n"
                      << maximum_collision_free_torque_.segment(0, 6).transpose() << endl;
 
-                // calculateFootStepTotal_reactive(lfoot_support_current_.translation(), estimated_ext_force_lfoot_gru_.segment(0, 3), false);
+                calculateFootStepTotal_reactive(lfoot_support_current_, estimated_ext_force_lfoot_gru_.segment(0, 3), false);
                 collision_detection_flag_ = true;
             }
 
@@ -7775,10 +7800,10 @@ void AvatarController::collisionIsolation()
                 cout << "estimated_external_torque_gru_slow_: \n"
                      << estimated_external_torque_gru_slow_.segment(6, 6).transpose() << endl;
                 cout << "estimated_ext_force_rfoot_gru_: \n"
-                     << estimated_ext_force_rfoot_gru_.segment(0, 6).transpose() << endl;
+                     << estimated_ext_force_rfoot_gru_.transpose() << endl;
                 cout << "maximum_collision_free_torque_: \n"
                      << maximum_collision_free_torque_.segment(6, 6).transpose() << endl;
-                // calculateFootStepTotal_reactive(rfoot_support_current_.translation(), estimated_ext_force_rfoot_gru_.segment(0, 3), true);
+                calculateFootStepTotal_reactive(rfoot_support_current_, estimated_ext_force_rfoot_gru_.segment(0, 3), true);
                 collision_detection_flag_ = true;
             }
 
@@ -9404,6 +9429,7 @@ void AvatarController::savePreData()
     motion_q_pre_ = motion_q_;
     motion_q_dot_pre_ = motion_q_dot_;
 
+    Gravity_MJ_pre_ = Gravity_MJ_;
 
     master_lhand_pose_raw_ppre_ = master_lhand_pose_raw_pre_;
     master_lhand_pose_raw_ppre_ = master_lhand_pose_raw_pre_;
@@ -9849,6 +9875,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
             walking_stop_flag_ = false;
             walking_end_flag = 1;
             stopping_step_planning_trigger_ = true;
+
+            collision_detection_flag_ = false;
             // cout<<"walking triggered!!"<<endl;
         }
         else
@@ -10549,7 +10577,7 @@ void AvatarController::getRobotState()
     // calculateGruInput(right_leg_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
-    // collisionEstimation();
+    collisionEstimation();
 
     // l_cf_ft_global_ = rd_.LF_CF_FT;
     // r_cf_ft_global_ = rd_.RF_CF_FT;
@@ -11218,101 +11246,82 @@ void AvatarController::calculateFootStepTotal_MJ()
         }
     }
 }
-void AvatarController::calculateFootStepTotal_reactive(Eigen::Vector3d collision_position, Eigen::Vector3d external_force, bool is_right_foot_swing)
+void AvatarController::calculateFootStepTotal_reactive(Eigen::Isometry3d collision_foot_pose, Eigen::Vector3d external_force, bool support_foot_is_left)
 {
-    double step_width_init;
-    double step_width;
+    ////////// state machine for joystick command   ////////////
+    walking_stop_flag_ = true;
+    joy_input_enable_ = false;
+    joy_continuous_walking_flag_ = false;
+    stopping_step_planning_trigger_ = false;
+    ////////////////////////////////////////////////////////////
 
-    step_width_init = 0.01;
-    step_width = 0.02;
 
-    int number_of_foot_step;
+    double total_foot_step_planning_num;
+    double nominal_step_width = 0.1225*2;
+    double one_step_stop_margin_ratio = 0.25;
+    bool debugging_mode = false;
+    double step_back_len = 0.1;
 
-    int del_size;
+    Eigen::Isometry3d next_step_observed_in_first_step;
+    next_step_observed_in_first_step.setIdentity();
+    next_step_observed_in_first_step.translation()(1) = -(2*support_foot_is_left - 1)*nominal_step_width/2; 
 
-    del_size = 1;
-    number_of_foot_step = 4;
-
-    current_step_num_ = 1;
-    total_step_num_ = 4;
-
-    foot_step_.resize(number_of_foot_step, 7);
+    total_foot_step_planning_num = current_step_num_ + 3;
+    total_step_num_ = total_foot_step_planning_num;
+    
+    foot_step_.resize(total_foot_step_planning_num , 7);
     foot_step_.setZero();
-    foot_step_support_frame_.resize(number_of_foot_step, 7);
-    foot_step_support_frame_.setZero();
-    // foot_step_support_frame_thread_.setZero(number_of_foot_step, 7);
-    // foot_step_support_frame_mpc_.setZero(number_of_foot_step, 7);
-    modified_del_zmp_.setZero(number_of_foot_step, 2);
-    m_del_zmp_x.setZero(number_of_foot_step, 2);
-    m_del_zmp_y.setZero(number_of_foot_step, 2);
 
-    int index = 0;
-    int temp, temp2, temp3, is_right;
-
-    if (is_right_foot_swing == true)
-        is_right = 1;
-    else
-        is_right = -1;
-
-    temp = -is_right;
-    temp2 = -is_right;
-    temp3 = -is_right;
-
-    int temp0;
-    temp0 = -is_right;
-
-    double initial_dir = 0.0;
-
-    // double third_foot_step_x;
-    // third_foot_step_x = DyrosMath::minmax_cut(target_x - 0.08, -2 * step_length_x_, 0.0);
-
-    Vector2d first_foot_step = collision_position.segment(0, 2) + collision_position(2) * external_force.segment(0, 2).normalized();
-    if (is_right_foot_swing)
+    for(int i = 0; i < current_step_num_; i++)
     {
-        first_foot_step(1) = DyrosMath::minmax_cut(first_foot_step(1), -0.5, -0.20);
-    }
-    else
-    {
-        first_foot_step(1) = DyrosMath::minmax_cut(first_foot_step(1), 0.20, 0.5);
+        foot_step_.row(i) = foot_step_joy_temp_.row(i);
     }
 
-    Vector2d second_foot_step = first_foot_step;
-    second_foot_step(1) += 2 * is_right * (0.1025 + step_width);
-    second_foot_step += 0.1 * external_force.segment(0, 2).normalized();
-
-    if (is_right_foot_swing)
+    // first foot step
+    Vector2d first_foot_step = collision_foot_pose.translation().segment(0, 2) + collision_foot_pose.translation()(2) * external_force.segment(0, 2).normalized();
+    first_foot_step(1) += (2*support_foot_is_left - 1)*nominal_step_width/2;
+    
+    for(int i = 0; i < 3; i++)
     {
-        second_foot_step(1) = DyrosMath::minmax_cut(second_foot_step(1), first_foot_step(1) + 0.20, first_foot_step(1) + 0.5);
+        next_step_observed_in_first_step.translation()(i) = foot_step_(current_step_num_-1, i);
     }
-    else
-    {
-        second_foot_step(1) = DyrosMath::minmax_cut(second_foot_step(1), first_foot_step(1) - 0.5, first_foot_step(1) - 0.2);
-    }
+    next_step_observed_in_first_step.linear() = DyrosMath::rotateWithZ(foot_step_(current_step_num_-1, 5));
 
-    // current support foot_step_
-    foot_step_(0, 0) = 0.0;
-    foot_step_(0, 1) = 0;
-    foot_step_(0, 6) = 0.5 + 0.5 * (-is_right); //left foot support = 1, right foot support = 0
+    next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(first_foot_step(0), first_foot_step(1), DyrosMath::rot2Euler(collision_foot_pose.linear())(2), support_foot_is_left);
 
-    // first landing step
-    foot_step_(1, 0) = first_foot_step(0);
-    foot_step_(1, 1) = first_foot_step(1);
-    foot_step_(1, 6) = 0.5 + 0.5 * (is_right);
+    foot_step_(current_step_num_, 0) = next_step_observed_in_first_step.translation()(0);
+    foot_step_(current_step_num_, 1) = next_step_observed_in_first_step.translation()(1);
+    foot_step_(current_step_num_, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+    foot_step_(current_step_num_, 6) = support_foot_is_left;
 
-    // second step
-    foot_step_(2, 0) = second_foot_step(0);
-    foot_step_(2, 1) = second_foot_step(1);
-    foot_step_(2, 6) = 0.5 + 0.5 * (-is_right);
+    // second foot step
+    Vector2d second_foot_step = step_back_len * external_force.segment(0, 2).normalized();
 
-    // third step
-    foot_step_(3, 0) = second_foot_step(0);
-    foot_step_(3, 1) = second_foot_step(1) - 2 * is_right * (0.1025 + step_width);
-    foot_step_(3, 6) = 0.5 + 0.5 * (is_right);
+    next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(second_foot_step(0), second_foot_step(1), -DyrosMath::rot2Euler(collision_foot_pose.linear())(2), !support_foot_is_left);
 
-    // fourth step
-    // foot_step_(4, 0) = third_foot_step_x;
-    // foot_step_(4, 1) = is_right * (0.1025 + step_width);
-    // foot_step_(4, 6) = 0.5 + 0.5 * (-is_right);
+    foot_step_(current_step_num_+1, 0) = next_step_observed_in_first_step.translation()(0);
+    foot_step_(current_step_num_+1, 1) = next_step_observed_in_first_step.translation()(1);
+    foot_step_(current_step_num_+1, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+    foot_step_(current_step_num_+1, 6) = !support_foot_is_left;
+
+    // third foot step
+    next_step_observed_in_first_step = next_step_observed_in_first_step*oneStepPlanner(0, 0, 0, support_foot_is_left);
+
+    foot_step_(current_step_num_+2, 0) = next_step_observed_in_first_step.translation()(0);
+    foot_step_(current_step_num_+2, 1) = next_step_observed_in_first_step.translation()(1);
+    foot_step_(current_step_num_+2, 5) = DyrosMath::rot2Euler(next_step_observed_in_first_step.linear())(2);
+    foot_step_(current_step_num_+2, 6) = support_foot_is_left;
+
+    foot_step_joy_temp_.setZero(total_foot_step_planning_num, 7);
+    foot_step_joy_temp_ = foot_step_;
+
+    foot_step_support_frame_.setZero(total_foot_step_planning_num , 7);
+
+    // mpc footstep adjustment  
+    modified_del_zmp_.setZero(total_foot_step_planning_num, 2);
+    m_del_zmp_x.setZero(total_foot_step_planning_num, 2);
+    m_del_zmp_y.setZero(total_foot_step_planning_num, 2);
+
     cout << "Reactive Foot Step\n"<< foot_step_ << endl;
 }
 void AvatarController::floatToSupportFootstep()
@@ -13655,11 +13664,22 @@ void AvatarController::GravityCalculate_MJ()
 
         Gravity_SSP_.setZero();
     }
+    
+    VectorQd Gravity_local = Gravity_DSP_ + Gravity_SSP_;
+
+    for(int i = 0; i <MODEL_DOF; i++)
+    {
+        if( abs(Gravity_local(i)-Gravity_MJ_pre_(i)) > 10.0 )
+        {
+            Gravity_local = Gravity_MJ_pre_;
+            cout<<"WARNING: abrupt gravity torque changes!"<<endl;
+        }
+    }
 
     if (atb_grav_update_ == false)
     {
         atb_grav_update_ = true;
-        Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_; // + contact_torque_MJ;
+        Gravity_MJ_ = Gravity_local; // + contact_torque_MJ;
         atb_grav_update_ = false;
     }
 }
@@ -15596,6 +15616,7 @@ void AvatarController::getJoystickCommand()
         calibration_state_gui_log_pub.publish(msg);        
     }
     
+    // Button (B)
     if(joy_buttons_clicked_(1))
     {
         std_msgs::String positioncontrol_msg;
@@ -15603,6 +15624,18 @@ void AvatarController::getJoystickCommand()
         position_control << "positioncontrol";
         positioncontrol_msg.data = position_control.str();
         joystick_tocabi_command_pub.publish(positioncontrol_msg);
+    }
+
+    // Button (X)
+    if(walking_enable_ == false && joy_buttons_clicked_(2))
+    {
+        
+    }
+
+    // Button (Y)
+    if(walking_enable_ == false && joy_buttons_clicked_(3))
+    {
+        loadCollisionThreshold("/home/dg/catkin_ws/src/tocabi_avatar/config/");
     }
 }
 void AvatarController::updateNextStepTimeJoy()
