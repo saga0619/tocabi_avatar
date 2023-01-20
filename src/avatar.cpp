@@ -13748,7 +13748,7 @@ void AvatarController::parameterSetting()
     // foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.7s walking
-    target_x_ = 1.0;
+    target_x_ = 10.0;
     target_y_ = 0;
     target_z_ = 0.0;
     com_height_ = 0.71;
