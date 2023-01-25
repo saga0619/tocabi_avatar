@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const int FILE_CNT = 3;
 
 // mob lstm
@@ -46,26 +46,26 @@ const int nn_input_size_ = n_input_ * n_sequence_length_;
 const bool gaussian_mode_ = true;
 
 const std::string FILE_NAMES[FILE_CNT] =
-{
-  ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/mob_learning/robot_training_data.txt",
-    "/home/dyros/data/dg/mob_learning/ft_related_data.txt",
-    "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
-    // "/home/dyros/data/dg/2_zmp_.txt",
-    // "/home/dyros/data/dg/3_foot_.txt",
-    // "/home/dyros/data/dg/4_torque_.txt",
-    // "/home/dyros/data/dg/5_joint_.txt",
-    // "/home/dyros/data/dg/6_hand_.txt",
-    // "/home/dyros/data/dg/7_elbow_.txt",
-    // "/home/dyros/data/dg/8_shoulder_.txt",
-    // "/home/dyros/data/dg/9_acromion_.txt",
-    // "/home/dyros/data/dg/10_hmd_.txt",
-    // "/home/dyros/data/dg/11_tracker_.txt",
-    // "/home/dyros/data/dg/12_qpik_.txt",
-    // "/home/dyros/data/dg/13_tracker_vel_.txt"
+    {
+        /// change this directory when you use this code on the other computer///
+        "/home/dyros-ai/dg/FB_MOB_LEARNING_TOCABI/data/simulation/robot_training_data.txt",
+        "/home/dyros-ai/dg/FB_MOB_LEARNING_TOCABI/data/simulation/ft_related_data.txt",
+        "/home/dyros-ai/dg/FB_MOB_LEARNING_TOCABI/data/simulation/mob_debugging.txt"
+        // "/home/dyros/data/dg/2_zmp_.txt",
+        // "/home/dyros/data/dg/3_foot_.txt",
+        // "/home/dyros/data/dg/4_torque_.txt",
+        // "/home/dyros/data/dg/5_joint_.txt",
+        // "/home/dyros/data/dg/6_hand_.txt",
+        // "/home/dyros/data/dg/7_elbow_.txt",
+        // "/home/dyros/data/dg/8_shoulder_.txt",
+        // "/home/dyros/data/dg/9_acromion_.txt",
+        // "/home/dyros/data/dg/10_hmd_.txt",
+        // "/home/dyros/data/dg/11_tracker_.txt",
+        // "/home/dyros/data/dg/12_qpik_.txt",
+        // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros-ai/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
