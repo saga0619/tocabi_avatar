@@ -9859,7 +9859,7 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
         }
 
         double max_step_l_x = 0.15;
-        double max_step_l_y = 0.08;
+        double max_step_l_y = 0.05;
         double max_yaw_angle = 15*DEG2RAD;
 
         double del_x = joy_left_stick_(1)*max_step_l_x;
@@ -10577,8 +10577,12 @@ void AvatarController::getRobotState()
 
     // l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_;
     // r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
-    l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-l_ft_wo_fw_global_);
-    r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-r_ft_wo_fw_global_);
+    
+    l_ft_LPF = DyrosMath::lpf<6>(-l_ft_wo_fw_global_, l_ft_LPF, 2000, 6.0);
+    r_ft_LPF = DyrosMath::lpf<6>(-r_ft_wo_fw_global_, r_ft_LPF, 2000, 6.0);
+
+    // l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-l_ft_wo_fw_global_);
+    // r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-r_ft_wo_fw_global_);
 
     Eigen::Vector2d left_zmp, right_zmp;
 
@@ -14947,7 +14951,7 @@ void AvatarController::CP_compen_MJ_FT()
     // TO DO LIST: tuning the FF P gain 230117
     if(simulation_mode_)
     {
-        F_F_input_dot = 0.00004 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) + 0.00000001*F_F_error_dot_ - 10.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        F_F_input_dot = 0.00003 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) + 0.0000001*F_F_error_dot_ - 10.0 * F_F_input; // 0.9초 0.0001/ 3.0
     }
     else
     {
@@ -14957,16 +14961,17 @@ void AvatarController::CP_compen_MJ_FT()
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
 
-    if (F_F_input >= 0.02) // 1.1초 0.02
-    {
-        F_F_input = 0.03;
-        // cout << "F_F_input max" << endl;
-    }
-    else if (F_F_input <= -0.02)
-    {
-        F_F_input = -0.03;
-        // cout << "F_F_input min" << endl;
-    }
+    F_F_input = DyrosMath::minmax_cut(F_F_input, -0.03, 0.03);
+    // if (F_F_input >= 0.03) // 1.1초 0.02
+    // {
+    //     F_F_input = 0.03;
+    //     // cout << "F_F_input max" << endl;
+    // }
+    // else if (F_F_input <= -0.03)
+    // {
+    //     F_F_input = -0.03;
+    //     // cout << "F_F_input min" << endl;
+    // }
     //   if(F_F_input >= 0.01) // 0.9초 0.01
     //   {
     //     F_F_input = 0.01;
@@ -15062,21 +15067,21 @@ void AvatarController::CP_compen_MJ_FT()
     {
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = -0.020 * (Tau_L_x - l_ft_LPF(3)) -0.0000*Tau_L_x_error_dot_ - 40.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = -0.040 * (Tau_L_x - l_ft_LPF(3)) -0.0005*Tau_L_x_error_dot_ - 20.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = -0.020 * (Tau_R_x - r_ft_LPF(3)) -0.0000*Tau_R_x_error_dot_ - 40.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = -0.040 * (Tau_R_x - r_ft_LPF(3)) -0.0005*Tau_R_x_error_dot_ - 20.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
         // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-        F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) + 0.0000*Tau_L_y_error_dot_ - 40.0 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.015 * (Tau_L_y - l_ft_LPF(4)) + 0.0003*Tau_L_y_error_dot_ - 30.0 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) + 0.0000*Tau_R_y_error_dot_ - 40.0 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.015 * (Tau_R_y - r_ft_LPF(4)) + 0.0003*Tau_R_y_error_dot_ - 30.0 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
     else
@@ -15122,44 +15127,44 @@ void AvatarController::CP_compen_MJ_FT()
     //   F_T_R_y_input = 0;
     // MJ_graph << l_ft_LPF(2) - r_ft_LPF(2) << "," <<  (F_L - F_R) << "," << F_F_input << endl;
     // MJ_graph << F_T_L_x_input << "," << F_T_R_x_input << "," <<  F_T_L_y_input << "," <<  F_T_R_y_input << "," << F_F_input << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
-    if (F_T_L_x_input >= 0.2) // 5 deg limit
+    if (F_T_L_x_input >= 0.4) // 5 deg limit
     {
-        F_T_L_x_input = 0.2;
+        F_T_L_x_input = 0.4;
         // cout << "F_T_L_x_input max" << endl;
     }
-    else if (F_T_L_x_input < -0.2)
+    else if (F_T_L_x_input < -0.4)
     {
-        F_T_L_x_input = -0.2;
+        F_T_L_x_input = -0.4;
         // cout << "F_T_L_x_input min" << endl;
     }
 
-    if (F_T_R_x_input >= 0.2) // 5 deg limit
+    if (F_T_R_x_input >= 0.4) // 5 deg limit
     {
-        F_T_R_x_input = 0.2;
+        F_T_R_x_input = 0.4;
         // cout << "F_T_R_x_input max" << endl;
     }
-    else if (F_T_R_x_input < -0.2)
+    else if (F_T_R_x_input < -0.4)
     {
-        F_T_R_x_input = -0.2;
+        F_T_R_x_input = -0.4;
         // cout << "F_T_R_x_input min" << endl;
     }
 
-    if (F_T_L_y_input >= 0.2) // 5 deg limit
+    if (F_T_L_y_input >= 0.4) // 5 deg limit
     {
-        F_T_L_y_input = 0.2;
+        F_T_L_y_input = 0.4;
     }
-    else if (F_T_L_y_input < -0.2)
+    else if (F_T_L_y_input < -0.4)
     {
-        F_T_L_y_input = -0.2;
+        F_T_L_y_input = -0.4;
     }
 
-    if (F_T_R_y_input >= 0.2) // 5 deg limit
+    if (F_T_R_y_input >= 0.4) // 5 deg limit
     {
-        F_T_R_y_input = 0.2;
+        F_T_R_y_input = 0.4;
     }
-    else if (F_T_R_y_input < -0.2)
+    else if (F_T_R_y_input < -0.4)
     {
-        F_T_R_y_input = -0.2;
+        F_T_R_y_input = -0.4;
     }
 
     // MJ_joint1 << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << ZMP_Y_REF << "," << ZMP_Y_REF_alpha_ << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) << endl;
