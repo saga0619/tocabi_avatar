@@ -12,8 +12,8 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/dyros/data/dg/mob_learning/MJ_graph.txt");
-ofstream MJ_graph1("/home/dyros/data/dg/mob_learning/MJ_graph1.txt");
+ofstream MJ_graph("/ssd2/fb_mob_learning/data/TRO/inertia_friction/MJ_graph.txt");
+ofstream MJ_graph1("/ssd2/fb_mob_learning/data/TRO/inertia_friction/MJ_graph1.txt");
 // ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
 // ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
 // ofstream MJ_q_dot_("/home/dg/data/walking_baseline/MJ_q_dot_.txt");
@@ -10516,7 +10516,7 @@ void AvatarController::getRobotState()
     
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
-    l_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*l_ft_wo_fw_;
+    l_ft_wo_fw_global_ = rotrf*adt_sp*l_ft_wo_fw_;
     // l_ft_wo_fw_ = l_ft_ + adt2*(rotrf.transpose()*Wrench_foot_plate);
     
 
@@ -10565,7 +10565,7 @@ void AvatarController::getRobotState()
     
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
-    r_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*r_ft_wo_fw_;
+    r_ft_wo_fw_global_ = rotrf*adt_sp*r_ft_wo_fw_;
 
 
     if (walking_tick_mj == 0)
@@ -11586,11 +11586,11 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.010; // 0.7 초
-    rfoot_zmp_offset_ = 0.010;
+    // lfoot_zmp_offset_ = -0.010; // 0.7 초
+    // rfoot_zmp_offset_ = 0.010;
 
-    // lfoot_zmp_offset_ = -0.015; // 0.9 초
-    // rfoot_zmp_offset_ = 0.015;
+    lfoot_zmp_offset_ = -0.015; // 0.9 초
+    rfoot_zmp_offset_ = 0.015;
 
     // lfoot_zmp_offset_ = -0.02; // 1.1 초
     // rfoot_zmp_offset_ = 0.02;
@@ -14821,8 +14821,8 @@ void AvatarController::CP_compen_MJ_FT()
     double zmp_offset = 0;
     double alpha_new = 0;
 
-    zmp_offset = 0.010; // 0.7초
-    // zmp_offset = 0.015; // 0.9초
+    // zmp_offset = 0.010; // 0.7초
+    zmp_offset = 0.015; // 0.9초
     // zmp_offset = 0.02; // 1.1초
     // zmp_offset = 0.015; // 1.3초
 
