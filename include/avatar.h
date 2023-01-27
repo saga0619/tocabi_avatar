@@ -167,6 +167,7 @@ public:
     Eigen::VectorXd momentumObserverDiscrete(VectorXd current_momentum, VectorXd prev_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     void collisionEstimation();
     void collisionCheck();
+    void collisionDetection();
     void collisionIsolation();
     void collisionIdentification();
 
@@ -329,6 +330,8 @@ public:
     Eigen::VectorQd torque_upper_fast_;
     Eigen::VectorQd torque_upper_;
     Eigen::VectorQd torque_lower_;
+
+    Eigen::VectorQd torque_intentionally_applied_;
 
     // Pevlis related variables
     Eigen::Vector3d pelv_pos_current_;
@@ -577,6 +580,9 @@ public:
 
     Eigen::Vector6d l_hand_ft_;
     Eigen::Vector6d r_hand_ft_;
+
+    double alpha_zmp_ = 0;
+    double alpha_zmp_lpf_ = 0;
 
     double F_F_input_dot = 0;
     double F_F_input = 0;
@@ -1216,6 +1222,11 @@ public:
     Eigen::VectorVQd torque_from_r_ft_lpf_; //J^T*FT_F
     ////////////////////////////////////////////////////////////////////////////////////////////
 
+    /////////////////////////Collision Handling////////////////////////////
+    bool swing_foot_contact_detection_ = false;
+    int swing_foot_contact_cnt_ = 0;
+    ////////////////////////////////////////////////////////////////////////
+
     /////////////////////////MOB LEARNING LSTM///////////////////////////////////////////////////////
     // lstm c++
     struct LSTM
@@ -1407,7 +1418,7 @@ public:
     Eigen::VectorXd vecTanh(VectorXd input);
     //////////////////////////////////////////////////////////////////////////////////////////
 
-        //////////////Self Collision Avoidance Network////////////////
+    //////////////Self Collision Avoidance Network////////////////
     struct MLP
     {
         ~MLP() { std::cout << "MLP terminate" << std::endl; }
@@ -1659,6 +1670,7 @@ public:
     double walking_end_flag = 0;
     
     Eigen::Isometry3d supportfoot_float_current_; 
+    Eigen::Isometry3d swingfoot_support_current_; 
 
     Eigen::Isometry3d pelv_support_current_;
     Eigen::Isometry3d lfoot_support_current_;
@@ -1719,6 +1731,8 @@ public:
 
     Eigen::Vector2d zmp_measured_FT_;
     Eigen::Vector2d zmp_measured_FT_LPF_;
+
+    int abrupt_gravity_torque_cnt_ = 0;
 
     double P_angle_i = 0;
     double P_angle = 0;
@@ -1856,8 +1870,8 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 30; // 1s
-    Eigen::Matrix<double, 3, 30> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    const int joy_command_buffer_size_ = 60; // 2.0s
+    Eigen::Matrix<double, 3, 60> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
     double yaw_angle_command_ = 0;
