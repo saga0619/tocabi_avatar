@@ -2102,13 +2102,13 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     for(int i = 0; i < N; i++)  
     {
-        zmp_bound(i) = 0.1;
+        zmp_bound(i) = 0.50;
     }
     
     lb_b_x = Z_x_ref_ - zmp_bound * 1.3 - P_zs_mpc_*x_hat_;
     ub_b_x = Z_x_ref_ + zmp_bound * 1.7 - P_zs_mpc_*x_hat_;
-    lb_b_y = Z_y_ref_ - zmp_bound * 2.0 - P_zs_mpc_*y_hat_; // slack the zmp constraints to prevent divergence
-    ub_b_y = Z_y_ref_ + zmp_bound * 2.0 - P_zs_mpc_*y_hat_;
+    lb_b_y = Z_y_ref_ - zmp_bound * 1.0 - P_zs_mpc_*y_hat_; // slack the zmp constraints to prevent divergence
+    ub_b_y = Z_y_ref_ + zmp_bound * 1.0 - P_zs_mpc_*y_hat_;
     
     // QP_mpc_x_.InitializeProblemSize(N, N);
     QP_mpc_x_.EnableEqualityCondition(equality_condition_eps_);
@@ -15173,7 +15173,7 @@ void AvatarController::CP_compen_MJ_FT()
     // TO DO LIST: tuning the FF P gain 230117
     if(simulation_mode_)
     {
-        F_F_input_dot = 0.000002 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) + 0.0*F_F_error_dot_ - 10.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        F_F_input_dot = 0.000004 * ((l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R)) + 0.0*F_F_error_dot_ - 10.0 * F_F_input; // 0.9초 0.0001/ 3.0
     }
     else
     {
