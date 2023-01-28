@@ -1537,7 +1537,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(int norm_size, int planning_step_num);
     void onestepZmp(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
-    void onestepZmp_wo_offset(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
+    void onestepZmp_wo_offset(int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1761,13 +1761,14 @@ public:
     double t_double1_;
     double t_double2_;
     double t_total_;
+    double t_total_const_;
     double t_total_thread_;
     double t_rest_init_thread_;
     double t_rest_last_thread_;
     double t_total_mpc_;
     double t_rest_init_mpc_;
     double t_rest_last_mpc_;
-    double foot_height_;
+    double foot_height_=0.055;
     int total_step_num_;
     int total_step_num_mpc_;
     int total_step_num_thread_;
@@ -1848,6 +1849,9 @@ public:
     bool joy_input_enable_ = false;
 
     bool joy_continuous_walking_flag_ = false;
+    bool joy_foot_height_flag_ = false;
+
+    double foot_height_changed_;
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
@@ -1870,8 +1874,8 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 60; // 2.0s
-    Eigen::Matrix<double, 3, 60> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    const int joy_command_buffer_size_ = 90; // 3.0s
+    Eigen::Matrix<double, 3, 90> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
     double yaw_angle_command_ = 0;
