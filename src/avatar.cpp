@@ -12889,8 +12889,8 @@ void AvatarController::getPelvTrajectory()
         R_angle_input = 0;
     }
 
-    P_angle_input_dot = 5.0 * (0.0 - P_angle);
-    R_angle_input_dot = 5.0 * (0.0 - R_angle);
+    P_angle_input_dot = 3.0 * (0.0 - P_angle);
+    R_angle_input_dot = 3.0 * (0.0 - R_angle);
 
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
     R_angle_input = R_angle_input + R_angle_input_dot * del_t;
@@ -13545,14 +13545,14 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     
     H_step.setZero(5,5);
     H_step(0,0) = w1_step; // U_T,x (step position in x-direction)
-    H_step(1,1) = 100.0*w1_step; // U_T,y (step position in y-direction)
+    H_step(1,1) = 200.0*w1_step; // U_T,y (step position in y-direction)
     H_step(2,2) = w2_step; // tau (step timing)
     H_step(3,3) = w3_step; // DCM offset in x
     H_step(4,4) = 0.01*w3_step; // DCM offset in y
     
     g_step.setZero(5);
     g_step(0) = -w1_step * (u0_x + L_nom);
-    g_step(1) = -100.0*w1_step * (u0_y + W_nom); // -200
+    g_step(1) = -200.0*w1_step * (u0_y + W_nom); // -200
     g_step(2) = -w2_step * tau_nom;
     g_step(3) = -w3_step * b_nom_x;  
     g_step(4) = -0.01*w3_step * b_nom_y;  // 0.01
@@ -15223,12 +15223,20 @@ void AvatarController::CP_compen_MJ_FT()
     // TO DO LIST: tuning the  FF P gain 230117
     if(simulation_mode_)
     {
-        F_F_input_dot = 0.00005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0.0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+        {
+            F_F_input_dot = - 10.0 * F_F_input;
+        }
+        else
+        {
+            F_F_input_dot = 0.00005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0.0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        }
     }
     else
     {
         F_F_input_dot = 0.00005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0.0000001*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
     }
+    
     
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
