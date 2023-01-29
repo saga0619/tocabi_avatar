@@ -12,8 +12,8 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/ssd2/fb_mob_learning/data/TRO/inertia_friction/MJ_graph.txt");
-ofstream MJ_graph1("/ssd2/fb_mob_learning/data/TRO/inertia_friction/MJ_graph1.txt");
+ofstream MJ_graph("/home/dyros/data/dg/mob_learning/MJ_graph.txt");
+ofstream MJ_graph1("/home/dyros/data/dg/mob_learning/MJ_graph1.txt");
 // ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
 // ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
 // ofstream MJ_q_dot_("/home/dg/data/walking_baseline/MJ_q_dot_.txt");
@@ -80,8 +80,8 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_d_, true, false);
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_C_, true, false);
-    // RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_global_, true, false);
-    RigidBodyDynamics::Addons::URDFReadFromFile("/home/dg/catkin_ws/src/dyros_tocabi_v2/tocabi_description/robots/dyros_tocabi_dg_inertia_90per.urdf", &model_global_, true, false);
+    RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_global_, true, false);
+    // RigidBodyDynamics::Addons::URDFReadFromFile("/home/dg/catkin_ws/src/dyros_tocabi_v2/tocabi_description/robots/dyros_tocabi_dg_inertia_90per.urdf", &model_global_, true, false);
 
     // RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_local_, true, false);
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_MJ_, true, false);
@@ -667,7 +667,7 @@ void AvatarController::computeSlow()
             walking_end_flag = 0;
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros-ai/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
 
             cout << "computeslow mode = 10 is initialized" << endl;
             cout << "time: "<<rd_.control_time_ << endl; //dg add
@@ -972,7 +972,7 @@ void AvatarController::computeSlow()
 
             parameterSetting();
             initWalkingParameter();
-            loadCollisionThreshold("/home/dyros-ai/catkin_ws/src/tocabi_avatar/config/");
+            loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
 
             cout << "mode = 12 : Pedal Init" << endl;
             cout << "chair_mode_: " << chair_mode_ << endl;
@@ -7654,7 +7654,7 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 }
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
+    // collisionDetection();
     // collisionIsolation();
     // collisionIdentification();
 }
@@ -12568,8 +12568,8 @@ void AvatarController::getFootTrajectory_stepping()
     // rfoot_trajectory_support_.translation()(2) = rfoot_trajectory_support_.translation()(2) + F_F_input * 0.5;
     // lfoot_trajectory_support_.translation()(2) = lfoot_trajectory_support_.translation()(2) - F_F_input * 0.5;
 
-    lfoot_trajectory_support_.linear() = DyrosMath::rotateWithY(F_T_L_y_input) * DyrosMath::rotateWithX(F_T_L_x_input) * DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2));
-    rfoot_trajectory_support_.linear() = DyrosMath::rotateWithY(F_T_R_y_input) * DyrosMath::rotateWithX(F_T_R_x_input) * DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2));
+    lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_L_y_input) * DyrosMath::rotateWithX(F_T_L_x_input);
+    rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_R_y_input) * DyrosMath::rotateWithX(F_T_R_x_input);
 
     // MJ_graph1 << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << opt_F_(0) << "," << desired_swing_foot(0) << "," << target_swing_foot(0) << endl;
     // MJ_graph1 << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << "," << target_swing_foot(1) + opt_F_(1) << "," << desired_swing_foot(1) << "," << ssp_flag << endl;
@@ -12889,8 +12889,16 @@ void AvatarController::getPelvTrajectory()
         R_angle_input = 0;
     }
 
-    P_angle_input_dot = 3.0 * (0.0 - P_angle);
-    R_angle_input_dot = 3.0 * (0.0 - R_angle);
+    if(simulation_mode_)
+    {
+        P_angle_input_dot = 3.0 * (0.0 - P_angle);
+        R_angle_input_dot = 3.0 * (0.0 - R_angle);
+    }
+    else
+    {
+        P_angle_input_dot = 1.5 * (0.0 - P_angle);
+        R_angle_input_dot = 2.0 * (0.0 - R_angle);
+    }
 
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
     R_angle_input = R_angle_input + R_angle_input_dot * del_t;
@@ -13469,6 +13477,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double T_gap = 0;
     
     double w1_step, w2_step, w3_step;
+
     if(simulation_mode_)
     {
         // w1_step = 500.0;
@@ -13619,38 +13628,38 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_.setZero(5);
     }    
     
-    if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
-    {   // Solving the QP during only SSP
-        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
-        {
-            QP_stepping_.InitializeProblemSize(5, 7);
-            QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
-            QP_stepping_.UpdateMinProblem(H_step, g_step);
-            // QP_stepping_.DeleteSubjectToAx();      
-            QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
+    // if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
+    // {   // Solving the QP during only SSP
+    //     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    //     {
+    //         QP_stepping_.InitializeProblemSize(5, 7);
+    //         QP_stepping_.EnableEqualityCondition(equality_condition_eps_);
+    //         QP_stepping_.UpdateMinProblem(H_step, g_step);
+    //         // QP_stepping_.DeleteSubjectToAx();      
+    //         QP_stepping_.UpdateSubjectToAx(A_step, lb_step, ub_step);
         
-            if(QP_stepping_.SolveQPoases(200, stepping_input))
-            {   
-                stepping_input_ = stepping_input.segment(0, 5);
-            }
-            else
-            {
-                cout << "bolt is not solved" << endl;
-                cout << (walking_tick_mj - t_start_)/hz_ << endl;
-            }
-        }
+    //         if(QP_stepping_.SolveQPoases(200, stepping_input))
+    //         {   
+    //             stepping_input_ = stepping_input.segment(0, 5);
+    //         }
+    //         else
+    //         {
+    //             cout << "bolt is not solved" << endl;
+    //             cout << (walking_tick_mj - t_start_)/hz_ << endl;
+    //         }
+    //     }
 
-        if(stepping_input_(2) != 0)
-        {
-            if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
-            {           
-                t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
-                t_total_ = DyrosMath::minmax_cut(t_total_, t_total_const_-0.15*hz_, t_total_const_ + 0.15*hz_);
-                // t_total_ = 0.8*hz_;
-                t_last_ = t_start_ + t_total_ - 1;
-            }            
-        }
-    }  
+    //     if(stepping_input_(2) != 0)
+    //     {
+    //         if(walking_tick_mj - stepping_start_time < t_rest_init_ + t_double1_ + round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
+    //         {           
+    //             t_total_ = round(log(stepping_input_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
+    //             t_total_ = DyrosMath::minmax_cut(t_total_, t_total_const_-0.15*hz_, t_total_const_ + 0.15*hz_);
+    //             // t_total_ = 0.8*hz_;
+    //             t_last_ = t_start_ + t_total_ - 1;
+    //         }            
+    //     }
+    // }  
         
     
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
@@ -13665,10 +13674,10 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(1) = opt_F_(1);
     }
     
-    // opt_F_(0) = L_nom;
-    // opt_F_(1) = W_nom;
-    opt_F_(0) = stepping_input_(0);
-    opt_F_(1) = stepping_input_(1);
+    opt_F_(0) = L_nom;
+    opt_F_(1) = W_nom;
+    // opt_F_(0) = stepping_input_(0);
+    // opt_F_(1) = stepping_input_(1);
 
     // if(walking_tick_mj%100 == 0)
     // {
@@ -14087,7 +14096,7 @@ void AvatarController::parameterSetting()
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
     t_total_= 0.7*hz_;
-    foot_height_ = 0.070;      // 0.9 sec 0.05
+    foot_height_ = 0.055;      // 0.9 sec 0.05
 
     //// 0.6s walking
     // target_x_ = 0.0;
@@ -15234,7 +15243,7 @@ void AvatarController::CP_compen_MJ_FT()
     }
     else
     {
-        F_F_input_dot = 0.00005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0.0000001*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        F_F_input_dot = 0.00001 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0.0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
     }
     
     
@@ -16079,7 +16088,7 @@ void AvatarController::getJoystickCommand()
     // Button (Y)
     if(walking_enable_ == false && joy_buttons_clicked_(3))
     {
-        loadCollisionThreshold("/home/dyros-ai/catkin_ws/src/tocabi_avatar/config/");
+        loadCollisionThreshold("/home/dyros/catkin_ws/src/tocabi_avatar/config/");
     }
 }
 void AvatarController::updateNextStepTimeJoy()
