@@ -34,7 +34,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 const bool simulation_mode_ = false;
-const int FILE_CNT = 3;
+const int FILE_CNT = 2;
 
 // mob lstm
 const int n_input_ = 24;
@@ -49,8 +49,8 @@ const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
     "/home/dyros/data/dg/mob_learning/robot_training_data.txt",
-    "/home/dyros/data/dg/mob_learning/ft_related_data.txt",
-    "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
+    "/home/dyros/data/dg/mob_learning/ft_related_data.txt"
+    // "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
