@@ -2198,6 +2198,13 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     cp_x_ref = x_com_pos_recur_.segment(0, N_cp) + x_com_vel_recur_.segment(0, N_cp)/wn; // 1.5 s
     cp_y_ref = y_com_pos_recur_.segment(0, N_cp) + y_com_vel_recur_.segment(0, N_cp)/wn;
     
+    
+    if(mpc_tick <= t_total_mpc_ - t_rest_last_ - t_double2_)
+    {
+        int landing_mpc_time = int( (t_total_mpc_ - mpc_tick - t_rest_last_ - t_double2_)/MPC_synchro_hz );
+        cp_eos_x_mpc_ = cp_x_ref(landing_mpc_time);
+        cp_eos_y_mpc_ = cp_y_ref(landing_mpc_time);
+    }
     // if(atb_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
     // {
     //     atb_cpmpc_rcv_update_ = true;
@@ -2570,11 +2577,13 @@ void AvatarController::thread3SendDataToThread1()
         x_hat_p_thread_ = x_hat_p_;
         x_hat_thread_ = x_hat_;
         current_step_num_thread2_ = current_step_num_mpc_;
+        cp_eos_x_thread_ = cp_eos_x_mpc_;
 
         // mpc y
         y_hat_p_thread_ = y_hat_p_;
         y_hat_thread_ = y_hat_;
         current_step_num_thread2_ = current_step_num_mpc_;
+        cp_eos_y_thread_ = cp_eos_y_mpc_;
 
         // cpmpc x
         del_F_x_thread_ = del_F_x_mpc_;
@@ -12461,7 +12470,12 @@ void AvatarController::getFootTrajectory_stepping()
         desired_swing_foot(0) = fixed_swing_foot(0);
         desired_swing_foot(1) = fixed_swing_foot(1);
     }    
-     
+
+    if(walking_tick_mj == t_start_)
+    {
+        desired_swing_foot_LPF_ = desired_swing_foot;   // for foot coordinate frame change
+    } 
+
     // real robot experiment 
     desired_swing_foot_LPF_(0) = 1 / (1 + 2 * M_PI * 2.0 * del_t) * desired_swing_foot_LPF_(0) + (2 * M_PI * 2.0 * del_t) / (1 + 2 * M_PI * 2.0 * del_t) * desired_swing_foot(0);
     desired_swing_foot_LPF_(1) = 1 / (1 + 2 * M_PI * 2.0 * del_t) * desired_swing_foot_LPF_(1) + (2 * M_PI * 2.0 * del_t) / (1 + 2 * M_PI * 2.0 * del_t) * desired_swing_foot(1);
@@ -13101,10 +13115,12 @@ void AvatarController::getComTrajectory_mpc()
                 x_hat_r_ = x_hat_thread_;
                 x_hat_r_p_ = x_hat_p_thread_;                
                 wieber_interpol_cnt_x_ = 1;
+                cp_eos_x_ = cp_eos_x_thread_;
 
                 y_hat_r_ = y_hat_thread_;
                 y_hat_r_p_ = y_hat_p_thread_;
                 wieber_interpol_cnt_y_ = 1;
+                cp_eos_y_ = cp_eos_y_thread_;
    
                 cp_des_zmp_x_prev_ = cp_des_zmp_x_;
                 // cp_des_zmp_x_prev_ =  cpmpc_des_zmp_x_p_thread_;
@@ -15378,11 +15394,11 @@ void AvatarController::CP_compen_MJ_FT()
     {
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.020 * (Tau_L_x - l_ft_LPF(3)) +0.0003*Tau_L_x_error_dot_ - 50.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.015 * (Tau_L_x - l_ft_LPF(3)) +0.0003*Tau_L_x_error_dot_ - 50.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.020 * (Tau_R_x - r_ft_LPF(3)) +0.0003*Tau_R_x_error_dot_ - 50.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.015 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 50.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 

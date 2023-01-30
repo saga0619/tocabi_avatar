@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const int FILE_CNT = 3;
 
 // mob lstm
@@ -1009,6 +1009,15 @@ public:
     Eigen::VectorXd cpmpc_deszmp_x_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
+
+    double cp_eos_x_ = 0;
+    double cp_eos_x_thread_  = 0;
+    double cp_eos_x_mpc_ = 0;
+
+    double cp_eos_y_ = 0;
+    double cp_eos_y_thread_ = 0;
+    double cp_eos_y_mpc_ = 0;
+
     double force_temp_ = 0, theta_temp_ = 0;
     double ssp_flag_ = 0;
     Eigen::Vector2d dsp_scaler_dot_;
@@ -1045,6 +1054,8 @@ public:
     double cpmpc_des_zmp_x_p_thread_ = 0;
     // double cpmpc_des_zmp_x_p_ = 0;
     // double cpmpc_des_zmp_y_p_ = 0;
+
+
     ////////////AVATAR MODE PEDAL////////////////
     bool avatar_op_pedal_raw_ = false;
     bool avatar_op_pedal_ = false;
