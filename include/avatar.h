@@ -1292,6 +1292,8 @@ public:
     Eigen::VectorXd Z_x_ref_cpmpc_only_;
     Eigen::VectorXd Z_y_ref_cpmpc_only_;
 
+    double cp_eos_x_mpc_, cp_eos_y_mpc_;
+
     double des_tau_x_thread_ = 0.0;
     double des_tau_x_ = 0.0;
     double des_tau_y_thread_ = 0.0;
