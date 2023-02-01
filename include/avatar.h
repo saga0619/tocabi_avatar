@@ -33,9 +33,13 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
-const int FILE_CNT = 2;
+const bool simulation_mode_ = true;
+const bool add_intentional_ext_torque_mode_ = false;
+const bool add_friction_torque_mode_ = true;
 
+const int FILE_CNT = 2;
+const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 // mob lstm
 const int n_input_ = 24;
 const int n_sequence_length_ = 1;
@@ -48,8 +52,8 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/mob_learning/robot_training_data.txt",
-    "/home/dyros/data/dg/mob_learning/ft_related_data.txt"
+    DATA_FOLDER_DIR + "/robot_training_data.txt",
+    DATA_FOLDER_DIR + "/ft_related_data.txt"
     // "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
@@ -170,6 +174,8 @@ public:
     void collisionDetection();
     void collisionIsolation();
     void collisionIdentification();
+
+    void updateCurrentFootstep(Eigen::Isometry3d target_foot_step);
 
     // ik
     void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
@@ -332,6 +338,7 @@ public:
     Eigen::VectorQd torque_lower_;
 
     Eigen::VectorQd torque_intentionally_applied_;
+    Eigen::VectorQd torque_friction_applied_;
 
     // Pevlis related variables
     Eigen::Vector3d pelv_pos_current_;
@@ -1595,6 +1602,11 @@ public:
     Eigen::Isometry3d lfoot_trajectory_support_;
     Eigen::Vector3d rfoot_trajectory_euler_support_;
     Eigen::Vector3d lfoot_trajectory_euler_support_;
+
+    Eigen::Isometry3d rfoot_trajectory_support_init_;
+    Eigen::Isometry3d lfoot_trajectory_support_init_;
+    Eigen::Vector3d rfoot_trajectory_euler_support_init_;
+    Eigen::Vector3d lfoot_trajectory_euler_support_init_;
 
     Eigen::Isometry3d pelv_trajectory_float_; //pelvis frame
     Eigen::Isometry3d rfoot_trajectory_float_;
