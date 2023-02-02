@@ -9239,7 +9239,9 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double tau_nom = 0.0;
         
     // double w1_step = 500.0, w2_step = 1.0, w3_step = 300.0; // simulation 
-    double w1_step = 500.0, w2_step = 1.0, w3_step = 300.0; // simulation 
+    double w1_step = 500.0, w2_step = 1.0, w3_step = 500.0; // simulation 
+    // 200 1 100 : X : -230 Y : 300 , delzmp : 1
+    // 5000 1 5000 : Y : 350
     //double w1_step = 1.0, w2_step = 0.02, w3_step = 3.0; // real robot experiment
     
     double u0_x = 0, u0_y = 0;  
@@ -9247,16 +9249,24 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     // double b_nom_y = 0;  
     double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
 
+    // support foot
+    u0_x = 0;//0.5*del_zmp(0);//0.0; 
+    u0_y = 0;//0.5*del_zmp(1); 
+        
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
         del_F_x_ = 0;
         del_F_y_ = 0;
+        u0_x = 0;
+        u0_y = 0;
         
     }
     else if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_ )
     {
         del_F_x_ = 0;
         del_F_y_ = 0;
+        u0_x = 0;
+        u0_y = 0;
     }
 
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;  
@@ -9266,10 +9276,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     W_min = W_nom - 0.05;
     W_max = W_nom + 0.05; 
 
-    // support foot
-    u0_x = 0.0; 
-    u0_y = 0.0; 
-        
+    
     T_nom = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
     T_min = T_nom - 0.2;  
     T_max = T_nom + 0.2;
@@ -9287,17 +9294,17 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     
     H_step.setZero(5,5);
     H_step(0,0) = w1_step; // U_T,x (step position in x-direction)
-    H_step(1,1) = w1_step; // U_T,y (step position in y-direction) // 200
+    H_step(1,1) = 10*w1_step; // U_T,y (step position in y-direction) // 200
     H_step(2,2) = w2_step; // tau (step timing)
     H_step(3,3) = w3_step; // DCM offset in x
-    H_step(4,4) = w3_step; // DCM offset in y // 0.01
+    H_step(4,4) = 10*w3_step; // DCM offset in y // 0.01
     
     g_step.setZero(5);
     g_step(0) = -w1_step * (u0_x + L_nom);
-    g_step(1) = -w1_step * (u0_y + W_nom); // -200
+    g_step(1) = -10*w1_step * (u0_y + W_nom); // -200
     g_step(2) = -w2_step * tau_nom;
     g_step(3) = -w3_step * b_nom_x_cpmpc;  
-    g_step(4) = -w3_step * b_nom_y_cpmpc;  // -0.01
+    g_step(4) = -10*w3_step * b_nom_y_cpmpc;  // -0.01
 
     Eigen::VectorXd lb_step;
     Eigen::VectorXd ub_step;
@@ -9345,16 +9352,16 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
     lb_step(4) = exp(wn*T_min);
-    lb_step(5) = b_nom_x_cpmpc - 5.0; 
-    lb_step(6) = b_nom_y_cpmpc - 5.0;
+    lb_step(5) = b_nom_x_cpmpc - 1.0; 
+    lb_step(6) = b_nom_y_cpmpc - 1.0;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
-    ub_step(5) = b_nom_x_cpmpc + 5.0; 
-    ub_step(6) = b_nom_y_cpmpc + 5.0;    
+    ub_step(5) = b_nom_x_cpmpc + 1.0; 
+    ub_step(6) = b_nom_y_cpmpc + 1.0;    
     
     if(walking_tick_mj == 0)
     {
@@ -9516,13 +9523,13 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(1) = del_F_(1);
     }
 
-    MJ_graph << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << cp_eos_x_cpmpc_ << "," << cp_eos_y_cpmpc_ << "," << b_nom_x << "," << b_nom_y << "," << b_nom_x_cpmpc << "," << b_nom_y_cpmpc << endl;
+    // MJ_graph << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << cp_eos_x_cpmpc_ << "," << cp_eos_y_cpmpc_ << "," << b_nom_x << "," << b_nom_y << "," << b_nom_x_cpmpc << "," << b_nom_y_cpmpc << endl;
     // MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
-    //MJ_graph << del_F_(0) << "," << del_F_(1) << "," << del_F_x_ << "," << del_F_y_ << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << "," << t_total_/hz_ << endl;
+    MJ_graph << del_F_(0) << "," << del_F_(1) << "," << del_F_x_ << "," << del_F_y_ << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << "," << t_total_/hz_ << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-     
+    // MJ_graph1 << del_zmp(0) << "," << del_zmp(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << ZMP_X_REF_ << "," << ZMP_Y_REF_ << endl;
 }
 
 /*
@@ -12013,7 +12020,7 @@ void AvatarController::getRobotState()
         zmp_measured_LPF_.setZero();
     } 
     zmp_measured_LPF_ = (2 * M_PI * 8.0 * del_t) / (1 + 2 * M_PI * 8.0 * del_t) * zmp_measured_mj_ + 1 / (1 + 2 * M_PI * 8.0 * del_t) * zmp_measured_LPF_;
-    // MJ_graph2 << ZMP_X_REF << "," << ZMP_Y_REF << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << zmp_measured_LPF_(0) << "," << zmp_measured_LPF_(1) << endl;
+    // MJ_graph2 << ZMP_X_REF_ << "," << ZMP_Y_REF_ << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << zmp_measured_LPF_(0) << "," << zmp_measured_LPF_(1) << endl;
 }
 
 void AvatarController::calculateFootStepTotal()
@@ -13888,8 +13895,8 @@ void AvatarController::preview_Parameter(double dt, int NL, Eigen::MatrixXd &Gi,
 void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double &UX, double &UY,
                                          Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD)
 {
-    ZMP_X_REF = ref_zmp_mj_(tick,0);
-    ZMP_Y_REF = ref_zmp_mj_(tick,1);  
+    ZMP_X_REF_ = ref_zmp_mj_(tick,0);
+    ZMP_Y_REF_ = ref_zmp_mj_(tick,1);  
 
     Eigen::VectorXd px, py;
     px.resize(1);
@@ -13961,7 +13968,7 @@ void AvatarController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_desired_(0) = XD(0) + XD(1) / wn;
     cp_desired_(1) = YD(0) + YD(1) / wn; 
 
-    // MJ_graph << XD(0) << "," << YD(0) << "," << ZMP_X_REF << "," << ZMP_Y_REF << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
+    // MJ_graph << XD(0) << "," << YD(0) << "," << ZMP_X_REF_ << "," << ZMP_Y_REF_ << "," << cp_desired_(0) << "," << cp_desired_(1) << endl;
 }
 
 void AvatarController::SC_err_compen(double x_des, double y_des)
@@ -14177,9 +14184,9 @@ void AvatarController::getComTrajectory_mpc()
         zmp_start_time_mj_ = t_start_;
     }    
 
-    ZMP_X_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
-    ZMP_Y_REF = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
-    // MJ_graph1 << ZMP_Y_REF << endl;
+    ZMP_X_REF_ = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,0);
+    ZMP_Y_REF_ = ref_zmp_mj_(walking_tick_mj - zmp_start_time_mj_,1); 
+    
     // State variables x_hat_ and Control input U_mpc are updated with every MPC frequency.
         
     int alpha_step = 0;
@@ -14475,7 +14482,7 @@ void AvatarController::getComTrajectory_mpc()
         des_zmp_y_prev_stepchange_ = com_pos(1); // step change 1 tick 전 desired ZMP (MPC output) step change  
                 
     }    
-    //MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
+    //MJ_graph1 << ZMP_X_REF_ << "," << ZMP_Y_REF_ << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << endl;  
 }
 
 void AvatarController::getComTrajectory()
@@ -15064,7 +15071,7 @@ void AvatarController::CP_compen_MJ()
 /*
 //real robot experiment
 void AvatarController::CP_compen_MJ_FT() 
-{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
+{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF_ 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
     double alpha = 0;
     double F_R = 0, F_L = 0;
     double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0;
@@ -15084,46 +15091,46 @@ void AvatarController::CP_compen_MJ_FT()
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
             }
         }
         else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset;
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset;
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset;
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset;
             }
         }
         else if (walking_tick_mj >= t_start_ + t_total_ - t_double2_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset - zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset - zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset + zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset + zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
             }
         }
         else
         {
-            ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+            ZMP_Y_REF_alpha_ = ZMP_Y_REF_;
         }
     }
     else
     {
-        ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+        ZMP_Y_REF_alpha_ = ZMP_Y_REF_;
     }
 
-    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
+    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF_;
     del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
 
     ////////////////////////
@@ -15131,14 +15138,14 @@ void AvatarController::CP_compen_MJ_FT()
     //   A =  (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
     //   B = -(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
     //   X1 = ZMP_Y_REF_alpha + 0*del_zmp(1) - rfoot_support_current_.translation()(1);
-    //   Y1 = ZMP_X_REF + 0*del_zmp(0) - rfoot_support_current_.translation()(0);
+    //   Y1 = ZMP_X_REF_ + 0*del_zmp(0) - rfoot_support_current_.translation()(0);
     //   L = sqrt(A*A + B*B);
     //   d = abs(A*X1 + B*Y1) / L;
     //   e_2 = X1*X1 + Y1*Y1;
     //   l = sqrt(e_2 - d*d);
     //   alpha_new = l/L;
     alpha = (ZMP_Y_REF_alpha_ + 1 * del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
-    // cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
+    // cout << alpha << "," << ZMP_Y_REF_ << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
     //  로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
     if (alpha > 1)
     {
@@ -15188,12 +15195,12 @@ void AvatarController::CP_compen_MJ_FT()
     //   {
     //     F_F_input = -0.01;
     //   }
-    // MJ_graph << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
+    // MJ_graph << ZMP_Y_REF_ << "," << ZMP_Y_REF_alpha << "," << alpha << "," << F_L << "," << F_R << "," << F_F_input << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) <<  endl;
 
     //////////// Torque
     // X,Y 축을 X,Y 방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
     Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_L);
-    Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_L);
+    Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF_ + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF_ + del_zmp(0))) * F_L);
 
     if (Tau_all_x > 100)
     {
@@ -15311,19 +15318,19 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = -0.2;
     }
 
-    // MJ_joint1 << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << ZMP_Y_REF << "," << ZMP_Y_REF_alpha << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) << endl;
+    // MJ_joint1 << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << "," << ZMP_Y_REF_ << "," << ZMP_Y_REF_alpha << "," << l_ft_LPF(2) << "," << r_ft_LPF(2) << endl;
     // cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
     // MJ_graph << alpha << "," << alpha_new << endl;
-    // MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
+    // MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF_ << "," << Tau_R_y << "," << Tau_L_y << endl;
     // MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_LPF(3) << "," << r_ft_LPF(3) << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_F_input << endl;
-    // MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
+    // MJ_graph << ZMP_Y_REF_ << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
     // MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }*/
 
 //simulation
 void AvatarController::CP_compen_MJ_FT()
 { 
-    // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
+    // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF_ 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
     double alpha = 0;
     double F_R = 0, F_L = 0;
     double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0;
@@ -15340,46 +15347,46 @@ void AvatarController::CP_compen_MJ_FT()
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset * (walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + t_rest_init_ + t_double1_) / (t_rest_init_ + t_double1_);
             }
         }
         else if (walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset;
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset;
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset;
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset;
             }
         }
         else if (walking_tick_mj >= t_start_ + t_total_ - t_double2_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
         {
             if (foot_step_(current_step_num_, 6) == 1)
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF + zmp_offset - zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ + zmp_offset - zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
             }
             else
             {
-                ZMP_Y_REF_alpha_ = ZMP_Y_REF - zmp_offset + zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
+                ZMP_Y_REF_alpha_ = ZMP_Y_REF_ - zmp_offset + zmp_offset * (walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_)) / (t_rest_last_ + t_double2_);
             }
         }
         else
         {
-            ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+            ZMP_Y_REF_alpha_ = ZMP_Y_REF_;
         }
     }
     else
     {
-        ZMP_Y_REF_alpha_ = ZMP_Y_REF;
+        ZMP_Y_REF_alpha_ = ZMP_Y_REF_;
     }
      
-    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF;
+    del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF_;
     del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
      
     // del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), -0.1, 0.1);
@@ -15389,7 +15396,7 @@ void AvatarController::CP_compen_MJ_FT()
     // A = (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));
     // B = -(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
     // X1 = ZMP_Y_REF_alpha_ + 0 * del_zmp(1) - rfoot_support_current_.translation()(1);
-    // Y1 = ZMP_X_REF + 0 * del_zmp(0) - rfoot_support_current_.translation()(0);
+    // Y1 = ZMP_X_REF_ + 0 * del_zmp(0) - rfoot_support_current_.translation()(0);
     // L = sqrt(A * A + B * B);
     // d = abs(A * X1 + B * Y1) / L;
     // e_2 = X1 * X1 + Y1 * Y1;
@@ -15401,7 +15408,7 @@ void AvatarController::CP_compen_MJ_FT()
         alpha_lpf_ = alpha;
     }
     alpha_lpf_ = 1 / (1 + 2 * M_PI * 6.0 * del_t) * alpha_lpf_ + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * alpha;
-    //cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
+    //cout << alpha << "," << ZMP_Y_REF_ << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
     // 로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
     if (alpha > 1)
     {
@@ -15451,7 +15458,7 @@ void AvatarController::CP_compen_MJ_FT()
     //////////// Torque
     // X,Y 축을 X,Y 방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
     Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha_ + del_zmp(1))) * F_L);
-    Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + del_zmp(0))) * F_L);
+    Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF_ + del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF_ + del_zmp(0))) * F_L);
     if (Tau_all_x > 100)
     {
         Tau_all_x = 100;

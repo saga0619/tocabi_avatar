@@ -1634,8 +1634,8 @@ public:
     double yi_mj_;
     double zc_mj_;
 
-    double ZMP_X_REF;
-    double ZMP_Y_REF;
+    double ZMP_X_REF_;
+    double ZMP_Y_REF_;
     double ZMP_Y_REF_alpha_ = 0;
 
     double t_last_;
