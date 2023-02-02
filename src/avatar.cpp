@@ -9223,25 +9223,23 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     //Setting up nominal values w.r.t current footstep
  
-    // W : 현재 지지발 기준에서 plan된 y방향 발 위치에서 추가로 얼마나 더 step했는지 / 여기서 step width라고 부름/ 로봇이 얼마나 옆으로 이동했는지를 보여주는 value
-
     // L : del_F_x , W : del_F_y 
     
-    double L_nom = 0;
-    double L_min = 0; // min value of del_F_x
-    double L_max = 0; // max value of del_F_x
+    double L_nom = 0.0;
+    double L_min = 0.0; 
+    double L_max = 0.0; 
 
-    double W_nom = 0;
-    double W_min = -0.1;
-    double W_max = +0.1;
+    double W_nom = 0.0;
+    double W_min = 0.0;
+    double W_max = 0.0;
 
-    double T_nom = 0;
-    double T_min = 0; 
-    double T_max = 0;
-    double tau_nom = 0;
+    double T_nom = 0.0;
+    double T_min = 0.0; 
+    double T_max = 0.0;
+    double tau_nom = 0.0;
         
-    // double w1_step = 1.0, w2_step = 0.05, w3_step = 100.0; // simulation 
-    double w1_step = 500.0, w2_step = 1.0, w3_step = 100.0; // simulation 
+    // double w1_step = 500.0, w2_step = 1.0, w3_step = 100.0; // simulation 
+    double w1_step = 300.0, w2_step = 1.0, w3_step = 100.0; // simulation 
     //double w1_step = 1.0, w2_step = 0.02, w3_step = 3.0; // real robot experiment
     
     double u0_x = 0; 
@@ -9262,34 +9260,27 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         del_F_y_ = 0;
     }
 
-    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
-    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_; // 0;
+    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;  
+    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_;  
     L_min = L_nom - 0.05; // 0.05
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.05;
     W_max = W_nom + 0.05;
-    l_p = foot_step_support_frame_(current_step_num_, 1);    
+    // l_p = foot_step_support_frame_(current_step_num_, 1);    
 
-    if(current_step_num_ != 0)
-    {
-        u0_x = foot_step_support_frame_(current_step_num_-1, 0); 
-        u0_y = foot_step_support_frame_(current_step_num_-1, 1); 
-    }
-    else
-    {
-        u0_x = 0.0;
-        u0_y = 0.0; 
-    }    
-    
-    T_nom = 0.6; // 0.6하면 370 못버팀.
-    T_min = T_nom - 0.15; //(t_rest_last_ + t_double2_ + 0.1)/hz_ + 0.01; // DSP가 고정이라는 가정하에 써야됨.
-    T_max = T_nom + 0.15;
+    // support foot
+    u0_x = 0.0; 
+    u0_y = 0.0; 
+        
+    T_nom = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
+    T_min = T_nom - 0.2;  
+    T_max = T_nom + 0.2;
     tau_nom = exp(wn*T_nom); 
 
     // b_nom_x = L_nom/(exp(wn*T_nom)-1);
     // b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
-    b_nom_x = cp_eos_x_mpc_ - (foot_step_support_frame_(current_step_num_, 0) + del_F_x_);
-    b_nom_y = cp_eos_y_mpc_ - (foot_step_support_frame_(current_step_num_, 1) + del_F_y_);
+    b_nom_x = cp_eos_x_mpc_ - L_nom;
+    b_nom_y = cp_eos_y_mpc_ - W_nom;
     
     Eigen::MatrixXd H_step;
     Eigen::VectorXd g_step; 
@@ -9354,16 +9345,16 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
     lb_step(4) = exp(wn*T_min);
-    lb_step(5) = b_nom_x - 0.1; 
-    lb_step(6) = b_nom_y - 0.1;
+    lb_step(5) = b_nom_x - 5.0; 
+    lb_step(6) = b_nom_y - 5.0;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
-    ub_step(5) = b_nom_x + 0.1; // 0.1
-    ub_step(6) = b_nom_y + 0.1;    
+    ub_step(5) = b_nom_x + 5.0; 
+    ub_step(6) = b_nom_y + 5.0;    
     
     if(walking_tick_mj == 0)
     {
@@ -9420,6 +9411,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     if (walking_tick_mj == t_start_ + t_total_ - t_rest_last_ - t_double2_  && current_step_num_ != total_step_num_ - 1) // SSP 끝날때 미리 계산된 DSP time 저장.
     {
         dsp_time_reducer_fixed_ = dsp_time_reducer_;
+        
         if(dsp_time_reducer_fixed_ < 0.01 && dsp_time_reducer_fixed_ > -0.01)
         {
             dsp_time_reducer_fixed_ = 0;
@@ -9524,7 +9516,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(1) = 0;
     }
 
-     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+    if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
         stepping_input_(0) = L_nom;
         stepping_input_(1) = W_nom;
@@ -9542,11 +9534,9 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     del_F_(1) = stepping_input_(1);
     MJ_graph << del_F_(0) << "," << del_F_(1) << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    // Log 함수 쓸때 주의 -> log(0) -> inf  
-    // MJ_graph1 << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_/hz_ << "," << L_nom << endl;
-    // MJ_graph << b_nom_x << "," << b_nom_y << "," << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << del_F_x_ << endl;
      
 }
+
 /*
 void AvatarController::BoltController_MJ()
 {   
@@ -9728,6 +9718,7 @@ void AvatarController::BoltController_MJ()
      
 }
 */
+
 void AvatarController::computeThread3()
 {
     comGenerator_MPC_wieber(50.0, 1.0/50.0, 2.5, 2000/50.0); // Hz, T, Preview window
