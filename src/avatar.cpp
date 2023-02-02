@@ -9238,15 +9238,14 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double T_max = 0.0;
     double tau_nom = 0.0;
         
-    // double w1_step = 500.0, w2_step = 1.0, w3_step = 100.0; // simulation 
-    double w1_step = 300.0, w2_step = 1.0, w3_step = 100.0; // simulation 
+    // double w1_step = 500.0, w2_step = 1.0, w3_step = 300.0; // simulation 
+    double w1_step = 500.0, w2_step = 1.0, w3_step = 300.0; // simulation 
     //double w1_step = 1.0, w2_step = 0.02, w3_step = 3.0; // real robot experiment
     
-    double u0_x = 0; 
-    double u0_y = 0;    
-    double b_nom_x = 0; 
-    double b_nom_y = 0; 
-    double l_p = 0;
+    double u0_x = 0, u0_y = 0;  
+    // double b_nom_x = 0; 
+    // double b_nom_y = 0;  
+    double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
 
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
@@ -9265,8 +9264,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     L_min = L_nom - 0.05; // 0.05
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.05;
-    W_max = W_nom + 0.05;
-    // l_p = foot_step_support_frame_(current_step_num_, 1);    
+    W_max = W_nom + 0.05; 
 
     // support foot
     u0_x = 0.0; 
@@ -9277,11 +9275,13 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     T_max = T_nom + 0.2;
     tau_nom = exp(wn*T_nom); 
 
-    // b_nom_x = L_nom/(exp(wn*T_nom)-1);
+    // b_nom_x = L_nom/(exp(wn*T_nom)-1); // bolt
     // b_nom_y = l_p/(1 + exp(wn*T_nom)) - W_nom/(1 - exp(wn*T_nom));
-    b_nom_x = cp_eos_x_mpc_ - L_nom;
-    b_nom_y = cp_eos_y_mpc_ - W_nom;
-    
+    // b_nom_x = cp_eos_x_mpc_ - L_nom; // wieber
+    // b_nom_y = cp_eos_y_mpc_ - W_nom;
+    b_nom_x_cpmpc = cp_eos_x_cpmpc_ - L_nom;
+    b_nom_y_cpmpc = cp_eos_y_cpmpc_ - W_nom;
+
     Eigen::MatrixXd H_step;
     Eigen::VectorXd g_step; 
     
@@ -9296,8 +9296,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     g_step(0) = -w1_step * (u0_x + L_nom);
     g_step(1) = -w1_step * (u0_y + W_nom); // -200
     g_step(2) = -w2_step * tau_nom;
-    g_step(3) = -w3_step * b_nom_x;  
-    g_step(4) = -w3_step * b_nom_y;  // -0.01
+    g_step(3) = -w3_step * b_nom_x_cpmpc;  
+    g_step(4) = -w3_step * b_nom_y_cpmpc;  // -0.01
 
     Eigen::VectorXd lb_step;
     Eigen::VectorXd ub_step;
@@ -9345,16 +9345,16 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     lb_step(2) = u0_x + L_min;
     lb_step(3) = u0_y + W_min;
     lb_step(4) = exp(wn*T_min);
-    lb_step(5) = b_nom_x - 5.0; 
-    lb_step(6) = b_nom_y - 5.0;
+    lb_step(5) = b_nom_x_cpmpc - 5.0; 
+    lb_step(6) = b_nom_y_cpmpc - 5.0;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
     ub_step(2) = u0_x + L_max;
     ub_step(3) = u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
-    ub_step(5) = b_nom_x + 5.0; 
-    ub_step(6) = b_nom_y + 5.0;    
+    ub_step(5) = b_nom_x_cpmpc + 5.0; 
+    ub_step(6) = b_nom_y_cpmpc + 5.0;    
     
     if(walking_tick_mj == 0)
     {
@@ -9503,19 +9503,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     //     // t_total_ = 1.1 * hz_;
     //     // t_last_ = t_start_ + t_total_ - 1;
     // }
-    
-    if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
-    {
-        stepping_input_(0) = 0;
-        stepping_input_(1) = 0;
-        
-    }
-    else if(walking_tick_mj >= t_start_ + t_total_ - (t_rest_last_ + t_double2_) && walking_tick_mj < t_start_ + t_total_ )
-    {
-        stepping_input_(0) = 0;
-        stepping_input_(1) = 0;
-    }
-
+ 
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
         stepping_input_(0) = L_nom;
@@ -9528,11 +9516,11 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(1) = del_F_(1);
     }
 
-    // MJ_graph << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << b_nom_x << "," << b_nom_y << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << endl;
+    MJ_graph << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << cp_eos_x_cpmpc_ << "," << cp_eos_y_cpmpc_ << "," << b_nom_x << "," << b_nom_y << "," << b_nom_x_cpmpc << "," << b_nom_y_cpmpc << endl;
     // MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
-    MJ_graph << del_F_(0) << "," << del_F_(1) << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << endl;
+    //MJ_graph << del_F_(0) << "," << del_F_(1) << "," << del_F_x_ << "," << del_F_y_ << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << "," << t_total_/hz_ << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
      
 }
@@ -10389,26 +10377,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     zmp_bound_y_new.setZero();    
     Tau_x_limit.setZero();
     Tau_y_limit.setZero();    
-       
-    if(mpc_tick <= t_total_const_ - t_rest_last_ - t_double2_)
-    {
-        int landing_mpc_time = int((t_total_const_ - mpc_tick - t_rest_last_ - t_double2_)/MPC_synchro_hz );
-        cp_eos_x_mpc_ = cp_x_ref_new(landing_mpc_time); // Because of some reasons, it seems that predicted CP eos can be changed.
-        cp_eos_y_mpc_ = cp_y_ref_new(landing_mpc_time);
-
-        // MJ_graph1 << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << landing_mpc_time << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << endl;
-
-        // static int aa = 0;
-        // if(walking_tick_mj_mpc_ >= 4.0*2000 && aa == 0)
-        // {
-        //     aa = 1;
-
-        //     for(int i = 0; i < N_cp; i ++)
-        //     {        
-        //         MJ_graph2 << cp_y_ref_new(i) << "," << Z_y_ref_cpmpc_only_(i) << endl; 
-        //     }            
-        // }
-    }
+           
     
     for(int i = 0; i < N_cp; i++)  
     {
@@ -10417,7 +10386,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         zmp_bound_x_new(2*i) = 0.1; 
         zmp_bound_y_new(2*i) = 0.07;  
         Tau_x_limit(2*i + 1) = 10.0;//20.0;
-        Tau_y_limit(2*i + 1) = 10.0;//20.0;
+        Tau_y_limit(2*i + 1) = 20.0;//20.0;
     }
 
     if(atb_new_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
@@ -10765,10 +10734,10 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // 1을 줄이면 0이 더 많이 생길수도? 별 차이없음
     if(alpha_step_mpc_ == 1) // left foot support
     {
-        ub_x_foot_cp_mpc_new(0) = 0.17 - rfoot_support_current_mpc_.translation()(0);
-        lb_x_foot_cp_mpc_new(0) = -0.17 - rfoot_support_current_mpc_.translation()(0);
-        ub_x_foot_cp_mpc_new(1) = 0.17; 
-        lb_x_foot_cp_mpc_new(1) = -0.17; 
+        ub_x_foot_cp_mpc_new(0) = 0.2 - rfoot_support_current_mpc_.translation()(0);
+        lb_x_foot_cp_mpc_new(0) = -0.2 - rfoot_support_current_mpc_.translation()(0);
+        ub_x_foot_cp_mpc_new(1) = 0.2; 
+        lb_x_foot_cp_mpc_new(1) = -0.2; 
 
         // standard value of rfoot_support_current = -0.25
         ub_y_foot_cp_mpc_new(0) = -0.22 - rfoot_support_current_mpc_.translation()(1); // 0.03
@@ -10778,10 +10747,10 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     }
     else if(alpha_step_mpc_ == -1) // right foot support
     {
-        ub_x_foot_cp_mpc_new(0) = 0.17 - lfoot_support_current_mpc_.translation()(0);
-        lb_x_foot_cp_mpc_new(0) = -0.17 - lfoot_support_current_mpc_.translation()(0);
-        ub_x_foot_cp_mpc_new(1) = 0.17; 
-        lb_x_foot_cp_mpc_new(1) = -0.17; 
+        ub_x_foot_cp_mpc_new(0) = 0.2 - lfoot_support_current_mpc_.translation()(0);
+        lb_x_foot_cp_mpc_new(0) = -0.2 - lfoot_support_current_mpc_.translation()(0);
+        ub_x_foot_cp_mpc_new(1) = 0.2; 
+        lb_x_foot_cp_mpc_new(1) = -0.2; 
 
         // standard value of lfoot_support_current = +0.25
         ub_y_foot_cp_mpc_new(0) =  0.35 - lfoot_support_current_mpc_.translation()(1); // 0.1
@@ -10840,6 +10809,34 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         }       
         cpmpc_y_update_ = true;
     } 
+
+    Eigen::VectorXd cp_predicted_x(N_cp);        
+    Eigen::VectorXd cp_predicted_y(N_cp);
+
+    cp_predicted_x = F_cp_new_*cp_measured_mpc_(0) + F_cmp_new_*cpmpc_output_x_new_.segment(0,2*N_cp);
+    cp_predicted_y = F_cp_new_*cp_measured_mpc_(1) + F_cmp_new_*cpmpc_output_y_new_.segment(0,2*N_cp);   
+    
+    if(mpc_tick <= t_total_const_ - t_rest_last_ - t_double2_)
+    {
+        int landing_mpc_time = int((t_total_const_ - mpc_tick - t_rest_last_ - t_double2_)/MPC_synchro_hz );
+        cp_eos_x_mpc_ = cp_x_ref_new(landing_mpc_time); // Because of some reasons, it seems that predicted CP eos can be changed.
+        cp_eos_y_mpc_ = cp_y_ref_new(landing_mpc_time);
+
+        cp_eos_x_cpmpc_ = cp_predicted_x(landing_mpc_time); 
+        cp_eos_y_cpmpc_ = cp_predicted_y(landing_mpc_time); 
+        // MJ_graph1 << cp_eos_x_mpc_ << "," << cp_eos_y_mpc_ << "," << landing_mpc_time << "," << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << endl;
+
+        // static int aa = 0;
+        // if(walking_tick_mj_mpc_ >= 4.0*2000 && aa == 0)
+        // {
+        //     aa = 1;
+
+        //     for(int i = 0; i < N_cp; i ++)
+        //     {        
+        //         MJ_graph2 << cp_y_ref_new(i) << "," << Z_y_ref_cpmpc_only_(i) << endl; 
+        //     }            
+        // }
+    }
 
     // static int aa = 0;
     // if(walking_tick_mj_mpc_ >= 6.2*2000 && aa == 0)
