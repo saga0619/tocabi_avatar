@@ -1215,6 +1215,7 @@ public:
     Eigen::VectorXd cpmpc_deszmp_y_;
     double force_temp_ = 0, theta_temp_ = 0;
     double ssp_flag_ = 0;
+    double w_ux_temp_ = 0, w_uy_temp_ = 0, w_time_temp_ = 0, w_bx_temp_ = 0, w_by_temp_ = 0;
     Eigen::Vector2d dsp_scaler_dot_;
     Eigen::Vector2d dsp_scaler_;
     double dsp_scaler_x_dot_ = 0;
@@ -1517,6 +1518,9 @@ public:
 
     Eigen::VectorQd del_cmm_q_;
     unsigned int cmp_control_mode = 0;
+
+    double des_zmp_ssp_mpc_x_ = 0;
+    double des_zmp_ssp_mpc_y_ = 0;
 
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
