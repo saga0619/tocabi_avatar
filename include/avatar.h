@@ -41,7 +41,7 @@ const int FILE_CNT = 2;
 const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
 const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 // mob lstm
-const int n_input_ = 24;
+const int n_input_ = 30;
 const int n_sequence_length_ = 1;
 const int n_output_ = 12;
 const int n_hidden_ = 128;
@@ -176,6 +176,8 @@ public:
     void collisionIdentification();
 
     void updateCurrentFootstep(Eigen::Isometry3d target_foot_step);
+
+    void sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque);
 
     // ik
     void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
@@ -340,6 +342,10 @@ public:
     Eigen::VectorQd torque_intentionally_applied_;
     Eigen::VectorQd torque_friction_applied_;
 
+    Eigen::VectorQd random_ext_torque_;
+    Eigen::VectorQd random_ext_torque_duration_;
+    Eigen::VectorQd random_ext_torque_update_tick_;
+    Eigen::VectorQd random_ext_torque_update_flag_;
     // Pevlis related variables
     Eigen::Vector3d pelv_pos_current_;
     Eigen::Vector6d pelv_vel_current_;
@@ -964,6 +970,7 @@ public:
     Eigen::VectorXd stepping_input;
     Eigen::VectorXd stepping_input_;
 
+    bool step_time_adjust_flag_ = true;
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
@@ -1241,6 +1248,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////Collision Handling////////////////////////////
+    double landing_foot_vel_z_ =0;
+
     bool swing_foot_contact_detection_ = false;
     int swing_foot_contact_cnt_ = 0;
     ////////////////////////////////////////////////////////////////////////
@@ -1544,6 +1553,7 @@ public:
     void updateInitialState();
     void updateNextStepTime();
     void parameterSetting();
+    void setWalkingTime(int walking_period_set);
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
@@ -1792,6 +1802,7 @@ public:
     double t_rest_init_mpc_;
     double t_rest_last_mpc_;
     double foot_height_=0.055;
+
     int total_step_num_;
     int total_step_num_mpc_;
     int total_step_num_thread_;
@@ -1873,15 +1884,20 @@ public:
 
     bool joy_continuous_walking_flag_ = false;
     bool joy_foot_height_flag_ = false;
-
     double foot_height_changed_;
+    bool joy_walking_period_flag_ = false;
+    int joy_walking_period_set_ = 4;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
     Eigen::Isometry3d oneStepPlanner(double del_x, double del_y, double del_yaw, bool support_foot_is_left);
 
     Eigen::Vector2d joy_left_stick_;
-    Eigen::Vector2d joy_right_stick_; 
+    Eigen::Vector2d joy_right_stick_;
+    Eigen::Matrix<int, 2, 1> joy_cross_button_raw_;
+    Eigen::Matrix<int, 2, 1> joy_cross_button_; 
+    Eigen::Matrix<int, 2, 1> joy_cross_button_pre_;
+    Eigen::Matrix<int, 2, 1> joy_cross_button_clicked_;
     Eigen::Matrix<bool, 11, 1>  joy_buttons_raw_;
     Eigen::Matrix<bool, 11, 1>  joy_buttons_; 
     Eigen::Matrix<bool, 11, 1>  joy_buttons_pre_; 
@@ -1897,7 +1913,7 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 90; // 3.0s
+    const int joy_command_buffer_size_ = 90; // 2.0s
     Eigen::Matrix<double, 3, 90> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
