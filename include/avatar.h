@@ -37,14 +37,14 @@ const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 const bool add_friction_torque_mode_ = true;
 
-const int FILE_CNT = 2;
+const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
 const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
-// mob lstm
+// mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
 const int n_output_ = 12;
-const int n_hidden_ = 128;
+const int n_hidden_ = 150;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
 const bool gaussian_mode_ = true;
@@ -53,8 +53,8 @@ const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
     DATA_FOLDER_DIR + "/robot_training_data.txt",
-    DATA_FOLDER_DIR + "/ft_related_data.txt"
-    // "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
+    DATA_FOLDER_DIR + "/ft_related_data.txt",
+    DATA_FOLDER_DIR + "/mob_gru_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
@@ -1415,6 +1415,7 @@ public:
     GRU left_leg_peter_gru_;
     GRU right_leg_peter_gru_;
 
+    const int gru_hz_ = 1000;
     // ifstream network_weights_file_gru_[6];
     // ifstream mean_std_file_gru_[4];
 
@@ -1423,15 +1424,16 @@ public:
     Eigen::Vector6d estimated_ext_force_lhand_gru_;
     Eigen::Vector6d estimated_ext_force_rhand_gru_;
 
-    Eigen::VectorQd estimated_external_torque_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_thread_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_slow_lpf_;
+
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_thread_;
+
     Eigen::VectorQd estimated_external_torque_gru_slow_;
-    Eigen::VectorQd estimated_external_torque_gru_thread_;
-    Eigen::VectorQd estimated_external_torque_gru_slow_lpf_;
-
-    Eigen::VectorQd estimated_external_torque_variance_gru_fast_;
-    Eigen::VectorQd estimated_external_torque_variance_gru_slow_;
-    Eigen::VectorQd estimated_external_torque_variance_gru_thread_;
-
     void collectRobotInputData_peter_gru();
 
     void loadGruWeights(GRU &gru, std::string folder_path);
