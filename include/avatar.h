@@ -33,13 +33,16 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
-const bool add_intentional_ext_torque_mode_ = false;
-const bool add_friction_torque_mode_ = true;
+const bool simulation_mode_ = false;
+const bool add_intentional_ext_torque_mode_ = true;
+const bool add_friction_torque_mode_ = false;
 
 const int FILE_CNT = 3;
-const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
-const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+// const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
+// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+
+const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 // mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
@@ -69,7 +72,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros-ai/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -1915,8 +1918,8 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 90; // 2.0s
-    Eigen::Matrix<double, 3, 90> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    const int joy_command_buffer_size_ = 75; // 2.5s
+    Eigen::Matrix<double, 3, 75> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
     double yaw_angle_command_ = 0;
