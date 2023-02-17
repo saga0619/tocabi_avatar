@@ -34,7 +34,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 const bool simulation_mode_ = false;
-const bool add_intentional_ext_torque_mode_ = true;
+const bool add_intentional_ext_torque_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 
 const int FILE_CNT = 3;
@@ -1891,7 +1891,7 @@ public:
     bool joy_foot_height_flag_ = false;
     double foot_height_changed_;
     bool joy_walking_period_flag_ = false;
-    int joy_walking_period_set_ = 4;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
+    int joy_walking_period_set_ = 3;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);

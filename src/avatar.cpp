@@ -1198,6 +1198,14 @@ void AvatarController::computeSlow()
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i) + Tau_CP(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+             
+                    if(add_intentional_ext_torque_mode_)
+                    {
+                        for(int i=0; i<MODEL_DOF; i++)
+                        {
+                            torque_lower_(i) += torque_intentionally_applied_(i);
+                        }
+                    }
                 }
                 
                 std::chrono::steady_clock::time_point t_printOutTextFile_start = std::chrono::steady_clock::now();
@@ -1360,14 +1368,14 @@ void AvatarController::computeSlow()
             }
         }
 
-        for (int i = 0; i < 12; i++)
-        {
-            torque_lower_(i) = DyrosMath::minmax_cut(torque_lower_(i), torque_task_min_(i), torque_task_max_(i));
-            if(torque_lower_(i) != torque_lower_(i))
-            {
-                cout<<"torque_lower_("<<i<<") has NaN value!"<<endl;
-            }
-        }
+        // for (int i = 0; i < 12; i++)
+        // {
+        //     torque_lower_(i) = DyrosMath::minmax_cut(torque_lower_(i), torque_task_min_(i), torque_task_max_(i));
+        //     if(torque_lower_(i) != torque_lower_(i))
+        //     {
+        //         cout<<"torque_lower_("<<i<<") has NaN value!"<<endl;
+        //     }
+        // }
         /////////////////////////////////////////////////////////////////////////////////////////
 
         // if (atb_desired_q_update_ == false)
@@ -1423,13 +1431,7 @@ void AvatarController::computeSlow()
             }
             ///////////////////////////////////////////////////////////////////////////////////
 
-            if(add_intentional_ext_torque_mode_)
-            {
-                for(int i=0; i<MODEL_DOF; i++)
-                {
-                    torque_command_total(i) += torque_intentionally_applied_(i);
-                }
-            }
+
         }
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
@@ -8163,7 +8165,7 @@ void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
     int margin_tick = 0.01*hz_;
     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - margin_tick)
     {
-        double max_random_torque = 30;
+        double max_random_torque = 50;
 
         for(int i = 0; i <12; i++)
         {
@@ -12051,8 +12053,8 @@ void AvatarController::addZmpOffset()
     // lfoot_zmp_offset_ = -0.005; // 0.7 초
     // rfoot_zmp_offset_ = 0.005;
 
-    lfoot_zmp_offset_ = -0.015; // 0.9 초
-    rfoot_zmp_offset_ = 0.015;
+    // lfoot_zmp_offset_ = -0.015; // 0.9 초
+    // rfoot_zmp_offset_ = 0.015;
 
     // lfoot_zmp_offset_ = -0.02; // 1.1 초
     // rfoot_zmp_offset_ = 0.02;
@@ -15376,7 +15378,7 @@ void AvatarController::CP_compen_MJ_FT()
     double alpha_new = 0;
 
     // zmp_offset = 0.005; // 0.7초
-    zmp_offset = 0.015; // 0.9초
+    // zmp_offset = 0.015; // 0.9초
     // zmp_offset = 0.02; // 1.1초
     // zmp_offset = 0.015; // 1.3초
 
@@ -15676,22 +15678,22 @@ void AvatarController::CP_compen_MJ_FT()
         // Roll: 0.030, 0.0005, 10 Pitch: 0.030, 0.0005, 5 -> 3 Degree slope
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.020 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.030 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.020 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.030 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
         // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
         // 0.035/0.0005/-5: 3degree slope possilbe
-        F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5.0 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.035 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5.0 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.035 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
 
