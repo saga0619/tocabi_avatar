@@ -92,7 +92,7 @@ public:
     CQuadraticProgram QP_motion_retargeting_rhand_;
     CQuadraticProgram QP_motion_retargeting_[3];    // task1: each arm, task2: relative arm, task3: hqp second hierarchy
     CQuadraticProgram QP_stepping_;
-    CQuadraticProgram QP_steptiming_;
+    CQuadraticProgram QP_jeong_;
     CQuadraticProgram QP_cpmpc_x_;
     CQuadraticProgram QP_cpmpc_y_;
     CQuadraticProgram QP_cpmpc_x_new_;
@@ -1156,6 +1156,8 @@ public:
     Eigen::VectorXd stepping_input;
     Eigen::VectorXd stepping_input_;
 
+    Eigen::VectorXd QP_jeong_container_;
+    Eigen::VectorXd QP_jeong_sol_;
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
@@ -1306,6 +1308,7 @@ public:
     Eigen::VectorXd U_y_mpc_; 
     // Thread 2
     
+    Eigen::Vector2d del_F_j_;
     Eigen::Vector2d del_F_;
     Eigen::Vector3d x_hat_r_;
     Eigen::Vector3d x_hat_r_sc_;
@@ -1456,6 +1459,8 @@ public:
     
     void SC_err_compen(double x_des, double y_des);
 
+    void AnkleController_Jeong();
+    void QPController_Jeong();
     void CP_compen_MJ();
     void CP_compen_MJ_FT();
     void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
@@ -1524,7 +1529,8 @@ public:
 
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
-    Eigen::Vector2d del_zmp;
+    Eigen::Vector2d del_zmp_;
+    Eigen::Vector2d del_zmp_j_;
     Eigen::Vector2d cp_desired_;
     Eigen::Vector2d cp_measured_;
     Eigen::Vector2d cp_measured_LPF;
