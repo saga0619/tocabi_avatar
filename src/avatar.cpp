@@ -1184,13 +1184,6 @@ void AvatarController::computeSlow()
                     // CP_compen_MJ();
                     CP_compen_MJ_FT();
                 }
-
-                ////////// Add External Torque////////////////
-                if(add_intentional_ext_torque_mode_)
-                {
-                    torque_intentionally_applied_.setZero();
-                    sampleIntentionalExtTorque(torque_intentionally_applied_);
-                }
                 
 
                 torque_lower_.setZero();
@@ -1199,7 +1192,19 @@ void AvatarController::computeSlow()
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i) + Tau_CP(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
                 }
-                
+
+
+                ////////// Add External Torque////////////////
+                if(add_intentional_ext_torque_mode_)
+                {
+                    torque_intentionally_applied_.setZero();
+                    sampleIntentionalExtTorque(torque_intentionally_applied_);
+                    for(int i=0; i<MODEL_DOF; i++)
+                    {
+                        torque_lower_(i) += torque_intentionally_applied_(i);
+                    }
+                }
+
                 std::chrono::steady_clock::time_point t_printOutTextFile_start = std::chrono::steady_clock::now();
                 printOutTextFile();
                 std::chrono::steady_clock::time_point t_printOutTextFile_end = std::chrono::steady_clock::now();
@@ -1391,7 +1396,7 @@ void AvatarController::computeSlow()
 
         Eigen::VectorQd torque_command_total;
         torque_command_total = torque_lower_ + torque_upper_;
-        if(simulation_mode_ == true)
+        if(true)
         {
             ////////// Add Friction Torque
             if(add_friction_torque_mode_)
@@ -1423,13 +1428,7 @@ void AvatarController::computeSlow()
             }
             ///////////////////////////////////////////////////////////////////////////////////
 
-            if(add_intentional_ext_torque_mode_)
-            {
-                for(int i=0; i<MODEL_DOF; i++)
-                {
-                    torque_command_total(i) += torque_intentionally_applied_(i);
-                }
-            }
+
         }
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
@@ -1654,11 +1653,11 @@ void AvatarController::computeFast()
             // loadLstmMeanStd(right_leg_mob_lstm_, "/home/dyros/catkin_ws/src/tocabi_avatar/lstm_tocabi/mean_std/right_leg/right_leg_tocabi_model_vel_ft_wo_quat_only_ground_data/");
 
             // // PETER GRU
-            initializeLegGRU(left_leg_peter_gru_, n_input_, n_output_, n_hidden_);
+            initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
             loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_mob_uct_test/");
             loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_mob_uct_test/");
             
-            initializeLegGRU(right_leg_peter_gru_, n_input_, n_output_, n_hidden_);
+            initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
             loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_mob_uct_test/");
             loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_mob_uct_test/");
 
@@ -1740,7 +1739,7 @@ void AvatarController::computeFast()
         // calculateScaMlpOutput(btw_arms_sca_mlp_);
 
         // avatar mode pedal
-        // avatarModeStateMachine();
+        avatarModeStateMachine();
 
         //motion planing and control//
         motionGenerator(); // 140~240us(HQPIK)
@@ -8146,7 +8145,9 @@ void AvatarController::updateCurrentFootstep(Eigen::Isometry3d target_foot_step)
     else
     {
         for(int i = 0; i<3; i++)
-        supoprt_foot_step_global.translation()(i) = foot_step_joy_temp_(current_step_num_-1, i);   
+        {
+            supoprt_foot_step_global.translation()(i) = foot_step_joy_temp_(current_step_num_-1, i);   
+        }
 
         supoprt_foot_step_global.linear() = DyrosMath::rotateWithZ(foot_step_joy_temp_(current_step_num_-1, 5));
     }
@@ -8154,23 +8155,26 @@ void AvatarController::updateCurrentFootstep(Eigen::Isometry3d target_foot_step)
     swing_foot_new_step_ = DyrosMath::multiplyIsometry3d(supoprt_foot_step_global, target_foot_step);
 
     for(int i = 0; i<2; i++)
+    {
         foot_step_joy_temp_(current_step_num_, i) = swing_foot_new_step_.translation()(i);
+    }
 
     foot_step_joy_temp_(current_step_num_, 5) = DyrosMath::rot2Euler(swing_foot_new_step_.linear())(2);
 }
 void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
 {
-    int margin_tick = 0.01*hz_;
+    int margin_tick = 0.000*hz_;
+    
     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - margin_tick)
     {
-        double max_random_torque = 30;
+        double max_random_torque = 150;
 
         for(int i = 0; i <12; i++)
         {
             if(walking_tick_mj == t_start_ + t_rest_init_ + t_double1_ + margin_tick)
             {
-                random_ext_torque_update_tick_(i) =  int(float(std::rand()) / float(RAND_MAX) * 1.0*hz_);
-                random_ext_torque_duration_(i) =  int(float(std::rand()) / float(RAND_MAX) * 1.0*hz_);
+                random_ext_torque_update_tick_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
+                random_ext_torque_duration_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
 
                 random_ext_torque_(i) = (float(std::rand()) / float(RAND_MAX) * max_random_torque*2) - max_random_torque;
                 random_ext_torque_update_flag_(i) = false;
@@ -10219,7 +10223,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(true)
     {
-        if (printout_cnt_ <= 2000 * 60 * 15) // 15min
+        if (printout_cnt_ <= 2000 * 60 * 1 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t" ;
@@ -10265,7 +10269,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 33; i++)
             {
-                file[0] << (torque_lower_ + torque_upper_)(i) << "\t";
+                file[0] << (torque_lower_+torque_upper_)(i) << "\t";
             }
             for (int i = 0; i < 33; i++)
             {
@@ -10334,17 +10338,26 @@ void AvatarController::printOutTextFile()
             {
                 file[2] << estimated_ext_force_rfoot_gru_(i) << "\t";
             }
+            file[2] << walking_tick_mj-t_start_-t_rest_init_-t_double1_ << "\t";
+            file[2] << current_support_foot_is_left_;
+            
             file[2] << endl;
         }
         else
         {
-            cout << cred << "WARNING: Logging Time Over" << creset << endl;
+            static bool print_once = false;
+            if(!print_once)
+            // if(true)
+            {
+                cout << cred << "WARNING: Logging Time Over, " << printout_cnt_/hz_ <<"secs"<< creset << endl;
+                print_once = true;
+            }
         }
     }
 
     if(printout_cnt_%(2000*30) == 0)
     {
-        cout<<"print time: "<<printout_cnt_/2000/60<<endl;
+        cout<<"print time: "<< float(printout_cnt_/2000)<<"s"<<endl;
     }
     
     printout_cnt_ += 1;
@@ -11902,12 +11915,12 @@ void AvatarController::Joint_gain_set_MJ()
         Kd(1) = 55.0; // Left Hip roll //55
         Kp(2) = 4000.0;
         Kd(2) = 45.0; // Left Hip pitch
-        Kp(3) = 3000.0;
+        Kp(3) = 3700.0;
         Kd(3) = 40.0;   // Left Knee pitch
-        Kp(4) = 2500.0; // 5000
-        Kd(4) = 40.0;   // Left Ankle pitch /5000 / 30  //55
-        Kp(5) = 2500.0; // 5000
-        Kd(5) = 40.0;   // Left Ankle roll /5000 / 30 //55
+        Kp(4) = 4000.0; // 5000
+        Kd(4) = 65.0;   // Left Ankle pitch /5000 / 30  //55
+        Kp(5) = 4000.0; // 5000
+        Kd(5) = 65.0;   // Left Ankle roll /5000 / 30 //55
 
         Kp(6) = 2000.0;
         Kd(6) = 20.0; // Right Hip yaw
@@ -11915,12 +11928,12 @@ void AvatarController::Joint_gain_set_MJ()
         Kd(7) = 55.0; // Right Hip roll  //55
         Kp(8) = 4000.0;
         Kd(8) = 45.0; // Right Hip pitch
-        Kp(9) = 3000.0;
+        Kp(9) = 3700.0;
         Kd(9) = 40.0;    // Right Knee pitch
-        Kp(10) = 2500.0; // 5000
-        Kd(10) = 40.0;   // Right Ankle pitch //55
-        Kp(11) = 2500.0; // 5000
-        Kd(11) = 40.0;   // Right Ankle roll //55
+        Kp(10) = 4000.0; // 5000
+        Kd(10) = 65.0;   // Right Ankle pitch //55
+        Kp(11) = 4000.0; // 5000
+        Kd(11) = 65.0;   // Right Ankle roll //55
 
         Kp(12) = 6000.0;
         Kd(12) = 200.0; // Waist yaw
@@ -15518,7 +15531,7 @@ void AvatarController::CP_compen_MJ_FT()
         // }
         // else
         {
-            F_F_input_dot = 0.00003 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+            F_F_input_dot = 0.00005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) + 0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
         }
     }
     else
@@ -15654,21 +15667,21 @@ void AvatarController::CP_compen_MJ_FT()
     {
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.05 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 5.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.02 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 5.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.05 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 5.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.02 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 5.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
         // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-        F_T_L_y_input_dot = 0.05 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.02 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.05 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.02 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
     else

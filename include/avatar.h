@@ -33,16 +33,16 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
-const bool add_intentional_ext_torque_mode_ = true;
-const bool add_friction_torque_mode_ = false;
+const bool simulation_mode_ = true;
+const bool add_intentional_ext_torque_mode_ = false;
+const bool add_friction_torque_mode_ = true;
 
 const int FILE_CNT = 3;
-// const string DATA_FOLDER_DIR= "/ssd2/fb_mob_learning/data/TRO/all_uncertainty";
-// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 // mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
@@ -72,8 +72,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
-// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+// const std::string calibration_folder_dir_ = "/home/dyros/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
@@ -1891,7 +1891,7 @@ public:
     bool joy_foot_height_flag_ = false;
     double foot_height_changed_;
     bool joy_walking_period_flag_ = false;
-    int joy_walking_period_set_ = 4;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
+    int joy_walking_period_set_ = 3;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
