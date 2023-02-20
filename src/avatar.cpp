@@ -2512,8 +2512,8 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
     ub_x_foot_cp_mpc.setZero();   
     lb_x_foot_cp_mpc.setZero();
     
-    ub_x_foot_cp_mpc(0) = min(+0.5, 0.3- foot_step_support_frame_mpc_(current_step_num_mpc_, 0));// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
-    lb_x_foot_cp_mpc(0) = max(-0.5, -0.3- foot_step_support_frame_mpc_(current_step_num_mpc_, 0));// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
+    ub_x_foot_cp_mpc(0) = min(+0.2, 0.3- foot_step_support_frame_mpc_(current_step_num_mpc_, 0));// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트에서는 일단 0.1, max : 0.2
+    lb_x_foot_cp_mpc(0) = max(-0.2, -0.3- foot_step_support_frame_mpc_(current_step_num_mpc_, 0));// - foot_step_support_frame_(current_step_num_, 0); // 제자리 테스트 일단 -0.1, min : -0.15
         
     for(int i = 1; i < footprint_num; i ++) // 다음 놓일 위치에서? 아니면 실시간 스윙발 위치에서?
     {
@@ -10976,12 +10976,8 @@ void AvatarController::getRobotState()
 
     // l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_;
     // r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_;
-    
-    l_ft_LPF = DyrosMath::lpf<6>(-l_ft_wo_fw_global_, l_ft_LPF, 2000, 6.0);
-    r_ft_LPF = DyrosMath::lpf<6>(-r_ft_wo_fw_global_, r_ft_LPF, 2000, 6.0);
-
-    // l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-l_ft_wo_fw_global_);
-    // r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-r_ft_wo_fw_global_);
+    l_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * l_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-l_ft_wo_fw_global_);
+    r_ft_LPF = 1 / (1 + 2 * M_PI * 6.0 * del_t) * r_ft_LPF + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * (-r_ft_wo_fw_global_);
 
     Eigen::Vector2d left_zmp, right_zmp;
 
@@ -12654,10 +12650,6 @@ void AvatarController::getFootTrajectory_stepping()
         desired_swing_foot(1) = fixed_swing_foot(1);
     }    
      
-    if(walking_tick_mj == t_start_)
-    {
-        desired_swing_foot_LPF_ = desired_swing_foot;
-    }
     // real robot experiment 
     double cutoff_hz = 2.0;
     desired_swing_foot_LPF_(0) = 1 / (1 + 2 * M_PI * cutoff_hz * del_t) * desired_swing_foot_LPF_(0) + (2 * M_PI * cutoff_hz * del_t) / (1 + 2 * M_PI * cutoff_hz * del_t) * desired_swing_foot(0);
@@ -15559,21 +15551,21 @@ void AvatarController::CP_compen_MJ_FT()
     {
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = -0.035 * (Tau_L_x - l_ft_LPF(3)) -0.0005*Tau_L_x_error_dot_ - 5.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = -0.035 * (Tau_L_x - l_ft_LPF(3)) -0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = -0.035 * (Tau_R_x - r_ft_LPF(3)) -0.0005*Tau_R_x_error_dot_ - 5.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = -0.035 * (Tau_R_x - r_ft_LPF(3)) -0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
         // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-        F_T_L_y_input_dot = 0.025 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.025 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5.0 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.025 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.025 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
     else

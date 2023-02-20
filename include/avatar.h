@@ -35,7 +35,7 @@
 
 const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
-const bool add_friction_torque_mode_ = false;
+const bool add_friction_torque_mode_ = true;
 
 const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
