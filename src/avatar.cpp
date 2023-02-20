@@ -9225,8 +9225,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
  
     // support foot
-    u0_x = 0*des_zmp_ssp_mpc_x_; //des_zmp_interpol_(0) - ZMP_X_REF_;// del_zmp(0); 
-    u0_y = 0*des_zmp_ssp_mpc_y_;// del_zmp(1); des_zmp_ssp_mpc_x_       
+    u0_x = DyrosMath::minmax_cut(des_zmp_ssp_mpc_x_, -0.10, 0.10); //des_zmp_interpol_(0) - ZMP_X_REF_;// del_zmp(0); 
+    u0_y = DyrosMath::minmax_cut(des_zmp_ssp_mpc_y_, -0.06, 0.06);// del_zmp(1); des_zmp_ssp_mpc_x_       
     
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
