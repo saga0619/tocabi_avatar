@@ -1659,6 +1659,7 @@ public:
     double walking_end_flag = 0;
     
     Eigen::Isometry3d supportfoot_float_current_; 
+    Eigen::Isometry3d swingfoot_support_current_; 
 
     Eigen::Isometry3d pelv_support_current_;
     Eigen::Isometry3d lfoot_support_current_;

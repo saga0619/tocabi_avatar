@@ -10403,6 +10403,16 @@ void AvatarController::getRobotState()
     pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only) * pelv_float_current_;
     lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only) * lfoot_float_current_;
     rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only) * rfoot_float_current_;
+
+    if(support_foot_flag == 0)  // right foot support 
+    {
+        swingfoot_support_current_ = lfoot_support_current_;
+    }
+    else
+    {
+        swingfoot_support_current_ = rfoot_support_current_;
+    }
+    
     ////////////////////
 
     // pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;
@@ -10437,14 +10447,25 @@ void AvatarController::getRobotState()
 
     // double foot_plate_mass = 1.866; // bolt: 41g, black plate: 211g, red plate: 1614g
 
-    Matrix6d rotrf;
+    Matrix6d rotrf, rotrf_ft;
     Matrix3d rot_temp;
     rotrf.setZero();
+    rotrf_ft.setZero();
     rot_temp.setZero();
     rot_temp = RigidBodyDynamics::CalcBodyWorldOrientation(model_global_, q_virtual_Xd_global_, link_avatar_[Left_Foot].id, false).transpose();
     rotrf.block(0, 0, 3, 3) = rot_temp;
     rotrf.block(3, 3, 3, 3) = rot_temp;
     Vector3d LF_com(0.0162, 0.00008, -0.1209);
+    //bolt_test_diff
+    if(support_foot_flag == 0)  // right foot support 
+    {
+        rotrf_ft.block(0, 0, 3, 3) = swingfoot_support_current_.linear();
+        rotrf_ft.block(3, 3, 3, 3) = swingfoot_support_current_.linear();
+    }
+    else
+    {
+        rotrf_ft.setIdentity();
+    }
 
     Vector3d com2sp = rd_.link_[Left_Foot].sensor_point - LF_com;
     // Vector3d com2sp =  - LF_com;
@@ -10507,16 +10528,19 @@ void AvatarController::getRobotState()
 
     if(simulation_mode_)
     {
-        l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * lfoot_acceleration_local - 0.0*lfoot_v_cross_inertia_v);
+        l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate - 1.0*inertia_foot_plate * lfoot_acceleration_local - 0.0*lfoot_v_cross_inertia_v);
     }
     else
     {
-        l_ft_wo_fw_ = -l_ft_ - adt2*(-Wrench_foot_plate); // tocabi
+        //bolt_test_diff
+        l_ft_wo_fw_ = -l_ft_;
+        l_ft_wo_fw_(2) = l_ft_wo_fw_(2) -foot_plate_mass * 9.81;
+        l_ft_wo_fw_ = l_ft_wo_fw_ - adt2*(-Wrench_foot_plate - 0.0*lfoot_v_cross_inertia_v); // tocabi
     }
     
     l_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(l_ft_wo_fw_, l_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
-    l_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*l_ft_wo_fw_;
+    l_ft_wo_fw_global_ = rotrf_ft*adt_sp*l_ft_wo_fw_;
     // l_ft_wo_fw_ = l_ft_ + adt2*(rotrf.transpose()*Wrench_foot_plate);
     
 
@@ -10530,6 +10554,16 @@ void AvatarController::getRobotState()
     rotrf.block(3, 3, 3, 3) = rot_temp;
 
     Vector3d RF_com(0.0162, 0.00008, -0.1209);
+
+    if(support_foot_flag == 1)  // left foot support 
+    {
+        rotrf_ft.block(0, 0, 3, 3) = swingfoot_support_current_.linear();
+        rotrf_ft.block(3, 3, 3, 3) = swingfoot_support_current_.linear();
+    }
+    else
+    {
+        rotrf_ft.setIdentity();
+    }
 
     com2sp = rd_.link_[Right_Foot].sensor_point - RF_com;
 
@@ -10556,16 +10590,18 @@ void AvatarController::getRobotState()
 
     if(simulation_mode_)
     {
-        r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate - inertia_foot_plate * rfoot_acceleration_local - 0.0*rfoot_v_cross_inertia_v);
+        r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate - 1.0*inertia_foot_plate * rfoot_acceleration_local - 0.0*rfoot_v_cross_inertia_v);
     }
     else
     {
-        r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate); // tocabi
+        r_ft_wo_fw_ = -r_ft_;
+        r_ft_wo_fw_(2) = r_ft_wo_fw_(2) -foot_plate_mass * 9.81;
+        r_ft_wo_fw_ = r_ft_wo_fw_ - adt2*(-Wrench_foot_plate - 0.0*rfoot_v_cross_inertia_v); // tocabi
     }
     
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
-    r_ft_wo_fw_global_ = rotrf.transpose()*adt_sp*r_ft_wo_fw_;
+    r_ft_wo_fw_global_ = rotrf_ft*adt_sp*r_ft_wo_fw_;
 
 
     if (walking_tick_mj == 0)
