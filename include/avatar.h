@@ -33,14 +33,21 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
-const int FILE_CNT = 3;
+const bool simulation_mode_ = true;
+const bool add_intentional_ext_torque_mode_ = false;
+const bool add_friction_torque_mode_ = true;
 
-// mob lstm
-const int n_input_ = 24;
+const int FILE_CNT = 3;
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// mob gru
+const int n_input_ = 30;
 const int n_sequence_length_ = 1;
 const int n_output_ = 12;
-const int n_hidden_ = 128;
+const int n_hidden_ = 150;
 const int buffer_size_ = n_input_ * n_sequence_length_ * 20;
 const int nn_input_size_ = n_input_ * n_sequence_length_;
 const bool gaussian_mode_ = true;
@@ -48,9 +55,9 @@ const bool gaussian_mode_ = true;
 const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
-    "/home/dyros/data/dg/mob_learning/robot_training_data.txt",
-    "/home/dyros/data/dg/mob_learning/ft_related_data.txt",
-    "/home/dyros/data/dg/mob_learning/mob_debugging.txt"
+    DATA_FOLDER_DIR + "/robot_training_data.txt",
+    DATA_FOLDER_DIR + "/ft_related_data.txt",
+    DATA_FOLDER_DIR + "/mob_gru_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
@@ -65,8 +72,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dh";  //tocabi 
-// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
+// const std::string calibration_folder_dir_ = "/home/dyros/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
@@ -167,8 +174,13 @@ public:
     Eigen::VectorXd momentumObserverDiscrete(VectorXd current_momentum, VectorXd prev_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     void collisionEstimation();
     void collisionCheck();
+    void collisionDetection();
     void collisionIsolation();
     void collisionIdentification();
+
+    void updateCurrentFootstep(Eigen::Isometry3d target_foot_step);
+
+    void sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque);
 
     // ik
     void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
@@ -330,6 +342,13 @@ public:
     Eigen::VectorQd torque_upper_;
     Eigen::VectorQd torque_lower_;
 
+    Eigen::VectorQd torque_intentionally_applied_;
+    Eigen::VectorQd torque_friction_applied_;
+
+    Eigen::VectorQd random_ext_torque_;
+    Eigen::VectorQd random_ext_torque_duration_;
+    Eigen::VectorQd random_ext_torque_update_tick_;
+    Eigen::VectorQd random_ext_torque_update_flag_;
     // Pevlis related variables
     Eigen::Vector3d pelv_pos_current_;
     Eigen::Vector6d pelv_vel_current_;
@@ -577,6 +596,9 @@ public:
 
     Eigen::Vector6d l_hand_ft_;
     Eigen::Vector6d r_hand_ft_;
+
+    double alpha_zmp_ = 0;
+    double alpha_zmp_lpf_ = 0;
 
     double F_F_input_dot = 0;
     double F_F_input = 0;
@@ -951,6 +973,7 @@ public:
     Eigen::VectorXd stepping_input;
     Eigen::VectorXd stepping_input_;
 
+    bool step_time_adjust_flag_ = true;
     /////////////MPC-MJ//////////////////////////
     Eigen::Vector3d x_hat_;
     Eigen::Vector3d y_hat_;
@@ -1003,6 +1026,15 @@ public:
     Eigen::VectorXd cpmpc_deszmp_x_;
     Eigen::VectorXd cpmpc_input_y_;
     Eigen::VectorXd cpmpc_deszmp_y_;
+
+    double cp_eos_x_ = 0;
+    double cp_eos_x_thread_  = 0;
+    double cp_eos_x_mpc_ = 0;
+
+    double cp_eos_y_ = 0;
+    double cp_eos_y_thread_ = 0;
+    double cp_eos_y_mpc_ = 0;
+
     double force_temp_ = 0, theta_temp_ = 0;
     double ssp_flag_ = 0;
     Eigen::Vector2d dsp_scaler_dot_;
@@ -1039,6 +1071,8 @@ public:
     double cpmpc_des_zmp_x_p_thread_ = 0;
     // double cpmpc_des_zmp_x_p_ = 0;
     // double cpmpc_des_zmp_y_p_ = 0;
+
+
     ////////////AVATAR MODE PEDAL////////////////
     bool avatar_op_pedal_raw_ = false;
     bool avatar_op_pedal_ = false;
@@ -1216,6 +1250,13 @@ public:
     Eigen::VectorVQd torque_from_r_ft_lpf_; //J^T*FT_F
     ////////////////////////////////////////////////////////////////////////////////////////////
 
+    /////////////////////////Collision Handling////////////////////////////
+    double landing_foot_vel_z_ =0;
+
+    bool swing_foot_contact_detection_ = false;
+    int swing_foot_contact_cnt_ = 0;
+    ////////////////////////////////////////////////////////////////////////
+
     /////////////////////////MOB LEARNING LSTM///////////////////////////////////////////////////////
     // lstm c++
     struct LSTM
@@ -1377,6 +1418,7 @@ public:
     GRU left_leg_peter_gru_;
     GRU right_leg_peter_gru_;
 
+    const int gru_hz_ = 1000;
     // ifstream network_weights_file_gru_[6];
     // ifstream mean_std_file_gru_[4];
 
@@ -1385,15 +1427,16 @@ public:
     Eigen::Vector6d estimated_ext_force_lhand_gru_;
     Eigen::Vector6d estimated_ext_force_rhand_gru_;
 
-    Eigen::VectorQd estimated_external_torque_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_thread_;
+    Eigen::VectorQd estimated_model_unct_torque_gru_slow_lpf_;
+
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_fast_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_slow_;
+    Eigen::VectorQd estimated_model_unct_torque_variance_gru_thread_;
+
     Eigen::VectorQd estimated_external_torque_gru_slow_;
-    Eigen::VectorQd estimated_external_torque_gru_thread_;
-    Eigen::VectorQd estimated_external_torque_gru_slow_lpf_;
-
-    Eigen::VectorQd estimated_external_torque_variance_gru_fast_;
-    Eigen::VectorQd estimated_external_torque_variance_gru_slow_;
-    Eigen::VectorQd estimated_external_torque_variance_gru_thread_;
-
     void collectRobotInputData_peter_gru();
 
     void loadGruWeights(GRU &gru, std::string folder_path);
@@ -1515,6 +1558,7 @@ public:
     void updateInitialState();
     void updateNextStepTime();
     void parameterSetting();
+    void setWalkingTime(int walking_period_set);
     void getRobotState();
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
@@ -1526,7 +1570,7 @@ public:
     void getZmpTrajectory();
     void zmpGenerator(int norm_size, int planning_step_num);
     void onestepZmp(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
-    void onestepZmp_wo_offset(int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
+    void onestepZmp_wo_offset(int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1573,6 +1617,11 @@ public:
     Eigen::Isometry3d lfoot_trajectory_support_;
     Eigen::Vector3d rfoot_trajectory_euler_support_;
     Eigen::Vector3d lfoot_trajectory_euler_support_;
+
+    Eigen::Isometry3d rfoot_trajectory_support_init_;
+    Eigen::Isometry3d lfoot_trajectory_support_init_;
+    Eigen::Vector3d rfoot_trajectory_euler_support_init_;
+    Eigen::Vector3d lfoot_trajectory_euler_support_init_;
 
     Eigen::Isometry3d pelv_trajectory_float_; //pelvis frame
     Eigen::Isometry3d rfoot_trajectory_float_;
@@ -1659,6 +1708,7 @@ public:
     double walking_end_flag = 0;
     
     Eigen::Isometry3d supportfoot_float_current_; 
+    Eigen::Isometry3d swingfoot_support_current_; 
 
     Eigen::Isometry3d pelv_support_current_;
     Eigen::Isometry3d lfoot_support_current_;
@@ -1720,6 +1770,8 @@ public:
     Eigen::Vector2d zmp_measured_FT_;
     Eigen::Vector2d zmp_measured_FT_LPF_;
 
+    int abrupt_gravity_torque_cnt_ = 0;
+
     double P_angle_i = 0;
     double P_angle = 0;
     double P_angle_input_dot = 0;
@@ -1747,13 +1799,15 @@ public:
     double t_double1_;
     double t_double2_;
     double t_total_;
+    double t_total_const_;
     double t_total_thread_;
     double t_rest_init_thread_;
     double t_rest_last_thread_;
     double t_total_mpc_;
     double t_rest_init_mpc_;
     double t_rest_last_mpc_;
-    double foot_height_;
+    double foot_height_=0.055;
+
     int total_step_num_;
     int total_step_num_mpc_;
     int total_step_num_thread_;
@@ -1834,6 +1888,10 @@ public:
     bool joy_input_enable_ = false;
 
     bool joy_continuous_walking_flag_ = false;
+    bool joy_foot_height_flag_ = false;
+    double foot_height_changed_;
+    bool joy_walking_period_flag_ = false;
+    int joy_walking_period_set_ = 3;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
@@ -1841,6 +1899,10 @@ public:
 
     Eigen::Vector2d joy_left_stick_;
     Eigen::Vector2d joy_right_stick_; 
+    Eigen::Matrix<int, 2, 1> joy_cross_button_raw_;
+    Eigen::Matrix<int, 2, 1> joy_cross_button_; 
+    Eigen::Matrix<int, 2, 1> joy_cross_button_pre_;
+    Eigen::Matrix<int, 2, 1> joy_cross_button_clicked_;
     Eigen::Matrix<bool, 11, 1>  joy_buttons_raw_;
     Eigen::Matrix<bool, 11, 1>  joy_buttons_; 
     Eigen::Matrix<bool, 11, 1>  joy_buttons_pre_; 
@@ -1856,8 +1918,8 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 30; // 1s
-    Eigen::Matrix<double, 3, 30> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    const int joy_command_buffer_size_ = 75; // 2.5s
+    Eigen::Matrix<double, 3, 75> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_ = 0;
     double del_y_command_ = 0;
     double yaw_angle_command_ = 0;
