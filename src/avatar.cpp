@@ -1172,7 +1172,7 @@ void AvatarController::computeSlow()
 
                 if (!chair_mode_)
                 {
-                    CP_compen_MJ();
+                    // CP_compen_MJ();
                     CP_compen_MJ_FT();
                 }
 
