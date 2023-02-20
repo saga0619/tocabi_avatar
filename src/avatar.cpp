@@ -741,17 +741,17 @@ void AvatarController::computeSlow()
             floatToSupportFootstep();
             
             if (current_step_num_ < total_step_num_)
-            {                 
+            {                  
                 getZmpTrajectory();
                 // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요                   
                 getComTrajectory_mpc(); // working with thread3 (MPC thread)                    
-                // CPMPC_bolt_Controller_MJ(); 
-                AnkleController_Jeong();
+                // CPMPC_bolt_Controller_MJ();                 
+                AnkleController_Jeong();                
                 QPController_Jeong();
+                CentroidalMomentCalculator_Jeong();
                 // BoltController_MJ(); // Stepping Controller for DCM eos                
                 // MJDG CMP control 
-                CentroidalMomentCalculator_new(); // working with computefast() (CAM controller)
-
+                // CentroidalMomentCalculator_new(); // working with computefast() (CAM controller)
                 // getFootTrajectory();
                 getFootTrajectory_stepping(); // working with BoltController_MJ()  
                 getPelvTrajectory();
@@ -1378,121 +1378,7 @@ void AvatarController::computeFast()
             // cout<<"motionGenerator time: "<< std::chrono::duration_cast<std::chrono::microseconds>(tt6 - tt5).count() <<endl;
         }
         // printOutTextFile();
-    }
-    else if (rd_.tc_.mode == 14)
-    {
-        ////////////////////////////////////////////////////////////////////////////
-        /////////////////// AVATAR Controller ////////////////////
-        ////////////////////////////////////////////////////////////////////////////
-
-        torque_task_.setZero();
-        torque_init_.setZero();
-        if (rd_.tc_init == true)
-        {
-            initWalkingParameter();
-            rd_.tc_init = false;
-        }
-
-        //data process//
-        getRobotData();
-        walkingStateManager(); //avatar
-        getProcessedRobotData();
-
-        foot_swing_trigger_ = false; //stay avatar
-
-        //motion planing and control//
-        motionGenerator();
-
-        // getComTrajectory_Preview(); 
-        // getSwingFootXYTrajectory(walking_phase_, com_pos_current_, com_vel_current_, com_vel_desired_);
-
-        if ((current_time_) >= program_start_time_ + program_ready_duration_)
-        {
-            torque_task_ += comVelocityControlCompute(); //support chain control for COM velocity and pelvis orientation
-            // if( int(current_time_*10000)%1000 == 0 )
-            // cout<<"torque_task_(12) 1st: " << torque_task_(13) << endl;
-            torque_task_ += swingFootControlCompute(); //swing foot control
-            // if( int(current_time_*10000)%1000 == 0 )
-            // cout<<"torque_task_(12) 2nd: " << torque_task_(13) << endl;
-            torque_task_ += jointTrajectoryPDControlCompute(); //upper body motion + joint damping control
-                                                               // if( int(current_time_*10000)%1000 == 0 )
-                                                               // cout<<"torque_task_(12) 3rd: " << torque_task_(13) << endl;
-                                                               // torque_task_ += dampingControlCompute(wbc_);
-                                                               // if( int(current_time_*10000)%1000 == 0 )
-                                                               // 	cout<<"torque_task_(12) 4th: " << torque_task_(13) << endl;
-                                                               // torque_task_ += jointLimit();
-                                                               // if( int(current_time_*10000)%1000 == 0 )
-                                                               // 	cout<<"torque_task_(12) 5th: " << torque_task_(13) << endl;
-        }
-        torque_task_.segment(0, 12).setZero();
-        torque_task_ += ikBalanceControlCompute();
-
-        // //CoM pos & pelv orientation control
-        // wbc_.SetContact(rd_, 1, 1);
-
-        // int task_number = 6;	//CoM is not controlled in z direction
-        // rd_.J_task.setZero(task_number, MODEL_DOF_VIRTUAL);
-        // rd_.f_star.setZero(task_number);
-
-        // rd_.J_task = rd_.link_[COM_id].jac;
-        // //rd_.J_task.block(2, 0, 1, MODEL_DOF_VIRTUAL) = rd_.link_[Pelvis].jac.block(2, 0, 1, MODEL_DOF_VIRTUAL);
-
-        // // rd_.J_task.block(2, 0, 3, MODEL_DOF_VIRTUAL) = rd_.link_[COM_id].jac.block(3, 0, 3, MODEL_DOF_VIRTUAL);
-
-        // rd_.link_[COM_id].x_desired = tc.ratio * rd_.link_[Left_Foot].xpos + (1.0 - tc.ratio) * rd_.link_[Right_Foot].xpos;
-        // rd_.link_[COM_id].x_desired(2) = tc.height;
-        // rd_.link_[COM_id].Set_Trajectory_from_quintic(rd_.control_time_, tc.command_time, tc.command_time + 3);
-
-        // rd_.link_[COM_id].rot_desired = Matrix3d::Identity();
-        // // rd_.link_[COM_id].rot_desired = pelv_yaw_rot_current_from_global_mj_;
-        // rd_.link_[COM_id].Set_Trajectory_rotation(rd_.control_time_, tc.command_time, tc.command_time + 3, false);
-
-        // rd_.f_star = wbc_.getfstar6d(rd_, COM_id);
-        // // rd_.f_star.segment(0, 2) = wbc_.getfstar6d(rd_, COM_id).segment(0, 2);
-        // // rd_.f_star.segment(2, 3) = wbc_.getfstar6d(rd_, COM_id).segment(3, 3);
-        // //tocabi_.f_star.segment(0, 2) = wbc_.fstar_regulation(tocabi_, tocabi_.f_star.segment(0, 3));
-        // //torque_task = wbc_.task_control_torque(tocabi_, tocabi_.J_task, tocabi_.f_star, tc.solver);
-        // Eigen::VectorQd torque_com_control;
-        // torque_com_control = wbc_.task_control_torque_with_gravity(rd_, rd_.J_task, rd_.f_star);
-        // rd_.contact_redistribution_mode = 0;
-
-        // torque_task_.segment(0, 12) = torque_com_control.segment(0, 12);
-        // torque_task_(3) = (kp_joint_(3) * (desired_q_(3) - current_q_(3)) + kv_joint_(3) * (desired_q_dot_(3) - current_q_dot_(3)));
-        // torque_task_(9) = (kp_joint_(9) * (desired_q_(9) - current_q_(9)) + kv_joint_(9) * (desired_q_dot_(9) - current_q_dot_(9)));
-        ////////////////////////////////////////
-
-        savePreData();
-
-        ////////////////////////////////TORQUE LIMIT//////// //////////////////////
-        for (int i = 0; i < MODEL_DOF; i++)
-        {
-            torque_task_(i) = DyrosMath::minmax_cut(torque_task_(i), torque_task_min_(i), torque_task_max_(i));
-        }
-        ///////////////////////////////////////////////////////////////////////////
-
-        //////////////////////////////FALLING//////////////////////////////
-        // fallDetection();
-        ///////////////////////////////////////////////////////////////////
-
-        rd_.torque_desired = torque_task_;
-        if (int(current_time_ * 10000) % 1000 == 0)
-        {
-            // 	cout<<"torque_task_(12): "<<torque_task_(12)<<endl;
-            // 	cout<<"torque_task_(13): "<<torque_task_(13)<<endl;
-            // 	cout<<"torque_task_(14): "<<torque_task_(14)<<endl;
-            // 	cout<<"desired_q_(12): "<<desired_q_(12)<<endl;
-            // 	cout<<"desired_q_(13): "<<desired_q_(13)<<endl;
-            // 	cout<<"desired_q_(14): "<<desired_q_(14)<<endl;
-
-            // rd_.torque_desired .setZero();
-            // rd_.torque_desired (23) = torque_task_(23);
-            // rd_.torque_desired (24) = torque_task_(24);
-            // Vector3d temp_sh = pelv_yaw_rot_current_from_global_mj_.transpose() * (rd_.link_[Left_Hand-5].xpos - pelv_pos_current_);
-            // Vector3d temp_elbow = pelv_yaw_rot_current_from_global_mj_.transpose() * (rd_.link_[Left_Hand-3].xpos - pelv_pos_current_);
-            // Vector3d temp_hand = pelv_yaw_rot_current_from_global_mj_.transpose() * (rd_.link_[Left_Hand-1].xpos - pelv_pos_current_);
-        }
-        // printOutTextFile();
-    }
+    }    
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14885,6 +14771,9 @@ void AvatarController::AnkleController_Jeong()
 
     del_zmp_j_(0) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(0) - cp_desired_(0));   
     del_zmp_j_(1) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(1) - cp_desired_(1));
+
+    del_zmp_j_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.1, 0.1);
+    del_zmp_j_(1) = DyrosMath::minmax_cut(del_zmp_j_(1), -0.07, 0.07); 
     
 }
 
@@ -14908,12 +14797,12 @@ void AvatarController::QPController_Jeong()
     double T_max_j = 0.0;
     double tau_nom_j = 0.0;
         
-    // double w_ux = 1.0, w_uy = 200.0, w_T = 0.005, w_bx = 3.0, w_by = 0.03, w_tau_x = 0.01, w_tau_y = 0.01; // 옛날 볼트랑 비슷
-    double w_ux = 1.0, w_uy = 1.0, w_T = 0.005, w_bx = 3.0, w_by = 3.0, w_tau_x = 0.01, w_tau_y = 0.01;
+    double w_ux = 50.0, w_uy = 50.0, w_T = 0.5, w_bx = 150.0, w_by = 150.0, w_tau_x = 0.001, w_tau_y = 0.001; // 옛날 볼트랑 비슷
+    // double w_ux = 1.0, w_uy = 1.0, w_T = 0.005, w_bx = 3.0, w_by = 3.0, w_tau_x = 0.01, w_tau_y = 0.01;
     
     T_nom_j = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
     T_min_j = T_nom_j - 0.2;  
-    T_max_j = T_nom_j + 0.2;
+    T_max_j = T_nom_j + 0.1;
     tau_nom_j = exp(wn*T_nom_j); 
     
     Eigen::MatrixXd H_j;
@@ -14934,8 +14823,8 @@ void AvatarController::QPController_Jeong()
     g_j(2) = -w_T * tau_nom_j;
     g_j(3) = -w_bx * 0;  
     g_j(4) = -w_by * 0;  
-    g_j(5) = -w_tau_x * 0;
-    g_j(6) = -w_tau_y * 0;
+    g_j(5) = -w_tau_y * tau_recov_jeong_y_;
+    g_j(6) = -w_tau_x * tau_recov_jeong_x_;
 
     Eigen::VectorXd lb_j;
     Eigen::VectorXd ub_j;
@@ -14978,7 +14867,7 @@ void AvatarController::QPController_Jeong()
     A_j(1,3) = 0; // b_x
     A_j(1,4) = 1; // b_y
     A_j(1,5) = 0; // b_x
-    A_j(1,6) = -(1-exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_)*tau_prev)/(rd_.link_[COM_id].mass * GRAVITY);  
+    A_j(1,6) = (1-exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_)*tau_prev)/(rd_.link_[COM_id].mass * GRAVITY);  
  
     A_j(2,0) = 1; // U_T,x
     A_j(3,1) = 1; // U_T,y
@@ -14999,20 +14888,20 @@ void AvatarController::QPController_Jeong()
     lb_j(2) = L_min_j;
     lb_j(3) = W_min_j;
     lb_j(4) = exp(wn*T_min_j);
-    lb_j(5) = - 0.15; 
-    lb_j(6) = - 0.15;
-    lb_j(7) = - 0.015; 
-    lb_j(8) = - 0.015;
+    lb_j(5) = - 0.1; 
+    lb_j(6) = - 0.1;
+    lb_j(7) = - 15.0; 
+    lb_j(8) = - 15.0;
     
     ub_j(0) = del_zmp_j_(0) - cp_desired_(0) * exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_) * tau_nom_j;
     ub_j(1) = del_zmp_j_(1) - cp_desired_(1) * exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_) * tau_nom_j;
     ub_j(2) = L_max_j;
     ub_j(3) = W_max_j;
     ub_j(4) = exp(wn*T_max_j);
-    ub_j(5) = + 0.15; 
-    ub_j(6) = + 0.15;  
-    ub_j(7) = 0.015; 
-    ub_j(8) = 0.015;          
+    ub_j(5) = + 0.1; 
+    ub_j(6) = + 0.1;  
+    ub_j(7) = + 15.0; 
+    ub_j(8) = + 15.0;          
   
     
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
@@ -15040,7 +14929,7 @@ void AvatarController::QPController_Jeong()
             if(walking_tick_mj - stepping_start_time_j < round(log(QP_jeong_sol_(2))/wn*1000)/1000.0*hz_ - zmp_modif_time_margin_ - 1 )
             {           
                 t_total_ = round(log(QP_jeong_sol_(2))/wn*1000)/1000.0*hz_ + t_rest_init_ + t_double1_ + t_rest_last_ + t_double2_;
-                t_total_ = DyrosMath::minmax_cut(t_total_, t_total_const_ - 0.2*hz_, t_total_const_ + 0.2*hz_);
+                t_total_ = DyrosMath::minmax_cut(t_total_, t_total_const_ - 0.2*hz_, t_total_const_ + 0.1*hz_);
                 // t_total_ = 0.8*hz_;
                 t_last_ = t_start_ + t_total_ - 1;
             }
@@ -15065,8 +14954,54 @@ void AvatarController::QPController_Jeong()
      
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();    
     
-    MJ_graph << QP_jeong_sol_(0) << "," << QP_jeong_sol_(1) << "," << t_total_ << "," << QP_jeong_sol_(3) << "," << QP_jeong_sol_(4) << "," << QP_jeong_sol_(5) << "," << QP_jeong_sol_(6) << endl;
+    MJ_graph << QP_jeong_sol_(0) << "," << QP_jeong_sol_(1) << "," << t_total_ << "," << del_ang_momentum_(1) << "," << del_ang_momentum_(0) << "," << QP_jeong_sol_(5) << "," << QP_jeong_sol_(6) << endl;
 }
+
+void AvatarController::CentroidalMomentCalculator_Jeong()
+{    
+    if (walking_tick_mj == 0)
+    {
+        del_tau_.setZero();
+        del_ang_momentum_.setZero();
+        del_ang_momentum_prev_.setZero();
+    }
+
+    del_ang_momentum_prev_ = del_ang_momentum_;   
+    
+    double recovery_damping = 1; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
+    // 나중에 반대방향 토크 limit 걸어야됨.
+    // X direction CP control  
+    del_tau_(1) = QP_jeong_sol_(5);//- recovery_damping*del_ang_momentum_(1);
+    tau_recov_jeong_y_ = - recovery_damping*del_ang_momentum_(1);
+    // Y direction CP control        
+    del_tau_(0) = QP_jeong_sol_(6);//- recovery_damping*del_ang_momentum_(0); 
+    tau_recov_jeong_x_ = - recovery_damping*del_ang_momentum_(0); 
+    //// Integrate Centroidal Moment
+    del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
+    del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
+
+    // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
+    double A_limit = 10.0;
+       
+    if(del_ang_momentum_(0) > A_limit)
+    { 
+        del_ang_momentum_(0) = A_limit; 
+    }
+    else if(del_ang_momentum_(0) < -A_limit)
+    { 
+        del_ang_momentum_(0) = -A_limit; 
+    }
+    if(del_ang_momentum_(1) > A_limit)
+    { 
+        del_ang_momentum_(1) = A_limit; 
+    }
+    else if(del_ang_momentum_(1) < -A_limit)
+    { 
+        del_ang_momentum_(1) = -A_limit; 
+    }
+     
+}
+
 //simulation
 void AvatarController::CP_compen_MJ_FT()
 { 
@@ -15129,8 +15064,8 @@ void AvatarController::CP_compen_MJ_FT()
     // del_zmp_(0) = des_zmp_interpol_(0) - ZMP_X_REF_;
     // del_zmp_(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
      
-    del_zmp_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.1, 0.1);
-    del_zmp_(1) = DyrosMath::minmax_cut(del_zmp_j_(1), -0.07, 0.07); 
+    del_zmp_(0) = del_zmp_j_(0);
+    del_zmp_(1) = del_zmp_j_(1); 
     ////////////////////////
     // double A = 0, B = 0, d = 0, X1 = 0, Y1 = 0, e_2 = 0, L = 0, l = 0;
     // A = (lfoot_support_current_.translation()(0) - rfoot_support_current_.translation()(0));

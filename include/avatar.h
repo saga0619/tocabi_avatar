@@ -1302,6 +1302,8 @@ public:
     double des_tau_x_ = 0.0;
     double des_tau_y_thread_ = 0.0;
     double des_tau_y_ = 0.0;
+    double tau_recov_jeong_x_ = 0;
+    double tau_recov_jeong_y_ = 0;
     //
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
@@ -1461,6 +1463,7 @@ public:
 
     void AnkleController_Jeong();
     void QPController_Jeong();
+    void CentroidalMomentCalculator_Jeong();
     void CP_compen_MJ();
     void CP_compen_MJ_FT();
     void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
