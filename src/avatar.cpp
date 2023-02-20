@@ -1185,7 +1185,6 @@ void AvatarController::computeSlow()
                     CP_compen_MJ_FT();
                 }
 
-
                 torque_lower_.setZero();
                 for (int i = 0; i < 12; i++)
                 {
@@ -2147,7 +2146,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
 
     for(int i = 0; i < N; i++)  
     {
-        zmp_bound(i) = 2.0;
+        zmp_bound(i) = 0.1;
     }
     
     lb_b_x = Z_x_ref_ - zmp_bound * 1.3 - P_zs_mpc_*x_hat_;
@@ -2170,6 +2169,7 @@ void AvatarController::comGenerator_MPC_wieber(double MPC_freq, double T, double
         x_com_pos_recur_ = P_ps_mpc_ * x_hat_ + P_pu_mpc_* U_x_mpc_;
         x_com_vel_recur_ = P_vs_mpc_ * x_hat_ + P_vu_mpc_* U_x_mpc_;
         x_zmp_recur_ = P_zs_mpc_ * x_hat_ + P_zu_mpc_* U_x_mpc_;
+
         x_hat_ = A_mpc_ * x_hat_ + B_mpc_ * U_x_mpc_(0);
     }
     else
@@ -2310,7 +2310,7 @@ void AvatarController::cpcontroller_MPC_MJDG(double MPC_freq, double preview_win
         weighting_cp_.setZero(N_cp, N_cp);
         weighting_zmp_diff_.setZero(N_cp, N_cp);
         //bolt_test_diff
-        double weighting_foot = 0.001;// 100.0;  //0.01;
+        double weighting_foot = 0.000;// 100.0;  //0.01;
 
         // Weighting parameter
         if(simulation_mode_)
@@ -10838,7 +10838,7 @@ void AvatarController::getRobotState()
 
     Matrix6d adt_sp;
     adt_sp.setIdentity();
-    adt_sp.block(3, 0, 3, 3) = DyrosMath::skm(rd_.link_[Left_Foot].sensor_point - rd_.link_[Left_Foot].contact_point) * Matrix3d::Identity();
+    adt_sp.block(3, 0, 3, 3) = DyrosMath::skm(rd_.link_[Left_Foot].sensor_point) * Matrix3d::Identity();
 
     Vector6d Wrench_foot_plate;
     Wrench_foot_plate.setZero();
@@ -12067,13 +12067,13 @@ void AvatarController::zmpGenerator(int norm_size, int planning_step_num)
     {
         for (int i = 0; i <= t_temp_; i++) //600 tick
         {
-            if (i < t_temp_*0.2)
+            if (i < t_temp_*0.3)
             {
                 ref_zmp_mj_(i, 0) = com_support_init_(0);
 
                 ref_zmp_mj_wo_offset_(i, 0) = com_support_init_(0);
             }
-            else if (i < t_temp_*0.8)
+            else if (i < t_temp_*0.7)
             {
                 double del_x = i - t_temp_*0.3;
                 ref_zmp_mj_(i, 0) = com_support_init_(0) - del_x * com_support_init_(0) / (t_temp_*0.4);
@@ -13097,8 +13097,8 @@ void AvatarController::getPelvTrajectory()
 
     if(simulation_mode_)
     {
-    P_angle_input_dot = 1.5 * (0.0 - P_angle);
-    R_angle_input_dot = 2.0 * (0.0 - R_angle);
+        P_angle_input_dot = 1.5 * (0.0 - P_angle);
+        R_angle_input_dot = 2.0 * (0.0 - R_angle);
     }
     else
     {
@@ -14198,7 +14198,7 @@ void AvatarController::GravityCalculate_MJ()
         {
             Gravity_local = Gravity_MJ_pre_;
             abrupt_gravity_torque_cnt_ ++;
-            // cout<<"WARNING: abrupt gravity torque changes! ("<< rd_.control_time_<<")"<<endl;
+            cout<<"WARNING: abrupt gravity torque changes! ("<< rd_.control_time_<<")"<<endl;
         }
         else
         {
@@ -14331,16 +14331,16 @@ void AvatarController::setWalkingTime(int walking_period_set)
             break;
         case 2:
             //// 0.8s walking
-            t_rest_init_ = 0.06*hz_;
-            t_rest_last_ = 0.06*hz_;
+            t_rest_init_ = 0.08*hz_;
+            t_rest_last_ = 0.08*hz_;
             t_double1_ = 0.03*hz_;
             t_double2_ = 0.03*hz_;
             t_total_= 0.8*hz_;
             break;
         case 3:
             //// 0.7s walking
-            t_rest_init_ = 0.04*hz_;
-            t_rest_last_ = 0.04*hz_;
+            t_rest_init_ = 0.06*hz_;
+            t_rest_last_ = 0.06*hz_;
             t_double1_ = 0.03*hz_;
             t_double2_ = 0.03*hz_;
             t_total_= 0.7*hz_;
@@ -14364,7 +14364,6 @@ void AvatarController::updateNextStepTime()
     {
         if (current_step_num_ != total_step_num_ - 1)
         {
-            // t_total_ = t_total_ + 0.05*hz_;
             t_start_ = t_last_ + 1;
             t_start_real_ = t_start_ + t_rest_init_;
             t_last_ = t_start_ + t_total_ - 1;
@@ -15540,21 +15539,21 @@ void AvatarController::CP_compen_MJ_FT()
     {
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.02 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 5.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.035 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 5.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.02 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 5.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.035 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 5.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
         // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-        F_T_L_y_input_dot = 0.02 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.025 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.02 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.025 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
     else
@@ -15562,11 +15561,11 @@ void AvatarController::CP_compen_MJ_FT()
         // Roll: 0.030, 0.0005, 10 Pitch: 0.030, 0.0005, 5 -> 3 Degree slope
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = -0.035 * (Tau_L_x - l_ft_LPF(3)) -0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.035 * (Tau_L_x - l_ft_LPF(3)) + 0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = -0.035 * (Tau_R_x - r_ft_LPF(3)) -0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.035 * (Tau_R_x - r_ft_LPF(3)) + 0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
@@ -15576,7 +15575,7 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.025 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
 
