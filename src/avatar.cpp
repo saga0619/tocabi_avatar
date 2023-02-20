@@ -14977,12 +14977,12 @@ void AvatarController::CP_compen_MJ_FT()
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
 
-    if (F_F_input >= 0.02) // 1.1초 0.02
+    if (F_F_input >= 0.03) // 1.1초 0.02
     {
         F_F_input = 0.03;
         // cout << "F_F_input max" << endl;
     }
-    else if (F_F_input <= -0.02)
+    else if (F_F_input <= -0.03)
     {
         F_F_input = -0.03;
         // cout << "F_F_input min" << endl;
