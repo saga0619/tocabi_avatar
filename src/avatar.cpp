@@ -14797,7 +14797,7 @@ void AvatarController::QPController_Jeong()
     double T_max_j = 0.0;
     double tau_nom_j = 0.0;
         
-    double w_ux = 50.0, w_uy = 50.0, w_T = 0.5, w_bx = 150.0, w_by = 150.0, w_tau_x = 0.001, w_tau_y = 0.001; // 옛날 볼트랑 비슷
+    double w_ux = 500.0, w_uy = 500.0, w_T = 5.0, w_bx = 1500.0, w_by = 1500.0, w_tau_x = 0.01, w_tau_y = 0.01; // 옛날 볼트랑 비슷
     // double w_ux = 1.0, w_uy = 1.0, w_T = 0.005, w_bx = 3.0, w_by = 3.0, w_tau_x = 0.01, w_tau_y = 0.01;
     
     T_nom_j = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
