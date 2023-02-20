@@ -12674,8 +12674,8 @@ void AvatarController::getFootTrajectory_stepping()
         // cout<<"foot step fixed "<<walking_tick_mj<<endl;
         fixed_swing_foot(0) = desired_swing_foot(0); 
         fixed_swing_foot(1) = desired_swing_foot(1);  
-        // modified_del_zmp_(current_step_num_,0) = opt_F_(0) - target_swing_foot(0); //del_F_x_;   //opt_F_(0) - target_swing_foot(0);
-        // modified_del_zmp_(current_step_num_,1) = opt_F_(1); //del_F_y_;   //opt_F_(1); 
+        modified_del_zmp_(current_step_num_,0) = opt_F_(0) - target_swing_foot(0); //del_F_x_;   //opt_F_(0) - target_swing_foot(0);
+        modified_del_zmp_(current_step_num_,1) = opt_F_(1) - target_swing_foot(1); //del_F_y_;   //opt_F_(1); 
 
         // foot step update to the current foot
         Eigen::Isometry3d fixed_swing_foot_mat;
