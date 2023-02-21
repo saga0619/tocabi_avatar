@@ -1214,7 +1214,7 @@ void AvatarController::computeSlow()
                 }
 
                 std::chrono::steady_clock::time_point t_printOutTextFile_start = std::chrono::steady_clock::now();
-                printOutTextFile();
+                // printOutTextFile();
                 std::chrono::steady_clock::time_point t_printOutTextFile_end = std::chrono::steady_clock::now();
 
                 if(walking_tick_mj%200 == 1000)
@@ -10985,7 +10985,6 @@ void AvatarController::getRobotState()
     l_ft_LPF = DyrosMath::lpf<6>(-l_ft_wo_fw_global_, l_ft_LPF, 2000, 6.0);
     r_ft_LPF = DyrosMath::lpf<6>(-r_ft_wo_fw_global_, r_ft_LPF, 2000, 6.0);
 
-
     // l_ft_LPF = DyrosMath::lpf<6>(l_ft_, l_ft_LPF, 2000, 6.0);
     // r_ft_LPF = DyrosMath::lpf<6>(r_ft_, r_ft_LPF, 2000, 6.0);
 
@@ -12853,19 +12852,44 @@ void AvatarController::getFootTrajectory_stepping()
     }
     else
     {
-        // do nothing
-        // if(swing_foot_contact_detection_ == false)
-        // {
-        //     if(current_support_foot_is_left_)
-        //     {
-        //         rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_total_, target_swing_foot(2), target_swing_foot(2)-0.05, 0.0, 0.0);
-        //     }
-        //     else
-        //     {
-        //         lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_, t_total_, target_swing_foot(2), target_swing_foot(2)-0.05, 0.0, 0.0);
-        //     }
+        if (foot_step_(current_step_num_, 6) == 1)
+        {
+            lfoot_trajectory_euler_support_.setZero();
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+            lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_L_y_input) * DyrosMath::rotateWithX(-F_T_L_x_input);
+
+            for (int i = 0; i < 3; i++)
+            {
+                rfoot_trajectory_support_.translation()(i) = target_swing_foot(i);
+                rfoot_trajectory_euler_support_(i) = target_swing_foot(i + 3);
+            }
+            // 220422
+            rfoot_trajectory_support_.translation()(0) =  desired_swing_foot_LPF_(0);
+            rfoot_trajectory_support_.translation()(1) =  desired_swing_foot_LPF_(1);
+
+            // rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_R_y_input) * DyrosMath::rotateWithX(-F_T_R_x_input);
+            //rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+        }
+        else if (foot_step_(current_step_num_, 6) == 0)
+        {
+            rfoot_trajectory_euler_support_.setZero();
+            rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_R_y_input) * DyrosMath::rotateWithX(-F_T_R_x_input);
+
+            //rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(rfoot_trajectory_euler_support_(0));
+
+            for (int i = 0; i < 3; i++)
+            {
+                lfoot_trajectory_support_.translation()(i) = target_swing_foot(i);
+                lfoot_trajectory_euler_support_(i) = target_swing_foot(i + 3);
+            }
+            // 220422
+            lfoot_trajectory_support_.translation()(0) =  desired_swing_foot_LPF_(0); 
+            lfoot_trajectory_support_.translation()(1) =  desired_swing_foot_LPF_(1);    
             
-        // }
+            // lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(F_T_L_y_input) * DyrosMath::rotateWithX(-F_T_L_x_input);
+
+            //lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2)) * DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1)) * DyrosMath::rotateWithX(lfoot_trajectory_euler_support_(0));
+        }
     }
 
     // CP-ZMP control
@@ -13826,8 +13850,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double maximum_y_dist_btw_feet = 0.35;
     double half_foot_size_x = 0.15;
 
-    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
-    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_; // 0;
+    L_nom = foot_step_support_frame_(current_step_num_, 0);// + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
+    W_nom = foot_step_support_frame_(current_step_num_, 1);// + del_F_y_; // 0;
     L_min = -maximum_x_dist_btw_feet; // 0.05
     L_max = maximum_x_dist_btw_feet;
 
@@ -15497,9 +15521,9 @@ void AvatarController::CP_compen_MJ_FT()
     alpha_zmp_lpf_ = DyrosMath::lpf(alpha_zmp_, alpha_zmp_lpf_, 2000, 6.0);
 
     //test
-    alpha_zmp_lpf_ = (ZMP_Y_REF_alpha_ + 1.0*del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
-    alpha_zmp_lpf_ = DyrosMath::minmax_cut(alpha_zmp_lpf_, 0.0, 1.0);
-    // alpha_zmp_lpf_ = DyrosMath::lpf(alpha_zmp_, alpha_zmp_lpf_, 2000, 6.0);
+    // alpha_zmp_lpf_ = (ZMP_Y_REF_alpha_ + 1.0*del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+    // alpha_zmp_lpf_ = DyrosMath::minmax_cut(alpha_zmp_lpf_, 0.0, 1.0);
+    // alpha_zmp_lpf_ = DyrosMath::lpf(alpha_zmp_, alpha_zmp_lpf_, 2000, 8.0);
     // if( walking_tick_mj%500 == 0)
     // {
     //     cout <<"alpha: "<< alpha << endl;
@@ -15534,7 +15558,7 @@ void AvatarController::CP_compen_MJ_FT()
     }
 
     F_F_error_pre_ = F_F_error_;
-    F_F_error_ = (l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R);
+    F_F_error_ = (l_ft_(2) - r_ft_(2)) - (F_L - F_R);
     F_F_error_dot_ = (F_F_error_ - F_F_error_pre_)*hz_;
     //////////// Force
     // TO DO LIST: tuning the  FF P gain 230117
@@ -15551,7 +15575,7 @@ void AvatarController::CP_compen_MJ_FT()
     }
     else
     {
-        F_F_input_dot = 0.00005 * ((F_F_error_)) + 0.0*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
+        F_F_input_dot = 0.00005 * ((F_F_error_)) + 0.00000001*F_F_error_dot_ - 3.0 * F_F_input; // 0.9초 0.0001/ 3.0
     }
     
     
