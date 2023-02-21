@@ -33,16 +33,16 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
-const bool add_friction_torque_mode_ = true;
+const bool add_friction_torque_mode_ = false;
 
 const int FILE_CNT = 3;
-const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 // mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
