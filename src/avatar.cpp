@@ -1191,14 +1191,6 @@ void AvatarController::computeSlow()
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i) + Tau_CP(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
-             
-                    if(add_intentional_ext_torque_mode_)
-                    {
-                        for(int i=0; i<MODEL_DOF; i++)
-                        {
-                            torque_lower_(i) += torque_intentionally_applied_(i);
-                        }
-                    }
                 }
 
 
@@ -1214,7 +1206,7 @@ void AvatarController::computeSlow()
                 }
 
                 std::chrono::steady_clock::time_point t_printOutTextFile_start = std::chrono::steady_clock::now();
-                // printOutTextFile();
+                printOutTextFile();
                 std::chrono::steady_clock::time_point t_printOutTextFile_end = std::chrono::steady_clock::now();
 
                 if(walking_tick_mj%200 == 1000)
@@ -8171,8 +8163,9 @@ void AvatarController::updateCurrentFootstep(Eigen::Isometry3d target_foot_step)
 }
 void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
 {
-    int margin_tick = 0.000*hz_;
-    
+    int margin_tick = 0.005*hz_;
+    ext_torque.setZero();
+
     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - margin_tick)
     {
         double max_random_torque = 50;
@@ -8200,11 +8193,11 @@ void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
 
         if(current_support_foot_is_left_)
         {
-            ext_torque.segment(6, 6).setZero();
+            ext_torque.segment(0, 6).setZero();
         }
         else
         {
-            ext_torque.segment(0, 6).setZero();     
+            ext_torque.segment(6, 6).setZero();     
         }
     }
 }
@@ -10231,7 +10224,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(true)
     {
-        if (printout_cnt_ <= 2000 * 60 * 1 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
+        if (printout_cnt_ <= 2000 * 60 * 15 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t" ;
@@ -10347,7 +10340,10 @@ void AvatarController::printOutTextFile()
                 file[2] << estimated_ext_force_rfoot_gru_(i) << "\t";
             }
             file[2] << walking_tick_mj-t_start_-t_rest_init_-t_double1_ << "\t";
-            file[2] << current_support_foot_is_left_;
+            file[2] << current_support_foot_is_left_ << "\t";
+            file[2] << del_x_command_ << "\t";
+            file[2] << del_y_command_ << "\t";
+            file[2] << yaw_angle_command_ << "\t";
             
             file[2] << endl;
         }
@@ -13230,23 +13226,23 @@ void AvatarController::getPelvTrajectory()
     P_angle_input = P_angle_input + P_angle_input_dot * del_t;
     R_angle_input = R_angle_input + R_angle_input_dot * del_t;
 
-    if (R_angle_input > 3 * DEG2RAD) // 1.5 degree
+    if (R_angle_input > 10 * DEG2RAD) // 1.5 degree
     {
-        R_angle_input = 3 * DEG2RAD;
+        R_angle_input = 10 * DEG2RAD;
     }
-    else if (R_angle_input < -3 * DEG2RAD)
+    else if (R_angle_input < -10 * DEG2RAD)
     {
-        R_angle_input = -3 * DEG2RAD;
+        R_angle_input = -10 * DEG2RAD;
     }
 
-    if (P_angle_input > 5 * DEG2RAD) // 5 degree
+    if (P_angle_input > 10 * DEG2RAD) // 5 degree
     {
-        P_angle_input = 5 * DEG2RAD;
+        P_angle_input = 10 * DEG2RAD;
         // cout << "a" << endl;
     }
-    else if (P_angle_input < -5 * DEG2RAD)
+    else if (P_angle_input < -10 * DEG2RAD)
     {
-        P_angle_input = -5 * DEG2RAD;
+        P_angle_input = -10 * DEG2RAD;
         // cout << "b" << endl;
     }
 
@@ -13850,8 +13846,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double maximum_y_dist_btw_feet = 0.35;
     double half_foot_size_x = 0.15;
 
-    L_nom = foot_step_support_frame_(current_step_num_, 0);// + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
-    W_nom = foot_step_support_frame_(current_step_num_, 1);// + del_F_y_; // 0;
+    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_; // foot_step_support_frame_(current_step_num_, 0); 
+    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_; // 0;
     L_min = -maximum_x_dist_btw_feet; // 0.05
     L_max = maximum_x_dist_btw_feet;
 
@@ -15541,7 +15537,7 @@ void AvatarController::CP_compen_MJ_FT()
     }
     else
     {
-        real_robot_mass_offset_ = 120; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
+        real_robot_mass_offset_ = 70; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
     }
     double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
 
@@ -15728,11 +15724,11 @@ void AvatarController::CP_compen_MJ_FT()
         // Roll: 0.030, 0.0005, 10 Pitch: 0.030, 0.0005, 5 -> 3 Degree slope
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.035 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.030 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.035 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.030 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
