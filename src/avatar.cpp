@@ -9075,7 +9075,7 @@ void AvatarController::computeCAMcontrol_HQP()
             
         // MJ's joint limit 
         lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
-        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (30.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
         lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
         ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
         // Left Shoulder yaw  
@@ -9225,7 +9225,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
  
     // support foot
-    u0_x = DyrosMath::minmax_cut(des_zmp_ssp_mpc_x_, -0.10, 0.10); //des_zmp_interpol_(0) - ZMP_X_REF_;// del_zmp(0); 
+    u0_x = DyrosMath::minmax_cut(des_zmp_ssp_mpc_x_, -0.09, 0.12); //des_zmp_interpol_(0) - ZMP_X_REF_;// del_zmp(0); 
     u0_y = DyrosMath::minmax_cut(des_zmp_ssp_mpc_y_, -0.06, 0.06);// del_zmp(1); des_zmp_ssp_mpc_x_       
     
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
@@ -9264,7 +9264,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     double cp_eos_x_cpmpc_temp = 0, cp_eos_y_cpmpc_temp = 0;
 
-    cp_eos_x_cpmpc_temp = DyrosMath::minmax_cut(cp_eos_x_cpmpc_, -0.2, 0.2);
+    cp_eos_x_cpmpc_temp = DyrosMath::minmax_cut(cp_eos_x_cpmpc_, -0.25, 0.25);
     cp_eos_y_cpmpc_temp = DyrosMath::minmax_cut(cp_eos_y_cpmpc_, -0.25, 0.25); 
 
     b_nom_x_cpmpc = cp_eos_x_cpmpc_temp - L_nom;
@@ -9509,7 +9509,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
     //MJ_graph << del_F_(0) << "," << del_F_(1) << "," << del_F_x_ << "," << del_F_y_ << "," << stepping_input_(3) << "," << stepping_input_(4) << "," << t_total_/hz_ << endl;
-    // MJ_graph << del_zmp(0) << "," << u0_x << "," << del_zmp(1) << "," << u0_y << endl; 
+    MJ_graph << cp_eos_x_cpmpc_temp << "," << cp_eos_y_cpmpc_temp << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // MJ_graph1 << del_zmp(0) << "," << del_zmp(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << ZMP_X_REF_ << "," << ZMP_Y_REF_ << endl;
 }
@@ -10865,7 +10865,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // MJ_graph1 << des_zmp_ssp_mpc_x_ << "," << cpmpc_output_x_new_(0) << "," << des_zmp_ssp_mpc_y_ << "," << cpmpc_output_y_new_(0) << endl;
     
     // MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << del_F_(0) << endl; 
-    MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << del_F_(1) << endl; 
+    // MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << del_F_(1) << endl; 
     // MJ_graph2 << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;    
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
@@ -12014,7 +12014,7 @@ void AvatarController::getRobotState()
 
     zmp_measured_mj_(0) = (left_zmp(0) * l_ft_LPF(2) + right_zmp(0) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP X
     zmp_measured_mj_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
-    MJ_graph << cp_measured_(0) << "," << cp_measured_(1) << endl;
+    // MJ_graph << cp_measured_(0) << "," << cp_measured_(1) << endl;
     wn = sqrt(GRAVITY / zc_mj_);
 
     // real robot experiment
