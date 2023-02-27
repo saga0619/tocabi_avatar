@@ -38,11 +38,11 @@ const bool add_intentional_ext_torque_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 
 const int FILE_CNT = 3;
-// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 // mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
@@ -1920,6 +1920,10 @@ public:
     bool stopping_step_planning_trigger_;
     const int joy_command_buffer_size_ = 75; // 2.5s
     Eigen::Matrix<double, 3, 75> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    double del_x_command_raw_ = 0;
+    double del_y_command_raw_ = 0;
+    double yaw_angle_command_raw_ = 0;
+    
     double del_x_command_ = 0;
     double del_y_command_ = 0;
     double yaw_angle_command_ = 0;

@@ -83,6 +83,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
     if(simulation_mode_)
     {
         RigidBodyDynamics::Addons::URDFReadFromFile("/home/dg/catkin_ws/src/dyros_tocabi_v2/tocabi_description/robots/dyros_tocabi_dg_inertia_90per.urdf", &model_global_, true, false);
+        // RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_global_, true, false);
     }
     else
     {
@@ -1191,8 +1192,9 @@ void AvatarController::computeSlow()
                 {
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i) + Tau_CP(i);
                     // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
-                }
 
+                    torque_lower_(i) += estimated_model_unct_torque_gru_slow_(i);
+                }
 
                 ////////// Add External Torque////////////////
                 if(add_intentional_ext_torque_mode_)
@@ -1427,8 +1429,6 @@ void AvatarController::computeSlow()
                 }
             }
             ///////////////////////////////////////////////////////////////////////////////////
-
-
         }
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
@@ -1483,12 +1483,12 @@ void AvatarController::computeFast()
 
             // // PETER GRU
             initializeLegGRU(left_leg_peter_gru_, n_input_, n_output_, n_hidden_);
-            loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_mob_uct_test/");
-            loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_mob_uct_test/");
+            loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/weights/left_leg/tocabi_mob_uct_test/");
+            loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/mean_std/left_leg/tocabi_mob_uct_test/");
             
             initializeLegGRU(right_leg_peter_gru_, n_input_, n_output_, n_hidden_);
-            loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/tocabi_mob_uct_test/");
-            loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/tocabi_mob_uct_test/");
+            loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/weights/right_leg/tocabi_mob_uct_test/");
+            loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/mean_std/right_leg/tocabi_mob_uct_test/");
 
 
             initial_flag = 2;
@@ -1654,12 +1654,12 @@ void AvatarController::computeFast()
 
             // // PETER GRU
             initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
-            loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_mob_uct_test/");
-            loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_mob_uct_test/");
+            loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/weights/left_leg/");
+            loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/mean_std/left_leg/");
             
             initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
-            loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_mob_uct_test/");
-            loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_mob_uct_test/");
+            loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/weights/right_leg/");
+            loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/mean_std/right_leg/");
 
             if (atb_grav_update_ == false)
             {
@@ -8163,7 +8163,7 @@ void AvatarController::updateCurrentFootstep(Eigen::Isometry3d target_foot_step)
 }
 void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
 {
-    int margin_tick = 0.005*hz_;
+    int margin_tick = 0.000*hz_;
     ext_torque.setZero();
 
     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - margin_tick)
@@ -10181,11 +10181,11 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
         double del_y = joy_left_stick_(0)*max_step_l_y;
         double yaw_angle = joy_right_stick_(0)*max_yaw_angle;
 
-        for(int i = 0; i <joy_command_buffer_size_-1; i++)
+        for(int i = 1; i <joy_command_buffer_size_; i++)
         {
             for(int j = 0; j < 3; j++)
             {
-                joy_command_buffer_(j, i+1) = joy_command_buffer_(j, i); //push back buffer data
+                joy_command_buffer_(j, joy_command_buffer_size_-i) = joy_command_buffer_(j, joy_command_buffer_size_-i-1); //push back buffer data
             }
         }
 
@@ -10193,11 +10193,11 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
         joy_command_buffer_(1, 0) = del_y;
         joy_command_buffer_(2, 0) = yaw_angle;
 
-        del_x_command_ = joy_command_buffer_.row(0).mean();
-        del_y_command_ = joy_command_buffer_.row(1).mean();
-        yaw_angle_command_ = joy_command_buffer_.row(2).mean();
+        del_x_command_raw_ = joy_command_buffer_.row(0).mean();
+        del_y_command_raw_ = joy_command_buffer_.row(1).mean();
+        yaw_angle_command_raw_ = joy_command_buffer_.row(2).mean();
 
-        bool any_command = abs(del_x_command_)+abs(del_y_command_)+abs(yaw_angle_command_);
+        bool any_command = abs(del_x_command_raw_)+abs(del_y_command_raw_)+abs(yaw_angle_command_raw_);
 
         if (any_command && joy_input_enable_)
         {
@@ -10224,7 +10224,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(true)
     {
-        if (printout_cnt_ <= 2000 * 60 * 15 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
+        if (printout_cnt_ <= 2000 * 60 * 1 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t" ;
@@ -10344,8 +10344,26 @@ void AvatarController::printOutTextFile()
             file[2] << del_x_command_ << "\t";
             file[2] << del_y_command_ << "\t";
             file[2] << yaw_angle_command_ << "\t";
+
+            for (int i = 0; i < 3; i++) // com support
+            {
+                file[2] << com_support_current_(i) << "\t";
+            }
+            for (int i = 0; i < 3; i++) // com support
+            {
+                file[2] << com_support_current_dot_(i) << "\t";
+            }
             
+            file[2] << R_angle << "\t";
+            file[2] << P_angle;
+
             file[2] << endl;
+
+
+            if(printout_cnt_%(2000*30) == 0)
+            {
+                cout<<"print time: "<< float(printout_cnt_/2000)<<"s"<<endl;
+            }
         }
         else
         {
@@ -10359,10 +10377,6 @@ void AvatarController::printOutTextFile()
         }
     }
 
-    if(printout_cnt_%(2000*30) == 0)
-    {
-        cout<<"print time: "<< float(printout_cnt_/2000)<<"s"<<endl;
-    }
     
     printout_cnt_ += 1;
 }
@@ -16393,6 +16407,11 @@ void AvatarController::calculateFootStepTotal_MJoy_End()
 }
 void AvatarController::getJoystickCommand()
 {
+    ///////////////// GET AXES SIGNAL////////////////////////////////
+    del_x_command_ = del_x_command_raw_;
+    del_y_command_ = del_y_command_raw_;
+    yaw_angle_command_ = yaw_angle_command_raw_;
+    //////////////////////////////////////////////////////////////////
     ///////////////// GET BUTTON SIGNAL////////////////////////////////
     joy_buttons_pre_ = joy_buttons_;
     joy_buttons_ = joy_buttons_raw_;
