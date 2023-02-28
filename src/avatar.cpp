@@ -10301,7 +10301,7 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
         
              
         // damping function 
-        double cam_damping_gain = 50.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
+        double cam_damping_gain = 70.0; // Tau = - K_damping * CAM // 높으면 -Tau 한번에 크게 발생
         
         cam_damping_mat_.setIdentity(N_cp, N_cp);
         cam_damping_mat_ = cam_damping_gain * cam_damping_mat_;
@@ -10373,14 +10373,14 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
         H_cpmpc_new_y_.setZero(2*N_cp, 2*N_cp);             
          
         // Control input (desired zmp, desired tau) initinalization 
-        cpmpc_output_x_new_.setZero(2*N_cp + 0*footprint_num);
+        cpmpc_output_x_new_.setZero(2*N_cp);
         cpmpc_output_x_new_(0) = x_hat_(0); // Initial position of the CoM and ZMP is equal.
         
-        cpmpc_output_y_new_.setZero(2*N_cp + 0*footprint_num);
+        cpmpc_output_y_new_.setZero(2*N_cp);
         cpmpc_output_y_new_(0) = y_hat_(0); // Initial position of the CoM and ZMP is equal.
         
-        QP_cpmpc_x_new_.InitializeProblemSize(2*N_cp + 0*footprint_num, 2*N_cp + 0*footprint_num);
-        QP_cpmpc_y_new_.InitializeProblemSize(2*N_cp + 0*footprint_num, 2*N_cp + 0*footprint_num);
+        QP_cpmpc_x_new_.InitializeProblemSize(2*N_cp, 2*N_cp);
+        QP_cpmpc_y_new_.InitializeProblemSize(2*N_cp, 2*N_cp);
         New_CP_MPC_first_loop = 1;
         
         cout << "Initialization of New CP_MPC parameters is complete." << endl;
@@ -10388,13 +10388,15 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
     
     weighting_tau_damping_x_.setIdentity(N_cp, N_cp);
     weighting_tau_damping_y_.setIdentity(N_cp, N_cp); 
+        
+    // for(int i = 0; i < N_cp; i++)
+    // {   
+    //     weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.00, 0.07, 0.0000001, 0.0, 0.0, 0.0);
+    //     weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
+    // }      
     
-    for(int i = 0; i < N_cp; i++)
-    {   
-        weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.00, 0.05, 0.0000001, 0.0, 0.0, 0.0);
-        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
-    }      
-    
+    weighting_tau_damping_x_ = 0.0000001 * weighting_tau_damping_x_;
+    weighting_tau_damping_y_ = 0.0000001 * weighting_tau_damping_y_;
     // for(int i = 0; i < N_cp; i++) 
     // {   
     //     weighting_zmp_regul_(i, i) = DyrosMath::cubic(abs(Z_x_ref_wo_offset_new(2*i)) + zmp_bound_x_new(2*i)*0.9 + abs(cpmpc_output_x_new_(2*N_cp)) - abs(cpmpc_output_x_new_(2*i)), 0.0, 0.04, 100.0, 0.0, 0.0, 0.0);
@@ -10466,7 +10468,7 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
           
     if (QP_cpmpc_x_new_.SolveQPoases(200, cpmpc_input_x_new_))
     {                     
-        cpmpc_output_x_new_ = cpmpc_input_x_new_.segment(0, 2*N_cp + 0*footprint_num); 
+        cpmpc_output_x_new_ = cpmpc_input_x_new_.segment(0, 2*N_cp); 
                 
         if(atb_cpmpc_x_update_ == false)
         {
@@ -10486,7 +10488,7 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
 
     if (QP_cpmpc_y_new_.SolveQPoases(200, cpmpc_input_y_new_))
     {                     
-        cpmpc_output_y_new_ = cpmpc_input_y_new_.segment(0, 2*N_cp + 0*footprint_num); 
+        cpmpc_output_y_new_ = cpmpc_input_y_new_.segment(0, 2*N_cp); 
                 
         if(atb_cpmpc_y_update_ == false)
         {
@@ -10499,8 +10501,8 @@ void AvatarController::new_cpcontroller_MPC_ankle_hip(double MPC_freq, double pr
         cpmpc_y_update_ = true;
     } 
     
-    MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << endl; 
-    MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << endl; 
+    MJ_graph << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," <<  del_tau_(1) << "," << del_ang_momentum_(1) << endl; 
+    MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << del_tau_(0) << "," << del_ang_momentum_(0) << endl; 
     // MJ_graph2 << Z_x_ref_wo_offset_new(0) << "," << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_y_new_(0) << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;    
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();    
@@ -15754,7 +15756,7 @@ void AvatarController::CentroidalMomentCalculator_new()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 10.0;
+    double A_limit = 15.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
