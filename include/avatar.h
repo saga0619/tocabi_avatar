@@ -150,7 +150,8 @@ public:
     Eigen::VectorQd ikBalanceControlCompute();
 
     void computeCAMcontrol_HQP();
-    void cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
+    void new_cpcontroller_MPC_ankle(double MPC_freq, double preview_window);
+    void new_cpcontroller_MPC_ankle_hip(double MPC_freq, double preview_window);
     void new_cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
