@@ -14772,7 +14772,7 @@ void AvatarController::AnkleController_Jeong()
     del_zmp_j_(0) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(0) - cp_desired_(0));   
     del_zmp_j_(1) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(1) - cp_desired_(1));
 
-    del_zmp_j_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.1, 0.1);
+    del_zmp_j_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.09, 0.12);
     del_zmp_j_(1) = DyrosMath::minmax_cut(del_zmp_j_(1), -0.07, 0.07); 
     
 }
@@ -14789,15 +14789,15 @@ void AvatarController::QPController_Jeong()
     
     double L_max_j = L_nom_j + 0.2;
     double L_min_j = L_nom_j - 0.2;
-    double W_max_j = W_nom_j + 0.1;
-    double W_min_j = W_nom_j - 0.1;
+    double W_max_j = W_nom_j + 0.08;
+    double W_min_j = W_nom_j - 0.08;
  
     double T_nom_j = 0.0;
     double T_min_j = 0.0; 
     double T_max_j = 0.0;
     double tau_nom_j = 0.0;
         
-    double w_ux = 500.0, w_uy = 500.0, w_T = 5.0, w_bx = 1500.0, w_by = 1500.0, w_tau_x = 0.01, w_tau_y = 0.01; // 옛날 볼트랑 비슷
+    double w_ux = 50.0, w_uy = 50.0, w_T = 0.5, w_bx = 150.0, w_by = 150.0, w_tau_x = 0.001, w_tau_y = 0.001; // 옛날 볼트랑 비슷
     // double w_ux = 1.0, w_uy = 1.0, w_T = 0.005, w_bx = 3.0, w_by = 3.0, w_tau_x = 0.01, w_tau_y = 0.01;
     
     T_nom_j = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
@@ -14833,8 +14833,8 @@ void AvatarController::QPController_Jeong()
     if(walking_tick_mj == 0)
     {
         QP_jeong_sol_.setZero(7);
-        QP_jeong_sol_(0) = 0;//foot_step_support_frame_(current_step_num_, 0);
-        QP_jeong_sol_(1) = 0;//foot_step_support_frame_(current_step_num_, 1);
+        QP_jeong_sol_(0) = 0; 
+        QP_jeong_sol_(1) = 0; 
         QP_jeong_sol_(2) = tau_nom_j;
     }    
 
@@ -14920,7 +14920,7 @@ void AvatarController::QPController_Jeong()
             }
             else
             {
-                cout << "jeong is not solved." << endl;
+                cout << "jeong's QP cannot be solved." << endl;
             }
         }
 
@@ -14981,7 +14981,7 @@ void AvatarController::CentroidalMomentCalculator_Jeong()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 10.0;
+    double A_limit = 15.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
