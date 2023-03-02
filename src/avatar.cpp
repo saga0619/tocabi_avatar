@@ -14551,7 +14551,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 0.0;
+    target_x_ = 2.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -14789,8 +14789,8 @@ void AvatarController::QPController_Jeong()
     
     double L_max_j = L_nom_j + 0.2;
     double L_min_j = L_nom_j - 0.2;
-    double W_max_j = W_nom_j + 0.08;
-    double W_min_j = W_nom_j - 0.08;
+    double W_max_j = W_nom_j + 0.07;
+    double W_min_j = W_nom_j - 0.07;
  
     double T_nom_j = 0.0;
     double T_min_j = 0.0; 
@@ -14888,8 +14888,8 @@ void AvatarController::QPController_Jeong()
     lb_j(2) = L_min_j;
     lb_j(3) = W_min_j;
     lb_j(4) = exp(wn*T_min_j);
-    lb_j(5) = - 0.1; 
-    lb_j(6) = - 0.1;
+    lb_j(5) = - 0.2; 
+    lb_j(6) = - 0.2;
     lb_j(7) = - 15.0; 
     lb_j(8) = - 15.0;
     
@@ -14898,8 +14898,8 @@ void AvatarController::QPController_Jeong()
     ub_j(2) = L_max_j;
     ub_j(3) = W_max_j;
     ub_j(4) = exp(wn*T_max_j);
-    ub_j(5) = + 0.1; 
-    ub_j(6) = + 0.1;  
+    ub_j(5) = + 0.2; 
+    ub_j(6) = + 0.2;  
     ub_j(7) = + 15.0; 
     ub_j(8) = + 15.0;          
   
@@ -15231,7 +15231,7 @@ void AvatarController::CentroidalMomentCalculator_new()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 10.0;
+    double A_limit = 15.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
