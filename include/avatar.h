@@ -33,9 +33,10 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 const bool add_friction_torque_mode_ = false;
+const bool uncertainty_torque_compensation_mode_ = true;
 
 const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
@@ -1323,11 +1324,14 @@ public:
     Eigen::VectorQd threshold_joint_torque_collision_;
     Eigen::VectorQd ext_torque_compensation_;
 
-    int left_leg_collision_detected_link_;
-    int left_leg_collision_cnt_[3];  //0: thigh, 1: lower leg, 2: foot 
-    bool collision_detection_flag_ = false;
-    int right_leg_collision_detected_link_;
-    int right_leg_collision_cnt_[3];  //0: thigh, 1: lower leg, 2: foot 
+    int left_leg_collision_detected_joint_;
+    int left_leg_collision_cnt_[6];  
+    
+    int right_leg_collision_detected_joint_;
+    int right_leg_collision_cnt_[6]; 
+
+    // bool collision_detection_flag_ = false;
+    std::atomic<bool> collision_detection_flag_{false};
 
     Eigen::Vector6d estimated_ext_force_lfoot_lstm_;
     Eigen::Vector6d estimated_ext_force_rfoot_lstm_;
@@ -1415,7 +1419,7 @@ public:
         bool loadmeanstdfile_verbose = true;
         bool gaussian_mode = true;
     };
-    GRU left_leg_peter_gru_;
+    GRU left_leg_peter_gru_, left_leg_peter_gru_SN_;
     GRU right_leg_peter_gru_;
 
     const int gru_hz_ = 1000;
@@ -1563,6 +1567,8 @@ public:
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
     void calculateFootStepTotal_reactive(Eigen::Isometry3d collision_foot_pose, Eigen::Vector3d external_force, bool support_foot_is_left);
+    void calculateFootStepTotal_rewind(bool support_foot_is_left);
+
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
