@@ -9391,6 +9391,13 @@ void AvatarController::computeCAMcontrol_HQP()
 //         stepping_input_(1) = del_F_(1);
 //     }
 
+//     if(walking_tick_mj > t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - (t_rest_last_ + t_double2_) )
+//     {
+//         MJ_graph << del_F_(0) << "," << u0_x + L_nom << "," << stepping_input_(3) << "," << b_nom_x_cpmpc << "," << t_total_/hz_ << endl;
+//         MJ_graph1 << del_F_(1) << "," << u0_y + W_nom << "," << stepping_input_(4) << "," << b_nom_y_cpmpc << endl;
+//     }
+//     MJ_graph2 << cp_desired_(0) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << cp_measured_(1) << endl;
+
 //     // MJ_graph << b_nom_x_cpmpc << "," << b_nom_y_cpmpc << "," << stepping_input_(0) << "," << stepping_input_(1) << "," << t_total_/hz_ << endl;
 //     // MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
 //     del_F_(0) = stepping_input_(0);
@@ -9448,8 +9455,9 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         u0_y = 0;
     }
 
-    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;  
-    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_;  
+    L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;     
+    W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_;   
+    // W_nom = 0*foot_step_support_frame_(current_step_num_, 1) + del_F_y_;  
     L_min = L_nom - 0.05; // 0.05
     L_max = L_nom + 0.05;
     W_min = W_nom - 0.05;
@@ -9725,7 +9733,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         MJ_graph << del_F_(0) << "," << u0_x + L_nom << "," << stepping_input_(3) << "," << b_nom_x_cpmpc << "," << t_total_/hz_ << endl;
         MJ_graph1 << del_F_(1) << "," << u0_y + W_nom << "," << stepping_input_(4) << "," << b_nom_y_cpmpc << endl;
     }
-    MJ_graph2 << cp_desired_(0) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << cp_measured_(1) << endl;
+    MJ_graph2 << foot_step_support_frame_(current_step_num_, 1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << cp_measured_(1) << endl;
     // MJ_graph << cp_eos_x_cpmpc_temp << "," << cp_eos_y_cpmpc_temp << endl;
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     // MJ_graph1 << del_zmp(0) << "," << del_zmp(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << ZMP_X_REF_ << "," << ZMP_Y_REF_ << endl;
@@ -13402,7 +13410,7 @@ void AvatarController::calculateFootStepTotal_MJ()
     }
     
     // //
-    // number_of_foot_step = 11;
+    // number_of_foot_step = 10;
     // foot_step_.resize(number_of_foot_step, 7);
     // foot_step_.setZero();
     // foot_step_support_frame_.resize(number_of_foot_step, 7);
@@ -13411,6 +13419,7 @@ void AvatarController::calculateFootStepTotal_MJ()
     // m_del_zmp_x.setZero(number_of_foot_step, 2); 
     // m_del_zmp_y.setZero(number_of_foot_step, 2);
     
+    // Forward
     // foot_step_(0, 0) = 0.0; foot_step_(0, 1) = -0.1125; foot_step_(0, 6) = 1.0; 
     // foot_step_(1, 0) = 0.0; foot_step_(1, 1) =  0.1225; foot_step_(1, 6) = 0.0;
     // foot_step_(2, 0) = 0.05; foot_step_(2, 1) = -0.1225; foot_step_(2, 6) = 1.0; 
@@ -13422,6 +13431,17 @@ void AvatarController::calculateFootStepTotal_MJ()
     // foot_step_(8, 0) = 0.05; foot_step_(8, 1) = -0.1225; foot_step_(8, 6) = 1.0;
     // foot_step_(9, 0) = 0.0; foot_step_(9, 1) =  0.1225; foot_step_(9, 6) = 0.0; 
     // foot_step_(10, 0) = 0.0; foot_step_(10, 1) = -0.1225; foot_step_(10, 6) = 1.0; 
+    // Side
+    // foot_step_(0, 0) = 0.0; foot_step_(0, 1) = -0.1125; foot_step_(0, 6) = 1.0; 
+    // foot_step_(1, 0) = 0.0; foot_step_(1, 1) =  0.1225; foot_step_(1, 6) = 0.0;
+    // foot_step_(2, 0) = 0.0; foot_step_(2, 1) = -0.1225; foot_step_(2, 6) = 1.0;
+    // foot_step_(3, 0) = 0.0; foot_step_(3, 1) =  0.0; foot_step_(3, 6) = 0.0;
+    // foot_step_(4, 0) = 0.0; foot_step_(4, 1) = -0.1225*2; foot_step_(4, 6) = 1.0;
+    // foot_step_(5, 0) = 0.0; foot_step_(5, 1) = -0.1225; foot_step_(5, 6) = 0.0;
+    // foot_step_(6, 0) = 0.0; foot_step_(6, 1) = -0.1225*3; foot_step_(6, 6) = 1.0; 
+    // foot_step_(7, 0) = 0.0; foot_step_(7, 1) = -0.1225*2; foot_step_(7, 6) = 0.0; 
+    // foot_step_(8, 0) = 0.0; foot_step_(8, 1) = -0.1225*4; foot_step_(8, 6) = 1.0;
+    // foot_step_(9, 0) = 0.0; foot_step_(9, 1) = -0.1225*2; foot_step_(9, 6) = 0.0;
 }
 
 void AvatarController::floatToSupportFootstep()
