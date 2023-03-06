@@ -34,9 +34,9 @@
 #include <eigen_conversions/eigen_msg.h>
 
 const bool simulation_mode_ = true;
-const bool add_intentional_ext_torque_mode_ = false;
-const bool add_friction_torque_mode_ = false;
-const bool uncertainty_torque_compensation_mode_ = true;
+const bool add_intentional_ext_torque_mode_ = true;
+const bool add_friction_torque_mode_ = true;
+const bool uncertainty_torque_compensation_mode_ = false;
 
 const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
@@ -1445,6 +1445,7 @@ public:
 
     void loadGruWeights(GRU &gru, std::string folder_path);
     void loadGruMeanStd(GRU &gru, std::string folder_path);
+    void loadGruWeightsSpectralNorm(GRU &gru, std::string folder_path);
 
     void initializeLegGRU(GRU &gru, int n_input, int n_output, int n_hidden);
     void calculateGruInput(GRU &gru);

@@ -345,24 +345,24 @@ void AvatarController::setGains()
     kp_stiff_joint_(12) = 6000; // waist
     kp_stiff_joint_(13) = 10000;
     kp_stiff_joint_(14) = 10000;
-    kp_stiff_joint_(15) = 200; // left arm
-    kp_stiff_joint_(16) = 400;
-    kp_stiff_joint_(17) = 200;
-    kp_stiff_joint_(18) = 200;
-    kp_stiff_joint_(19) = 125;
-    kp_stiff_joint_(20) = 125;
-    kp_stiff_joint_(21) = 25;
-    kp_stiff_joint_(22) = 25;
+    kp_stiff_joint_(15) = 700; // left arm
+    kp_stiff_joint_(16) = 1250;
+    kp_stiff_joint_(17) = 1000;
+    kp_stiff_joint_(18) = 1000;
+    kp_stiff_joint_(19) = 450;
+    kp_stiff_joint_(20) = 450;
+    kp_stiff_joint_(21) = 200;
+    kp_stiff_joint_(22) = 200;
     kp_stiff_joint_(23) = 50; // head
     kp_stiff_joint_(24) = 50;
-    kp_stiff_joint_(25) = 200; // right arm
-    kp_stiff_joint_(26) = 400;
-    kp_stiff_joint_(27) = 200;
-    kp_stiff_joint_(28) = 200;
-    kp_stiff_joint_(29) = 125;
-    kp_stiff_joint_(30) = 125;
-    kp_stiff_joint_(31) = 25;
-    kp_stiff_joint_(32) = 25;
+    kp_stiff_joint_(25) = 700; // right arm
+    kp_stiff_joint_(26) = 1250;
+    kp_stiff_joint_(27) = 1000;
+    kp_stiff_joint_(28) = 1000;
+    kp_stiff_joint_(29) = 450;
+    kp_stiff_joint_(30) = 450;
+    kp_stiff_joint_(31) = 200;
+    kp_stiff_joint_(32) = 200;
 
     kv_stiff_joint_(0) = 15; // right leg
     kv_stiff_joint_(1) = 50;
@@ -379,24 +379,24 @@ void AvatarController::setGains()
     kv_stiff_joint_(12) = 200; // waist
     kv_stiff_joint_(13) = 100;
     kv_stiff_joint_(14) = 100;
-    kv_stiff_joint_(15) = 7; // left arm
-    kv_stiff_joint_(16) = 5;
-    kv_stiff_joint_(17) = 2.5;
-    kv_stiff_joint_(18) = 2.5;
-    kv_stiff_joint_(19) = 2.5;
-    kv_stiff_joint_(20) = 2;
-    kv_stiff_joint_(21) = 2;
-    kv_stiff_joint_(22) = 2;
+    kv_stiff_joint_(15) = 11; // left arm
+    kv_stiff_joint_(16) = 8;
+    kv_stiff_joint_(17) = 4;
+    kv_stiff_joint_(18) = 4;
+    kv_stiff_joint_(19) = 4;
+    kv_stiff_joint_(20) = 3;
+    kv_stiff_joint_(21) = 3;
+    kv_stiff_joint_(22) = 3;
     kv_stiff_joint_(23) = 2; // head
     kv_stiff_joint_(24) = 2;
-    kv_stiff_joint_(25) = 7; // right arm
-    kv_stiff_joint_(26) = 5;
-    kv_stiff_joint_(27) = 2.5;
-    kv_stiff_joint_(28) = 2.5;
-    kv_stiff_joint_(29) = 2.5;
-    kv_stiff_joint_(30) = 2;
-    kv_stiff_joint_(31) = 2;
-    kv_stiff_joint_(32) = 2;
+    kv_stiff_joint_(25) = 11; // right arm
+    kv_stiff_joint_(26) = 8;
+    kv_stiff_joint_(27) = 4;
+    kv_stiff_joint_(28) = 4;
+    kv_stiff_joint_(29) = 4;
+    kv_stiff_joint_(30) = 3;
+    kv_stiff_joint_(31) = 3;
+    kv_stiff_joint_(32) = 3;
 
     kp_soft_joint_(0) = 2000; // right leg
     kp_soft_joint_(1) = 5000;
@@ -1669,7 +1669,8 @@ void AvatarController::computeFast()
             else
             {
                 initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
-                loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data/");
+                // loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data/");
+                loadGruWeightsSpectralNorm(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data_SN/");
                 loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_swing_ext_torque_230221_data/");
                 
                 initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
@@ -4947,6 +4948,11 @@ void AvatarController::motionRetargeting_HQPIK()
     u_dot_hqpik_[2].segment(4, 2) = 100 * error_w_lshoulder.segment(1, 2);
     u_dot_hqpik_[2].segment(6, 2) = 100 * error_w_rshoulder.segment(1, 2);
 
+    for(int k=0; k<8; k++)
+    {
+        u_dot_hqpik_[2](k) = DyrosMath::minmax_cut(u_dot_hqpik_[2](k), -M_PI, M_PI);
+    }
+
     for (int i = 0; i < hierarchy_num_hqpik_; i++)
     {
         if (i > last_solved_hierarchy_num_)
@@ -7704,6 +7710,10 @@ void AvatarController::floatingBaseMOB()
     estimated_ext_force_lfoot_gru_ = J_lf_T.transpose()*(J_lf_T*J_lf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*estimated_external_torque_gru_slow_.segment(0, 6);
     estimated_ext_force_rfoot_gru_ = J_rf_T.transpose()*(J_rf_T*J_rf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*estimated_external_torque_gru_slow_.segment(6, 6);
 
+    // if(walking_tick_mj%1000 == 0)
+    // {
+    //     cout<<"EXTERNAL TORQUE: \n"<< estimated_external_torque_gru_slow_.segment(0, 12).transpose()<<endl;
+    // }
     // for (int i = 0; i < 6; i++)
     // {
     //     file[2] << ((l_ft_wo_fw_))(i) << "\t";
@@ -8132,10 +8142,10 @@ void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
     int margin_tick = 0.000*hz_;
     ext_torque.setZero();
 
+    double max_random_torque = 50;
+
     if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_ - margin_tick)
     {
-        double max_random_torque = 50;
-
         for(int i = 0; i <12; i++)
         {
             if(walking_tick_mj == t_start_ + t_rest_init_ + t_double1_ + margin_tick)
@@ -8164,6 +8174,50 @@ void AvatarController::sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque)
         else
         {
             ext_torque.segment(6, 6).setZero();     
+        }
+    }
+
+    max_random_torque = 20;
+    // waist + left arm
+    for(int i = 12; i <23; i++)
+    {
+        if(walking_tick_mj == t_start_ + t_rest_init_ + t_double1_ + margin_tick)
+        {
+            random_ext_torque_update_tick_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
+            random_ext_torque_duration_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
+
+            random_ext_torque_(i) = (float(std::rand()) / float(RAND_MAX) * max_random_torque*2) - max_random_torque;
+            random_ext_torque_update_flag_(i) = false;
+        }
+
+        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick + random_ext_torque_update_tick_(i) && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + margin_tick + random_ext_torque_update_tick_(i) + random_ext_torque_duration_(i))
+        {
+            ext_torque(i) = random_ext_torque_(i);
+        }
+        else
+        {
+            ext_torque(i) = 0;
+        }
+    }
+    // right arm
+    for(int i = 25; i <33; i++)
+    {
+        if(walking_tick_mj == t_start_ + t_rest_init_ + t_double1_ + margin_tick)
+        {
+            random_ext_torque_update_tick_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
+            random_ext_torque_duration_(i) =  int(float(std::rand()) / float(RAND_MAX) * 0.5*hz_);
+
+            random_ext_torque_(i) = (float(std::rand()) / float(RAND_MAX) * max_random_torque*2) - max_random_torque;
+            random_ext_torque_update_flag_(i) = false;
+        }
+
+        if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ + margin_tick + random_ext_torque_update_tick_(i) && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + margin_tick + random_ext_torque_update_tick_(i) + random_ext_torque_duration_(i))
+        {
+            ext_torque(i) = random_ext_torque_(i);
+        }
+        else
+        {
+            ext_torque(i) = 0;
         }
     }
 }
@@ -9558,6 +9612,324 @@ void AvatarController::loadGruMeanStd(GRU &gru, std::string folder_path)
              << gru.output_std.transpose() << endl;
     }
 }
+void AvatarController::loadGruWeightsSpectralNorm(GRU &gru, std::string folder_path)
+{
+    std::string W_ih_orig_path("gru_weight_ih_l0_orig.txt");
+    std::string W_hh_orig_path("gru_weight_hh_l0_orig.txt");
+    std::string W_linear_orig_path("linear_weight_orig.txt");
+
+    std::string W_ih_u_path("gru_weight_ih_l0_u.txt");
+    std::string W_hh_u_path("gru_weight_hh_l0_u.txt");
+    std::string W_linear_u_path("linear_weight_u.txt");
+
+    std::string W_ih_v_path("gru_weight_ih_l0_v.txt");
+    std::string W_hh_v_path("gru_weight_hh_l0_v.txt");
+    std::string W_linear_v_path("linear_weight_v.txt");
+
+    std::string b_ih_path("gru_bias_ih_l0.txt");
+    std::string b_hh_path("gru_bias_hh_l0.txt");
+    std::string b_linear_path("linear_bias.txt");
+
+    W_ih_orig_path = folder_path + W_ih_orig_path;
+    W_hh_orig_path = folder_path + W_hh_orig_path;
+    W_linear_orig_path = folder_path + W_linear_orig_path;
+
+    W_ih_u_path = folder_path + W_ih_u_path;
+    W_hh_u_path = folder_path + W_hh_u_path;
+    W_linear_u_path = folder_path + W_linear_u_path;
+
+    W_ih_v_path = folder_path + W_ih_v_path;
+    W_hh_v_path = folder_path + W_hh_v_path;
+    W_linear_v_path = folder_path + W_linear_v_path;
+
+    b_ih_path = folder_path + b_ih_path;
+    b_hh_path = folder_path + b_hh_path;
+    b_linear_path = folder_path + b_linear_path;
+
+    gru.network_weights_files[0].open(W_ih_orig_path, ios::in);
+    gru.network_weights_files[1].open(W_ih_u_path, ios::in);
+    gru.network_weights_files[2].open(W_ih_v_path, ios::in);
+
+    gru.bias_files[0].open(b_ih_path, ios::in);
+    gru.bias_files[1].open(b_hh_path, ios::in);
+    gru.bias_files[2].open(b_linear_path, ios::in);
+
+    Eigen::MatrixXd W_ih_orig;
+    Eigen::VectorXd W_ih_u;
+    Eigen::VectorXd W_ih_v;
+
+    W_ih_orig.setZero(3 * gru.n_hidden, gru.n_input);
+    W_ih_u.setZero(3 * gru.n_hidden);
+    W_ih_v.setZero(gru.n_input);
+
+    ///////////////////W_ih///////////////////////////////
+    // W_ih_origin
+    if (!gru.network_weights_files[0].is_open())
+    {
+        std::cout << "Can not find the file: " << W_ih_orig_path << std::endl;
+    }
+
+    for (int i = 0; i < W_ih_orig.rows(); i++)
+    {
+        for (int j = 0; j < W_ih_orig.cols(); j++)
+        {
+            gru.network_weights_files[0] >> W_ih_orig(i, j);
+        }
+    }
+    gru.network_weights_files[0].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "weight_ih_orig: \n"
+             << W_ih_orig << endl;
+    }
+    
+    // W_ih_u
+    if (!gru.network_weights_files[1].is_open())
+    {
+        std::cout << "Can not find the file: " << W_ih_u_path << std::endl;
+    }
+
+    for (int i = 0; i < W_ih_u.rows(); i++)
+    {
+        gru.network_weights_files[1] >> W_ih_u(i);
+    }
+    gru.network_weights_files[1].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_ih_u: \n"
+             << W_ih_u.transpose() << endl;
+    }
+
+    // W_ih_v
+    if (!gru.network_weights_files[2].is_open())
+    {
+        std::cout << "Can not find the file: " << W_ih_v_path << std::endl;
+    }
+
+    for (int i = 0; i < W_ih_v.rows(); i++)
+    {
+        gru.network_weights_files[2] >> W_ih_v(i);
+    }
+    gru.network_weights_files[2].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_ih_v: \n"
+             << W_ih_v.transpose() << endl;
+    }
+
+    double SN_W_ih = W_ih_u.transpose()*W_ih_orig*W_ih_v;
+    gru.W_ih = W_ih_orig/SN_W_ih;
+    //////////////////////////////////////////////////////////////////
+
+    gru.network_weights_files[0].open(W_hh_orig_path, ios::in);
+    gru.network_weights_files[1].open(W_hh_u_path, ios::in);
+    gru.network_weights_files[2].open(W_hh_v_path, ios::in);
+
+    Eigen::MatrixXd W_hh_orig;
+    Eigen::VectorXd W_hh_u;
+    Eigen::VectorXd W_hh_v;
+
+    W_hh_orig.setZero(3 * gru.n_hidden, gru.n_hidden);
+    W_hh_u.setZero(3 * gru.n_hidden);
+    W_hh_v.setZero(gru.n_hidden);
+
+    ///////////////////W_hh///////////////////////////////
+    // W_hh_origin
+    if (!gru.network_weights_files[0].is_open())
+    {
+        std::cout << "Can not find the file: " << W_hh_orig_path << std::endl;
+    }
+
+    for (int i = 0; i < W_hh_orig.rows(); i++)
+    {
+        for (int j = 0; j < W_hh_orig.cols(); j++)
+        {
+            gru.network_weights_files[0] >> W_hh_orig(i, j);
+        }
+    }
+    gru.network_weights_files[0].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "weight_hh_orig: \n"
+             << W_hh_orig << endl;
+    }
+    
+    // W_hh_u
+    if (!gru.network_weights_files[1].is_open())
+    {
+        std::cout << "Can not find the file: " << W_hh_u_path << std::endl;
+    }
+
+    for (int i = 0; i < W_hh_u.rows(); i++)
+    {
+        gru.network_weights_files[1] >> W_hh_u(i);
+    }
+    gru.network_weights_files[1].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_hh_u: \n"
+             << W_hh_u.transpose() << endl;
+    }
+
+    // W_hh_v
+    if (!gru.network_weights_files[2].is_open())
+    {
+        std::cout << "Can not find the file: " << W_hh_v_path << std::endl;
+    }
+
+    for (int i = 0; i < W_hh_v.rows(); i++)
+    {
+        gru.network_weights_files[2] >> W_hh_v(i);
+    }
+    gru.network_weights_files[2].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_hh_v: \n"
+             << W_hh_v.transpose() << endl;
+    }
+
+    double SN_W_hh = W_hh_u.transpose()*W_hh_orig*W_hh_v;
+    gru.W_hh = W_hh_orig/SN_W_hh;
+    //////////////////////////////////////////////////////////////////
+
+    gru.network_weights_files[0].open(W_linear_orig_path, ios::in);
+    gru.network_weights_files[1].open(W_linear_u_path, ios::in);
+    gru.network_weights_files[2].open(W_linear_v_path, ios::in);
+
+    Eigen::MatrixXd W_linear_orig;
+    Eigen::VectorXd W_linear_u;
+    Eigen::VectorXd W_linear_v;
+
+    W_linear_orig.setZero( gru.n_output, gru.n_hidden);
+    W_linear_u.setZero( gru.n_output);
+    W_linear_v.setZero(gru.n_hidden);
+
+    ///////////////////W_linear///////////////////////////////
+    // W_linear_origin
+    if (!gru.network_weights_files[0].is_open())
+    {
+        std::cout << "Can not find the file: " << W_linear_orig_path << std::endl;
+    }
+
+    for (int i = 0; i < W_linear_orig.rows(); i++)
+    {
+        for (int j = 0; j < W_linear_orig.cols(); j++)
+        {
+            gru.network_weights_files[0] >> W_linear_orig(i, j);
+        }
+    }
+    gru.network_weights_files[0].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "weight_linear_orig: \n"
+             << W_linear_orig << endl;
+    }
+    
+    // W_linear_u
+    if (!gru.network_weights_files[1].is_open())
+    {
+        std::cout << "Can not find the file: " << W_linear_u_path << std::endl;
+    }
+
+    for (int i = 0; i < W_linear_u.rows(); i++)
+    {
+        gru.network_weights_files[1] >> W_linear_u(i);
+    }
+    gru.network_weights_files[1].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_linear_u: \n"
+             << W_linear_u.transpose() << endl;
+    }
+
+    // W_linear_v
+    if (!gru.network_weights_files[2].is_open())
+    {
+        std::cout << "Can not find the file: " << W_linear_v_path << std::endl;
+    }
+
+    for (int i = 0; i < W_linear_v.rows(); i++)
+    {
+        gru.network_weights_files[2] >> W_linear_v(i);
+    }
+    gru.network_weights_files[2].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "W_linear_v: \n"
+             << W_linear_v.transpose() << endl;
+    }
+
+    double SN_W_linear = W_linear_u.transpose()*W_linear_orig*W_linear_v;
+    gru.W_linear = W_linear_orig/SN_W_linear;
+    //////////////////////////////////////////////////////////////////
+
+
+    // b_ih
+    if (!gru.bias_files[0].is_open())
+    {
+        std::cout << "Can not find the file: " << b_ih_path << std::endl;
+    }
+
+    for (int i = 0; i < gru.b_ih.rows(); i++)
+    {
+
+        gru.bias_files[0] >> gru.b_ih(i);
+    }
+    gru.bias_files[0].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "bias_ih: \n"
+             << gru.b_ih.transpose() << endl;
+    }
+
+    // b_hh
+    if (!gru.bias_files[1].is_open())
+    {
+        std::cout << "Can not find the file: " << b_hh_path << std::endl;
+    }
+
+    for (int i = 0; i < gru.b_hh.rows(); i++)
+    {
+
+        gru.bias_files[1] >> gru.b_hh(i);
+    }
+    gru.bias_files[1].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "bias_hh: \n"
+             << gru.b_hh.transpose() << endl;
+    }
+
+    // b_linear
+    if (!gru.bias_files[2].is_open())
+    {
+        std::cout << "Can not find the file: " << b_linear_path << std::endl;
+    }
+
+    for (int i = 0; i < gru.b_linear.rows(); i++)
+    {
+
+        gru.bias_files[2] >> gru.b_linear(i);
+    }
+    gru.bias_files[2].close();
+
+    if (gru.loadweightfile_verbose == true)
+    {
+        cout << "bias_linear: \n"
+             << gru.b_linear.transpose() << endl;
+    }
+}
 void AvatarController::calculateGruInput(GRU &gru)
 {
     // index up{date
@@ -10190,7 +10562,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(false)
     {
-        if (printout_cnt_ <= 2000 * 60 * 1 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
+        if (printout_cnt_ <= 2000 * 60 * 15 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t" ;
