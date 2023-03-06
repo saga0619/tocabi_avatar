@@ -1669,7 +1669,7 @@ void AvatarController::computeFast()
             else
             {
                 initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
-                loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data/");
+                loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data_SN/");
                 loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_swing_ext_torque_230221_data/");
                 
                 initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
@@ -2740,14 +2740,14 @@ void AvatarController::initWalkingParameter()
     estimated_model_unct_torque_gru_fast_.setZero();
     estimated_model_unct_torque_gru_slow_.setZero();
     estimated_model_unct_torque_gru_thread_.setZero();
-    estimated_model_unct_torque_gru_slow_lpf_.setZero();
 
     estimated_model_unct_torque_variance_gru_fast_.setZero();
     estimated_model_unct_torque_variance_gru_slow_.setZero();
     estimated_model_unct_torque_variance_gru_thread_.setZero();
 
     estimated_external_torque_gru_slow_.setZero();
-    
+    estimated_external_torque_gru_slow_lpf_.setZero();
+
     motion_q_pre_ = init_q_;
     motion_q_dot_pre_.setZero();
 
@@ -7700,6 +7700,7 @@ void AvatarController::floatingBaseMOB()
     Eigen::Matrix6d J_rf_T = (jac_rfoot_.block(0, 12, 6, 6)).transpose();
 
     estimated_external_torque_gru_slow_ = mob_residual_wholebody_.segment(6, MODEL_DOF) - estimated_model_unct_torque_gru_slow_;
+    estimated_external_torque_gru_slow_lpf_ = DyrosMath::lpf<MODEL_DOF>(estimated_external_torque_gru_slow_, estimated_external_torque_gru_slow_lpf_, 2000, 10.0);
 
     estimated_ext_force_lfoot_gru_ = J_lf_T.transpose()*(J_lf_T*J_lf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*estimated_external_torque_gru_slow_.segment(0, 6);
     estimated_ext_force_rfoot_gru_ = J_rf_T.transpose()*(J_rf_T*J_rf_T.transpose()+Eigen::Matrix6d::Identity()*1e-6).inverse()*estimated_external_torque_gru_slow_.segment(6, 6);
@@ -7744,7 +7745,7 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 void AvatarController::collisionEstimation()
 {
     // collisionDetection();
-    // collisionIsolation();
+    collisionIsolation();
     // collisionIdentification();
 }
 void AvatarController::collisionDetection()
@@ -7835,7 +7836,7 @@ void AvatarController::collisionDetection()
 }
 void AvatarController::collisionIsolation()
 {
-    bool threshold_tuning_mode = false;
+    bool threshold_tuning_mode = true;
 
     left_leg_collision_detected_joint_ = 0;
     right_leg_collision_detected_joint_ = 0;
@@ -7867,7 +7868,7 @@ void AvatarController::collisionIsolation()
     {
         // threshold_joint_torque_collision_(i) = 30;
         // left leg
-        if (abs(estimated_external_torque_gru_slow_(i)) > threshold_joint_torque_w_sigma(i))
+        if (abs(estimated_external_torque_gru_slow_lpf_(i)) > threshold_joint_torque_w_sigma(i))
         {
             left_leg_collision_cnt_[i] += 1;
 
@@ -7902,8 +7903,8 @@ void AvatarController::collisionIsolation()
             if (collision_detection_flag_==false)
             {
                 cout << "collision is detected on the " << left_leg_collision_detected_joint_ << "th joint of LEFT LEG" << endl;
-                cout << "estimated_external_torque_gru_slow_: \n"
-                     << estimated_external_torque_gru_slow_.segment(0, 6).transpose() << endl;
+                cout << "estimated_external_torque_gru_slow_lpf_: \n"
+                     << estimated_external_torque_gru_slow_lpf_.segment(0, 6).transpose() << endl;
                 cout << "estimated_ext_force_lfoot_gru_: \n"
                      << estimated_ext_force_lfoot_gru_.transpose() << endl;
                 
@@ -7942,7 +7943,7 @@ void AvatarController::collisionIsolation()
 
         for (int i = 0; i < 6; i++)
         {
-            ext_torque_compensation_(i) = compensation_gain * estimated_external_torque_gru_slow_(i);
+            ext_torque_compensation_(i) = compensation_gain * estimated_external_torque_gru_slow_lpf_(i);
             ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -100.0, 100.0);
         }
     }
@@ -7961,7 +7962,7 @@ void AvatarController::collisionIsolation()
     {
         // threshold_joint_torque_collision_(i) = 30;
         // left leg
-        if (abs(estimated_external_torque_gru_slow_(i + 6)) > threshold_joint_torque_w_sigma(i + 6))
+        if (abs(estimated_external_torque_gru_slow_lpf_(i + 6)) > threshold_joint_torque_w_sigma(i + 6))
         {
             right_leg_collision_cnt_[i] += 1;
             
@@ -7994,8 +7995,8 @@ void AvatarController::collisionIsolation()
             if (collision_detection_flag_==false)
             {
                 cout << "collision is detected on the " << right_leg_collision_detected_joint_ << "th joint of RIGHT LEG" << endl;
-                cout << "estimated_external_torque_gru_slow_: \n"
-                     << estimated_external_torque_gru_slow_.segment(6, 6).transpose() << endl;
+                cout << "estimated_external_torque_gru_slow_lpf_: \n"
+                     << estimated_external_torque_gru_slow_lpf_.segment(6, 6).transpose() << endl;
                 cout << "estimated_ext_force_rfoot_gru_: \n"
                      << estimated_ext_force_rfoot_gru_.transpose() << endl;
                 if(threshold_tuning_mode)
@@ -8033,7 +8034,7 @@ void AvatarController::collisionIsolation()
         // reflex torque control
         for (int i = 6; i < 12; i++)
         {
-            ext_torque_compensation_(i) = compensation_gain * estimated_external_torque_gru_slow_(i);
+            ext_torque_compensation_(i) = compensation_gain * estimated_external_torque_gru_slow_lpf_(i);
             ext_torque_compensation_(i) = DyrosMath::minmax_cut(ext_torque_compensation_(i), -100.0, 100.0);
         }
     }
@@ -9631,6 +9632,7 @@ void AvatarController::calculateGruOutput(GRU &gru)
         VectorXd hn_gate = gru.W_hh.block(2*gru.n_hidden, 0, gru.n_hidden, gru.n_hidden)*gru.h_t.col(gru.output_mode_idx) + gru.b_hh.segment(2*gru.n_hidden, gru.n_hidden);
         VectorXd r_hn;
         r_hn.setZero(gru.n_hidden);
+        
         for(int i=0; i<gru.n_hidden; i++)
         {
             r_hn(i) = gru.r_t(i)*hn_gate(i);
@@ -10190,7 +10192,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(false)
     {
-        if (printout_cnt_ <= 2000 * 60 * 1 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
+        if (printout_cnt_ <= 2000 * 60 * 15 && abs(P_angle) < 20*DEG2RAD && abs(R_angle) < 20*DEG2RAD ) // 15min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t" ;
@@ -15708,11 +15710,11 @@ void AvatarController::CP_compen_MJ_FT()
         // Roll: 0.030, 0.0005, 10 Pitch: 0.030, 0.0005, 5 -> 3 Degree slope
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-        F_T_L_x_input_dot = 0.030 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.025 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.030 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.025 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
