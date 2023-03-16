@@ -16,7 +16,7 @@
 #include <sstream>
 #include <fstream>
 
-//#include "tocabi_msgs/FTsensor.h" // real robot experiment
+#include "tocabi_msgs/FTsensor.h" // real robot experiment
 
 //lexls
 // #include <lexls/lexlsi.h>
@@ -73,7 +73,7 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-const std::string calibration_folder_dir_ = "/home/dyros/dg/FB_MOB_LEARNING_TOCABI/data/simulation/calibration_log/dh";  //tocabi 
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
@@ -308,6 +308,8 @@ public:
     void HandPosMappingScaleCallback(const std_msgs::Float32 &msg);
 
     void JoystickCommandCallback(const sensor_msgs::Joy &msg);
+
+    void OptoforceFTCallback(const tocabi_msgs::FTsensor &msg);
     ///////////////////////////////
 
     ////////////////dg custom controller variables/////////////
@@ -1446,6 +1448,7 @@ public:
 
     void loadGruWeights(GRU &gru, std::string folder_path);
     void loadGruMeanStd(GRU &gru, std::string folder_path);
+    void loadGruWeightsSpectralNorm(GRU &gru, std::string folder_path);
 
     void initializeLegGRU(GRU &gru, int n_input, int n_output, int n_hidden);
     void calculateGruInput(GRU &gru);
