@@ -39,6 +39,10 @@ const bool add_intentional_modeling_eror_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
+const bool joint_ext_force_compensation = true; 
+const bool pelv_ext_force_compensation = true; // X, Y, Yaw
+const bool ATC_mode_ = true; // ATC or RTC
+
 const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
 const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
@@ -1322,19 +1326,50 @@ public:
     ifstream col_thr_file_;
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
-    Eigen::VectorVQd maximum_collision_free_torque_;
 
     Eigen::VectorVQd threshold_joint_torque_collision_;
-    Eigen::VectorQd ext_torque_compensation_;
+    Eigen::VectorVQd threshold_limb_collision_push_;
+    Eigen::VectorVQd ext_torque_compensation_;
 
+    // joint wise detection
     int left_leg_collision_detected_joint_;
     int left_leg_collision_cnt_[6];  
     
     int right_leg_collision_detected_joint_;
     int right_leg_collision_cnt_[6]; 
 
+    // limb wise detection
+    int left_leg_limb_collision_cnt_=0;
+    int right_leg_limb_collision_cnt_=0;
+    int left_arm_limb_collision_cnt_=0;
+    int right_arm_limb_collision_cnt_=0;
+    int upperbody_limb_collision_cnt_=0;
+    int pelvis_limb_collision_cnt_=0;
+
+    bool left_leg_limb_collision_flag_=false;
+    bool right_leg_limb_collision_flag_=false;
+    bool left_arm_limb_collision_flag_=false;
+    bool right_arm_limb_collision_flag_=false;
+    bool upperbody_limb_collision_flag_=false;
+    bool pelvis_limb_collision_flag_=false;
+
+    int left_arm_limb_push_cnt_=0;
+    int right_arm_limb_push_cnt_=0;
+    int upperbody_limb_push_cnt_=0;
+    int pelvis_limb_push_cnt_=0;
+
+    bool left_arm_limb_push_flag_=false;
+    bool right_arm_limb_push_flag_=false;
+    bool upperbody_limb_push_flag_=false;
+    bool pelvis_limb_push_flag_=false;
+
+    bool right_arm_doing_task_flag_ = false;
+    bool left_arm_doing_task_flag_ = false;
+
     // bool collision_detection_flag_ = false;
     std::atomic<bool> collision_detection_flag_{false};
+    std::atomic<bool> collision_reaction_flag_{false};
+    std::atomic<bool> push_reaction_flag_{false};
 
     Eigen::Vector6d estimated_ext_force_lfoot_lstm_;
     Eigen::Vector6d estimated_ext_force_rfoot_lstm_;
@@ -1422,8 +1457,11 @@ public:
         bool loadmeanstdfile_verbose = true;
         bool gaussian_mode = true;
     };
-    GRU left_leg_peter_gru_, left_leg_peter_gru_SN_;
+    GRU left_leg_peter_gru_;
     GRU right_leg_peter_gru_;
+    GRU left_arm_peter_gru_;
+    GRU right_arm_peter_gru_;
+    GRU pelvis_peter_gru_;
 
     const int gru_hz_ = 1000;
     // ifstream network_weights_file_gru_[6];
@@ -1444,6 +1482,19 @@ public:
     Eigen::VectorVQd estimated_model_unct_torque_variance_gru_thread_;
 
     Eigen::VectorVQd estimated_external_torque_gru_slow_;
+
+    Eigen::VectorVQd estimated_external_torque_gru_slow_lpf_soft_;
+    Eigen::VectorVQd estimated_external_torque_gru_slow_lpf_hard_;
+
+    Vector6d pelv_pure_ext_torque_;
+    Vector6d pelv_pure_ext_torque_lpf_soft_;
+    Vector6d pelv_pure_ext_torque_lpf_hard_;
+
+    bool check_left_swing_foot_;
+    bool check_left_early_contact_;
+    bool check_right_swing_foot_;
+    bool check_right_early_contact_;
+    
     void collectRobotInputData_peter_gru();
 
     void loadGruWeights(GRU &gru, std::string folder_path);
