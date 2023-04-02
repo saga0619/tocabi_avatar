@@ -33,14 +33,14 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
 const bool add_intentional_modeling_eror_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
-const bool joint_ext_force_compensation = true; 
-const bool pelv_ext_force_compensation = true; // X, Y, Yaw
+const bool joint_ext_force_compensation = false; 
+const bool pelv_ext_force_compensation = false; // X, Y, Yaw
 const bool ATC_mode_ = true; // ATC or RTC
 
 const int FILE_CNT = 3;
@@ -1454,14 +1454,13 @@ public:
         ifstream mean_std_files[4];
 
         bool loadweightfile_verbose = false;
-        bool loadmeanstdfile_verbose = true;
+        bool loadmeanstdfile_verbose = false;
         bool gaussian_mode = true;
     };
     GRU left_leg_peter_gru_;
     GRU right_leg_peter_gru_;
     GRU left_arm_peter_gru_;
     GRU right_arm_peter_gru_;
-    GRU pelvis_peter_gru_;
 
     const int gru_hz_ = 1000;
     // ifstream network_weights_file_gru_[6];
@@ -1523,7 +1522,8 @@ public:
 
         std::vector<ifstream> weight_files;
         std::vector<ifstream> bias_files;
-
+        ifstream mean_std_files[4];
+        
         int n_input;
         int n_output;
         Eigen::VectorXd n_hidden;
@@ -1539,6 +1539,9 @@ public:
         Eigen::VectorXd output_fast;
         Eigen::VectorXd output_thread;
 
+        Eigen::VectorXd output_mean;
+        Eigen::VectorXd output_std;
+
         Eigen::MatrixXd output_derivative_fast;
 
         Eigen::VectorXd hx_gradient_fast;
@@ -1549,17 +1552,25 @@ public:
 
         bool loadweightfile_verbose = false;
         bool loadbiasfile_verbose = false;
+        bool gaussian_mode = false;
 
         int self_collision_stop_cnt_;
     }   larm_upperbody_sca_mlp_, rarm_upperbody_sca_mlp_, btw_arms_sca_mlp_;
     
+    MLP pelvis_concat_mlp_;
+
     void setNeuralNetworks();
-    void initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector);
+    void initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector, bool spectral_normalization = false);
     void loadScaNetwork(MLP &mlp, std::string folder_path);
+    void loadMlpWeightsSpectralNorm(MLP &mlp, std::string folder_path);
+
     void calculateScaMlpInput(MLP &mlp);
     void calculateScaMlpOutput(MLP &mlp);
-    void readWeightFile(MLP &mlp, int weight_num);
+    void calculatePelvConcatMlpOutput(MLP &mlp);
+
+    void readWeightFile(MLP &mlp, int weight_num, bool spectral_normalization = false);
     void readBiasFile(MLP &mlp, int bias_num);
+    void loadMlpMeanStd(MLP &mlp, std::string folder_path);
 
     std::atomic<bool> atb_mlp_input_update_{false};
     std::atomic<bool> atb_mlp_output_update_{false};

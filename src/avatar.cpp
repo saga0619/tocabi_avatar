@@ -12,7 +12,8 @@ using namespace TOCABI;
 // ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
 // ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph(DATA_FOLDER_DIR+"/MJ_graph.txt");
+// ofstream MJ_graph(DATA_FOLDER_DIR+"/MJ_graph.txt");
+
 ofstream MJ_graph1(DATA_FOLDER_DIR+"/MJ_graph1.txt");
 // ofstream MJ_graph2("/home/dg/data/walking_baseline/MJ_graph2.txt");
 // ofstream MJ_q_("/home/dg/data/walking_baseline/MJ_q_.txt");
@@ -644,21 +645,34 @@ void AvatarController::setNeuralNetworks()
         initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
         loadGruWeights(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/weights/right_leg/");
         loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_sim_150nm/mean_std/right_leg/");
+
     }
     else
     {
         initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
         // loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data/");
-        loadGruWeightsSpectralNorm(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data_SN/");
+        loadGruWeightsSpectralNorm(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/230221data_30_12_150_SN/");
         loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_swing_ext_torque_230221_data/");
         
         initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
-        loadGruWeightsSpectralNorm(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/tocabi_swing_ext_torque_230221_data_SN/");
+        loadGruWeightsSpectralNorm(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/230221data_30_12_150_SN/");
         loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/tocabi_swing_ext_torque_230221_data/");
 
+        initializeLegGRU(left_arm_peter_gru_, 34, 22, 200);
+        loadGruWeightsSpectralNorm(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
+        loadGruMeanStd(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_arm/tocabi_230306data_34_22_200_SN/");
 
+        initializeLegGRU(right_arm_peter_gru_, 34, 22, 200);
+        loadGruWeightsSpectralNorm(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
+        loadGruMeanStd(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_arm/tocabi_230306data_34_22_200_SN/");
+
+        n_hidden.resize(2);
+        n_hidden << 128, 64;
+        initializeScaMlp(pelvis_concat_mlp_, 700, 12, n_hidden, q_to_input_mapping_vector, true);
+        pelvis_concat_mlp_.gaussian_mode = true;
+        loadMlpWeightsSpectralNorm(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/3layer_128_64/");
+        loadMlpMeanStd(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/");
     }
-
 }
 Eigen::VectorQd AvatarController::getControl()
 {
@@ -1633,9 +1647,14 @@ void AvatarController::computeFast()
         calculateGruOutput(left_leg_peter_gru_);
         std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
         calculateGruOutput(right_leg_peter_gru_);
+        std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
+        calculateGruOutput(left_arm_peter_gru_);
+        std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
+        calculateGruOutput(right_arm_peter_gru_);
 
         // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-        // cout<<"GRU output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_end_t - gru_start_t).count() <<endl;
+        // cout<<"GRU leg output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_end_t - gru_start_t).count() <<endl;
+        // cout<<"GRU arm output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_arm_end_t - gru_arm_start_t).count() <<endl;
         // estimated_model_unct_torque_fast_.setZero();
         // estimated_model_unct_torque_fast_.segment(0, 6) = left_leg_mob_lstm_.real_output.segment(0, 6);
         // estimated_model_unct_torque_fast_.segment(6, 6) = right_leg_mob_lstm_.real_output.segment(0, 6);
@@ -1818,7 +1837,17 @@ void AvatarController::computeFast()
         calculateGruOutput(left_leg_peter_gru_); //20~100us
         std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
         calculateGruOutput(right_leg_peter_gru_); //20~100us
+        std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
+        calculateGruOutput(left_arm_peter_gru_);
+        std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
+        calculateGruOutput(right_arm_peter_gru_);
 
+        calculatePelvConcatMlpOutput(pelvis_concat_mlp_);
+
+        // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        // cout<<"GRU leg output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_end_t - gru_start_t).count() <<endl;
+        // cout<<"GRU arm output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_arm_end_t - gru_arm_start_t).count() <<endl;
+        // cout<<"print_cnt_: "<<printout_cnt_ <<endl;
         // cout<<"GRU output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_end_t - gru_start_t).count() <<endl;
 
         // cout<<"Gravity calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() <<endl;
@@ -1826,15 +1855,30 @@ void AvatarController::computeFast()
         // cout<<"getProcessedRobotData calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count() <<endl;
         // cout<<"motionGenerator calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
         estimated_model_unct_torque_gru_fast_.setZero();
+
+        estimated_model_unct_torque_gru_fast_.segment(0, 6) = pelvis_concat_mlp_.output_fast.segment(0, 6);
+
         estimated_model_unct_torque_gru_fast_.segment(6, 6) = left_leg_peter_gru_.real_output.segment(0, 6);
         estimated_model_unct_torque_gru_fast_.segment(12, 6) = right_leg_peter_gru_.real_output.segment(0, 6);
+
+        estimated_model_unct_torque_gru_fast_.segment(18, 3) = (left_arm_peter_gru_.real_output.segment(0, 3) + right_arm_peter_gru_.real_output.segment(0, 3))/2;
+
+        estimated_model_unct_torque_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(3, 8);
+        estimated_model_unct_torque_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(3, 8);
 
         if (gaussian_mode_ == true)
         {
             // gaussian model
             estimated_model_unct_torque_variance_gru_fast_.setZero();
+            estimated_model_unct_torque_variance_gru_fast_.segment(0, 6) = pelvis_concat_mlp_.output_fast.segment(6, 6);
+
             estimated_model_unct_torque_variance_gru_fast_.segment(6, 6) = left_leg_peter_gru_.real_output.segment(6, 6);
             estimated_model_unct_torque_variance_gru_fast_.segment(12, 6) = right_leg_peter_gru_.real_output.segment(6, 6);
+
+            estimated_model_unct_torque_variance_gru_fast_.segment(18, 3) = (left_arm_peter_gru_.real_output.segment(11, 3) + right_arm_peter_gru_.real_output.segment(11, 3))/2;
+
+            estimated_model_unct_torque_variance_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(14, 8);
+            estimated_model_unct_torque_variance_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(14, 8);
         }
 
         if (left_leg_peter_gru_.atb_gru_output_update_ == false)
@@ -5500,7 +5544,7 @@ void AvatarController::motionRetargeting_HQPIK2()
     }
 }
 //////////Self Collision Avoidance Network////////////////
-void AvatarController::initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector)
+void AvatarController::initializeScaMlp(MLP &mlp, int n_input, int n_output, Eigen::VectorXd n_hidden, Eigen::VectorXd q_to_input_mapping_vector, bool spectral_normalization)
 {
     mlp.n_input = n_input;
     mlp.n_output = n_output;
@@ -5513,10 +5557,18 @@ void AvatarController::initializeScaMlp(MLP &mlp, int n_input, int n_output, Eig
     mlp.hidden.resize(mlp.n_layer-1);
     mlp.hidden_derivative.resize(mlp.n_layer-1);
 
-    mlp.w_path.resize(mlp.n_layer);
-    mlp.b_path.resize(mlp.n_layer);
+    if(spectral_normalization == false)
+    {
+        mlp.w_path.resize(mlp.n_layer);
+        mlp.weight_files.resize(mlp.n_layer);
+    }
+    else
+    {
+        mlp.w_path.resize(3*mlp.n_layer);
+        mlp.weight_files.resize(3*mlp.n_layer);
+    }
 
-    mlp.weight_files.resize(mlp.n_layer);
+    mlp.b_path.resize(mlp.n_layer);
     mlp.bias_files.resize(mlp.n_layer);
     //parameters resize
     for (int i = 0; i < mlp.n_layer; i++)
@@ -5573,7 +5625,28 @@ void AvatarController::loadScaNetwork(MLP &mlp, std::string folder_path)
         readBiasFile(mlp, i);
     }
 }
-void AvatarController::readWeightFile(MLP &mlp, int weight_num)
+void AvatarController::loadMlpWeightsSpectralNorm(MLP &mlp, std::string folder_path)
+{
+    for(int i =0; i<mlp.n_layer; i++)
+    {
+        mlp.w_path[i] = folder_path + "weight_orig_" + std::to_string(i) + ".txt";
+        mlp.w_path[i+mlp.n_layer] = folder_path + "weight_u_" + std::to_string(i) + ".txt";
+        mlp.w_path[i+2*mlp.n_layer] = folder_path + "weight_v_" + std::to_string(i) + ".txt";
+
+        mlp.b_path[i] = folder_path + "bias_" + std::to_string(i) + ".txt";
+
+        mlp.weight_files[i].open(mlp.w_path[i], ios::in);
+        mlp.weight_files[i+mlp.n_layer].open(mlp.w_path[i+mlp.n_layer], ios::in);
+        mlp.weight_files[i+2*mlp.n_layer].open(mlp.w_path[i+2*mlp.n_layer], ios::in);
+
+        mlp.bias_files[i].open(mlp.b_path[i], ios::in);
+
+        readWeightFile(mlp, i, true);
+
+        readBiasFile(mlp, i);
+    }
+}
+void AvatarController::readWeightFile(MLP &mlp, int weight_num, bool spectral_normalization)
 {
     if (!mlp.weight_files[weight_num].is_open())
     {
@@ -5587,6 +5660,27 @@ void AvatarController::readWeightFile(MLP &mlp, int weight_num)
         }
     }
     mlp.weight_files[weight_num].close();
+
+    if(spectral_normalization)
+    {
+        Eigen::VectorXd W_i_u;
+        Eigen::VectorXd W_i_v;
+        W_i_u.setZero(mlp.weight[weight_num].rows());
+        W_i_v.setZero(mlp.weight[weight_num].cols());
+
+        for(int i = 0; i<mlp.weight[weight_num].rows() ; i++)
+        {
+            mlp.weight_files[weight_num+mlp.n_layer] >> W_i_u(i);
+        }
+
+        for(int i = 0; i<mlp.weight[weight_num].cols() ; i++)
+        {
+            mlp.weight_files[weight_num+2*mlp.n_layer] >> W_i_v(i);
+        }
+
+        double SN_W_i_temp = W_i_u.transpose()*mlp.weight[weight_num]*W_i_v;
+        mlp.weight[weight_num] = mlp.weight[weight_num]/SN_W_i_temp; 
+    }
 
     if(mlp.loadweightfile_verbose == true)
     {
@@ -5608,6 +5702,67 @@ void AvatarController::readBiasFile(MLP &mlp, int bias_num)
     if(mlp.loadbiasfile_verbose == true)
     {
         cout<<"bias_"<<bias_num - mlp.n_layer<< ": \n"<< mlp.bias[bias_num] <<endl;
+    }
+}
+void AvatarController::loadMlpMeanStd(MLP &mlp, std::string folder_path)
+{
+    std::string output_mean_path("output_mean.txt");
+    std::string output_std_path("output_std.txt");
+
+
+    output_mean_path = folder_path + output_mean_path;
+    output_std_path = folder_path + output_std_path;
+
+
+    mlp.mean_std_files[2].open(output_mean_path, ios::in);
+    mlp.mean_std_files[3].open(output_std_path, ios::in);
+
+    mlp.output_mean.setZero(mlp.n_output);
+    mlp.output_std.setZero(mlp.n_output);
+
+    // output_mean
+    if (!mlp.mean_std_files[2].is_open())
+    {
+        std::cout << "Can not find the file: " << output_mean_path << std::endl;
+    }
+
+    for (int i = 0; i < mlp.n_output; i++)
+    {
+        mlp.mean_std_files[2] >> mlp.output_mean(i);
+    }
+    mlp.mean_std_files[2].close();
+
+
+    // output_std
+    if (!mlp.mean_std_files[3].is_open())
+    {
+        std::cout << "Can not find the file: " << output_std_path << std::endl;
+    }
+
+    for (int i = 0; i < mlp.n_output; i++)
+    {
+        mlp.mean_std_files[3] >> mlp.output_std(i);
+    }
+    mlp.mean_std_files[3].close();
+
+    // gaussian mode
+    if (mlp.gaussian_mode)
+    {
+        for (int i = int(mlp.n_output / 2); i < mlp.n_output; i++)
+        {
+            mlp.output_std(i) = 1.0;
+            mlp.output_mean(i) = 0.0;
+        }
+    }
+
+    // print
+    if (false)
+    {
+        cout << "MLP output_mean: \n"
+             << mlp.output_mean.transpose() << endl;
+
+        cout << "MLP output_std: \n"
+             << mlp.output_std.transpose() << endl;
     }
 }
 void AvatarController::calculateScaMlpInput(MLP &mlp)
@@ -5702,6 +5857,81 @@ void AvatarController::calculateScaMlpOutput(MLP &mlp)
     //     mlp.output_thread = mlp.output_fast;
     //     atb_mlp_output_update_ = false;
     // }
+}
+void AvatarController::calculatePelvConcatMlpOutput(MLP &mlp)
+{
+    // if(atb_mlp_input_update_ == false)
+    // {
+    //     atb_mlp_input_update_ = true;
+    //     mlp.input_fast = mlp.input_thread;
+    //     q_ddot_max_fast_ = q_ddot_max_thread_;
+    //     atb_mlp_input_update_ = false;
+    // }
+
+    for (int i = 0; i <150; i++)
+    {
+        mlp.input_fast(i) = left_leg_peter_gru_.h_t(i, left_leg_peter_gru_.output_mode_idx);
+        mlp.input_fast(150+i) = right_leg_peter_gru_.h_t(i, right_leg_peter_gru_.output_mode_idx);
+    }
+    for (int i = 0; i <200; i++)
+    {
+        mlp.input_fast(i+300) = left_arm_peter_gru_.h_t(i, left_arm_peter_gru_.output_mode_idx);
+        mlp.input_fast(i+500) = right_arm_peter_gru_.h_t(i, right_arm_peter_gru_.output_mode_idx);
+    }
+    // mlp.input_fast.segment(0, 150) = left_leg_peter_gru_.h_t.block(0, left_leg_peter_gru_.output_mode_idx, 150, 1);
+    // mlp.input_fast.segment(150, 300) = right_leg_peter_gru_.h_t.block(0, right_leg_peter_gru_.output_mode_idx, 150, 1);
+    // mlp.input_fast.segment(300, 500) = left_arm_peter_gru_.h_t.block(0, left_arm_peter_gru_.output_mode_idx, 200, 1);
+    // mlp.input_fast.segment(500, 700) = right_arm_peter_gru_.h_t.block(0, right_arm_peter_gru_.output_mode_idx, 200, 1);
+
+    for(int layer = 0; layer < mlp.n_layer; layer++)
+    {
+        if(layer == 0)  // input layer
+        {
+            mlp.hidden[0] = mlp.weight[0]*mlp.input_fast + mlp.bias[0];
+            for(int h=0; h<mlp.n_hidden(layer); h++)
+            {
+                mlp.hidden[0](h) = std::tanh(mlp.hidden[0](h));   //activation function
+            }
+        }
+        else if(layer == mlp.n_layer - 1)   // output layer
+        {
+            mlp.output_fast = mlp.weight[layer]*mlp.hidden[layer-1] + mlp.bias[layer];
+        }
+        else    // hidden layers
+        {
+            mlp.hidden[layer] = mlp.weight[layer]*mlp.hidden[layer-1] + mlp.bias[layer];
+            for(int h=0; h<mlp.n_hidden(layer); h++)
+            {
+                mlp.hidden[layer](h) = std::tanh(mlp.hidden[layer](h));   //activation function
+            }
+        }
+    }
+
+    // unnormalize the mean
+    for (int i = 0; i < mlp.n_output; i++)
+    {
+        mlp.output_fast(i) = mlp.output_fast(i) * mlp.output_std(i) + mlp.output_mean(i);
+    }
+
+    // softplus
+    if(mlp.gaussian_mode)
+    {
+        double beta = 1;
+        double threashold = 20;
+        for (int i = int(mlp.n_output / 2); i < mlp.n_output; i++)
+        {
+            double input;
+            input = beta * mlp.output_fast(i);
+            if (input < threashold)
+            {
+                mlp.output_fast(i) = std::log(1 + std::exp(input)) / beta; // softplus
+            }
+
+            mlp.output_fast(i) = mlp.output_fast(i) * mlp.output_std(i-int(mlp.n_output / 2)) * mlp.output_std(i-int(mlp.n_output / 2));
+        }
+    }
+
+
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 void AvatarController::poseCalibration()
@@ -7708,7 +7938,7 @@ void AvatarController::floatingBaseMOB()
         cout << "!!!!!!!!!!! ERROR: Floating Base MOB Wholebody Residual is NaN !!!!!!!!!!!!" << endl;
     }
 
-    ///////////// External Wrench Conversion////////////////////////
+    //////////////////// External Wrench Conversion ////////////////////////
     Eigen::MatrixXd J_temp, R_temp_lfoot, R_temp_rfoot;
     // conversion FT wrench to external torque
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
@@ -7751,8 +7981,8 @@ void AvatarController::floatingBaseMOB()
     Eigen::Matrix6d J_lf_T = (jac_lfoot_.block(0, 6, 6, 6)).transpose();
     Eigen::Matrix6d J_rf_T = (jac_rfoot_.block(0, 12, 6, 6)).transpose();
 
-    // estimated_external_torque_gru_slow_ = mob_residual_wholebody_ - estimated_model_unct_torque_gru_slow_;
-    estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
+    estimated_external_torque_gru_slow_ = mob_residual_wholebody_ - estimated_model_unct_torque_gru_slow_;
+    // estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
 
     static bool first_tick = true;
     if(first_tick)
@@ -7814,8 +8044,8 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 }
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
-    collisionIsolation();
+    // collisionDetection();
+    // collisionIsolation();
     // collisionIdentification();
 }
 void AvatarController::collisionDetection()
@@ -9788,6 +10018,7 @@ void AvatarController::initializeLegGRU(GRU &gru, int n_input, int n_output, int
 }
 void AvatarController::collectRobotInputData_peter_gru()
 {
+    ///////////////// left leg //////////////////
     left_leg_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(6); // q
     left_leg_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(7);
     left_leg_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(8);
@@ -9821,7 +10052,7 @@ void AvatarController::collectRobotInputData_peter_gru()
     left_leg_peter_gru_.robot_input_data(25) = imu_raw_(4);
     left_leg_peter_gru_.robot_input_data(26) = imu_raw_(5);
 
-    left_leg_peter_gru_.robot_input_data(27) = imu_raw_(0); // lin acc
+    left_leg_peter_gru_.robot_input_data(27) = imu_raw_(0); // ang vel
     left_leg_peter_gru_.robot_input_data(28) = imu_raw_(1);
     left_leg_peter_gru_.robot_input_data(29) = imu_raw_(2);
 
@@ -9861,9 +10092,94 @@ void AvatarController::collectRobotInputData_peter_gru()
     right_leg_peter_gru_.robot_input_data(25) = imu_raw_(4);
     right_leg_peter_gru_.robot_input_data(26) = imu_raw_(5);
 
-    right_leg_peter_gru_.robot_input_data(27) = imu_raw_(0); // lin acc
+    right_leg_peter_gru_.robot_input_data(27) = imu_raw_(0); // ang vel
     right_leg_peter_gru_.robot_input_data(28) = imu_raw_(1);
     right_leg_peter_gru_.robot_input_data(29) = imu_raw_(2);
+
+    ///////////////// left arm //////////////////
+    left_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
+    left_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
+    left_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
+
+    left_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
+    left_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
+    left_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
+
+    left_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(21); // q arm
+    left_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(22);
+    left_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(23);
+    left_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(24);
+    left_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(25);
+    left_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(26); 
+    left_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(27);
+    left_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(28);
+
+    left_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(21); // q dot arm
+    left_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(22);
+    left_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(23);
+    left_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(24);
+    left_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(25);
+    left_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(26);
+    left_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(27);
+    left_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(28);
+
+    left_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
+    left_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
+    left_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
+    left_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
+    left_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
+    left_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
+
+    left_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
+    left_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
+    left_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
+
+    left_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
+    left_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
+    left_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
+
+    ///////////////// right arm //////////////////
+    right_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
+    right_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
+    right_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
+
+    right_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
+    right_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
+    right_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
+
+    right_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(31); // q arm
+    right_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(32);
+    right_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(33);
+    right_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(34);
+    right_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(35);
+    right_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(36); 
+    right_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(37);
+    right_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(38);
+
+    right_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(31); // q dot arm
+    right_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(32);
+    right_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(33);
+    right_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(34);
+    right_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(35);
+    right_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(36);
+    right_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(37);
+    right_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(38);
+
+    right_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
+    right_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
+    right_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
+    right_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
+    right_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
+    right_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
+
+    right_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
+    right_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
+    right_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
+
+    right_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
+    right_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
+    right_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
+
 }
 void AvatarController::loadGruWeights(GRU &gru, std::string folder_path)
 {
@@ -10483,7 +10799,14 @@ void AvatarController::calculateGruOutput(GRU &gru)
         gru.atb_gru_input_update_ = false;
     }
 
-    while (gru.input_mode_idx != gru.output_mode_idx)
+    int output_calculation_num = 1;
+    if(gru.input_mode_idx == gru.output_mode_idx)
+    {   
+        output_calculation_num = 2;
+    }
+
+    // while (gru.input_mode_idx != gru.output_mode_idx)
+    for(int itr = 0; itr < output_calculation_num; itr ++)
     {
         gru.output_mode_idx += 1;
         gru.output_mode_idx = gru.output_mode_idx % int(hz_/gru_hz_);
@@ -11857,6 +12180,8 @@ void AvatarController::getRobotState()
     collectRobotInputData_peter_gru();
     calculateGruInput(left_leg_peter_gru_);
     calculateGruInput(right_leg_peter_gru_);
+    calculateGruInput(left_arm_peter_gru_);
+    calculateGruInput(right_arm_peter_gru_);
 
     floatingBaseMOB();                       // created by DG
     collisionEstimation();
@@ -14608,7 +14933,7 @@ void AvatarController::getComTrajectory_mpc()
         des_zmp_y_prev_stepchange_ = des_zmp(1); // step change 1 tick 전 desired ZMP (MPC output) step change          
     }   
 
-    MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << x_hat_r_(0) << "," << y_hat_r_(0) << "," << x_hat_r_p_(0) << "," << y_hat_r_p_(0) << "," << cp_des_zmp_x_ << "," << cp_des_zmp_x_prev_ << "," << cp_des_zmp_y_ << "," << cp_des_zmp_y_prev_ << endl;  
+    MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << ","  << cp_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << zmp_measured_FT_(0)<< "," << zmp_measured_FT_(1)<<"," << zmp_measured_mj_(0)<<"," << zmp_measured_mj_(1)<< endl;  
 }
 
 void AvatarController::getComTrajectory()
@@ -16745,7 +17070,7 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
 
-    MJ_graph << Tau_L_x_error_ <<", "<< Tau_R_x_error_<<", " << Tau_L_y_error_<<", " << Tau_R_y_error_ << ", "<<F_F_error_ <<", "<< alpha_zmp_lpf_ <<endl;
+    // MJ_graph << Tau_L_x_error_ <<", "<< Tau_R_x_error_<<", " << Tau_L_y_error_<<", " << Tau_R_y_error_ << ", "<<F_F_error_ <<", "<< alpha_zmp_lpf_ <<endl;
     // // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
     // //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
     // F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 10.0 * F_T_L_x_input;
