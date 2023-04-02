@@ -5871,7 +5871,7 @@ void AvatarController::calculatePelvConcatMlpOutput(MLP &mlp)
     for (int i = 0; i <150; i++)
     {
         mlp.input_fast(i) = left_leg_peter_gru_.h_t(i, left_leg_peter_gru_.output_mode_idx);
-        mlp.input_fast(150+i) = right_leg_peter_gru_.h_t(i, right_leg_peter_gru_.output_mode_idx);
+        mlp.input_fast(i+150) = right_leg_peter_gru_.h_t(i, right_leg_peter_gru_.output_mode_idx);
     }
     for (int i = 0; i <200; i++)
     {
