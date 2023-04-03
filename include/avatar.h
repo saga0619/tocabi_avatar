@@ -35,6 +35,7 @@
 
 const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
+const bool add_intentional_modeling_eror_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
@@ -182,6 +183,8 @@ public:
     void updateCurrentFootstep(Eigen::Isometry3d target_foot_step);
 
     void sampleIntentionalExtTorque(Eigen::VectorQd &ext_torque);
+
+    void ApplyMujocoExtWrench();
 
     // ik
     void computeLeg_QPIK(Eigen::Isometry3d lfoot_t_des, Eigen::Isometry3d rfoot_t_des,  Eigen::VectorQd &desired_q, Eigen::VectorQd &desired_q_dot);
@@ -1321,9 +1324,9 @@ public:
     ifstream col_thr_file_;
 
     Eigen::VectorQd estimated_ext_torque_lstm_;
-    Eigen::VectorQd maximum_collision_free_torque_;
+    Eigen::VectorVQd maximum_collision_free_torque_;
 
-    Eigen::VectorQd threshold_joint_torque_collision_;
+    Eigen::VectorVQd threshold_joint_torque_collision_;
     Eigen::VectorQd ext_torque_compensation_;
 
     int left_leg_collision_detected_joint_;
@@ -1433,13 +1436,14 @@ public:
     Eigen::Vector6d estimated_ext_force_lhand_gru_;
     Eigen::Vector6d estimated_ext_force_rhand_gru_;
 
-    Eigen::VectorQd estimated_model_unct_torque_gru_fast_;
-    Eigen::VectorQd estimated_model_unct_torque_gru_slow_;
-    Eigen::VectorQd estimated_model_unct_torque_gru_thread_;
+    Eigen::VectorVQd estimated_model_unct_torque_gru_fast_;
+    Eigen::VectorVQd estimated_model_unct_torque_gru_slow_;
+    Eigen::VectorVQd estimated_model_unct_torque_gru_thread_;
+    Eigen::VectorVQd estimated_model_unct_torque_gru_slow_lpf_;
 
-    Eigen::VectorQd estimated_model_unct_torque_variance_gru_fast_;
-    Eigen::VectorQd estimated_model_unct_torque_variance_gru_slow_;
-    Eigen::VectorQd estimated_model_unct_torque_variance_gru_thread_;
+    Eigen::VectorVQd estimated_model_unct_torque_variance_gru_fast_;
+    Eigen::VectorVQd estimated_model_unct_torque_variance_gru_slow_;
+    Eigen::VectorVQd estimated_model_unct_torque_variance_gru_thread_;
 
     Eigen::VectorQd estimated_external_torque_gru_slow_;
     Eigen::VectorQd estimated_external_torque_gru_slow_lpf_;
@@ -1571,7 +1575,7 @@ public:
     void calculateFootStepTotal();
     void calculateFootStepTotal_MJ();
     void calculateFootStepTotal_reactive(Eigen::Isometry3d collision_foot_pose, Eigen::Vector3d external_force, bool support_foot_is_left);
-    void calculateFootStepTotal_rewind(bool support_foot_is_left);
+    void calculateFootStepTotal_rewind(Eigen::Isometry3d collision_foot_pose, bool support_foot_is_left);
 
     void supportToFloatPattern();
     void floatToSupportFootstep();
@@ -1849,6 +1853,7 @@ public:
     Eigen::MatrixXd foot_step_support_frame_thread_;
     Eigen::MatrixXd foot_step_support_frame_mpc_;
 
+    Eigen::Matrix<double, 5, 7> foot_step_history_buffer_;
     // Com damping control - ZMP tracking controller
     Eigen::MatrixXd A_y_ssp;
     Eigen::MatrixXd B_y_ssp;
