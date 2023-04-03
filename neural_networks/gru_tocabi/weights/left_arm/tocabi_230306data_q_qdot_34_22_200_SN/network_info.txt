@@ -1,0 +1,69 @@
+[paths]
+# Relative path to the data directory
+data_directory = ./data/ProcessedData/left_arm_intentional_torque_tocabi_q_qdot_50step_1000hz_1e6/
+train_data_file_name = TrainingData.mat
+validation_data_file_name = ValidationData.mat
+test_data_file_name = TestingData.mat
+# test_collision_data_file_name = TestingCollisionData_singlestep_left_leg_thigh_short_collision.csv
+test_collision_data_file_name = TestingCollisionData_singlestep.mat
+; test_collision_data_file_name = TestingCollisionData.mat
+# Where to save the trained weights
+checkpoints_directory = ./checkpoints/left_arm_intentional_torque_tocabi_q_qdot_50step_1000hz_1e6/
+checkpoints_restore_directory = ./checkpoints/left_arm_intentional_torque_tocabi_q_qdot_50step_1000hz_1e6/TRO_experiment_h200_00/2023_03_27_16_09/epoch_200-f1_-0.8752208948135376.pt
+# Where to save the results (losses and accuracies)
+results_directory = ./result/left_arm_intentional_torque_tocabi_q_qdot_50step_1000hz_1e6/
+configs_directory = ./configs/
+model_config_name = model_inference.ini
+
+[device]
+device = cuda
+
+[log]
+wandb = false 
+
+[collision_test]
+collision_test = yes
+
+[print_weights]
+print_weights = true
+
+
+----------------------------------
+[training]
+n_epochs = 1
+batch_size = 1
+lr = 0.0001
+optimizer = Adam
+betas = [0.9, 0.999]
+lr_schedule = False
+gaussian = True
+
+[data]
+seqeunce_length = 1
+n_input_feature = 34
+n_output_feature = 11
+n_output = 22
+
+[model]
+network = GRU
+save_every = 100
+config_id = 00
+name = simulation_test
+hidden_size = 200
+num_layers = 1
+bias = True
+batch_first = True
+dropout = 0
+bidirectional = False
+spectral_normalization = True
+
+[tcn]
+kernel_size = 3
+n_channels = [64, 64, 64]
+
+[transformer]
+d_model = 36
+nhead = 3
+num_encoder_layers = 2
+num_decoder_layers = 2
+dim_feedforward = 128
