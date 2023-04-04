@@ -33,14 +33,14 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 const bool add_intentional_modeling_eror_mode_ = false;
 const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
-const bool joint_ext_force_compensation = false; 
-const bool pelv_ext_force_compensation = false; // X, Y, Yaw
+const bool joint_ext_force_compensation = true; 
+const bool pelv_ext_force_compensation = true; // X, Y, Yaw
 const bool ATC_mode_ = true; // ATC or RTC
 
 const int FILE_CNT = 3;
@@ -1494,6 +1494,13 @@ public:
     bool check_right_swing_foot_;
     bool check_right_early_contact_;
     
+    bool left_leg_in_unexpected_collision_;
+    bool right_leg_in_unexpected_collision_;
+    bool left_arm_in_unexpected_collision_;
+    bool right_arm_in_unexpected_collision_;
+    bool upper_body_in_unexpected_collision_;
+    bool pelv_in_unexpected_collision_;
+
     void collectRobotInputData_peter_gru();
 
     void loadGruWeights(GRU &gru, std::string folder_path);
