@@ -1499,6 +1499,13 @@ public:
     bool check_right_swing_foot_;
     bool check_right_early_contact_;
     
+    bool left_leg_in_unexpected_collision_;
+    bool right_leg_in_unexpected_collision_;
+    bool left_arm_in_unexpected_collision_;
+    bool right_arm_in_unexpected_collision_;
+    bool upper_body_in_unexpected_collision_;
+    bool pelv_in_unexpected_collision_;
+
     void collectRobotInputData_peter_gru();
 
     void loadGruWeights(GRU &gru, std::string folder_path);
