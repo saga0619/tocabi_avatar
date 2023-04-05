@@ -8074,8 +8074,8 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 }
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
-    collisionIsolation();
+    // collisionDetection();
+    // collisionIsolation();
     // collisionIdentification();
 }
 void AvatarController::collisionDetection()
