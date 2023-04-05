@@ -8046,8 +8046,8 @@ void AvatarController::floatingBaseMOB()
         first_tick_2 = false;
     }
 
-    estimated_ext_force_lfoot_gru_lpf_ = DyrosMath::lpf<6>(estimated_ext_force_lfoot_gru_, estimated_ext_force_lfoot_gru_lpf_, 2000, 5.0);
-    estimated_ext_force_rfoot_gru_lpf_ = DyrosMath::lpf<6>(estimated_ext_force_rfoot_gru_, estimated_ext_force_rfoot_gru_lpf_, 2000, 5.0);
+    estimated_ext_force_lfoot_gru_lpf_ = DyrosMath::lpf<6>(estimated_ext_force_lfoot_gru_, estimated_ext_force_lfoot_gru_lpf_, 2000, 6.0);
+    estimated_ext_force_rfoot_gru_lpf_ = DyrosMath::lpf<6>(estimated_ext_force_rfoot_gru_, estimated_ext_force_rfoot_gru_lpf_, 2000, 6.0);
 
     // GRU Feedback
     // Matrix6d rotrf_ft;
@@ -8056,12 +8056,12 @@ void AvatarController::floatingBaseMOB()
     // rotrf_ft.block(3, 3, 3, 3) = swingfoot_support_current_.linear();
 
 
-    // l_ft_LPF = R_temp_lfoot.transpose()*(-estimated_ext_force_lfoot_gru_lpf_);
-    // r_ft_LPF = R_temp_rfoot.transpose()*(-estimated_ext_force_rfoot_gru_lpf_);
+    l_ft_LPF = R_temp_lfoot.transpose()*(-estimated_ext_force_lfoot_gru_lpf_);
+    r_ft_LPF = R_temp_rfoot.transpose()*(-estimated_ext_force_rfoot_gru_lpf_);
 
 
-    // l_ft_ = R_temp_lfoot.transpose()*(-estimated_ext_force_lfoot_gru_lpf_);
-    // r_ft_ = R_temp_rfoot.transpose()*(-estimated_ext_force_rfoot_gru_lpf_);
+    l_ft_ = R_temp_lfoot.transpose()*(-estimated_ext_force_lfoot_gru_lpf_);
+    r_ft_ = R_temp_rfoot.transpose()*(-estimated_ext_force_rfoot_gru_lpf_);
 
     if(walking_tick_mj%100 == 0)
     {
@@ -17259,11 +17259,11 @@ void AvatarController::CP_compen_MJ_FT()
         // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
         //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
         // 0.025/0.0005/-10 : DG data collection
-        F_T_L_x_input_dot = 0.020 * (Tau_L_x - l_ft_LPF(3)) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
+        F_T_L_x_input_dot = 0.025 * (Tau_L_x - l_ft_LPF(3)) +0.0003*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
         F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
         //   F_T_L_x_input = 0;
         //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-        F_T_R_x_input_dot = 0.020 * (Tau_R_x - r_ft_LPF(3)) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
+        F_T_R_x_input_dot = 0.025 * (Tau_R_x - r_ft_LPF(3)) +0.0003*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
         F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
         //   F_T_R_x_input = 0;
 
@@ -17271,11 +17271,11 @@ void AvatarController::CP_compen_MJ_FT()
         //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
         // 0.035/0.0005/-5: 3degree slope possilbe
         // 0.02/0.0005/-5 : DG data collection
-        F_T_L_y_input_dot = 0.020 * (Tau_L_y - l_ft_LPF(4)) + 0.0005*Tau_L_y_error_dot_ - 5.0 * F_T_L_y_input;
+        F_T_L_y_input_dot = 0.018 * (Tau_L_y - l_ft_LPF(4)) + 0.0002*Tau_L_y_error_dot_ - 10.0 * F_T_L_y_input;
         F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
         //   F_T_L_y_input = 0;
         //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-        F_T_R_y_input_dot = 0.020 * (Tau_R_y - r_ft_LPF(4)) + 0.0005*Tau_R_y_error_dot_ - 5.0 * F_T_R_y_input;
+        F_T_R_y_input_dot = 0.018 * (Tau_R_y - r_ft_LPF(4)) + 0.0002*Tau_R_y_error_dot_ - 10.0 * F_T_R_y_input;
         F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
     }
 
