@@ -33,22 +33,31 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
+
+// simulation
 const bool add_intentional_modeling_eror_mode_ = false;
 const bool add_friction_torque_mode_ = false;
+
+// not tested
 const bool uncertainty_torque_compensation_mode_ = false;
 
-const bool joint_ext_force_compensation = false; 
-const bool pelv_ext_force_compensation = false; // X, Y, Yaw
+// reaction strategy
+const bool joint_ext_force_compensation_ = true; 
+const bool pelv_ext_force_compensation_ = true; // X, Y, Yaw
 const bool ATC_mode_ = true; // ATC or RTC
+const double reflex_compensation_gain_ = 0.15;    // ATC: [0.05 0.15], RTC: [0.5 3.0]
+
+// tocabi
+const bool estimated_ext_torque_feedback_mode_ = true; 
 
 const int FILE_CNT = 3;
-// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 // mob gru
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
@@ -1476,6 +1485,11 @@ public:
     Eigen::Vector6d estimated_ext_force_lfoot_gru_lpf_;
     Eigen::Vector6d estimated_ext_force_rfoot_gru_lpf_;
 
+    Eigen::Vector6d estimated_ext_force_lfoot_gru_local_;
+    Eigen::Vector6d estimated_ext_force_rfoot_gru_local_;
+    Eigen::Vector6d estimated_ext_force_lfoot_gru_lpf_local_;
+    Eigen::Vector6d estimated_ext_force_rfoot_gru_lpf_local_;
+
     Eigen::VectorVQd estimated_model_unct_torque_gru_fast_;
     Eigen::VectorVQd estimated_model_unct_torque_gru_slow_;
     Eigen::VectorVQd estimated_model_unct_torque_gru_thread_;
@@ -2003,8 +2017,8 @@ public:
 
     bool walking_stop_flag_;
     bool stopping_step_planning_trigger_;
-    const int joy_command_buffer_size_ = 75; // 2.5s
-    Eigen::Matrix<double, 3, 75> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
+    const int joy_command_buffer_size_ = 30; // 1.0s
+    Eigen::Matrix<double, 3, 30> joy_command_buffer_;    // size: n x joy_command_buffer_size_, 'n' is the num of joy commands
     double del_x_command_raw_ = 0;
     double del_y_command_raw_ = 0;
     double yaw_angle_command_raw_ = 0;
