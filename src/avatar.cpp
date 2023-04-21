@@ -647,47 +647,56 @@ void AvatarController::setNeuralNetworks()
         loadGruWeightsSpectralNorm(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/230221data_30_12_150_SN/");
         loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/tocabi_swing_ext_torque_230221_data/");
 
-        initializeLegGRU(left_arm_peter_gru_, 34, 22, 200);
-        loadGruWeightsSpectralNorm(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
-        loadGruMeanStd(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_arm/tocabi_230306data_34_22_200_SN/");
+        // initializeLegGRU(left_arm_peter_gru_, 34, 22, 200);
+        // loadGruWeightsSpectralNorm(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
+        // loadGruMeanStd(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_arm/tocabi_230306data_34_22_200_SN/");
 
-        initializeLegGRU(right_arm_peter_gru_, 34, 22, 200);
-        loadGruWeightsSpectralNorm(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
-        loadGruMeanStd(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_arm/tocabi_230306data_34_22_200_SN/");
+        // initializeLegGRU(right_arm_peter_gru_, 34, 22, 200);
+        // loadGruWeightsSpectralNorm(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
+        // loadGruMeanStd(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_arm/tocabi_230306data_34_22_200_SN/");
 
-        n_hidden.resize(2);
-        n_hidden << 128, 64;
-        initializeScaMlp(pelvis_concat_mlp_, 700, 12, n_hidden, q_to_input_mapping_vector, true);
-        pelvis_concat_mlp_.gaussian_mode = true;
-        loadMlpWeightsSpectralNorm(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/3layer_128_64/");
-        loadMlpMeanStd(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/");
+        // n_hidden.resize(2);
+        // n_hidden << 128, 64;
+        // initializeScaMlp(pelvis_concat_mlp_, 700, 12, n_hidden, q_to_input_mapping_vector, true);
+        // pelvis_concat_mlp_.gaussian_mode = true;
+        // loadMlpWeightsSpectralNorm(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/3layer_128_64/");
+        // loadMlpMeanStd(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/");
 
     }
     else
     {
         initializeLegGRU(left_leg_peter_gru_, 30, 12, 150);
         // loadGruWeights(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/tocabi_swing_ext_torque_230221_data/");
-        loadGruWeightsSpectralNorm(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/230221data_30_12_150_SN/");
-        loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/tocabi_swing_ext_torque_230221_data/");
+        loadGruWeightsSpectralNorm(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_leg/230221data_30_12_150_SN_IS_16/");
+        loadGruMeanStd(left_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_leg/230221data_30_12_150_SN_IS_16/");
         
         initializeLegGRU(right_leg_peter_gru_, 30, 12, 150);
-        loadGruWeightsSpectralNorm(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/230221data_30_12_150_SN/");
-        loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/tocabi_swing_ext_torque_230221_data/");
+        loadGruWeightsSpectralNorm(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_leg/230221data_30_12_150_SN_IS_16/");
+        loadGruMeanStd(right_leg_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_leg/230221data_30_12_150_SN_IS_16/");
 
-        initializeLegGRU(left_arm_peter_gru_, 34, 22, 200);
-        loadGruWeightsSpectralNorm(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
-        loadGruMeanStd(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_arm/tocabi_230306data_34_22_200_SN/");
+        // initializeLegGRU(left_arm_peter_gru_, 34, 16, 200);
+        // loadGruWeightsSpectralNorm(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/left_arm/tocabi_230306data_q_qdot_34_16_200_SN_IS_32/");
+        // loadGruMeanStd(left_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/left_arm/tocabi_230306data_q_qdot_34_16_200_SN_IS_32/");
 
-        initializeLegGRU(right_arm_peter_gru_, 34, 22, 200);
-        loadGruWeightsSpectralNorm(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_arm/tocabi_230306data_q_qdot_34_22_200_SN/");
-        loadGruMeanStd(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_arm/tocabi_230306data_34_22_200_SN/");
+        // initializeLegGRU(right_arm_peter_gru_, 34, 16, 200);
+        // loadGruWeightsSpectralNorm(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/right_arm/tocabi_230306data_q_qdot_34_16_200_SN_IS_32/");
+        // loadGruMeanStd(right_arm_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/right_arm/tocabi_230306data_q_qdot_34_16_200_SN_IS_32/");
 
-        n_hidden.resize(2);
-        n_hidden << 128, 64;
-        initializeScaMlp(pelvis_concat_mlp_, 700, 12, n_hidden, q_to_input_mapping_vector, true);
-        pelvis_concat_mlp_.gaussian_mode = true;
-        loadMlpWeightsSpectralNorm(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/3layer_128_64/");
-        loadMlpMeanStd(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/");
+        // initializeLegGRU(waist_peter_gru_, 50, 6, 200);
+        // loadGruWeightsSpectralNorm(waist_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/waist/tocabi_230306data_q_qdot_34_6_200_SN_IS_32/");
+        // loadGruMeanStd(waist_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/waist/tocabi_230306data_q_qdot_34_6_200_SN_IS_32/");
+
+        // initializeLegGRU(pelvis_peter_gru_, 86, 12, 200);
+        // loadGruWeightsSpectralNorm(pelvis_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/tocabi_230306data_q_qdot_92_12_200_SN_IS_32/");
+        // loadGruMeanStd(pelvis_peter_gru_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/tocabi_230306data_q_qdot_92_12_200_SN_IS_32/");
+
+
+        // n_hidden.resize(2);
+        // n_hidden << 128, 64;
+        // initializeScaMlp(pelvis_concat_mlp_, 700, 12, n_hidden, q_to_input_mapping_vector, true);
+        // pelvis_concat_mlp_.gaussian_mode = true;
+        // loadMlpWeightsSpectralNorm(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/weights/pelvis/3layer_128_64/");
+        // loadMlpMeanStd(pelvis_concat_mlp_, CATKIN_WORKSPACE_DIR+"/src/tocabi_avatar/neural_networks/gru_tocabi/mean_std/pelvis/");
     }
 }
 Eigen::VectorQd AvatarController::getControl()
@@ -1871,16 +1880,18 @@ void AvatarController::computeFast()
         // calculateLstmOutput(right_leg_mob_lstm_); //20~25us
         // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-        std::chrono::steady_clock::time_point gru_start_t = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point gru_start_t = std::chrono::steady_clock::now();
         calculateGruOutput(left_leg_peter_gru_); //20~100us
-        std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
         calculateGruOutput(right_leg_peter_gru_); //20~100us
-        std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
-        calculateGruOutput(left_arm_peter_gru_);
-        std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
-        calculateGruOutput(right_arm_peter_gru_);
+        // std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(left_arm_peter_gru_);
+        // std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(right_arm_peter_gru_);
+        // calculateGruOutput(waist_peter_gru_);
+        // calculateGruOutput(pelvis_peter_gru_);
 
-        calculatePelvConcatMlpOutput(pelvis_concat_mlp_);
+        // calculatePelvConcatMlpOutput(pelvis_concat_mlp_);
 
         // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         // cout<<"GRU leg output calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(gru_end_t - gru_start_t).count() <<endl;
@@ -1894,29 +1905,29 @@ void AvatarController::computeFast()
         // cout<<"motionGenerator calc time: "<< std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count() <<endl;
         estimated_model_unct_torque_gru_fast_.setZero();
 
-        estimated_model_unct_torque_gru_fast_.segment(0, 6) = pelvis_concat_mlp_.output_fast.segment(0, 6);
+        // estimated_model_unct_torque_gru_fast_.segment(0, 6) = pelvis_peter_gru_.real_output.segment(0, 6);
 
         estimated_model_unct_torque_gru_fast_.segment(6, 6) = left_leg_peter_gru_.real_output.segment(0, 6);
         estimated_model_unct_torque_gru_fast_.segment(12, 6) = right_leg_peter_gru_.real_output.segment(0, 6);
 
-        estimated_model_unct_torque_gru_fast_.segment(18, 3) = (left_arm_peter_gru_.real_output.segment(0, 3) + right_arm_peter_gru_.real_output.segment(0, 3))/2;
+        // estimated_model_unct_torque_gru_fast_.segment(18, 3) = waist_peter_gru_.real_output.segment(0, 3);
 
-        estimated_model_unct_torque_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(3, 8);
-        estimated_model_unct_torque_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(3, 8);
+        // estimated_model_unct_torque_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(0, 8);
+        // estimated_model_unct_torque_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(0, 8);
 
         if (gaussian_mode_ == true)
         {
             // gaussian model
             estimated_model_unct_torque_variance_gru_fast_.setZero();
-            estimated_model_unct_torque_variance_gru_fast_.segment(0, 6) = pelvis_concat_mlp_.output_fast.segment(6, 6);
+            // estimated_model_unct_torque_variance_gru_fast_.segment(0, 6) = pelvis_peter_gru_.real_output.segment(6, 6);
 
             estimated_model_unct_torque_variance_gru_fast_.segment(6, 6) = left_leg_peter_gru_.real_output.segment(6, 6);
             estimated_model_unct_torque_variance_gru_fast_.segment(12, 6) = right_leg_peter_gru_.real_output.segment(6, 6);
 
-            estimated_model_unct_torque_variance_gru_fast_.segment(18, 3) = (left_arm_peter_gru_.real_output.segment(11, 3) + right_arm_peter_gru_.real_output.segment(11, 3))/2;
+            // estimated_model_unct_torque_variance_gru_fast_.segment(18, 3) = waist_peter_gru_.real_output.segment(3, 3);
 
-            estimated_model_unct_torque_variance_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(14, 8);
-            estimated_model_unct_torque_variance_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(14, 8);
+            // estimated_model_unct_torque_variance_gru_fast_.segment(21, 8) = left_arm_peter_gru_.real_output.segment(8, 8);
+            // estimated_model_unct_torque_variance_gru_fast_.segment(31, 8) = right_arm_peter_gru_.real_output.segment(8, 8);
         }
 
         if (left_leg_peter_gru_.atb_gru_output_update_ == false)
@@ -7983,12 +7994,12 @@ void AvatarController::floatingBaseMOB()
     Eigen::MatrixXd J_temp, R_temp_lfoot, R_temp_rfoot;
     // conversion FT wrench to external torque
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Foot].id, rd_.link_[Left_Foot].sensor_point, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Foot].id, Eigen::Vector3d::Zero(), J_temp, false);
     jac_lfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_lfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
 
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Right_Foot].id, rd_.link_[Right_Foot].sensor_point, J_temp, false);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Right_Foot].id, Eigen::Vector3d::Zero(), J_temp, false);
     jac_rfoot_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     jac_rfoot_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
 
@@ -8118,8 +8129,8 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 }
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
-    collisionIsolation();
+    // collisionDetection();
+    // collisionIsolation();
     // collisionIdentification();
 }
 void AvatarController::collisionDetection()
@@ -10354,88 +10365,252 @@ void AvatarController::collectRobotInputData_peter_gru()
     right_leg_peter_gru_.robot_input_data(29) = imu_raw_(2);
 
     ///////////////// left arm //////////////////
-    left_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
-    left_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
-    left_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
+    // left_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
+    // left_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
+    // left_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
 
-    left_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
-    left_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
-    left_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
+    // left_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
+    // left_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
+    // left_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
 
-    left_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(21); // q arm
-    left_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(22);
-    left_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(23);
-    left_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(24);
-    left_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(25);
-    left_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(26); 
-    left_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(27);
-    left_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(28);
+    // left_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(21); // q larm
+    // left_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(22);
+    // left_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(23);
+    // left_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(24);
+    // left_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(25);
+    // left_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(26); 
+    // left_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(27);
+    // left_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(28);
 
-    left_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(21); // q dot arm
-    left_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(22);
-    left_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(23);
-    left_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(24);
-    left_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(25);
-    left_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(26);
-    left_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(27);
-    left_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(28);
+    // left_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(21); // q dot larm
+    // left_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(22);
+    // left_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(23);
+    // left_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(24);
+    // left_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(25);
+    // left_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(26);
+    // left_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(27);
+    // left_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(28);
 
-    left_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
-    left_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
-    left_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
-    left_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
-    left_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
-    left_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
+    // left_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
+    // left_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
+    // left_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
+    // left_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
+    // left_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
+    // left_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
 
-    left_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
-    left_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
-    left_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
+    // left_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
+    // left_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
+    // left_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
 
-    left_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
-    left_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
-    left_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
+    // left_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
+    // left_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
+    // left_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
 
-    ///////////////// right arm //////////////////
-    right_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
-    right_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
-    right_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
+    // ///////////////// right arm //////////////////
+    // right_arm_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
+    // right_arm_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
+    // right_arm_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
 
-    right_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
-    right_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
-    right_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
+    // right_arm_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
+    // right_arm_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
+    // right_arm_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
 
-    right_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(31); // q arm
-    right_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(32);
-    right_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(33);
-    right_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(34);
-    right_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(35);
-    right_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(36); 
-    right_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(37);
-    right_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(38);
+    // right_arm_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(31); // q rarm
+    // right_arm_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(32);
+    // right_arm_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(33);
+    // right_arm_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(34);
+    // right_arm_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(35);
+    // right_arm_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(36); 
+    // right_arm_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(37);
+    // right_arm_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(38);
 
-    right_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(31); // q dot arm
-    right_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(32);
-    right_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(33);
-    right_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(34);
-    right_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(35);
-    right_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(36);
-    right_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(37);
-    right_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(38);
+    // right_arm_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(31); // q dot rarm
+    // right_arm_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(32);
+    // right_arm_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(33);
+    // right_arm_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(34);
+    // right_arm_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(35);
+    // right_arm_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(36);
+    // right_arm_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(37);
+    // right_arm_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(38);
 
-    right_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
-    right_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
-    right_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
-    right_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
-    right_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
-    right_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
+    // right_arm_peter_gru_.robot_input_data(22) = pelv_rot_current_global_(0, 0); // pelv ori
+    // right_arm_peter_gru_.robot_input_data(23) = pelv_rot_current_global_(1, 0);
+    // right_arm_peter_gru_.robot_input_data(24) = pelv_rot_current_global_(2, 0);
+    // right_arm_peter_gru_.robot_input_data(25) = pelv_rot_current_global_(0, 1); 
+    // right_arm_peter_gru_.robot_input_data(26) = pelv_rot_current_global_(1, 1);
+    // right_arm_peter_gru_.robot_input_data(27) = pelv_rot_current_global_(2, 1);
 
-    right_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
-    right_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
-    right_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
+    // right_arm_peter_gru_.robot_input_data(28) = imu_raw_(3); // lin acc
+    // right_arm_peter_gru_.robot_input_data(29) = imu_raw_(4);
+    // right_arm_peter_gru_.robot_input_data(30) = imu_raw_(5);
 
-    right_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
-    right_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
-    right_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
+    // right_arm_peter_gru_.robot_input_data(31) = imu_raw_(0); // ang vel
+    // right_arm_peter_gru_.robot_input_data(32) = imu_raw_(1);
+    // right_arm_peter_gru_.robot_input_data(33) = imu_raw_(2);
+
+    // ///////////////// Waist//////////////////
+    // waist_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(18); // q wast
+    // waist_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(19);
+    // waist_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(20);
+
+    // waist_peter_gru_.robot_input_data(3) = q_dot_virtual_Xd_global_(18); // q dot wast
+    // waist_peter_gru_.robot_input_data(4) = q_dot_virtual_Xd_global_(19);
+    // waist_peter_gru_.robot_input_data(5) = q_dot_virtual_Xd_global_(20);
+
+    // waist_peter_gru_.robot_input_data(6) = q_virtual_Xd_global_(21); // q larm
+    // waist_peter_gru_.robot_input_data(7) = q_virtual_Xd_global_(22);
+    // waist_peter_gru_.robot_input_data(8) = q_virtual_Xd_global_(23);
+    // waist_peter_gru_.robot_input_data(9) = q_virtual_Xd_global_(24);
+    // waist_peter_gru_.robot_input_data(10) = q_virtual_Xd_global_(25);
+    // waist_peter_gru_.robot_input_data(11) = q_virtual_Xd_global_(26); 
+    // waist_peter_gru_.robot_input_data(12) = q_virtual_Xd_global_(27);
+    // waist_peter_gru_.robot_input_data(13) = q_virtual_Xd_global_(28);
+
+    // waist_peter_gru_.robot_input_data(14) = q_dot_virtual_Xd_global_(21); // q dot larm
+    // waist_peter_gru_.robot_input_data(15) = q_dot_virtual_Xd_global_(22);
+    // waist_peter_gru_.robot_input_data(16) = q_dot_virtual_Xd_global_(23);
+    // waist_peter_gru_.robot_input_data(17) = q_dot_virtual_Xd_global_(24);
+    // waist_peter_gru_.robot_input_data(18) = q_dot_virtual_Xd_global_(25);
+    // waist_peter_gru_.robot_input_data(19) = q_dot_virtual_Xd_global_(26);
+    // waist_peter_gru_.robot_input_data(20) = q_dot_virtual_Xd_global_(27);
+    // waist_peter_gru_.robot_input_data(21) = q_dot_virtual_Xd_global_(28);
+
+    // waist_peter_gru_.robot_input_data(22) = q_virtual_Xd_global_(31); // q rarm
+    // waist_peter_gru_.robot_input_data(23) = q_virtual_Xd_global_(32);
+    // waist_peter_gru_.robot_input_data(23) = q_virtual_Xd_global_(33);
+    // waist_peter_gru_.robot_input_data(25) = q_virtual_Xd_global_(34);
+    // waist_peter_gru_.robot_input_data(26) = q_virtual_Xd_global_(35);
+    // waist_peter_gru_.robot_input_data(27) = q_virtual_Xd_global_(36); 
+    // waist_peter_gru_.robot_input_data(28) = q_virtual_Xd_global_(37);
+    // waist_peter_gru_.robot_input_data(29) = q_virtual_Xd_global_(38);
+
+    // waist_peter_gru_.robot_input_data(30) = q_dot_virtual_Xd_global_(31); // q dot rarm
+    // waist_peter_gru_.robot_input_data(31) = q_dot_virtual_Xd_global_(32);
+    // waist_peter_gru_.robot_input_data(32) = q_dot_virtual_Xd_global_(33);
+    // waist_peter_gru_.robot_input_data(33) = q_dot_virtual_Xd_global_(34);
+    // waist_peter_gru_.robot_input_data(34) = q_dot_virtual_Xd_global_(35);
+    // waist_peter_gru_.robot_input_data(35) = q_dot_virtual_Xd_global_(36);
+    // waist_peter_gru_.robot_input_data(36) = q_dot_virtual_Xd_global_(37);
+    // waist_peter_gru_.robot_input_data(37) = q_dot_virtual_Xd_global_(38);
+
+    // waist_peter_gru_.robot_input_data(38) = pelv_rot_current_global_(0, 0); // pelv ori
+    // waist_peter_gru_.robot_input_data(39) = pelv_rot_current_global_(1, 0);
+    // waist_peter_gru_.robot_input_data(40) = pelv_rot_current_global_(2, 0);
+    // waist_peter_gru_.robot_input_data(41) = pelv_rot_current_global_(0, 1); 
+    // waist_peter_gru_.robot_input_data(42) = pelv_rot_current_global_(1, 1);
+    // waist_peter_gru_.robot_input_data(43) = pelv_rot_current_global_(2, 1);
+
+    // waist_peter_gru_.robot_input_data(44) = imu_raw_(3); // lin acc
+    // waist_peter_gru_.robot_input_data(45) = imu_raw_(4);
+    // waist_peter_gru_.robot_input_data(46) = imu_raw_(5);
+
+    // waist_peter_gru_.robot_input_data(47) = imu_raw_(0); // ang vel
+    // waist_peter_gru_.robot_input_data(48) = imu_raw_(1);
+    // waist_peter_gru_.robot_input_data(49) = imu_raw_(2);
+
+    // ///////////////// Pelvis//////////////////
+    // pelvis_peter_gru_.robot_input_data(0) = q_virtual_Xd_global_(6); // q
+    // pelvis_peter_gru_.robot_input_data(1) = q_virtual_Xd_global_(7);
+    // pelvis_peter_gru_.robot_input_data(2) = q_virtual_Xd_global_(8);
+    // pelvis_peter_gru_.robot_input_data(3) = q_virtual_Xd_global_(9);
+    // pelvis_peter_gru_.robot_input_data(4) = q_virtual_Xd_global_(10);
+    // pelvis_peter_gru_.robot_input_data(5) = q_virtual_Xd_global_(11);
+
+    // pelvis_peter_gru_.robot_input_data(6)  = q_dot_virtual_Xd_global_(6); // qdot
+    // pelvis_peter_gru_.robot_input_data(7) = q_dot_virtual_Xd_global_(7);
+    // pelvis_peter_gru_.robot_input_data(8) = q_dot_virtual_Xd_global_(8);
+    // pelvis_peter_gru_.robot_input_data(9) = q_dot_virtual_Xd_global_(9);
+    // pelvis_peter_gru_.robot_input_data(10) = q_dot_virtual_Xd_global_(10);
+    // pelvis_peter_gru_.robot_input_data(11) = q_dot_virtual_Xd_global_(11);
+
+    // pelvis_peter_gru_.robot_input_data(12) = (torque_lower_ + torque_upper_)(0); // desired torque
+    // pelvis_peter_gru_.robot_input_data(13) = (torque_lower_ + torque_upper_)(1);
+    // pelvis_peter_gru_.robot_input_data(14) = (torque_lower_ + torque_upper_)(2);
+    // pelvis_peter_gru_.robot_input_data(15) = (torque_lower_ + torque_upper_)(3);
+    // pelvis_peter_gru_.robot_input_data(16) = (torque_lower_ + torque_upper_)(4);
+    // pelvis_peter_gru_.robot_input_data(17) = (torque_lower_ + torque_upper_)(5);
+
+    // pelvis_peter_gru_.robot_input_data(18) = q_virtual_Xd_global_(6); // q
+    // pelvis_peter_gru_.robot_input_data(19) = q_virtual_Xd_global_(7);
+    // pelvis_peter_gru_.robot_input_data(20) = q_virtual_Xd_global_(8);
+    // pelvis_peter_gru_.robot_input_data(21) = q_virtual_Xd_global_(9);
+    // pelvis_peter_gru_.robot_input_data(22) = q_virtual_Xd_global_(10);
+    // pelvis_peter_gru_.robot_input_data(23) = q_virtual_Xd_global_(11);
+
+
+    // pelvis_peter_gru_.robot_input_data(24)  = q_dot_virtual_Xd_global_(12); // qdot
+    // pelvis_peter_gru_.robot_input_data(25) = q_dot_virtual_Xd_global_(13);
+    // pelvis_peter_gru_.robot_input_data(26) = q_dot_virtual_Xd_global_(14);
+    // pelvis_peter_gru_.robot_input_data(27) = q_dot_virtual_Xd_global_(15);
+    // pelvis_peter_gru_.robot_input_data(28) = q_dot_virtual_Xd_global_(16);
+    // pelvis_peter_gru_.robot_input_data(29) = q_dot_virtual_Xd_global_(17);
+
+    // pelvis_peter_gru_.robot_input_data(30) = (torque_lower_ + torque_upper_)(6); // desired torque
+    // pelvis_peter_gru_.robot_input_data(31) = (torque_lower_ + torque_upper_)(7);
+    // pelvis_peter_gru_.robot_input_data(32) = (torque_lower_ + torque_upper_)(8);
+    // pelvis_peter_gru_.robot_input_data(33) = (torque_lower_ + torque_upper_)(9);
+    // pelvis_peter_gru_.robot_input_data(34) = (torque_lower_ + torque_upper_)(10);
+    // pelvis_peter_gru_.robot_input_data(35) = (torque_lower_ + torque_upper_)(11);
+
+
+    // pelvis_peter_gru_.robot_input_data(36) = q_virtual_Xd_global_(18); // q wast
+    // pelvis_peter_gru_.robot_input_data(36) = q_virtual_Xd_global_(19);
+    // pelvis_peter_gru_.robot_input_data(38) = q_virtual_Xd_global_(20);
+
+    // pelvis_peter_gru_.robot_input_data(39) = q_dot_virtual_Xd_global_(18); // q dot wast
+    // pelvis_peter_gru_.robot_input_data(40) = q_dot_virtual_Xd_global_(19);
+    // pelvis_peter_gru_.robot_input_data(41) = q_dot_virtual_Xd_global_(20);
+
+    // pelvis_peter_gru_.robot_input_data(42) = q_virtual_Xd_global_(21); // q larm
+    // pelvis_peter_gru_.robot_input_data(43) = q_virtual_Xd_global_(22);
+    // pelvis_peter_gru_.robot_input_data(44) = q_virtual_Xd_global_(23);
+    // pelvis_peter_gru_.robot_input_data(45) = q_virtual_Xd_global_(24);
+    // pelvis_peter_gru_.robot_input_data(46) = q_virtual_Xd_global_(25);
+    // pelvis_peter_gru_.robot_input_data(47) = q_virtual_Xd_global_(26); 
+    // pelvis_peter_gru_.robot_input_data(48) = q_virtual_Xd_global_(27);
+    // pelvis_peter_gru_.robot_input_data(49) = q_virtual_Xd_global_(28);
+
+    // pelvis_peter_gru_.robot_input_data(50) = q_dot_virtual_Xd_global_(21); // q dot larm
+    // pelvis_peter_gru_.robot_input_data(51) = q_dot_virtual_Xd_global_(22);
+    // pelvis_peter_gru_.robot_input_data(52) = q_dot_virtual_Xd_global_(23);
+    // pelvis_peter_gru_.robot_input_data(53) = q_dot_virtual_Xd_global_(24);
+    // pelvis_peter_gru_.robot_input_data(54) = q_dot_virtual_Xd_global_(25);
+    // pelvis_peter_gru_.robot_input_data(55) = q_dot_virtual_Xd_global_(26);
+    // pelvis_peter_gru_.robot_input_data(56) = q_dot_virtual_Xd_global_(27);
+    // pelvis_peter_gru_.robot_input_data(57) = q_dot_virtual_Xd_global_(28);
+
+    // pelvis_peter_gru_.robot_input_data(58) = q_virtual_Xd_global_(31); // q rarm
+    // pelvis_peter_gru_.robot_input_data(59) = q_virtual_Xd_global_(32);
+    // pelvis_peter_gru_.robot_input_data(60) = q_virtual_Xd_global_(33);
+    // pelvis_peter_gru_.robot_input_data(61) = q_virtual_Xd_global_(34);
+    // pelvis_peter_gru_.robot_input_data(62) = q_virtual_Xd_global_(35);
+    // pelvis_peter_gru_.robot_input_data(62) = q_virtual_Xd_global_(36); 
+    // pelvis_peter_gru_.robot_input_data(64) = q_virtual_Xd_global_(37);
+    // pelvis_peter_gru_.robot_input_data(65) = q_virtual_Xd_global_(38);
+
+    // pelvis_peter_gru_.robot_input_data(66) = q_dot_virtual_Xd_global_(31); // q dot rarm
+    // pelvis_peter_gru_.robot_input_data(67) = q_dot_virtual_Xd_global_(32);
+    // pelvis_peter_gru_.robot_input_data(68) = q_dot_virtual_Xd_global_(33);
+    // pelvis_peter_gru_.robot_input_data(69) = q_dot_virtual_Xd_global_(34);
+    // pelvis_peter_gru_.robot_input_data(70) = q_dot_virtual_Xd_global_(35);
+    // pelvis_peter_gru_.robot_input_data(71) = q_dot_virtual_Xd_global_(36);
+    // pelvis_peter_gru_.robot_input_data(72) = q_dot_virtual_Xd_global_(37);
+    // pelvis_peter_gru_.robot_input_data(73) = q_dot_virtual_Xd_global_(38);
+
+    // pelvis_peter_gru_.robot_input_data(74) = pelv_rot_current_global_(0, 0); // pelv ori
+    // pelvis_peter_gru_.robot_input_data(75) = pelv_rot_current_global_(1, 0);
+    // pelvis_peter_gru_.robot_input_data(76) = pelv_rot_current_global_(2, 0);
+    // pelvis_peter_gru_.robot_input_data(77) = pelv_rot_current_global_(0, 1); 
+    // pelvis_peter_gru_.robot_input_data(78) = pelv_rot_current_global_(1, 1);
+    // pelvis_peter_gru_.robot_input_data(79) = pelv_rot_current_global_(2, 1);
+
+    // pelvis_peter_gru_.robot_input_data(80) = imu_raw_(3); // lin acc
+    // pelvis_peter_gru_.robot_input_data(81) = imu_raw_(4);
+    // pelvis_peter_gru_.robot_input_data(82) = imu_raw_(5);
+
+    // pelvis_peter_gru_.robot_input_data(83) = imu_raw_(0); // ang vel
+    // pelvis_peter_gru_.robot_input_data(84) = imu_raw_(1);
+    // pelvis_peter_gru_.robot_input_data(85) = imu_raw_(2);
 
 }
 void AvatarController::loadGruWeights(GRU &gru, std::string folder_path)
@@ -10997,7 +11172,7 @@ void AvatarController::loadGruWeightsSpectralNorm(GRU &gru, std::string folder_p
              << gru.b_linear.transpose() << endl;
     }
 }
-void AvatarController::calculateGruInput(GRU &gru)
+void AvatarController::calculateGruInput(GRU &gru, double input_scale)
 {
     // index up{date
     gru.buffer_head += gru.n_input;
@@ -11032,7 +11207,7 @@ void AvatarController::calculateGruInput(GRU &gru)
             buffer_idx += gru.buffer_size;
         buffer_idx = buffer_idx % gru.buffer_size;
 
-        gru.input_slow(gru.n_input - j - 1, gru.input_mode_idx) = (gru.ring_buffer(buffer_idx) - gru.input_mean(gru.n_input - 1 - j)) / gru.input_std(gru.n_input - 1 - j);
+        gru.input_slow(gru.n_input - j - 1, gru.input_mode_idx) = (gru.ring_buffer(buffer_idx) - gru.input_mean(gru.n_input - 1 - j)) / gru.input_std(gru.n_input - 1 - j)*input_scale;
     }
 
     // if(walking_tick_mj%2000 == 0)
@@ -11707,11 +11882,11 @@ void AvatarController::printOutTextFile()
             // FT related Data
             for (int i = 0; i < 6; i++)
             {
-                file[1] << l_ft_(i) << "\t";
+                file[1] << l_ft_wo_fw_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
-                file[1] << r_ft_(i) << "\t";
+                file[1] << r_ft_wo_fw_(i) << "\t";
             }
             for (int i = 0; i < 6; i++)
             {
@@ -12395,17 +12570,19 @@ void AvatarController::getRobotState()
     if(simulation_mode_)
     {
         r_ft_wo_fw_ = -r_ft_ - adt2*(-Wrench_foot_plate - 1.0*inertia_foot_plate * rfoot_acceleration_local - 0.0*rfoot_v_cross_inertia_v);
+        r_ft_wo_fw_ = adt_sp*r_ft_wo_fw_;
     }
     else
     {
         r_ft_wo_fw_ = -r_ft_;
         r_ft_wo_fw_(2) = r_ft_wo_fw_(2) -foot_plate_mass * 9.81;
         r_ft_wo_fw_ = r_ft_wo_fw_ - adt2*(-Wrench_foot_plate - 0.0*rfoot_v_cross_inertia_v); // tocabi
+        r_ft_wo_fw_ = adt_sp*r_ft_wo_fw_;
     }
     
     r_ft_wo_fw_lpf_ = DyrosMath::lpf<6>(r_ft_wo_fw_, r_ft_wo_fw_lpf_, 2000, 100 / (2 * M_PI));
 
-    r_ft_wo_fw_global_ = rotrf_ft*adt_sp*r_ft_wo_fw_;
+    r_ft_wo_fw_global_ = rotrf_ft*r_ft_wo_fw_;
 
 
     if (walking_tick_mj == 0)
@@ -12448,10 +12625,12 @@ void AvatarController::getRobotState()
     // calculateLstmInput(right_leg_mob_lstm_); // 1us
 
     collectRobotInputData_peter_gru();
-    calculateGruInput(left_leg_peter_gru_);
-    calculateGruInput(right_leg_peter_gru_);
-    calculateGruInput(left_arm_peter_gru_);
-    calculateGruInput(right_arm_peter_gru_);
+    calculateGruInput(left_leg_peter_gru_, 16);
+    calculateGruInput(right_leg_peter_gru_, 16);
+    // calculateGruInput(left_arm_peter_gru_, 32);
+    // calculateGruInput(right_arm_peter_gru_, 32);
+    // calculateGruInput(waist_peter_gru_, 32);
+    // calculateGruInput(pelvis_peter_gru_, 32);
 
     floatingBaseMOB();                       // created by DG
     collisionEstimation();

@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -44,13 +44,13 @@ const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
 // reaction strategy
-const bool joint_ext_force_compensation_ = true; 
-const bool pelv_ext_force_compensation_ = true; // X, Y, Yaw
+const bool joint_ext_force_compensation_ = false; 
+const bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
 const bool ATC_mode_ = true; // ATC or RTC
 const double reflex_compensation_gain_ = 0.15;    // ATC: [0.05 0.15], RTC: [0.5 3.0]
 
 // tocabi
-const bool estimated_ext_torque_feedback_mode_ = true; 
+const bool estimated_ext_torque_feedback_mode_ = false; 
 
 const int FILE_CNT = 3;
 const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
@@ -58,7 +58,8 @@ const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
 // const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
 // const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
-// mob gru
+
+// LSTM
 const int n_input_ = 30;
 const int n_sequence_length_ = 1;
 const int n_output_ = 12;
@@ -1472,6 +1473,8 @@ public:
     GRU right_leg_peter_gru_;
     GRU left_arm_peter_gru_;
     GRU right_arm_peter_gru_;
+    GRU waist_peter_gru_;
+    GRU pelvis_peter_gru_;
 
     const int gru_hz_ = 1000;
     // ifstream network_weights_file_gru_[6];
@@ -1527,7 +1530,7 @@ public:
     void loadGruWeightsSpectralNorm(GRU &gru, std::string folder_path);
 
     void initializeLegGRU(GRU &gru, int n_input, int n_output, int n_hidden);
-    void calculateGruInput(GRU &gru);
+    void calculateGruInput(GRU &gru, double input_scale);
     void calculateGruOutput(GRU &gru);
 
     Eigen::VectorXd vecSigmoid(VectorXd input);
