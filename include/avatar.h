@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -44,9 +44,9 @@ const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
 // reaction strategy
-const bool joint_ext_force_compensation_ = false; 
-const bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
-const bool ATC_mode_ = true; // ATC or RTC
+const bool joint_ext_force_compensation_ = true; 
+const bool pelv_ext_force_compensation_ = true; // X, Y, Yaw
+const bool ATC_mode_ = false; // ATC or RTC
 const double reflex_compensation_gain_ = 0.15;    // ATC: [0.05 0.15], RTC: [0.5 3.0]
 
 // tocabi
@@ -580,6 +580,10 @@ public:
     Eigen::Vector6d l_ft_wo_fw_global_;
     Eigen::Vector6d r_ft_wo_fw_global_;
 
+    Eigen::Vector6d l_ft_wo_fw_support_;
+    Eigen::Vector6d r_ft_wo_fw_support_;
+
+
     // Eigen::Vector6d l_ft_wo_fw_global_lpf_;
     // Eigen::Vector6d r_ft_wo_fw_global_lpf_;
 
@@ -613,6 +617,7 @@ public:
 
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
+    Eigen::VectorVQd torque_from_opto_ft_;
 
     Eigen::Vector6d l_hand_ft_;
     Eigen::Vector6d r_hand_ft_;
