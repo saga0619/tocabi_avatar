@@ -9728,7 +9728,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
         stepping_input_(0) = del_F_(0);
         stepping_input_(1) = del_F_(1);
     }
-    
+     
     // MJ_graph2 << t_total_ << "," << t_rest_init_ << "," << t_rest_last_ << "," << dsp_scaler_(0) << "," << dsp_scaler_(1) << "," << dsp_time_reducer_ << "," << dsp_time_reducer_fixed_ << endl;
     del_F_(0) = stepping_input_(0);
     del_F_(1) = stepping_input_(1);
