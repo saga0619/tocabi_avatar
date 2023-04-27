@@ -1467,6 +1467,8 @@ public:
     double U_ZMP_x_ssp_LPF = 0;
     double damping_x = 0;
     double damping_y = 0;
+    double u0_x_data_ = 0;
+    double u0_y_data_ = 0;
     Eigen::Vector2d Tau_R;
     Eigen::Vector2d Tau_L;
 
@@ -1521,8 +1523,8 @@ public:
     Eigen::VectorQd del_cmm_q_;
     unsigned int cmp_control_mode = 0;
 
-    double des_zmp_ssp_mpc_x_ = 0;
-    double des_zmp_ssp_mpc_y_ = 0;
+    double des_cmp_ssp_mpc_x_ = 0;
+    double des_cmp_ssp_mpc_y_ = 0;
 
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
