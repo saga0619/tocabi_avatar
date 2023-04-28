@@ -9110,7 +9110,7 @@ void AvatarController::computeCAMcontrol_HQP()
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.4, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.6, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
         }
 
         for (int h = 0; h < i; h++)
@@ -9440,8 +9440,11 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
     
     // support foot // 어짜피 MPC 제어입력을 쓰는거기 때문에 아래의 minmax_cut이 의미가 없긴함. 혹시나 입력이 튈 경우
-    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
-    u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
+    // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
+    // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
+
+    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.04 - 0.016, 0.12 + 0.016); 
+    u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016); 
 
     u0_x_data_ = u0_x;
     u0_y_data_ = u0_y;
@@ -9464,10 +9467,10 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;     
     W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_;   
     // W_nom = 0*foot_step_support_frame_(current_step_num_, 1) + del_F_y_;  
-    L_min = L_nom - 0.05; // 0.05
-    L_max = L_nom + 0.05;
-    W_min = W_nom - 0.03; // 0.05 in simulation
-    W_max = W_nom + 0.03; 
+    L_min = L_nom - 0.15; // 0.05
+    L_max = L_nom + 0.15;
+    W_min = W_nom - 0.05; // 0.05 in simulation
+    W_max = W_nom + 0.05; 
     
     T_nom = (t_total_const_ - (t_rest_init_ + t_rest_last_ + t_double1_ + t_double2_))/hz_; // 0.6하면 370 못버팀.
     T_min = T_nom - 0.2;  
@@ -11053,8 +11056,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         Z_y_ref_wo_offset_new(2*i) = Z_y_ref_cpmpc_only_(i);
         zmp_bound_x_new(2*i) = 0.1; 
         zmp_bound_y_new(2*i) = 0.07;  
-        Tau_x_limit(2*i + 1) = 10.0;//20.0;
-        Tau_y_limit(2*i + 1) = 10.0;//20.0;
+        Tau_x_limit(2*i + 1) = 7.0;//20.0;
+        Tau_y_limit(2*i + 1) = 7.0;//20.0;
     }
 
     if(atb_new_cpmpc_rcv_update_ == false) // Receive datas from the compute slow thread 
@@ -11166,7 +11169,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
 
         // weighting_zmp_regul_.setIdentity(2*N_cp, 2*N_cp);
                
-        double weighting_foot_new = 0.001; // ICRA: 0.01 
+        double weighting_foot_new = 0.00001; // ICRA: 0.01 
         
         // Weighting parameter // Freq: 50 Hz/ Preview window: 1.5 s => N step = 75, 2N = 150
         for(int i = 0; i < N_cp; i++) // For cp control
@@ -11245,8 +11248,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     
     for(int i = 0; i < N_cp; i++)
     {   
-        weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.00, 0.05, 0.0000001, 0.0, 0.0, 0.0);
-        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
+        weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.05, 0.10, 0.00000005, 0.0, 0.0, 0.0);
+        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.03, 0.06, 0.0000005, 0.0, 0.0, 0.0); 
     }      
 
     // weighting_tau_damping_x_ = 0.0000002 * weighting_tau_damping_x_;
@@ -13076,7 +13079,7 @@ void AvatarController::calculateFootStepTotal_MJ()
 
     if (length_to_target == 0.0)
     {
-        middle_total_step_number = 20; //total foot step number
+        middle_total_step_number = 50; //total foot step number
         dlength = 0;
     }
 
@@ -13678,8 +13681,8 @@ void AvatarController::addZmpOffset()
     // lfoot_zmp_offset_ = -0.02; // 1.1 초
     // rfoot_zmp_offset_ = 0.02;
 
-    lfoot_zmp_offset_ = -0.01; // simul 1.1 s
-    rfoot_zmp_offset_ = 0.01;
+    lfoot_zmp_offset_ = -0.005; // simul 1.1 s
+    rfoot_zmp_offset_ = 0.005;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -15546,7 +15549,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 3.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -15866,7 +15869,7 @@ void AvatarController::CP_compen_MJ_FT()
     double zmp_offset = 0;
     double alpha_new = 0;
 
-    zmp_offset = 0.015; // 0.9초
+    zmp_offset = 0.005; // 0.9초
 
     if (walking_tick_mj > t_temp_)
     {
@@ -16266,7 +16269,7 @@ void AvatarController::CentroidalMomentCalculator_new()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 15.0;
+    double A_limit = 8.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
