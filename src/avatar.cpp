@@ -601,11 +601,11 @@ void AvatarController::setGains()
     // joint_vel_limit_h_(14) = M_PI * 3;
 
     //1st arm joint vel limit
-    joint_vel_limit_l_(15) = -M_PI / 3;
-    joint_vel_limit_h_(15) = M_PI / 3;
+    joint_vel_limit_l_(15) = -M_PI / 4;
+    joint_vel_limit_h_(15) = M_PI / 4;
 
-    joint_vel_limit_l_(25) = -M_PI / 3;
-    joint_vel_limit_h_(25) = M_PI / 3;
+    joint_vel_limit_l_(25) = -M_PI / 4;
+    joint_vel_limit_h_(25) = M_PI / 4;
 
     // Head joint vel limit
     joint_vel_limit_l_(23) = -2 * M_PI;
@@ -9443,8 +9443,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
     // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
 
-    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.04 - 0.016, 0.12 + 0.016); 
-    u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016); 
+    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.04 - 0.01, 0.12 + 0.01); 
+    u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.07 - 0.01, 0.07 + 0.01); 
 
     u0_x_data_ = u0_x;
     u0_y_data_ = u0_y;
@@ -11249,7 +11249,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     for(int i = 0; i < N_cp; i++)
     {   
         weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.05, 0.10, 0.00000005, 0.0, 0.0, 0.0);
-        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.03, 0.06, 0.0000005, 0.0, 0.0, 0.0); 
+        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.03, 0.05, 0.0000005, 0.0, 0.0, 0.0); 
     }      
 
     // weighting_tau_damping_x_ = 0.0000002 * weighting_tau_damping_x_;
@@ -15549,7 +15549,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 0.0;
+    target_x_ = 1.2;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
