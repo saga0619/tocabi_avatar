@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -44,20 +44,20 @@ const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
 // reaction strategy
-const bool joint_ext_force_compensation_ = true; 
-const bool pelv_ext_force_compensation_ = true; // X, Y, Yaw
+const bool joint_ext_force_compensation_ = false; 
+const bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
 const bool ATC_mode_ = false; // ATC or RTC
 const double reflex_compensation_gain_ = 0.15;    // ATC: [0.05 0.15], RTC: [0.5 3.0]
 
 // tocabi
 const bool estimated_ext_torque_feedback_mode_ = false; 
 
-const int FILE_CNT = 3;
-const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const int FILE_CNT = 2;
+// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 
 // LSTM
 const int n_input_ = 30;
@@ -72,8 +72,8 @@ const std::string FILE_NAMES[FILE_CNT] =
 {
   ///change this directory when you use this code on the other computer///
     DATA_FOLDER_DIR + "/robot_training_data.txt",
-    DATA_FOLDER_DIR + "/ft_related_data.txt",
-    DATA_FOLDER_DIR + "/mob_gru_debugging.txt"
+    DATA_FOLDER_DIR + "/ft_related_data.txt"
+    // DATA_FOLDER_DIR + "/mob_gru_debugging.txt"
     // "/home/dyros/data/dg/2_zmp_.txt",
     // "/home/dyros/data/dg/3_foot_.txt",
     // "/home/dyros/data/dg/4_torque_.txt",
@@ -88,8 +88,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg";  //tocabi 
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
@@ -610,14 +610,18 @@ public:
 
     Eigen::Vector6d imu_raw_; // ang vel(3) + lin acc(3)
 
-    Eigen::VectorQd torque_from_lh_ft_;
-    Eigen::VectorQd torque_from_rh_ft_;
-    Eigen::VectorQd torque_from_lh_ft_lpf_;
-    Eigen::VectorQd torque_from_rh_ft_lpf_;
+    Eigen::VectorVQd torque_from_lh_ft_;
+    Eigen::VectorVQd torque_from_rh_ft_;
+    Eigen::VectorVQd torque_from_lh_ft_lpf_;
+    Eigen::VectorVQd torque_from_rh_ft_lpf_;
 
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
+    Eigen::Vector6d opto_ft_wo_hw_;
+    Eigen::Vector6d opto_ft_wo_hw_global_;
+
     Eigen::VectorVQd torque_from_opto_ft_;
+    Eigen::VectorVQd torque_from_opto_ft_lpf_;
 
     Eigen::Vector6d l_hand_ft_;
     Eigen::Vector6d r_hand_ft_;
