@@ -1885,15 +1885,15 @@ void AvatarController::computeFast()
         // calculateLstmOutput(right_leg_mob_lstm_); //20~25us
         // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-        // std::chrono::steady_clock::time_point gru_start_t = std::chrono::steady_clock::now();
-        calculateGruOutput(left_leg_peter_gru_); //20~100us
+        std::chrono::steady_clock::time_point gru_start_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(left_leg_peter_gru_); //20~100us
         // std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
-        calculateGruOutput(right_leg_peter_gru_); //20~100us
+        // calculateGruOutput(right_leg_peter_gru_); //20~100us
         // std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
-        calculateGruOutput(left_arm_peter_gru_);
+        // calculateGruOutput(left_arm_peter_gru_);
         // std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
-        calculateGruOutput(right_arm_peter_gru_);
-        calculateGruOutput(waist_peter_gru_);
+        // calculateGruOutput(right_arm_peter_gru_);
+        // calculateGruOutput(waist_peter_gru_);
         // calculateGruOutput(pelvis_peter_gru_);
 
         // calculatePelvConcatMlpOutput(pelvis_concat_mlp_);
@@ -8052,19 +8052,22 @@ void AvatarController::floatingBaseMOB()
     torque_from_rh_ft_ = jac_rhand_.transpose() * R_rh * (rh_ft_wo_hw_);
     torque_from_rh_ft_lpf_ = DyrosMath::lpf<33>(torque_from_rh_ft_, torque_from_rh_ft_lpf_, 2000, 100 / (2 * M_PI));
 
+    Vector3d opto_sensor_offset;
+    opto_sensor_offset.setZero();
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
     MatrixXd J_opto;
     J_opto.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, rd_.link_[Left_Foot].id-2, Eigen::Vector3d::Zero(), J_temp, false); // left knee
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Upper_Body].id, opto_sensor_offset, J_temp, false); // left knee
 
     J_opto.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
     J_opto.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
 
     /// opto ft setting//
+    // TO DO LIST: check the FT orientation attachment
     Matrix6d R_opto;
     R_opto.setIdentity();
-    R_opto.block(0, 0, 3, 3) = DyrosMath::rotateWithX(0*DEG2RAD);
-    R_opto.block(3, 3, 3, 3) = DyrosMath::rotateWithX(0*DEG2RAD);
+    R_opto.block(0, 0, 3, 3) = link_avatar_[Upper_Body].rotm*DyrosMath::rotateWithX(0*DEG2RAD);
+    R_opto.block(3, 3, 3, 3) = link_avatar_[Upper_Body].rotm*DyrosMath::rotateWithX(0*DEG2RAD);
 
     torque_from_opto_ft_ = J_opto.transpose()*R_opto*(opto_ft_);
 
@@ -8183,12 +8186,12 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 }
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
-    collisionIsolation();
-    if(printout_cnt_%100 == 0)
-    {
-        cout<<"ext_torque_compensation_: \n"<<ext_torque_compensation_.transpose()<<endl;
-    }
+    // collisionDetection();
+    // collisionIsolation();
+    // if(printout_cnt_%100 == 0)
+    // {
+    //     cout<<"ext_torque_compensation_: \n"<<ext_torque_compensation_.transpose()<<endl;
+    // }
     // collisionIdentification();
 }
 void AvatarController::collisionDetection()
@@ -12692,8 +12695,15 @@ void AvatarController::getRobotState()
     Wrench_tocabi_hand(2) = tocabi_hand_mass * 9.81;
     Wrench_tocabi_hand = rot_lh.transpose()*Wrench_tocabi_hand;
 
-
-    lh_ft_wo_hw_ = -lh_ft_;
+    if(simulation_mode_)
+    {
+        lh_ft_wo_hw_ = -lh_ft_;
+    }
+    else
+    {
+        lh_ft_wo_hw_ = lh_ft_;
+    }
+    
     // lh_ft_wo_hw_(2) = lh_ft_wo_hw_(2) - tocabi_hand_mass * 9.81;    // should be calibrated where only z axis get all load of a hand
     lh_ft_wo_hw_ = lh_ft_wo_hw_ - adt_hand*(-Wrench_tocabi_hand); // tocabi
 
@@ -12708,7 +12718,16 @@ void AvatarController::getRobotState()
     Wrench_tocabi_hand = rot_rh.transpose()*Wrench_tocabi_hand;
 
     // right hand
-    rh_ft_wo_hw_ = -rh_ft_;
+    if(simulation_mode_)
+    {
+        rh_ft_wo_hw_ = -rh_ft_;
+    }
+    else
+    {
+        rh_ft_wo_hw_ = rh_ft_;
+    }
+    
+    
     // rh_ft_wo_hw_(2) = rh_ft_wo_hw_(2) - tocabi_hand_mass * 9.81;    // should be calibrated where only z axis get all load of a hand
     rh_ft_wo_hw_ = rh_ft_wo_hw_ - adt_hand*(-Wrench_tocabi_hand); // tocabi
 
@@ -12741,12 +12760,12 @@ void AvatarController::getRobotState()
     // calculateLstmInput(left_leg_mob_lstm_);  // 1us
     // calculateLstmInput(right_leg_mob_lstm_); // 1us
 
-    collectRobotInputData_peter_gru();
-    calculateGruInput(left_leg_peter_gru_, 16);
-    calculateGruInput(right_leg_peter_gru_, 16);
-    calculateGruInput(left_arm_peter_gru_, 32);
-    calculateGruInput(right_arm_peter_gru_, 32);
-    calculateGruInput(waist_peter_gru_, 64);
+    // collectRobotInputData_peter_gru();
+    // calculateGruInput(left_leg_peter_gru_, 16);
+    // calculateGruInput(right_leg_peter_gru_, 16);
+    // calculateGruInput(left_arm_peter_gru_, 32);
+    // calculateGruInput(right_arm_peter_gru_, 32);
+    // calculateGruInput(waist_peter_gru_, 64);
     // calculateGruInput(pelvis_peter_gru_, 32);
 
     floatingBaseMOB();                       // created by DG
