@@ -2,22 +2,19 @@
 #include <fstream>
 using namespace TOCABI;
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
+ofstream MJ_graph_foottra_x("/home/dyros/data/myeongju/MJ_graph_foottra_x.txt");
+ofstream MJ_graph_foottra_y("/home/dyros/data/myeongju/MJ_graph_foottra_y.txt");
 
-// ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
-// ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
 
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
+// ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
 // ofstream MJ_graph_stepping("/home/myeongju/MJ_graph_stepping.txt");
-ofstream MJ_graph_foottra_x("/home/myeongju/MJ_graph_foottra_x.txt");
-ofstream MJ_graph_foottra_y("/home/myeongju/MJ_graph_foottra_y.txt");
+// ofstream MJ_graph_foottra_x("/home/myeongju/MJ_graph_foottra_x.txt");
+// ofstream MJ_graph_foottra_y("/home/myeongju/MJ_graph_foottra_y.txt");
 // ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
 // ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
 // ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
@@ -9084,8 +9081,8 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])); // unchanged
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (+20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])); // unchanged
         // Left Shoulder pitch // Init 17 deg, CAM 10 deg // Roll 방향 test -20~20?
-        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])); // simul:-50.0 -> exp: -40.0
-        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])); // simul: 50.0 -> exp: 40.0
+        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])); // simul:-50.0 -> exp: -40.0
+        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])); // simul: 50.0 -> exp: 40.0
         // Left Shoulder roll // Init 86 deg, CAM 75 deg // 80 deg 보다 크면 몸통 부딪힘.  
         lb_camhqp_[i](4) = min(max(speed_reduce_rate * (45*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])); // unchanged
         ub_camhqp_[i](4) = max(min(speed_reduce_rate * (65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])); // unchanged
@@ -9097,8 +9094,8 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])); // unchanged
         ub_camhqp_[i](6) = max(min(speed_reduce_rate * (+30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])); // unchanged
         // Right Shoulder pitch   
-        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])); // simul:-50.0 -> exp: -40.0
-        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (+40*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])); // simul: 50.0 -> exp: 40.0
+        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])); // simul:-50.0 -> exp: -40.0
+        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (+50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])); // simul: 50.0 -> exp: 40.0
         // Right Shoulder roll
         lb_camhqp_[i](8) = min(max(speed_reduce_rate * (-65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8])); // unchanged
         ub_camhqp_[i](8) = max(min(speed_reduce_rate * (-45*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8])); // unchanged
@@ -9110,7 +9107,7 @@ void AvatarController::computeCAMcontrol_HQP()
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.6, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.5, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
         }
 
         for (int h = 0; h < i; h++)
@@ -9443,7 +9440,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
     // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
 
-    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.04 - 0.01, 0.12 + 0.01); 
+    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.05 - 0.01, 0.12 + 0.01); 
     u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.07 - 0.01, 0.07 + 0.01); 
 
     u0_x_data_ = u0_x;
@@ -11589,12 +11586,12 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now(); cp_x_ref_new(0) cp_measured_mpc_(0)   
 
     // // CP-MPC Journal - CPMPC data (Ref.Des ZMP, Centroidal moment, CAM, Del F)
-    MJ_graph  << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_x_new_(1) << "," << cam_mpc_init_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << endl; 
-    MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << cpmpc_output_y_new_(1) << "," << cam_mpc_init_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << endl; 
+    // MJ_graph  << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_x_new_(1) << "," << cam_mpc_init_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << endl; 
+    // MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << cpmpc_output_y_new_(1) << "," << cam_mpc_init_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << endl; 
   
-    // // CPMPC Journal foot trajecotry data
-    MJ_graph_foottra_x << del_F_(0) << "," << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << u0_x_data_ << "," << t_total_/hz_ << endl;
-    MJ_graph_foottra_y << del_F_(1) << "," << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << "," << u0_y_data_ << endl;
+    // // // CPMPC Journal foot trajecotry data
+    // MJ_graph_foottra_x << del_F_(0) << "," << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << u0_x_data_ << "," << t_total_/hz_ << endl;
+    // MJ_graph_foottra_y << del_F_(1) << "," << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << "," << u0_y_data_ << endl;
 }
 
 void AvatarController::savePreData()
@@ -15549,7 +15546,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 1.2;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -16269,7 +16266,7 @@ void AvatarController::CentroidalMomentCalculator_new()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 8.0;
+    double A_limit = 10.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
