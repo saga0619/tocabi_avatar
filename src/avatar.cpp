@@ -2,23 +2,13 @@
 #include <fstream>
 using namespace TOCABI;
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint1("/home/dyros/data/myeongju/MJ_joint1.txt");
-// ofstream MJ_joint2("/home/dyros/data/myeongju/MJ_joint2.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/dyros/data/myeongju/MJ_graph1.txt");
+ofstream MJ_graph2("/home/dyros/data/myeongju/MJ_graph2.txt");
+ofstream MJ_graph_foottra_x("/home/dyros/data/myeongju/MJ_graph_foottra_x.txt");
+ofstream MJ_graph_foottra_y("/home/dyros/data/myeongju/MJ_graph_foottra_y.txt");
+ofstream MJ_opto("/home/dyros/data/myeongju/MJ_opto.txt");
 
-// ofstream MJ_graph("/home/dyros_rm/MJ/data/myeongju/MJ_graph.txt");
-// ofstream MJ_graph1("/home/dyros_rm/MJ/data/myeongju/MJ_graph1.txt");
-// ofstream MJ_joint1("/home/dyros_rm/MJ/data/myeongju/MJ_joint1.txt");
-// ofstream MJ_joint2("/home/dyros_rm/MJ/data/myeongju/MJ_joint2.txt");
-
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
-ofstream MJ_graph2("/home/myeongju/MJ_graph2.txt");
-// ofstream MJ_q_("/home/myeongju/MJ_q_.txt");
-// ofstream MJ_q_dot_("/home/myeongju/MJ_q_dot_.txt");
-// ofstream MJ_CAM_("/home/myeongju/MJ_CAM_.txt"); 
-// ofstream MJ_CP_ZMP("/home/myeongju/MJ_CP_ZMP.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -63,7 +53,7 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     pedal_command = nh_avatar_.subscribe("/tocabi/pedalcommand", 100, &AvatarController::PedalCommandCallback, this); //MJ
 
-    //opto_ftsensor_sub = nh_avatar_.subscribe("/atiforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this); // real robot experiment
+    opto_ftsensor_sub = nh_avatar_.subscribe("/optoforce/ftsensor", 100, &AvatarController::OptoforceFTCallback, this); // real robot experiment
 
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
@@ -8867,8 +8857,8 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])); // unchanged
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (+20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])); // unchanged
         // Left Shoulder pitch // Init 17 deg, CAM 10 deg // Roll 방향 test -20~20?
-        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])); // simul:-50.0 -> exp: -40.0
-        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])); // simul: 50.0 -> exp: 40.0
+        lb_camhqp_[i](3) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])); // simul:-50.0 -> exp: -40.0
+        ub_camhqp_[i](3) = max(min(speed_reduce_rate * (50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[3])), joint_vel_limit_h_(control_joint_idx_camhqp_[3])), joint_vel_limit_l_(control_joint_idx_camhqp_[3])); // simul: 50.0 -> exp: 40.0
         // Left Shoulder roll // Init 86 deg, CAM 75 deg // 80 deg 보다 크면 몸통 부딪힘.  
         lb_camhqp_[i](4) = min(max(speed_reduce_rate * (45*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])); // unchanged
         ub_camhqp_[i](4) = max(min(speed_reduce_rate * (65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[4])), joint_vel_limit_h_(control_joint_idx_camhqp_[4])), joint_vel_limit_l_(control_joint_idx_camhqp_[4])); // unchanged
@@ -8880,8 +8870,8 @@ void AvatarController::computeCAMcontrol_HQP()
         lb_camhqp_[i](6) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])); // unchanged
         ub_camhqp_[i](6) = max(min(speed_reduce_rate * (+30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[6])), joint_vel_limit_h_(control_joint_idx_camhqp_[6])), joint_vel_limit_l_(control_joint_idx_camhqp_[6])); // unchanged
         // Right Shoulder pitch   
-        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])); // simul:-50.0 -> exp: -40.0
-        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (+20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])); // simul: 50.0 -> exp: 40.0
+        lb_camhqp_[i](7) = min(max(speed_reduce_rate * (-50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])); // simul:-50.0 -> exp: -40.0
+        ub_camhqp_[i](7) = max(min(speed_reduce_rate * (+50*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[7])), joint_vel_limit_h_(control_joint_idx_camhqp_[7])), joint_vel_limit_l_(control_joint_idx_camhqp_[7])); // simul: 50.0 -> exp: 40.0
         // Right Shoulder roll
         lb_camhqp_[i](8) = min(max(speed_reduce_rate * (-65*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8])); // unchanged
         ub_camhqp_[i](8) = max(min(speed_reduce_rate * (-45*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[8])), joint_vel_limit_h_(control_joint_idx_camhqp_[8])), joint_vel_limit_l_(control_joint_idx_camhqp_[8])); // unchanged
@@ -11152,15 +11142,15 @@ void AvatarController::TrackerStatusCallback(const std_msgs::Bool &msg)
 }
  
 // real robot experiment
-// void AvatarController::OptoforceFTCallback(const tocabi_msgs::FTsensor &msg)
-// {
-//     opto_ft_raw_(0) = msg.Fx;
-//     opto_ft_raw_(1) = msg.Fy;
-//     opto_ft_raw_(2) = msg.Fz;
-//     opto_ft_raw_(3) = msg.Tx;
-//     opto_ft_raw_(4) = msg.Ty;
-//     opto_ft_raw_(5) = msg.Tz;
-// }
+void AvatarController::OptoforceFTCallback(const tocabi_msgs::FTsensor &msg)
+{
+    opto_ft_raw_(0) = msg.Fx;
+    opto_ft_raw_(1) = msg.Fy;
+    opto_ft_raw_(2) = msg.Fz;
+    opto_ft_raw_(3) = msg.Tx;
+    opto_ft_raw_(4) = msg.Ty;
+    opto_ft_raw_(5) = msg.Tz;
+}
 
 Eigen::MatrixXd AvatarController::discreteRiccatiEquationPrev(Eigen::MatrixXd a, Eigen::MatrixXd b, Eigen::MatrixXd r, Eigen::MatrixXd q)
 {
@@ -11779,9 +11769,9 @@ void AvatarController::getRobotState()
     wn = sqrt(GRAVITY / zc_mj_);
 
     // real robot experiment
-    // opto_ft_ = opto_ft_raw_; 
-    // //cout << opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << endl; 
-    // MJ_opto <<  opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << "," << opto_ft_(3) << "," << opto_ft_(4) << "," << opto_ft_(5) << endl; 
+    opto_ft_ = opto_ft_raw_; 
+    // cout << opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << endl; 
+    MJ_opto <<  opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << "," << opto_ft_(3) << "," << opto_ft_(4) << "," << opto_ft_(5) << endl; 
     
     if (walking_tick_mj == 0)
     {
@@ -14527,7 +14517,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 0.0;
+    target_x_ = 1.3;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -14748,7 +14738,7 @@ void AvatarController::AnkleController_Jeong()
     del_zmp_j_(0) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(0) - cp_desired_(0));   
     del_zmp_j_(1) = - exp(wn*step_time_j)/(1-exp(wn*step_time_j)) * (cp_measured_(1) - cp_desired_(1));
 
-    del_zmp_j_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.09, 0.12);
+    del_zmp_j_(0) = DyrosMath::minmax_cut(del_zmp_j_(0), -0.12, 0.15);
     del_zmp_j_(1) = DyrosMath::minmax_cut(del_zmp_j_(1), -0.07, 0.07); 
     
 }
@@ -14866,8 +14856,8 @@ void AvatarController::QPController_Jeong()
     lb_j(4) = exp(wn*T_min_j);
     lb_j(5) = - 0.2; 
     lb_j(6) = - 0.2;
-    lb_j(7) = - 15.0; 
-    lb_j(8) = - 15.0;
+    lb_j(7) = - 8.0; 
+    lb_j(8) = - 8.0;
     
     ub_j(0) = del_zmp_j_(0) - cp_desired_(0) * exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_) * tau_nom_j;
     ub_j(1) = del_zmp_j_(1) - cp_desired_(1) * exp(-wn*(walking_tick_mj - stepping_start_time_j)/hz_) * tau_nom_j;
@@ -14876,8 +14866,8 @@ void AvatarController::QPController_Jeong()
     ub_j(4) = exp(wn*T_max_j);
     ub_j(5) = + 0.2; 
     ub_j(6) = + 0.2;  
-    ub_j(7) = + 15.0; 
-    ub_j(8) = + 15.0;          
+    ub_j(7) = + 8.0; 
+    ub_j(8) = + 8.0;          
   
     
     if(current_step_num_ > 0 && (current_step_num_ != total_step_num_-1))
@@ -14931,6 +14921,7 @@ void AvatarController::QPController_Jeong()
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();    
     
     MJ_graph << QP_jeong_sol_(0) << "," << QP_jeong_sol_(1) << "," << t_total_ << "," << del_ang_momentum_(1) << "," << del_ang_momentum_(0) << "," << QP_jeong_sol_(5) << "," << QP_jeong_sol_(6) << endl;
+    MJ_graph1 << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
 }
 
 void AvatarController::CentroidalMomentCalculator_Jeong()
@@ -14957,7 +14948,7 @@ void AvatarController::CentroidalMomentCalculator_Jeong()
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
 
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
-    double A_limit = 15.0;
+    double A_limit = 10.0;
        
     if(del_ang_momentum_(0) > A_limit)
     { 
@@ -15093,7 +15084,7 @@ void AvatarController::CP_compen_MJ_FT()
     F_F_error_dot_ = (F_F_error_ - F_F_error_pre_)*hz_;
 
     //////////// Force
-    F_F_input_dot = 0.0005 * F_F_error_  + 0.00000001*F_F_error_dot_ - 3.0 * F_F_input;  //DG's code Kp : 0.00005
+    F_F_input_dot = 0.00005 * F_F_error_  + 0.00000001*F_F_error_dot_ - 3.0 * F_F_input;  //DG's code Kp : 0.00005
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
     F_F_input = DyrosMath::minmax_cut(F_F_input, -0.02, 0.02);
