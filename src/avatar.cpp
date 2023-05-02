@@ -6754,7 +6754,7 @@ void AvatarController::rawMasterPoseProcessing()
 
     // abruptMotionFilter();
     // hmdRawDataProcessing();
-    if( upper_body_mode_ == 6  && upper_body_mode_ == 7)
+    if( upper_body_mode_ == 6  || upper_body_mode_ == 7)
     {
         handPositionRetargeting();
     }
@@ -7071,7 +7071,7 @@ void AvatarController::handPositionRetargeting()
         first_loop_qp_retargeting_ = false;
     }
     else
-    {
+    { 
         double speed_reduce_rate = 20;
 
         ub_retargeting_(0) = min(speed_reduce_rate * (1.0 - lhand_mapping_vector_pre_(0)), w_dot_max_);
@@ -7098,11 +7098,14 @@ void AvatarController::handPositionRetargeting()
         r_pre_rhand_ = rhand_robot_ref_stack_ * rhand_mapping_vector_pre_;
     }
 
-
     qpRetargeting_1(); // calc lhand_mapping_vector_, rhand_mapping_vector_ //1025
 
-
-
+    // if(printout_cnt_%1000 ==0 )
+    // {
+    //     cout<<"lhand_mapping_vector_: "<<lhand_mapping_vector_.transpose()<<endl;
+    //     cout<<"rhand_mapping_vector_: "<<rhand_mapping_vector_.transpose()<<endl;
+    // }
+    
     hmd2robot_lhand_pos_mapping_ = lhand_robot_ref_stack_ * lhand_mapping_vector_;
     hmd2robot_rhand_pos_mapping_ = rhand_robot_ref_stack_ * rhand_mapping_vector_;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
