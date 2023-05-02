@@ -714,7 +714,7 @@ public:
 
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
-
+    
     double F_F_input_dot = 0;
     double F_F_input = 0;
 
@@ -728,6 +728,26 @@ public:
     double F_T_R_y_input = 0;
     double F_T_R_y_input_dot = 0;
 
+     double Tau_L_x_error_ = 0;
+    double Tau_L_x_error_pre_ = 0;
+    double Tau_L_x_error_dot_ = 0;    
+
+    double Tau_L_y_error_ = 0;
+    double Tau_L_y_error_pre_ = 0;
+    double Tau_L_y_error_dot_ = 0;    
+
+    double Tau_R_x_error_ = 0;
+    double Tau_R_x_error_pre_ = 0;
+    double Tau_R_x_error_dot_ = 0;    
+
+    double Tau_R_y_error_ = 0;
+    double Tau_R_y_error_pre_ = 0;
+    double Tau_R_y_error_dot_ = 0;    
+
+    double F_F_error_ = 0;
+    double F_F_error_pre_ = 0;
+    double F_F_error_dot_ = 0;  
+    
     Eigen::Vector2d f_star_xy_;
     Eigen::Vector2d f_star_xy_pre_;
     Eigen::Vector6d f_star_6d_;
