@@ -3502,7 +3502,7 @@ void AvatarController::avatarModeStateMachine()
     //////////////////////////////////////////////////////
 
     /// @brief masterarm haptic feedback publihser
-    if(real_robot_mode_ == true)
+    if(simulation_mode_ == false)
     {
         lh_ft_feedback_ = lh_ft_wo_hw_global_lpf_;
         rh_ft_feedback_ = rh_ft_wo_hw_global_lpf_;
@@ -3637,7 +3637,7 @@ void AvatarController::motionGenerator()
 
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
-        motion_q_(15) = 0.3;
+        motion_q_(15) = -0.1;
         motion_q_(16) = 0.3;
         motion_q_(17) = 1.5;
         motion_q_(18) = -1.27;
@@ -3656,7 +3656,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(22) = 1;
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
-        motion_q_(25) = -0.3;
+        motion_q_(25) = 0.1;
         motion_q_(26) = -0.3;
         motion_q_(27) = -1.5;
         motion_q_(28) = 1.27;
@@ -3707,7 +3707,7 @@ void AvatarController::motionGenerator()
 
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
-        motion_q_(15) = 0.3;
+        motion_q_(15) = -0.01;
         motion_q_(16) = 0.12;
         motion_q_(17) = 1.43;
         motion_q_(18) = -0.85;
@@ -3725,7 +3725,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(22) = 1;
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
-        motion_q_(25) = -0.3;
+        motion_q_(25) = +0.01;
         motion_q_(26) = -0.12;
         motion_q_(27) = -1.43;
         motion_q_(28) = 0.85;
@@ -3806,7 +3806,7 @@ void AvatarController::motionGenerator()
 
         ///////////////////////ARM/////////////////////////
         //////LEFT ARM///////0.3 0.3 1.5 -1.27 -1 0 -1 0
-        motion_q_(15) = 0.0;
+        motion_q_(15) = -0.01;
         motion_q_(16) = -0.3;
         motion_q_(17) = 1.57;
         motion_q_(18) = -1.2;
@@ -3824,7 +3824,7 @@ void AvatarController::motionGenerator()
         pd_control_mask_(22) = 1;
         //////////////////////
         /////RIFHT ARM////////-0.3 -0.3 -1.5 1.27 1 0 1 0
-        motion_q_(25) = 0.0;
+        motion_q_(25) = 0.01;
         motion_q_(26) = 0.3;
         motion_q_(27) = -1.57;
         motion_q_(28) = 1.2;
