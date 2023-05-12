@@ -12339,7 +12339,6 @@ void AvatarController::getRobotState()
         rh_ft_(2) *= -1;
         rh_ft_(4) *= -1;
         rh_ft_(5) *= -1;
-
     }
     //////////// model_global_ UPDATE///////////////
 
@@ -12684,6 +12683,7 @@ void AvatarController::getRobotState()
     else
     {
         tocabi_hand_mass = 0.108; // real robot
+        // tocabi_hand_mass = 0;
     }
 
     Vector3d lh_com(0.0, 0.0, -0.097);
