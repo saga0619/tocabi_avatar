@@ -11677,11 +11677,11 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     current_step_num_mpc_new_prev_ = current_step_num_mpc_;
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now(); cp_x_ref_new(0) cp_measured_mpc_(0)   
 
-    // // CP-MPC Journal - CPMPC data (Ref.Des ZMP, Centroidal moment, CAM, Del F)
+    // // // CcmP-MPC Journal - CPMPC data (Ref.Des ZMP, Centroidal moment, CAM, Del F)
     MJ_graph  << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_x_new_(1) << "," << cam_mpc_init_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << endl; 
     MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << cpmpc_output_y_new_(1) << "," << cam_mpc_init_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << endl; 
   
-    // // CPMPC Journal foot trajecotry data
+    // // // CPMPC Journal foot trajecotry data
     MJ_graph_foottra_x << del_F_(0) << "," << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << u0_x_data_ << "," << t_total_/hz_ << endl;
     MJ_graph_foottra_y << del_F_(1) << "," << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << "," << u0_y_data_ << endl;
 }
