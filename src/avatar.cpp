@@ -9502,8 +9502,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     H_step(4,4) = w5_step; // DCM offset in y // 0.01
     
     g_step.setZero(5);
-    g_step(0) = -w1_step * (u0_x + L_nom);
-    g_step(1) = -w2_step * (u0_y + W_nom); 
+    g_step(0) = -w1_step * L_nom; //-w1_step * (u0_x + L_nom);
+    g_step(1) = -w2_step * W_nom; //-w2_step * (u0_y + W_nom); 
     g_step(2) = -w3_step * tau_nom;
     g_step(3) = -w4_step * b_nom_x_cpmpc;  
     g_step(4) = -w5_step * b_nom_y_cpmpc;  
@@ -9549,18 +9549,18 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     lb_step.setZero(7);
     ub_step.setZero(7);
 
-    lb_step(0) = u0_x;
-    lb_step(1) = u0_y;
-    lb_step(2) = u0_x + L_min;
-    lb_step(3) = u0_y + W_min;
+    lb_step(0) = u0_x; // equality 
+    lb_step(1) = u0_y; // equality 
+    lb_step(2) = L_min; // u0_x + L_min;
+    lb_step(3) = W_min; // u0_y + W_min;
     lb_step(4) = exp(wn*T_min);
     lb_step(5) = b_nom_x_cpmpc - 0.15; 
     lb_step(6) = b_nom_y_cpmpc - 0.15;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
-    ub_step(2) = u0_x + L_max;
-    ub_step(3) = u0_y + W_max;
+    ub_step(2) = L_max;// u0_x + L_max;
+    ub_step(3) = W_max;// u0_y + W_max;
     ub_step(4) = exp(wn*T_max);
     ub_step(5) = b_nom_x_cpmpc + 0.15; 
     ub_step(6) = b_nom_y_cpmpc + 0.15;    
@@ -15636,7 +15636,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 3.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
