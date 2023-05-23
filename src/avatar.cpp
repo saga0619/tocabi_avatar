@@ -9107,7 +9107,7 @@ void AvatarController::computeCAMcontrol_HQP()
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.6, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.7, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
         }
 
         for (int h = 0; h < i; h++)
@@ -9464,8 +9464,8 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     L_nom = foot_step_support_frame_(current_step_num_, 0) + del_F_x_;     
     W_nom = foot_step_support_frame_(current_step_num_, 1) + del_F_y_;   
     // W_nom = 0*foot_step_support_frame_(current_step_num_, 1) + del_F_y_;  
-    L_min = L_nom - 0.10; // 0.05
-    L_max = L_nom + 0.10;
+    L_min = L_nom - 0.15; // 0.05
+    L_max = L_nom + 0.15;
     W_min = W_nom - 0.05; // 0.05 in simulation
     W_max = W_nom + 0.05; 
     
@@ -9502,12 +9502,17 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     H_step(4,4) = w5_step; // DCM offset in y // 0.01
     
     g_step.setZero(5);
-    g_step(0) = -w1_step * (u0_x + L_nom);
-    g_step(1) = -w2_step * (u0_y + W_nom); 
+    g_step(0) = -w1_step * L_nom;
+    g_step(1) = -w2_step * W_nom; 
     g_step(2) = -w3_step * tau_nom;
     g_step(3) = -w4_step * b_nom_x_cpmpc;  
     g_step(4) = -w5_step * b_nom_y_cpmpc;  
-
+    // g_step.setZero(5);
+    // g_step(0) = -w1_step * (u0_x + L_nom);
+    // g_step(1) = -w2_step * (u0_y + W_nom); 
+    // g_step(2) = -w3_step * tau_nom;
+    // g_step(3) = -w4_step * b_nom_x_cpmpc;  
+    // g_step(4) = -w5_step * b_nom_y_cpmpc;  
     Eigen::VectorXd lb_step;
     Eigen::VectorXd ub_step;
     Eigen::MatrixXd A_step;         
@@ -9551,20 +9556,36 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
 
     lb_step(0) = u0_x;
     lb_step(1) = u0_y;
-    lb_step(2) = u0_x + L_min;
-    lb_step(3) = u0_y + W_min;
+    lb_step(2) = L_min;
+    lb_step(3) = W_min;
     lb_step(4) = exp(wn*T_min);
     lb_step(5) = b_nom_x_cpmpc - 0.15; 
     lb_step(6) = b_nom_y_cpmpc - 0.15;
     
     ub_step(0) = u0_x;
     ub_step(1) = u0_y;
-    ub_step(2) = u0_x + L_max;
-    ub_step(3) = u0_y + W_max;
+    ub_step(2) = L_max;
+    ub_step(3) = W_max;
     ub_step(4) = exp(wn*T_max);
     ub_step(5) = b_nom_x_cpmpc + 0.15; 
     ub_step(6) = b_nom_y_cpmpc + 0.15;    
     
+    // lb_step(0) = u0_x;
+    // lb_step(1) = u0_y;
+    // lb_step(2) = u0_x + L_min;
+    // lb_step(3) = u0_y + W_min;
+    // lb_step(4) = exp(wn*T_min);
+    // lb_step(5) = b_nom_x_cpmpc - 0.15; 
+    // lb_step(6) = b_nom_y_cpmpc - 0.15;
+    
+    // ub_step(0) = u0_x;
+    // ub_step(1) = u0_y;
+    // ub_step(2) = u0_x + L_max;
+    // ub_step(3) = u0_y + W_max;
+    // ub_step(4) = exp(wn*T_max);
+    // ub_step(5) = b_nom_x_cpmpc + 0.15; 
+    // ub_step(6) = b_nom_y_cpmpc + 0.15;  
+
     if(walking_tick_mj == 0)
     {
         stepping_input_.setZero(5);
@@ -11247,7 +11268,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     for(int i = 0; i < N_cp; i++)
     {   
         weighting_tau_damping_x_(i, i) = DyrosMath::cubic(abs(cpmpc_output_x_new_(2*i) - Z_x_ref_wo_offset_new(2*i)), 0.05, 0.10, 0.00000005, 0.0, 0.0, 0.0);
-        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.05, 0.07, 0.00000005, 0.0, 0.0, 0.0); // Y dir disturbance 0.00000005 
+        weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.05, 0.07, 0.00000005, 0.0, 0.0, 0.0); // Y dir disturbance 0.00000005 // Uneven 0.0000003
     }      
 
     // weighting_tau_damping_x_ = 0.0000002 * weighting_tau_damping_x_;
@@ -12744,7 +12765,7 @@ void AvatarController::getRobotState()
     // real robot experiment
     opto_ft_ = opto_ft_raw_; 
     // cout << opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << endl; 
-    // MJ_opto <<  opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << "," << opto_ft_(3) << "," << opto_ft_(4) << "," << opto_ft_(5) << endl; 
+    MJ_opto <<  opto_ft_(0) << "," << opto_ft_(1) << "," << opto_ft_(2) << "," << opto_ft_(3) << "," << opto_ft_(4) << "," << opto_ft_(5) << endl; 
     
     if (walking_tick_mj == 0)
     {
