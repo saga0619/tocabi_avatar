@@ -1348,15 +1348,25 @@ public:
     Eigen::VectorQd estimated_ext_torque_lstm_;
 
     Eigen::VectorVQd threshold_joint_torque_collision_;
+    Eigen::VectorVQd threshold_joint_torque_sigma_collision_;
     Eigen::VectorVQd threshold_limb_collision_push_;
     Eigen::VectorVQd ext_torque_compensation_;
 
     // joint wise detection
-    int left_leg_collision_detected_joint_;
-    int left_leg_collision_cnt_[6];  
-    
+    Eigen::VectorVQd mob_net_mean_collision_cnt_;
+    Eigen::VectorVQd mob_net_sigma_collision_cnt_;
+
+    Eigen::VectorVQd mob_net_mean_collision_flag_;
+    Eigen::VectorVQd mob_net_sigma_collision_flag_;
+
+    int left_leg_collision_detected_joint_;    
     int right_leg_collision_detected_joint_;
-    int right_leg_collision_cnt_[6]; 
+    
+    int left_arm_collision_detected_joint_;    
+    int right_arm_collision_detected_joint_;
+
+    int waist_collision_detected_joint_;    
+    int pelvis_collision_detected_joint_;
 
     // limb wise detection
     int left_leg_limb_collision_cnt_=0;
@@ -1414,7 +1424,7 @@ public:
     void calculateLstmInput(LSTM &lstm);
     void calculateLstmOutput(LSTM &lstm);
 
-    void loadCollisionThreshold(std::string folder_path);
+    void loadCollisionThreshold(std::string file_path, int total_num, VectorXd &threshold_vector);
 
     void loadExternalForceExp(std::string folder_path);
 
@@ -1512,6 +1522,9 @@ public:
     Eigen::VectorVQd estimated_model_unct_torque_variance_gru_slow_;
     Eigen::VectorVQd estimated_model_unct_torque_variance_gru_thread_;
 
+    VectorVQd estimated_model_unct_torque_std_;
+    VectorVQd estimated_model_unct_torque_std_lpf_soft_;
+
     Eigen::VectorVQd estimated_external_torque_gru_slow_;
 
     Eigen::VectorVQd estimated_external_torque_gru_slow_lpf_soft_;
@@ -1525,6 +1538,9 @@ public:
     bool check_left_early_contact_;
     bool check_right_swing_foot_;
     bool check_right_early_contact_;
+
+    int left_early_contact_cnt_;
+    int right_early_contact_cnt_;
     
     bool left_leg_in_unexpected_collision_;
     bool right_leg_in_unexpected_collision_;
