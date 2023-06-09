@@ -8243,7 +8243,7 @@ void AvatarController::collisionDetection()
         right_early_contact_cnt_ = 0;
     }
 
-    if(left_early_contact_cnt_>5)
+    if(left_early_contact_cnt_>=5)
     {
         check_left_early_contact_ = true;
     }
@@ -8251,7 +8251,7 @@ void AvatarController::collisionDetection()
     {
         check_left_early_contact_ = false;
     }
-    if(right_early_contact_cnt_>5)
+    if(right_early_contact_cnt_>=5)
     {
         check_right_early_contact_ = true;
     }
@@ -8323,67 +8323,72 @@ void AvatarController::collisionDetection()
     right_arm_tau_norm_push = sqrt(right_arm_tau_norm_push);
 
     ///////////////////////////LEFT LEG////////////////////////////////////
-    if(check_left_swing_foot_ && !check_left_early_contact_)
-    {
-        for (int i = 6; i < 12; i++)
-        {
-            // mean
-            if ( std::abs(estimated_external_torque_gru_slow_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
-            {
-                mob_net_mean_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    // if(check_left_swing_foot_ && !check_left_early_contact_)
+    // {
+    //     for (int i = 6; i < 12; i++)
+    //     {
+    //         // mean
+    //         if ( std::abs(estimated_external_torque_gru_slow_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
+    //         {
+    //             mob_net_mean_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if(threshold_calibration_mode)
-                {
-                    threshold_joint_torque_collision_(i) += 0.1;
-                    cout << "left leg threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.segment(6, 12).transpose() << endl;
-                }   
-                else
-                {
-                    mob_net_mean_collision_flag_(i) = true;
-                    cout<<"Collision Detection on the Left Leg Joint of "<<i-6 <<" (MEAN)"<<endl;
-                    left_leg_limb_collision_flag_ = true;
-                    left_leg_collision_detected_joint_ = i-6;
-                }
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    //         if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if(threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_collision_(i) += 0.1;
+    //                 cout << "left leg threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.segment(6, 12).transpose() << endl;
+    //             }   
+    //             else
+    //             {
+    //                 mob_net_mean_collision_flag_(i) = true;
+    //                 cout<<"Collision Detection on the Left Leg Joint of "<<i-6 <<" (MEAN)"<<endl;
+    //                 left_leg_limb_collision_flag_ = true;
+    //                 left_leg_collision_detected_joint_ = i-6;
+    //             }
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            // sigma
-            if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
-            {
-                mob_net_sigma_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
+    //         // sigma
+    //         if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if(threshold_calibration_mode)
-                {
-                    threshold_joint_torque_sigma_collision_(i) += 0.1;
-                    cout << "left leg threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.segment(6, 12).transpose() << endl;
-                } 
-                else
-                {
-                    mob_net_sigma_collision_flag_(i) = true;
-                    cout<<"Collision Detection on the Left Leg Joint of "<<i-6 <<" (SIGMA)"<<endl;
-                    left_leg_limb_collision_flag_ = true;
-                    left_leg_collision_detected_joint_ = i-6;
-                }
+    //         if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if(threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_sigma_collision_(i) += 0.1;
+    //                 cout << "left leg threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.segment(6, 12).transpose() << endl;
+    //             } 
+    //             else
+    //             {
+    //                 mob_net_sigma_collision_flag_(i) = true;
+    //                 cout<<"Collision Detection on the Left Leg Joint of "<<i-6 <<" (SIGMA)"<<endl;
+    //                 left_leg_limb_collision_flag_ = true;
+    //                 left_leg_collision_detected_joint_ = i-6;
+    //             }
 
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
-        }
-    }
-
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     mob_net_mean_collision_cnt_.segment(6, 6).setZero();
+    //     mob_net_sigma_collision_cnt_.segment(6, 6).setZero();
+    //     left_leg_limb_collision_flag_ = false;
+    // }
     // if ((left_leg_tau_norm) > threshold_limb_collision_push_(0))
     // {
     //     left_leg_limb_collision_cnt_ += 1;
@@ -8459,7 +8464,12 @@ void AvatarController::collisionDetection()
             }
         }
     }
-
+    else
+    {
+        mob_net_mean_collision_cnt_.segment(12, 6).setZero();
+        mob_net_sigma_collision_cnt_.segment(12, 6).setZero();
+        right_leg_limb_collision_flag_ = false;
+    }
     // if ((right_leg_tau_norm) > threshold_limb_collision_push_(1))
     // {
     //     right_leg_limb_collision_cnt_ += 1;
@@ -8818,7 +8828,7 @@ void AvatarController::collisionIsolation()
             for (int i = 0; i < 6; i++)
             {
 
-                ext_torque_compensation_(i + 6) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 6));
+                ext_torque_compensation_(i + 6) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 6));
                 // ext_torque_compensation_(i+6) = reflex_compensation_gain_*estimated_external_torque_gru_slow_(i+6);
                 // ext_torque_compensation_(i+6) = DyrosMath::minmax_cut(ext_torque_compensation_(i+6), -100.0, 100.0);
             }
@@ -8826,7 +8836,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_;
+            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_lpf_soft_;
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -8844,7 +8854,7 @@ void AvatarController::collisionIsolation()
             R_p.setIdentity();
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
-            ext_torque_compensation_.segment(12, 6) = reflex_compensation_gain_ * J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_);
+            ext_torque_compensation_.segment(12, 6) = reflex_compensation_gain_ * J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Right_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_rfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_rfoot_gru_);
@@ -8902,7 +8912,7 @@ void AvatarController::collisionIsolation()
             for (int i = 0; i < 6; i++)
             {
 
-                ext_torque_compensation_(i + 12) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 12));
+                ext_torque_compensation_(i + 12) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 12));
                 // ext_torque_compensation_(i+12) = reflex_compensation_gain_*estimated_external_torque_gru_slow_(i);
                 // ext_torque_compensation_(i+12) = DyrosMath::minmax_cut(ext_torque_compensation_(i+12), -100.0, 100.0);
             }
@@ -8910,7 +8920,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_;
+            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_lpf_soft_;
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -8930,7 +8940,7 @@ void AvatarController::collisionIsolation()
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
 
-            ext_torque_compensation_.segment(6, 6) = reflex_compensation_gain_ * J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_);
+            ext_torque_compensation_.segment(6, 6) = reflex_compensation_gain_ * J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Left_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_lfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_lfoot_gru_);
@@ -8985,7 +8995,7 @@ void AvatarController::collisionIsolation()
                 for (int i = 0; i < 8; i++)
                 {
 
-                    ext_torque_compensation_(i + 21) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 21));
+                    ext_torque_compensation_(i + 21) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 21));
                 }
             }
         }
@@ -9045,7 +9055,7 @@ void AvatarController::collisionIsolation()
                 for (int i = 0; i < 8; i++)
                 {
 
-                    ext_torque_compensation_(i + 31) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 31));
+                    ext_torque_compensation_(i + 31) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 31));
                 }
             }
         }
@@ -9095,7 +9105,7 @@ void AvatarController::collisionIsolation()
         {
             for (int i = 0; i < 3; i++)
             {
-                ext_torque_compensation_(i + 18) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 18));
+                ext_torque_compensation_(i + 18) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 18));
             }
         }
     }
@@ -9137,7 +9147,7 @@ void AvatarController::collisionIsolation()
         {
             for (int i = 0; i < 6; i++)
             {
-                ext_torque_compensation_(i) = reflex_compensation_gain_ * (pelv_pure_ext_torque_(i));
+                ext_torque_compensation_(i) = reflex_compensation_gain_ * (pelv_pure_ext_torque_lpf_soft_(i));
             }
         }
     }
@@ -9153,6 +9163,7 @@ void AvatarController::collisionIsolation()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
+    push_reaction_flag_ = false;
 
     if (push_reaction_flag_)
     {
@@ -18720,6 +18731,13 @@ void AvatarController::getJoystickCommand()
         threshold_limb_collision_push_.segment(0, 10) = collision_threshold;
         threshold_joint_torque_collision_.segment(0, 18) = collision_threshold_joint_mean;
         threshold_joint_torque_sigma_collision_.segment(0, 18) = collision_threshold_joint_sigma;
+
+        VectorXd reflex_controller_config;
+        loadCollisionThreshold(CATKIN_WORKSPACE_DIR + "/src/tocabi_avatar/config/reflex_controller_config.txt", 4, reflex_controller_config);
+        joint_ext_force_compensation_ = reflex_controller_config(0);
+        pelv_ext_force_compensation_ = reflex_controller_config(1);
+        RAC_mode_ = reflex_controller_config(2);
+        reflex_compensation_gain_ = reflex_controller_config(3);
     }
 
     // Cross Button X-dir

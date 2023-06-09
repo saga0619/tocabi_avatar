@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -44,20 +44,20 @@ const bool add_friction_torque_mode_ = false;
 const bool uncertainty_torque_compensation_mode_ = false;
 
 // reaction strategy
-const bool joint_ext_force_compensation_ = false; 
-const bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
-const bool RAC_mode_ = false; // RAC or RTC
-const double reflex_compensation_gain_ = 3.0;    // RAC: [0.05 0.15], RTC: [0.5 3.0]
+bool joint_ext_force_compensation_ = true; 
+bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
+bool RAC_mode_ = false; // RAC or RTC
+double reflex_compensation_gain_ = 0.5;    // reference RAC: [0.05 0.15], RTC: [0.5 3.0] /real hardware: RAC swing max:0.5, RAC support max: 0.07, RTC max: 0.7
 
 // tocabi
 const bool estimated_ext_torque_feedback_mode_ = false; 
 
 const int FILE_CNT = 3;
-const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 
 // LSTM
 const int n_input_ = 30;
