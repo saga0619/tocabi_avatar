@@ -47,7 +47,8 @@ const bool uncertainty_torque_compensation_mode_ = false;
 bool joint_ext_force_compensation_ = true; 
 bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
 bool RAC_mode_ = false; // RAC or RTC
-double reflex_compensation_gain_ = 0.5;    // reference RAC: [0.05 0.15], RTC: [0.5 3.0] /real hardware: RAC swing max:0.5, RAC support max: 0.07, RTC max: 0.7
+double reflex_compensation_gain_ = 0.5;    // reference RAC: [0.05 0.15], RTC: [0.5 3.0] /real hardware: RAC swing max:0.3, RAC support max: 0.01, RTC max: 0.7
+double reflex_pelvis_gain_ = 0.07;
 
 // tocabi
 const bool estimated_ext_torque_feedback_mode_ = false; 

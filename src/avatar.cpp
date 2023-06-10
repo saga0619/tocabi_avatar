@@ -8836,7 +8836,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_lpf_soft_;
+            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_;
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -8854,7 +8854,7 @@ void AvatarController::collisionIsolation()
             R_p.setIdentity();
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
-            ext_torque_compensation_.segment(12, 6) = reflex_compensation_gain_ * J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
+            ext_torque_compensation_.segment(12, 6) = reflex_pelvis_gain_ * J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Right_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_rfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_rfoot_gru_);
@@ -8920,7 +8920,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_compensation_gain_ * pelv_pure_ext_torque_lpf_soft_;
+            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_;
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -8940,7 +8940,7 @@ void AvatarController::collisionIsolation()
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
 
-            ext_torque_compensation_.segment(6, 6) = reflex_compensation_gain_ * J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
+            ext_torque_compensation_.segment(6, 6) = reflex_pelvis_gain_ * J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Left_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_lfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_lfoot_gru_);
@@ -12005,8 +12005,8 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
             joy_buttons_raw_(i) = msg.buttons[i]; //continue walking (A)
         }
 
-        double max_step_l_x = 0.15;
-        double max_step_l_x_back = 0.15;
+        double max_step_l_x = 0.10;
+        double max_step_l_x_back = 0.10;
         double max_step_l_y = 0.10;
         double max_yaw_angle = 15 * DEG2RAD;
 
@@ -12188,7 +12188,7 @@ void AvatarController::printOutTextFile()
             }
             for (int i = 0; i < 6; i++)
             {
-                file[1] << opto_ft_wo_hw_global_(i) << "\t";
+                file[1] << opto_ft_(i) << "\t";
             }
             for (int i = 0; i < 39; i++)
             {
@@ -12497,17 +12497,17 @@ void AvatarController::getRobotState()
     l_ft_ = rd_.LF_FT; // generated force by robot left foot
     r_ft_ = rd_.RF_FT; // generated force by robot right foot
 
-    // opto_ft_ = opto_ft_raw_; // collision test exp
+    opto_ft_ = opto_ft_raw_; // collision test exp
 
     // chest setup
-    opto_ft_(0) = opto_ft_raw_(2);
-    opto_ft_(3) = opto_ft_raw_(5);
+    // opto_ft_(0) = opto_ft_raw_(2);
+    // opto_ft_(3) = opto_ft_raw_(5);
 
-    opto_ft_(1) = opto_ft_raw_(0);
-    opto_ft_(4) = opto_ft_raw_(3);
+    // opto_ft_(1) = opto_ft_raw_(0);
+    // opto_ft_(4) = opto_ft_raw_(3);
 
-    opto_ft_(2) = opto_ft_raw_(1);
-    opto_ft_(5) = opto_ft_raw_(4);
+    // opto_ft_(2) = opto_ft_raw_(1);
+    // opto_ft_(5) = opto_ft_raw_(4);
 
     // l_hand_ft_ = rd_.LH_FT;
     // r_hand_ft_ = rd_.RH_FT;
@@ -15439,10 +15439,10 @@ void AvatarController::getPelvTrajectory()
 
     if (pelv_ext_force_compensation_ && RAC_mode_)
     {
-        pelv_trajectory_support_.translation()(0) -= ext_torque_compensation_(0) / hz_;
-        pelv_trajectory_support_.translation()(1) -= ext_torque_compensation_(1) / hz_;
+        pelv_trajectory_support_.translation()(0) += ext_torque_compensation_(0) / hz_;
+        pelv_trajectory_support_.translation()(1) += ext_torque_compensation_(1) / hz_;
 
-        pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(-ext_torque_compensation_(5) / hz_) * pelv_trajectory_support_.linear();
+        pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(+ext_torque_compensation_(5) / hz_) * pelv_trajectory_support_.linear();
     }
 }
 
@@ -18733,11 +18733,12 @@ void AvatarController::getJoystickCommand()
         threshold_joint_torque_sigma_collision_.segment(0, 18) = collision_threshold_joint_sigma;
 
         VectorXd reflex_controller_config;
-        loadCollisionThreshold(CATKIN_WORKSPACE_DIR + "/src/tocabi_avatar/config/reflex_controller_config.txt", 4, reflex_controller_config);
+        loadCollisionThreshold(CATKIN_WORKSPACE_DIR + "/src/tocabi_avatar/config/reflex_controller_config.txt", 5, reflex_controller_config);
         joint_ext_force_compensation_ = reflex_controller_config(0);
         pelv_ext_force_compensation_ = reflex_controller_config(1);
         RAC_mode_ = reflex_controller_config(2);
         reflex_compensation_gain_ = reflex_controller_config(3);
+        reflex_pelvis_gain_ = reflex_controller_config(4);
     }
 
     // Cross Button X-dir
