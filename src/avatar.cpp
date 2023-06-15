@@ -9070,6 +9070,7 @@ void AvatarController::computeCAMcontrol_HQP()
         g1 = -J_camhqp_[i].transpose() * u_dot_camhqp_[i]; // (variable_size_camhqp_ x 1 (i.e. 6x1))
         g2.setZero(variable_size_camhqp_);  
           
+          
         H_camhqp_[i] = w1_camhqp_[i] * H1 + w2_camhqp_[i] * H2 ; 
         g_camhqp_[i] = w1_camhqp_[i] * g1 + w2_camhqp_[i] * g2 ; 
 
