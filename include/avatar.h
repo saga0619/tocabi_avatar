@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -52,13 +52,14 @@ double reflex_pelvis_gain_ = 0.07;
 
 // tocabi
 const bool estimated_ext_torque_feedback_mode_ = false; 
+const bool use_friction_model_ = true; 
 
 const int FILE_CNT = 3;
-// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 
 // LSTM
 const int n_input_ = 30;
@@ -189,6 +190,7 @@ public:
     Eigen::VectorXd momentumObserverFbInternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_torque, VectorXd current_qdot, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverFbExternal(MatrixXd A_matrix, MatrixXd A_dot_matrix, VectorXd current_qdot, Vector6d base_velocity, VectorXd nonlinear_effect_vector, VectorXd mob_residual_pre, VectorXd &mob_residual_integral, double dt, double k);
     Eigen::VectorXd momentumObserverDiscrete(VectorXd current_momentum, VectorXd prev_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
+
     void collisionEstimation();
     void collisionCheck();
     void collisionDetection();

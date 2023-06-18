@@ -606,6 +606,18 @@ void AvatarController::setGains()
     joint_vel_limit_h_(20) = 2 * M_PI;
     joint_vel_limit_l_(30) = -2 * M_PI;
     joint_vel_limit_h_(30) = 2 * M_PI;
+
+    theta_joints_mat_leg_.setZero(4, 12);
+    theta_joints_mat_leg_ << 
+    -3.96969359832388,	-6.56284946789220,	-4.82848988492649,	-9.44393171805545,	-8.45202885889197,	-6.18913936266635, 
+    -2.91168606299773,	15.1875911866677,	12.2638229867870,	9.63685172658475,	-3.54598183283480,	-10.1005505480655,
+    -23.0592188045307,	14.6577127714011,	-5.68358742941262,	-7.39590476394983,	-5.10296130463402,	-5.62241032557760,
+    0.722907294650072,	10.4757870483158,	-6.97971206523352,	-6.97835434547093,	-2.29486241933386,	2.82403924185151,
+    -3.58977583354272,	-5.26293559350672,	-4.22370047147189,	-9.64779924531023,	-8.65523931696162,	-7.63854279714639,
+    -2.64064658733946,	18.8521444776803,	5.34370243787039,	-0.669787789232470,	-4.45958613386459,	-12.0880779347344,
+    -23.0019657260876,	11.4098174389605,	-5.77250517901972,	-8.73493541590199,	-5.16158471098098,	-6.38439881873663,
+    0.841138774000025,	-12.0152289170284,	-1.98187467197731,	-8.02023586140662,	-1.30886680797188,	-0.272375993242993;
+
 }
 void AvatarController::setNeuralNetworks()
 {
@@ -8084,12 +8096,21 @@ void AvatarController::floatingBaseMOB()
     {
         estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
         estimated_model_unct_torque_variance_gru_slow_.setOnes();
+        estimated_model_unct_torque_variance_gru_slow_ = estimated_model_unct_torque_variance_gru_slow_*0.1;
     }
     else
     {
-        // estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
-        // estimated_model_unct_torque_variance_gru_slow_.setOnes();
-        estimated_external_torque_gru_slow_ = mob_residual_wholebody_ - estimated_model_unct_torque_gru_slow_;
+        if(use_friction_model_)
+        {
+            estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
+            estimated_external_torque_gru_slow_.segment(6, MODEL_DOF) = estimated_external_torque_gru_slow_.segment(6, MODEL_DOF)-friction_model_torque_;
+        }
+        else
+        {
+            // estimated_external_torque_gru_slow_ = mob_residual_wholebody_;
+            // estimated_model_unct_torque_variance_gru_slow_.setOnes();
+            estimated_external_torque_gru_slow_ = mob_residual_wholebody_ - estimated_model_unct_torque_gru_slow_;
+        }
     }
 
     for (int i = 0; i < MODEL_DOF_VIRTUAL; i++)
@@ -8183,6 +8204,7 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 
     return mob_residual;
 }
+
 void AvatarController::collisionEstimation()
 {
     collisionDetection();
@@ -9163,7 +9185,9 @@ void AvatarController::collisionIsolation()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
-    push_reaction_flag_ = false;
+    // push_reaction_flag_ = false;
+    collision_detection_flag_ = false;
+    collision_reaction_flag_ = false;
 
     if (push_reaction_flag_)
     {
@@ -13021,8 +13045,9 @@ void AvatarController::getRobotState()
     zmp_measured_FT_(0) = (left_zmp(0) * l_ft_LPF(2) + right_zmp(0) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP X
     zmp_measured_FT_(1) = (left_zmp(1) * l_ft_LPF(2) + right_zmp(1) * r_ft_LPF(2)) / (l_ft_LPF(2) + r_ft_LPF(2)); // ZMP Y
 
-    //friction torque calculation
-    // frictionTorqueCalculator(rd_.q_dot_, desired_q_dot_fast_, torque_current_elmo_, friction_model_torque_);
+    // friction torque calculation
+    if(use_friction_model_)
+        frictionTorqueCalculator(q_dot_virtual_Xd_global_.segment(6, MODEL_DOF), desired_q_dot_fast_, torque_current_elmo_, friction_model_torque_);
 
     // collectRobotInputData_acc_version();     // 1us
     // calculateLstmInput(left_leg_mob_lstm_);  // 1us
