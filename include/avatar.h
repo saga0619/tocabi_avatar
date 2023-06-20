@@ -33,7 +33,7 @@
 
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = false;
+const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -55,11 +55,11 @@ const bool estimated_ext_torque_feedback_mode_ = false;
 const bool use_friction_model_ = false; 
 
 const int FILE_CNT = 3;
-// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
 
 // LSTM
 const int n_input_ = 30;
@@ -1371,6 +1371,22 @@ public:
     int waist_collision_detected_joint_;    
     int pelvis_collision_detected_joint_;
 
+    // push    
+    Eigen::VectorVQd threshold_joint_torque_push_;
+    Eigen::VectorVQd threshold_joint_torque_sigma_push_;
+
+    Eigen::VectorVQd mob_net_mean_push_cnt_;
+    Eigen::VectorVQd mob_net_sigma_push_cnt_;
+
+    Eigen::VectorVQd mob_net_mean_push_flag_;
+    Eigen::VectorVQd mob_net_sigma_push_flag_;
+
+    int left_arm_push_detected_joint_;    
+    int right_arm_push_detected_joint_;
+
+    int waist_push_detected_joint_;    
+    int pelvis_push_detected_joint_;
+
     // limb wise detection
     int left_leg_limb_collision_cnt_=0;
     int right_leg_limb_collision_cnt_=0;
@@ -1527,6 +1543,7 @@ public:
 
     VectorVQd estimated_model_unct_torque_std_;
     VectorVQd estimated_model_unct_torque_std_lpf_soft_;
+    VectorVQd estimated_model_unct_torque_std_lpf_hard_;
 
     Eigen::VectorVQd estimated_external_torque_gru_slow_;
 
