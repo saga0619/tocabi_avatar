@@ -33,7 +33,7 @@
 #include <std_msgs/Float32.h>
 #include <eigen_conversions/eigen_msg.h>
 
-const bool simulation_mode_ = true;
+const bool simulation_mode_ = false;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
@@ -52,15 +52,20 @@ double reflex_compensation_gain_ = 0.64;    // reference RAC: [0.05 0.15], RTC: 
 double reflex_pelvis_gain_ = 0.0;
 
 // tocabi
-const bool estimated_ext_torque_feedback_mode_ = false; 
-const bool use_friction_model_ = false; 
+const bool estimated_ext_torque_feedback_mode_ = true; 
+const bool use_friction_model_ = true; 
 
 const int FILE_CNT = 3;
-const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
-const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
 
-// const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
-// const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+
+//// dg pc
+// const string DATA_FOLDER_DIR= "/ssd2/FB_MOB_LEARNING_VER2/data/simulation";
+// const string CATKIN_WORKSPACE_DIR= "/home/dg/catkin_ws";
+
+//// TOCABI robot
+const string DATA_FOLDER_DIR= "/home/dyros/data/dg/mob_learning";
+const string CATKIN_WORKSPACE_DIR= "/home/dyros/catkin_ws";
+
 
 // LSTM
 const int n_input_ = 30;
@@ -91,8 +96,8 @@ const std::string FILE_NAMES[FILE_CNT] =
     // "/home/dyros/data/dg/13_tracker_vel_.txt"
 };
 
-// const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg";  //tocabi 
-const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
+const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dg";  //tocabi 
+// const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/dg";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
 
 class AvatarController
