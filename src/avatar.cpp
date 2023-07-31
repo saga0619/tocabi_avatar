@@ -1085,6 +1085,14 @@ void AvatarController::computeSlow()
             threshold_joint_torque_sigma_push_.segment(0, 6) = push_threshold_joint_sigma.segment(0, 6);
             threshold_joint_torque_sigma_push_.segment(18, 21) = push_threshold_joint_sigma.segment(6, 21);
 
+            VectorXd reflex_controller_config;
+            loadCollisionThreshold(CATKIN_WORKSPACE_DIR + "/src/tocabi_avatar/config/reflex_controller_config.txt", 5, reflex_controller_config);
+            joint_ext_force_compensation_ = reflex_controller_config(0);
+            pelv_ext_force_compensation_ = reflex_controller_config(1);
+            RAC_mode_ = reflex_controller_config(2);
+            reflex_compensation_gain_ = reflex_controller_config(3);
+            reflex_pelvis_gain_ = reflex_controller_config(4);
+
             // if(simulation_mode_)
             loadExternalForceExp(CATKIN_WORKSPACE_DIR + "/src/tocabi_avatar/config/");
 
@@ -1295,6 +1303,8 @@ void AvatarController::computeSlow()
                     if (joint_ext_force_compensation_ && RAC_mode_)
                     {
                         ref_q_(i) += ext_torque_compensation_(i + 6) / hz_;
+
+                        desired_q_fast_(i) = ref_q_(i);
                     }
 
                     torque_lower_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_fast_(i) + Tau_CP(i);
@@ -1487,8 +1497,13 @@ void AvatarController::computeSlow()
         // double force_temp_ = 350;
         // double theta_temp_ = 0;
 
-        if (current_step_num_stack_ == 4 && (walking_tick_mj >= t_start_ + 0.07 * hz_ + 0.56 * 0.3 * hz_) && (walking_tick_mj < t_start_ + 0.07 * hz_ + 0.56 * 0.3 * hz_ + 0.2 * hz_))
+        if (current_step_num_stack_ == 5 && (walking_tick_mj >= t_start_ + 0.07 * hz_ + 0.56 * 0.3 * hz_) && (walking_tick_mj < t_start_ + 0.07 * hz_ + 0.56 * 0.3 * hz_ + 0.1 * hz_))
         {
+            Vector6d ext_wrench;
+            ext_wrench.setZero();
+            ext_wrench(0) = force_temp_ * sin(theta_temp_ * DEG2RAD); 
+            ext_wrench(1) = -force_temp_ * cos(theta_temp_ * DEG2RAD); 
+
             mujoco_applied_ext_force_.data[0] = force_temp_ * sin(theta_temp_ * DEG2RAD);  //x-axis linear force
             mujoco_applied_ext_force_.data[1] = -force_temp_ * cos(theta_temp_ * DEG2RAD); //y-axis linear force
             mujoco_applied_ext_force_.data[2] = 0.0;                                       //z-axis linear force
@@ -1496,12 +1511,21 @@ void AvatarController::computeSlow()
             mujoco_applied_ext_force_.data[4] = 0.0;                                       //y-axis angular moment
             mujoco_applied_ext_force_.data[5] = 0.0;                                       //z-axis angular moment
 
-            mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+            mujoco_applied_ext_force_.data[6] = 4; //link idx; 1:pelvis, 5: left knee link
 
             mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+
+            // torque_from_opto_ft_ = J_opto_.transpose() * R_opto_* ext_wrench;
+            torque_from_opto_ft_(8) = ext_wrench(0);
+            torque_from_opto_ft_lpf_ = DyrosMath::lpf<MODEL_DOF_VIRTUAL>(torque_from_opto_ft_, torque_from_opto_ft_lpf_, 2000, 100 / (2 * M_PI));
+
+            // cout<<"ext force on the knee!"<<endl;
         }
         else
         {
+            Vector6d ext_wrench;
+            ext_wrench.setZero();
+
             mujoco_applied_ext_force_.data[0] = 0; //x-axis linear force
             mujoco_applied_ext_force_.data[1] = 0; //y-axis linear force
             mujoco_applied_ext_force_.data[2] = 0; //z-axis linear force
@@ -1509,9 +1533,13 @@ void AvatarController::computeSlow()
             mujoco_applied_ext_force_.data[4] = 0; //y-axis angular moment
             mujoco_applied_ext_force_.data[5] = 0; //z-axis angular moment
 
-            mujoco_applied_ext_force_.data[6] = 1; //link idx; 1:pelvis
+            mujoco_applied_ext_force_.data[6] = 5; //link idx; 1:pelvis, 5: left knee link
 
             mujoco_ext_force_apply_pub.publish(mujoco_applied_ext_force_);
+            
+            torque_from_opto_ft_(8) = ext_wrench(0);
+            torque_from_opto_ft_lpf_ = DyrosMath::lpf<MODEL_DOF_VIRTUAL>(torque_from_opto_ft_, torque_from_opto_ft_lpf_, 2000, 100 / (2 * M_PI));
+
         }
 
         // mujoco_applied_ext_force_.data[0] = 0;//0*312;//-232.0;//x-axis linear force //
@@ -1573,7 +1601,7 @@ void AvatarController::computeSlow()
         {
             torque_intentionally_applied_.setZero();
             sampleIntentionalExtTorque(torque_intentionally_applied_);
-            for (int i = 12; i < 33; i++)
+            for (int i = 0; i < 12; i++)
             {
                 torque_upper_(i) += torque_intentionally_applied_(i);
             }
@@ -1583,38 +1611,35 @@ void AvatarController::computeSlow()
 
         Eigen::VectorQd torque_command_total;
         torque_command_total = torque_lower_ + torque_upper_;
-        if (true)
+
+        ////////// Add Friction Torque
+        if (add_friction_torque_mode_)
         {
-            ////////// Add Friction Torque
-            if (add_friction_torque_mode_)
+            torque_friction_applied_.setZero();
+            double coulom_f_coeff = 5.0; //0.0132;
+            double static_f_coeff = 2.0; //0.0324;
+            double viscous_f_coeff = 1.0; //2.3e-4;
+            double stribeck_speed = 1.51;
+            for (int i = 0; i < MODEL_DOF; i++)
             {
-                torque_friction_applied_.setZero();
-                double coulom_f_coeff = 0.0132;
-                double static_f_coeff = 0.0324;
-                double viscous_f_coeff = 2.3e-4;
-                double stribeck_speed = 1.51;
-                for (int i = 0; i < MODEL_DOF; i++)
-                {
-                    torque_friction_applied_(i) -= (coulom_f_coeff + (static_f_coeff - coulom_f_coeff) * exp(-abs(q_dot_virtual_Xd_global_(i) / stribeck_speed))) * DyrosMath::sign(q_dot_virtual_Xd_global_(i)) + viscous_f_coeff * q_dot_virtual_Xd_global_(i);
+                torque_friction_applied_(i) -= (coulom_f_coeff + (static_f_coeff - coulom_f_coeff) * exp(-abs(q_dot_virtual_Xd_global_(i) / stribeck_speed))) * DyrosMath::sign(q_dot_virtual_Xd_global_(i)) + viscous_f_coeff * q_dot_virtual_Xd_global_(i);
 
-                    torque_command_total(i) += torque_friction_applied_(i);
-                }
-
-                ///////////////////////Load dependant friction torque transfer function//////////
-                double torque_output;
-                for (int i = 0; i < MODEL_DOF; i++)
-                {
-                    torque_output = 0.95 * abs(torque_command_total(i)) - 1.6525;
-                    if (torque_output < 0)
-                    {
-                        torque_output = 0;
-                    }
-                    torque_output = torque_output * DyrosMath::sign(torque_command_total(i));
-                    torque_command_total(i) = torque_output;
-                }
+                torque_command_total(i) += torque_friction_applied_(i);
             }
-            ///////////////////////////////////////////////////////////////////////////////////
+
+            ///////////////////////Load dependant friction torque transfer function//////////
+            double load_dependent_friction;
+            double load_dependent_friction_coeff = -0.002;
+            double load_dependent_friction_const = 0.0;
+            for (int i = 0; i < 12; i++)
+            {
+                load_dependent_friction = load_dependent_friction_coeff*DyrosMath::sign(q_dot_virtual_Xd_global_(i))*( (torque_lower_(i) + torque_upper_(i))*(torque_lower_(i) + torque_upper_(i)) +load_dependent_friction_const );
+
+                torque_command_total(i) += load_dependent_friction;
+            }
         }
+        ///////////////////////////////////////////////////////////////////////////////////
+        
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_command_total;
@@ -1935,15 +1960,15 @@ void AvatarController::computeFast()
         // // std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         std::chrono::steady_clock::time_point gru_start_t = std::chrono::steady_clock::now();
-        calculateGruOutput(left_leg_peter_gru_); //20~100us
-        std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
-        calculateGruOutput(right_leg_peter_gru_); //20~100us
-        std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
-        calculateGruOutput(left_arm_peter_gru_);
-        std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
-        calculateGruOutput(right_arm_peter_gru_);
-        calculateGruOutput(waist_peter_gru_);
-        calculateGruOutput(pelvis_peter_gru_);
+        // calculateGruOutput(left_leg_peter_gru_); //20~100us
+        // std::chrono::steady_clock::time_point gru_end_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(right_leg_peter_gru_); //20~100us
+        // std::chrono::steady_clock::time_point gru_arm_start_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(left_arm_peter_gru_);
+        // std::chrono::steady_clock::time_point gru_arm_end_t = std::chrono::steady_clock::now();
+        // calculateGruOutput(right_arm_peter_gru_);
+        // calculateGruOutput(waist_peter_gru_);
+        // calculateGruOutput(pelvis_peter_gru_);
 
         // calculatePelvConcatMlpOutput(pelvis_concat_mlp_);
 
@@ -8002,11 +8027,11 @@ void AvatarController::floatingBaseMOB()
     nonlinear_term_virtual.setZero(MODEL_DOF_VIRTUAL);
     nonlinear_term_virtual = (C_mat_.transpose()) * q_dot_virtual_Xd_global_ - gravity_torque_;
 
-    // mob_residual_wholebody_ = momentumObserverCore(mob_momentum_, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_wholebody_, mob_integral_wholebody_, 0.0005, 100);
+    mob_residual_wholebody_ = momentumObserverCore(mob_momentum_, mob_torque_current_, nonlinear_term_virtual, mob_residual_pre_wholebody_, mob_integral_wholebody_, 0.0005, 100);
 
-    mob_residual_wholebody_ = momentumObserverDiscrete(mob_momentum_, mob_momentum_pre_, mob_torque_current_, nonlinear_term_virtual, mob_residual_pre_wholebody_, 0.0005, 100);
+    // mob_residual_wholebody_ = momentumObserverDiscrete(mob_momentum_, mob_momentum_pre_, mob_torque_current_, nonlinear_term_virtual, mob_residual_pre_wholebody_, 0.0005, 100);
 
-    dynamics_torque = A_mat_ * q_ddot_virtual_Xd_global_ + nonlinear_torque_;
+    // dynamics_torque = A_mat_ * q_ddot_virtual_Xd_global_ + nonlinear_torque_;
 
     // nonlinear_term_virtual.segment(6, MODEL_DOF) += friction_model_torque_; // add friction
     // mob_residual_friction_ = momentumObserverCore(momentum_virtual, current_torque_virtual, nonlinear_term_virtual, mob_residual_pre_friction, mob_integral_friction_, 1 / hz_, 100);
@@ -8076,12 +8101,16 @@ void AvatarController::floatingBaseMOB()
     Vector3d opto_sensor_offset;
     opto_sensor_offset.setZero();
     J_temp.setZero(6, MODEL_DOF_VIRTUAL);
-    MatrixXd J_opto;
-    J_opto.setZero(6, MODEL_DOF_VIRTUAL);
-    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Upper_Body].id, opto_sensor_offset, J_temp, false); // left knee
 
-    J_opto.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
-    J_opto.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
+    J_opto_.setZero(6, MODEL_DOF_VIRTUAL);
+    RigidBodyDynamics::CalcPointJacobian6D(model_global_, q_virtual_Xd_global_, link_avatar_[Left_Foot-2].id, opto_sensor_offset, J_temp, false); // left knee
+
+    J_opto_.block(0, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(3, 0, 3, MODEL_DOF_VIRTUAL); // position
+    J_opto_.block(3, 0, 3, MODEL_DOF_VIRTUAL) = J_temp.block(0, 0, 3, MODEL_DOF_VIRTUAL); // orientation
+
+    R_opto_.setZero();
+    R_opto_.block(0, 0, 3, 3) = link_avatar_[Left_Foot-2].rotm;
+    R_opto_.block(3, 3, 3, 3) = link_avatar_[Left_Foot-2].rotm;
 
     /// opto ft setting//
     // TO DO LIST: check the FT orientation attachment
@@ -8090,8 +8119,8 @@ void AvatarController::floatingBaseMOB()
     // R_opto.block(0, 0, 3, 3) = link_avatar_[Upper_Body].rotm*DyrosMath::rotateWithX(0*DEG2RAD);
     // R_opto.block(3, 3, 3, 3) = link_avatar_[Upper_Body].rotm*DyrosMath::rotateWithX(0*DEG2RAD);
 
-    torque_from_opto_ft_ = J_opto.transpose() * opto_ft_wo_hw_global_;
-    torque_from_opto_ft_lpf_ = DyrosMath::lpf<MODEL_DOF_VIRTUAL>(torque_from_opto_ft_, torque_from_opto_ft_lpf_, 2000, 100 / (2 * M_PI));
+    // torque_from_opto_ft_ = J_opto_.transpose() * opto_ft_wo_hw_global_;
+    // torque_from_opto_ft_lpf_ = DyrosMath::lpf<MODEL_DOF_VIRTUAL>(torque_from_opto_ft_, torque_from_opto_ft_lpf_, 2000, 100 / (2 * M_PI));
 
     // External Torque Network
     if (left_leg_peter_gru_.atb_gru_output_update_ == false)
@@ -8223,8 +8252,8 @@ Eigen::VectorXd AvatarController::momentumObserverDiscrete(VectorXd current_mome
 
 void AvatarController::collisionEstimation()
 {
-    collisionDetection();
-    collisionIsolation();
+    // collisionDetection();
+    // collisionIsolation();
     // if(printout_cnt_%100 == 0)
     // {
     //     cout<<"ext_torque_compensation_: \n"<<ext_torque_compensation_.transpose()<<endl;
@@ -8361,7 +8390,7 @@ void AvatarController::collisionDetection()
     // right_arm_tau_norm_push = sqrt(right_arm_tau_norm_push);
 
     ///////////////////////////LEFT LEG////////////////////////////////////
-    if (check_left_swing_foot_ && !check_left_early_contact_ && !collision_detection_flag_)
+    if (check_left_swing_foot_ && !check_left_early_contact_)
     {
         for (int i = 6; i < 12; i++)
         {
@@ -8385,12 +8414,12 @@ void AvatarController::collisionDetection()
                 else
                 {
                     mob_net_mean_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
+                    if(!push_reaction_flag_ && !collision_detection_flag_)
                         cout << "Collision Detection on the Left Leg Joint of " << i - 6 << " (MEAN)" << endl;
                     left_leg_limb_collision_flag_ = true;
                     left_leg_collision_detected_joint_ = i - 6;
                 }
-                mob_net_mean_collision_cnt_(i) = 0;
+                // mob_net_mean_collision_cnt_(i) = 0;
             }
 
             // sigma
@@ -8413,13 +8442,13 @@ void AvatarController::collisionDetection()
                 else
                 {
                     mob_net_sigma_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
+                    if(!push_reaction_flag_ && !collision_detection_flag_)
                         cout << "Collision Detection on the Left Leg Joint of " << i - 6 << " (SIGMA)" << endl;
                     left_leg_limb_collision_flag_ = true;
                     left_leg_collision_detected_joint_ = i - 6;
                 }
 
-                mob_net_sigma_collision_cnt_(i) = 0;
+                // mob_net_sigma_collision_cnt_(i) = 0;
             }
         }
     }
@@ -8433,73 +8462,73 @@ void AvatarController::collisionDetection()
     //////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////RIGHT LEG////////////////////////////////////
-    if (check_right_swing_foot_ && !check_right_early_contact_ && !collision_detection_flag_)
-    {
-        for (int i = 12; i < 18; i++)
-        {
-            // mean
-            if (std::abs(estimated_external_torque_gru_slow_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
-            {
-                mob_net_mean_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    // if (check_right_swing_foot_ && !check_right_early_contact_ && !collision_detection_flag_)
+    // {
+    //     for (int i = 12; i < 18; i++)
+    //     {
+    //         // mean
+    //         if (std::abs(estimated_external_torque_gru_slow_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
+    //         {
+    //             mob_net_mean_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if (threshold_calibration_mode)
-                {
-                    threshold_joint_torque_collision_(i) += 0.1;
-                    cout << "right leg threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.segment(6, 12).transpose() << endl;
-                }
-                else
-                {
-                    mob_net_mean_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
-                        cout << "Collision Detection on the Right Leg Joint of " << i - 12 << " (MEAN)" << endl;
-                    right_leg_limb_collision_flag_ = true;
-                    right_leg_collision_detected_joint_ = i - 12;
-                }
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    //         if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if (threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_collision_(i) += 0.1;
+    //                 cout << "right leg threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.segment(6, 12).transpose() << endl;
+    //             }
+    //             else
+    //             {
+    //                 mob_net_mean_collision_flag_(i) = true;
+    //                 if(!push_reaction_flag_)
+    //                     cout << "Collision Detection on the Right Leg Joint of " << i - 12 << " (MEAN)" << endl;
+    //                 right_leg_limb_collision_flag_ = true;
+    //                 right_leg_collision_detected_joint_ = i - 12;
+    //             }
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            // sigma
-            if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
-            {
-                mob_net_sigma_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
+    //         // sigma
+    //         if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if (threshold_calibration_mode)
-                {
-                    threshold_joint_torque_sigma_collision_(i) += 0.1;
-                    cout << "right leg threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.segment(6, 12).transpose() << endl;
-                }
-                else
-                {
-                    mob_net_sigma_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
-                        cout << "Collision Detection on the Right Leg Joint of " << i - 12 << "(SIGMA)" << endl;
-                    right_leg_limb_collision_flag_ = true;
-                    right_leg_collision_detected_joint_ = i - 12;
-                }
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
-        }
-    }
-    else
-    {
-        mob_net_mean_collision_cnt_.segment(12, 6).setZero();
-        mob_net_sigma_collision_cnt_.segment(12, 6).setZero();
-        right_leg_limb_collision_flag_ = false;
-    }
+    //         if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if (threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_sigma_collision_(i) += 0.1;
+    //                 cout << "right leg threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.segment(6, 12).transpose() << endl;
+    //             }
+    //             else
+    //             {
+    //                 mob_net_sigma_collision_flag_(i) = true;
+    //                 if(!push_reaction_flag_)
+    //                     cout << "Collision Detection on the Right Leg Joint of " << i - 12 << "(SIGMA)" << endl;
+    //                 right_leg_limb_collision_flag_ = true;
+    //                 right_leg_collision_detected_joint_ = i - 12;
+    //             }
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     mob_net_mean_collision_cnt_.segment(12, 6).setZero();
+    //     mob_net_sigma_collision_cnt_.segment(12, 6).setZero();
+    //     right_leg_limb_collision_flag_ = false;
+    // }
     //////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////LEFT ARM////////////////////////////////////
@@ -8932,72 +8961,72 @@ void AvatarController::collisionDetection()
     }
     pelvis_tau_norm_push = sqrt(pelvis_tau_norm_push);
 
-    if(!collision_detection_flag_)
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            // mean
-            if (std::abs(pelv_pure_ext_torque_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
-            {
-                mob_net_mean_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    // if(!collision_detection_flag_)
+    // {
+    //     for (int i = 0; i < 6; i++)
+    //     {
+    //         // mean
+    //         if (std::abs(pelv_pure_ext_torque_lpf_soft_(i)) > threshold_joint_torque_collision_(i))
+    //         {
+    //             mob_net_mean_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if (threshold_calibration_mode)
-                {
-                    threshold_joint_torque_collision_(i) += 0.1;
-                    cout << "Pelvis threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.transpose() << endl;
-                }
-                else
-                {
-                    mob_net_mean_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
-                        cout << "Collision Detection on the Pelvis Joint of " << i << " (MEAN)" << endl;
-                    pelvis_limb_collision_flag_ = true;
-                    pelvis_collision_detected_joint_ = i;
-                }
-                mob_net_mean_collision_cnt_(i) = 0;
-            }
+    //         if (mob_net_mean_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if (threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_collision_(i) += 0.1;
+    //                 cout << "Pelvis threshold_joint_torque_collision_: " << threshold_joint_torque_collision_.transpose() << endl;
+    //             }
+    //             else
+    //             {
+    //                 mob_net_mean_collision_flag_(i) = true;
+    //                 if(!push_reaction_flag_)
+    //                     cout << "Collision Detection on the Pelvis Joint of " << i << " (MEAN)" << endl;
+    //                 pelvis_limb_collision_flag_ = true;
+    //                 pelvis_collision_detected_joint_ = i;
+    //             }
+    //             mob_net_mean_collision_cnt_(i) = 0;
+    //         }
 
-            // sigma
-            if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
-            {
-                mob_net_sigma_collision_cnt_(i) += 1;
-            }
-            else
-            {
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
+    //         // sigma
+    //         if (estimated_model_unct_torque_std_lpf_soft_(i) > threshold_joint_torque_sigma_collision_(i))
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) += 1;
+    //         }
+    //         else
+    //         {
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
 
-            if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
-            {
-                if (threshold_calibration_mode)
-                {
-                    threshold_joint_torque_sigma_collision_(i) += 0.1;
-                    cout << "Pelvis threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.transpose() << endl;
-                }
-                else
-                {
-                    mob_net_sigma_collision_flag_(i) = true;
-                    if(!push_reaction_flag_)
-                        cout << "Collision Detection on the Pelvis Joint of " << i << "(SIGMA)" << endl;
-                    pelvis_limb_collision_flag_ = true;
-                    pelvis_collision_detected_joint_ = i;
-                }
-                mob_net_sigma_collision_cnt_(i) = 0;
-            }
-        }
-    }
-    else
-    {
-        mob_net_mean_collision_cnt_.segment(0, 6).setZero();
-        mob_net_sigma_collision_cnt_.segment(0, 6).setZero();
-    }
+    //         if (mob_net_sigma_collision_cnt_(i) >= impulse_continuous_filter_window)
+    //         {
+    //             if (threshold_calibration_mode)
+    //             {
+    //                 threshold_joint_torque_sigma_collision_(i) += 0.1;
+    //                 cout << "Pelvis threshold_joint_torque_sigma_collision_: " << threshold_joint_torque_sigma_collision_.transpose() << endl;
+    //             }
+    //             else
+    //             {
+    //                 mob_net_sigma_collision_flag_(i) = true;
+    //                 if(!push_reaction_flag_)
+    //                     cout << "Collision Detection on the Pelvis Joint of " << i << "(SIGMA)" << endl;
+    //                 pelvis_limb_collision_flag_ = true;
+    //                 pelvis_collision_detected_joint_ = i;
+    //             }
+    //             mob_net_sigma_collision_cnt_(i) = 0;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     mob_net_mean_collision_cnt_.segment(0, 6).setZero();
+    //     mob_net_sigma_collision_cnt_.segment(0, 6).setZero();
+    // }
 
     // push
     for (int i = 0; i < 6; i++)
@@ -9173,6 +9202,7 @@ void AvatarController::collisionIsolation()
             {
 
                 ext_torque_compensation_(i + 6) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_lpf_soft_(i + 6));
+                // ext_torque_compensation_(i + 6) = reflex_compensation_gain_ * (estimated_external_torque_gru_slow_(i + 6));
                 // ext_torque_compensation_(i+6) = reflex_compensation_gain_*estimated_external_torque_gru_slow_(i+6);
                 // ext_torque_compensation_(i+6) = DyrosMath::minmax_cut(ext_torque_compensation_(i+6), -100.0, 100.0);
             }
@@ -9180,7 +9210,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_;
+            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * (pelv_pure_ext_torque_lpf_soft_);
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -9195,10 +9225,12 @@ void AvatarController::collisionIsolation()
             J_rleg.block(3, 0, 3, 6) = J_temp.block(0, 12, 3, 6);
             adt_support_foot.setIdentity();
             adt_support_foot.block(3, 0, 3, 3) = DyrosMath::skm(pelv_support_current_.translation()) * Matrix3d::Identity();
+
             R_p.setIdentity();
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
-            ext_torque_compensation_.segment(12, 6) = reflex_pelvis_gain_ * J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
+
+            ext_torque_compensation_.segment(12, 6) = J_rleg.transpose() * R_p.transpose() * adt_support_foot * (-reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Right_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_rfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_rfoot_gru_);
@@ -9264,7 +9296,7 @@ void AvatarController::collisionIsolation()
 
         if (RAC_mode_)
         {
-            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_;
+            ext_torque_compensation_.segment(0, 6) = reflex_pelvis_gain_ * (pelv_pure_ext_torque_lpf_soft_);
         }
         else if (pelv_ext_force_compensation_)
         {
@@ -9284,7 +9316,7 @@ void AvatarController::collisionIsolation()
             R_p.block(0, 0, 3, 3) = pelv_support_current_.linear();
             R_p.block(3, 3, 3, 3) = pelv_support_current_.linear();
 
-            ext_torque_compensation_.segment(6, 6) = reflex_pelvis_gain_ * J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-pelv_pure_ext_torque_lpf_soft_);
+            ext_torque_compensation_.segment(6, 6) = J_lleg.transpose() * R_p.transpose() * adt_support_foot * (-reflex_pelvis_gain_ * pelv_pure_ext_torque_lpf_soft_);
         }
 
         // ext_torque_compensation_.segment(0, 3) = DyrosMath::rotateWithZ(-DyrosMath::rot2Euler(rd_.link_[Left_Foot].rotm)(2)) * (estimated_external_torque_gru_slow_.segment(0, 3) - jac_lfoot_.block(0, 0, 6, 3).transpose()*estimated_ext_force_lfoot_gru_);
@@ -9507,7 +9539,7 @@ void AvatarController::collisionIsolation()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
-    // push_reaction_flag_ = false;
+    push_reaction_flag_ = false;
     // collision_detection_flag_ = false;
     // collision_reaction_flag_ = false;
 
@@ -12351,10 +12383,10 @@ void AvatarController::JoystickCommandCallback(const sensor_msgs::Joy &msg)
             joy_buttons_raw_(i) = msg.buttons[i]; //continue walking (A)
         }
 
-        double max_step_l_x = 0.15;
+        double max_step_l_x = 0.20;
         double max_step_l_x_back = 0.15;
         double max_step_l_y = 0.10;
-        double max_yaw_angle = 15 * DEG2RAD;
+        double max_yaw_angle = 20 * DEG2RAD;
 
         double del_x;
         if (joy_left_stick_(1) >= 0)
@@ -12421,7 +12453,7 @@ void AvatarController::printOutTextFile()
     if (printout_cnt_ % 2 == 0) // 1000hz
     // if(false)
     {
-        if (printout_cnt_ <= 2000 * 60 * 40 && abs(P_angle) < 20 * DEG2RAD && abs(R_angle) < 20 * DEG2RAD) // 40min
+        if (printout_cnt_ < 2000 * 60 * 15 && abs(P_angle) < 20 * DEG2RAD && abs(R_angle) < 20 * DEG2RAD) // 40min
         // if (true)
         {
             file[0] << rd_.control_time_ << "\t";
@@ -12542,57 +12574,66 @@ void AvatarController::printOutTextFile()
             }
             file[1] << endl;
 
+
             // GRU related Data
-            for (int i = 0; i < 39; i++)
-            {
-                file[2] << estimated_external_torque_gru_slow_(i) << "\t";
-            }
-            for (int i = 0; i < 39; i++)
-            {
-                file[2] << estimated_model_unct_torque_gru_slow_(i) << "\t";
-            }
-            for (int i = 0; i < 39; i++)
-            {
-                file[2] << estimated_model_unct_torque_variance_gru_slow_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++) // left foot force
-            {
-                file[2] << estimated_ext_force_lfoot_gru_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++) // right foot force
-            {
-                file[2] << estimated_ext_force_rfoot_gru_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++) // estimated left hand force
-            {
-                file[2] << estimated_ext_force_lhand_gru_(i) << "\t";
-            }
-            for (int i = 0; i < 6; i++) // estimated right hand force
-            {
-                file[2] << estimated_ext_force_rhand_gru_(i) << "\t";
-            }
+            // for (int i = 0; i < 39; i++)
+            // {
+            //     file[2] << estimated_external_torque_gru_slow_lpf_soft_(i) << "\t";
+            // }
+            // for (int i = 0; i < 39; i++)
+            // {
+            //     file[2] << estimated_model_unct_torque_gru_slow_(i) << "\t";
+            // }
+            // for (int i = 0; i < 39; i++)
+            // {
+            //     file[2] << ext_torque_compensation_(i) << "\t";
+            // }
+            // for (int i = 0; i < 6; i++) // left foot force
+            // {
+            //     file[2] << estimated_ext_force_lfoot_gru_(i) << "\t";
+            // }
+            // for (int i = 0; i < 6; i++) // right foot force
+            // {
+            //     file[2] << estimated_ext_force_rfoot_gru_(i) << "\t";
+            // }
+            // for (int i = 0; i < 6; i++) // estimated left hand force
+            // {
+            //     file[2] << estimated_ext_force_lhand_gru_(i) << "\t";
+            // }
+            // for (int i = 0; i < 6; i++) // estimated right hand force
+            // {
+            //     file[2] << estimated_ext_force_rhand_gru_(i) << "\t";
+            // }
 
-            file[2] << walking_tick_mj - t_start_ - t_rest_init_ - t_double1_ << "\t";
-            file[2] << current_support_foot_is_left_ << "\t";
-            file[2] << del_x_command_ << "\t";
-            file[2] << del_y_command_ << "\t";
-            file[2] << yaw_angle_command_ << "\t";
+            // file[2] << walking_tick_mj - t_start_ - t_rest_init_ - t_double1_ << "\t";
+            // file[2] << current_support_foot_is_left_ << "\t";
+            // file[2] << del_x_command_ << "\t";
+            // file[2] << del_y_command_ << "\t";
+            // file[2] << yaw_angle_command_ << "\t";
 
-            for (int i = 0; i < 3; i++) // com support
-            {
-                file[2] << com_support_current_(i) << "\t";
-            }
-            for (int i = 0; i < 3; i++) // com support
-            {
-                file[2] << com_support_current_dot_(i) << "\t";
-            }
+            // for (int i = 0; i < 3; i++) // com support
+            // {
+            //     file[2] << com_support_current_(i) << "\t";
+            // }
 
-            file[2] << R_angle << "\t";
-            file[2] << P_angle << "\t";
-            file[2] << collision_detection_flag_ << "\t";
-            file[2] << push_reaction_flag_;
+            // for (int i = 0; i < 3; i++) // com support
+            // {
+            //     file[2] << com_support_current_dot_(i) << "\t";
+            // }
 
-            file[2] << endl;
+            // file[2] << R_angle << "\t";
+            // file[2] << P_angle;
+            // // file[2] << collision_detection_flag_ << "\t";
+            // // file[2] << push_reaction_flag_ << "\t";
+            // // file[2] << x_mpc_i_(1)  << "\t";
+            // // file[2] << pelv_trajectory_support_.translation()(0) << "\t";
+            // // file[2] << lfoot_trajectory_support_.translation()(0) << "\t";
+            // // file[2] << rd_.link_[Left_Foot].v(0) << "\t";
+            // // file[2] << pelv_pure_ext_torque_(0)<< "\t";
+            // // file[2] << rd_.link_[Left_Foot-2].v(0)<< "\t";
+            // // file[2] << rd_.link_[Pelvis].v(0);
+
+            // file[2] << endl;
 
             if (printout_cnt_ % (2000 * 30) == 0)
             {
@@ -12896,6 +12937,42 @@ void AvatarController::getRobotState()
 
     // q_dot_virtual_Xd_global_.segment(3, 3) = rd_.link_[Pelvis].rotm*q_dot_virtual_Xd_global_.segment(3, 3);
     // q_ddot_virtual_Xd_global_.segment(3, 3) = rd_.link_[Pelvis].rotm*q_ddot_virtual_Xd_global_.segment(3, 3);
+
+    if(add_sensor_noise_mode_)
+    {
+        const double mean = 0.0;
+        const double stddev_q = 1e-6;
+        const double stddev_qdot = 2e-3;
+        const double stddev_angvel = 1e-4;
+        const double stddev_linacc = 5e-3;
+
+        std::mt19937 generator(std::random_device{}()); 
+        std::normal_distribution<double> dist_q(mean, stddev_q);
+        std::normal_distribution<double> dist_qdot(mean, stddev_qdot);
+        std::normal_distribution<double> dist_angvel(mean, stddev_angvel);
+        std::normal_distribution<double> dist_linacc(mean, stddev_linacc);
+
+        // q-qdot
+        for(int i=0; i<MODEL_DOF; i++)
+        {
+            double noise_temp = dist_qdot(generator);
+            q_dot_virtual_Xd_global_(i+6) += noise_temp;
+
+            noise_temp = dist_q(generator);
+            q_virtual_Xd_global_(i+6) += noise_temp;
+        }
+
+        for(int i=0; i<3; i++)
+        {
+            double noise_temp = dist_angvel(generator);
+            imu_raw_(i) += noise_temp;
+            q_dot_virtual_Xd_global_(i+3) += noise_temp;
+
+            noise_temp = dist_linacc(generator);
+            imu_raw_(i+3) += noise_temp;
+            q_ddot_virtual_Xd_global_(i) += noise_temp;
+        }
+    }
 
     q_virtual_Xd_global_noise_ = q_virtual_Xd_global_;
     q_dot_virtual_Xd_global_noise_ = q_dot_virtual_Xd_global_;
@@ -13205,7 +13282,8 @@ void AvatarController::getRobotState()
     double tocabi_hand_mass;
     if (simulation_mode_)
     {
-        tocabi_hand_mass = 0.8; // dg urdf
+        // tocabi_hand_mass = 0.8; // dg urdf
+        tocabi_hand_mass = 0.0; // dg urdf
     }
     else
     {
@@ -14090,9 +14168,9 @@ void AvatarController::calculateFootStepTotal_reactive(Eigen::Isometry3d collisi
         first_foot_step = collision_foot_pose.translation().segment(0, 2) + step_back_len * external_force.segment(0, 2).normalized();
         // first_foot_step = opt_F_;
     }
-    else if (walking_tick_mj < t_total_)
+    else if (walking_tick_mj < t_start_ + t_total_)
     {
-        first_foot_step = collision_foot_pose.translation().segment(0, 2) + 1.717 * collision_foot_pose.translation()(2) * external_force.segment(0, 2).normalized();
+        first_foot_step = collision_foot_pose.translation().segment(0, 2) + 1.9 * collision_foot_pose.translation()(2) * external_force.segment(0, 2).normalized();
         // first_foot_step = collision_foot_pose.translation().segment(0, 2) + 1.717*collision_foot_pose.translation()(2) * (opt_F_-collision_foot_pose.translation().segment(0, 2)).normalized();
     }
     else
@@ -15786,10 +15864,10 @@ void AvatarController::getPelvTrajectory()
 
     if (pelv_ext_force_compensation_ && RAC_mode_)
     {
-        pelv_trajectory_support_.translation()(0) -= ext_torque_compensation_(0) / hz_;
-        pelv_trajectory_support_.translation()(1) -= ext_torque_compensation_(1) / hz_;
+        pelv_trajectory_support_.translation()(0) += ext_torque_compensation_(0) / hz_;
+        pelv_trajectory_support_.translation()(1) += ext_torque_compensation_(1) / hz_;
 
-        pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(-ext_torque_compensation_(5) / hz_) * pelv_trajectory_support_.linear();
+        pelv_trajectory_support_.linear() = pelv_trajectory_support_.linear()*DyrosMath::rotateWithZ(+ext_torque_compensation_(5) / hz_);
     }
 }
 
@@ -16141,7 +16219,8 @@ void AvatarController::getComTrajectory_mpc()
         des_zmp_y_prev_stepchange_ = des_zmp(1); // step change 1 tick 전 desired ZMP (MPC output) step change
     }
 
-    MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << zmp_measured_FT_(0) << "," << zmp_measured_FT_(1) << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;
+    if (printout_cnt_ % 2 == 0)
+        MJ_graph1 << ZMP_X_REF << "," << ZMP_Y_REF << "," << com_desired_(0) << "," << com_desired_(1) << "," << cp_desired_(0) << "," << cp_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << "," << des_zmp_interpol_(0) << "," << des_zmp_interpol_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << zmp_measured_FT_(0) << "," << zmp_measured_FT_(1) << "," << zmp_measured_mj_(0) << "," << zmp_measured_mj_(1) << endl;
 }
 
 void AvatarController::getComTrajectory()
@@ -16987,7 +17066,7 @@ void AvatarController::setWalkingTime(int walking_period_set)
         t_rest_last_ = 0.06 * hz_;
         t_double1_ = 0.03 * hz_;
         t_double2_ = 0.03 * hz_;
-        t_total_ = 0.85 * hz_;
+        t_total_ = 0.80 * hz_;
         break;
     case 3:
         //// 0.7s walking

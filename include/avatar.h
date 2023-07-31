@@ -18,37 +18,38 @@
 
 #include "tocabi_msgs/FTsensor.h" // real robot experiment
 
-//lexls
+// lexls
 // #include <lexls/lexlsi.h>
 // #include <lexls/tools.h>
 // #include <lexls>
 
 #include <iomanip>
 #include <iostream>
+#include <random>
 
 // pedal
 #include <ros/ros.h>
 #include "tocabi_msgs/WalkingCommand.h"
 #include <std_msgs/Float32.h>
-
 #include <eigen_conversions/eigen_msg.h>
 
 const bool simulation_mode_ = true;
 const bool add_intentional_ext_torque_mode_ = false;
 
 // simulation
-const bool add_intentional_modeling_eror_mode_ = false;
-const bool add_friction_torque_mode_ = false;
+const bool add_intentional_modeling_eror_mode_ = true;
+const bool add_friction_torque_mode_ = true;
+const bool add_sensor_noise_mode_ = true;
 
 // not tested
 const bool uncertainty_torque_compensation_mode_ = false;
 
 // reaction strategy
-bool joint_ext_force_compensation_ = true; 
-bool pelv_ext_force_compensation_ = true; // X, Y, Yaw
+bool joint_ext_force_compensation_ = false; 
+bool pelv_ext_force_compensation_ = false; // X, Y, Yaw
 bool RAC_mode_ = true; // RAC or RTC
-double reflex_compensation_gain_ = 0.3;    // reference RAC: [0.05 0.15], RTC: [0.5 3.0] /real hardware: RAC swing max:0.3, RAC support max: 0.01, RTC max: 0.7
-double reflex_pelvis_gain_ = 0.01;
+double reflex_compensation_gain_ = 0.64;    // reference RAC: [0.05 0.15], RTC: [0.5 3.0] /real hardware: RAC swing max:0.3, RAC support max: 0.01, RTC max: 0.7
+double reflex_pelvis_gain_ = 0.0;
 
 // tocabi
 const bool estimated_ext_torque_feedback_mode_ = false; 
@@ -110,7 +111,6 @@ public:
     void computeThread3();
     void computePlanner();
     void copyRobotData(RobotData &rd_l);
-
 
     RobotData &rd_;
     RobotData rd_cc_;
@@ -625,6 +625,9 @@ public:
 
     Eigen::VectorVQd torque_from_opto_ft_;
     Eigen::VectorVQd torque_from_opto_ft_lpf_;
+
+    MatrixXd J_opto_;
+    Matrix6d R_opto_;
 
     Eigen::Vector6d l_hand_ft_;
     Eigen::Vector6d r_hand_ft_;
@@ -2042,7 +2045,7 @@ public:
     bool joy_foot_height_flag_ = false;
     double foot_height_changed_;
     bool joy_walking_period_flag_ = false;
-    int joy_walking_period_set_ = 3;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
+    int joy_walking_period_set_ = 1;    // 1: 0_9s, 2: 0_8s, 3: 0_7s, 4: 0_6s
 
     void calculateFootStepTotalOmni(double del_x, double del_y, double del_yaw, bool current_support_foot_is_left);
     void calculateFootStepTotalOmniEnd(bool first_support_foot_is_left);
