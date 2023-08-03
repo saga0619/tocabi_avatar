@@ -1526,6 +1526,9 @@ public:
     double des_cmp_ssp_mpc_x_ = 0;
     double des_cmp_ssp_mpc_y_ = 0;
 
+    double P_ssp_x_ = 0;
+    double P_ssp_y_ = 0;
+
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
     Eigen::Vector2d del_zmp;

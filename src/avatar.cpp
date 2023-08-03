@@ -9441,12 +9441,15 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     double u0_x = 0, u0_y = 0;   
     double b_nom_x_cpmpc = 0, b_nom_y_cpmpc = 0;
     // support foot // 어짜피 MPC 제어입력을 쓰는거기 때문에 아래의 minmax_cut이 의미가 없긴함. 혹시나 입력이 튈 경우
-    u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
-    u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
+    // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
+    // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
+
+    u0_x = DyrosMath::minmax_cut(P_ssp_x_, -0.09 - 0.016, 0.12 + 0.016); 
+    u0_y = DyrosMath::minmax_cut(P_ssp_y_, -0.06 - 0.016, 0.06 + 0.016);
 
     u0_x_data_ = u0_x;
     u0_y_data_ = u0_y;
- 
+    // MJ_graph << des_cmp_ssp_mpc_x_ << "," << P_ssp_x_ << "," << des_cmp_ssp_mpc_y_ << "," << P_ssp_y_ << endl;
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
         del_F_x_ = 0;
@@ -11608,25 +11611,25 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     
     // double del_zmp_ssp_tmp_y = 0;
     // double del_zmp_ssp_mpc_y = 0;
-    int landing_mpc_time_sum = 0;
-    int landing_mpc_time_decrease = 0;
+    // int landing_mpc_time_sum = 0;
+    // int landing_mpc_time_decrease = 0;
 
     Eigen::MatrixXd B_cpmpc(1,2);
     B_cpmpc(0,0) = 1 - exp(wn*T);
     B_cpmpc(0,1) = (1 - exp(wn*T))/(rd_.link_[COM_id].mass * GRAVITY);
         
-    double P_ssp_gain = 0, P_ssp = 0;
+    double P_ssp_gain = 0;
     if(walking_tick_mj_mpc_ >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj_mpc_ < t_start_ + t_total_mpc_ - t_rest_last_ - t_double2_ && current_step_num_mpc_ > 0)
     {    
         int landing_mpc_time = int((t_total_mpc_ - t_rest_last_ - t_double2_ - mpc_tick)/MPC_synchro_hz)+1; // T-k
-        landing_mpc_time_decrease = landing_mpc_time;
-        cout << mpc_tick/MPC_synchro_hz << "," << landing_mpc_time << "," << (t_total_mpc_ - t_rest_last_ - t_double2_)/MPC_synchro_hz << endl;
+        // landing_mpc_time_decrease = landing_mpc_time;
+
         cp_eos_x_cpmpc_ = cp_predicted_x(landing_mpc_time-1); // (1~N)
         cp_eos_y_cpmpc_ = cp_predicted_y(landing_mpc_time-1); 
         P_ssp_gain = 1/(1-exp(wn*T*landing_mpc_time)); 
         // 230712  
-        // cp_eos_x_cpmpc_ = cp_x_ref_new(landing_mpc_time); 
-        // cp_eos_y_cpmpc_ = cp_y_ref_new(landing_mpc_time);   
+        // cp_eos_x_cpmpc_ = cp_x_ref_new(landing_mpc_time-1); 
+        // cp_eos_y_cpmpc_ = cp_y_ref_new(landing_mpc_time-1);   
 
 
         ///////////////////////////////////////////// #1 CMP current value 
@@ -11653,11 +11656,13 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
 
         /////////////////////////////////////////// #3 P_ssp from CP-MPC
         // [A * B_cp_mpc_new]*cpmpc_output_x_new_(0 ~ 2*N_cp+1)
+        P_ssp_x_ = 0;
+        P_ssp_y_ = 0;
+
         for(int i = 0; i < landing_mpc_time; i++) // prediction input matrix, N X 2N 
-        {   
-             
-            P_ssp += P_ssp_gain*exp(wn*T*(landing_mpc_time-i-1))*(B_cpmpc(0,0)*cpmpc_output_x_new_(2*i) + B_cpmpc(0,1)*cpmpc_output_x_new_(2*i+1));  
-            // P_ssp += P_ssp_gain*exp(wn*T*(landing_mpc_time-i))*(B_cpmpc(0,0)*cpmpc_output_x_new_(2*i) + B_cpmpc(0,1)*cpmpc_output_x_new_(2*i+1));         
+        {                
+            P_ssp_x_ += P_ssp_gain*exp(wn*T*(landing_mpc_time-i-1))*(B_cpmpc(0,0)*cpmpc_output_x_new_(2*i) + B_cpmpc(0,1)*cpmpc_output_x_new_(2*i+1)); 
+            P_ssp_y_ += P_ssp_gain*exp(wn*T*(landing_mpc_time-i-1))*(B_cpmpc(0,0)*cpmpc_output_y_new_(2*i) + B_cpmpc(0,1)*cpmpc_output_y_new_(2*i+1));      
         }   
          
         /////////////////////////////////////////// #4 CMP weighted average
@@ -11684,12 +11689,14 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         //     des_cmp_ssp_mpc_y_ = des_cmp_ssp_tmp_y;
         //     // del_zmp_ssp_mpc_y = del_zmp_ssp_tmp_y;
         // }     
-     MJ_graph << des_cmp_ssp_mpc_x_ << "," << P_ssp << "," << cp_predicted_x(landing_mpc_time-1) << "," << cp_measured_mpc_(0)*exp(wn*T*(landing_mpc_time)) + (1-exp(wn*T*(landing_mpc_time)))*P_ssp << endl;                    
+    //  MJ_graph << des_cmp_ssp_mpc_x_ << "," << P_ssp_x_ << "," << des_cmp_ssp_mpc_y_ << "," << P_ssp_y_  << "," << cp_predicted_x(landing_mpc_time-1) << "," << cp_measured_mpc_(0)*exp(wn*T*(landing_mpc_time)) + (1-exp(wn*T*(landing_mpc_time)))*P_ssp_x_ << "," <<  cp_predicted_y(landing_mpc_time-1) << "," << cp_measured_mpc_(1)*exp(wn*T*(landing_mpc_time)) + (1-exp(wn*T*(landing_mpc_time)))*P_ssp_y_ << endl;                    
     }
     else
     {
         des_cmp_ssp_mpc_x_ = 0;
         des_cmp_ssp_mpc_y_ = 0;
+        P_ssp_x_ = 0;
+        P_ssp_y_ = 0;
     }
     
     // static int aa = 0;
