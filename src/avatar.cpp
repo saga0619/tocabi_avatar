@@ -9078,10 +9078,10 @@ void AvatarController::computeCAMcontrol_HQP()
         double speed_reduce_rate = 40; // when the current joint position is near joint limit (10 degree), joint limit condition is activated.
             
         // MJ's joint limit 
-        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
-        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
-        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
-        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (20.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
+        lb_camhqp_[i](0) = min(max(speed_reduce_rate * (-15.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0]));
+        ub_camhqp_[i](0) = max(min(speed_reduce_rate * (15.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[0])), joint_vel_limit_h_(control_joint_idx_camhqp_[0])), joint_vel_limit_l_(control_joint_idx_camhqp_[0]));
+        lb_camhqp_[i](1) = min(max(speed_reduce_rate * (-15.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1]));
+        ub_camhqp_[i](1) = max(min(speed_reduce_rate * (15.0*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[1])), joint_vel_limit_h_(control_joint_idx_camhqp_[1])), joint_vel_limit_l_(control_joint_idx_camhqp_[1]));
         // Left Shoulder yaw  
         lb_camhqp_[i](2) = min(max(speed_reduce_rate * (-30*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2]));
         ub_camhqp_[i](2) = max(min(speed_reduce_rate * (+20*DEG2RAD - motion_q_pre_(control_joint_idx_camhqp_[2])), joint_vel_limit_h_(control_joint_idx_camhqp_[2])), joint_vel_limit_l_(control_joint_idx_camhqp_[2]));
@@ -9112,7 +9112,7 @@ void AvatarController::computeCAMcontrol_HQP()
      
         for(int k = 0; k < constraint_size2_camhqp_[1]; k++)
         {
-            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 0.5, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
+            eps(k) = DyrosMath::cubic(del_ang_momentum_slow_2.norm(), 1, 3, 1.0, 0.0, 0.0, 0.0); // 빠르게 돌리고 싶을때 늘리기..
         }
 
         for (int h = 0; h < i; h++)
@@ -9444,6 +9444,7 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
     // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
 
+    // Using CP-MPC P_ssp instead of average P_ssp 0712
     u0_x = DyrosMath::minmax_cut(P_ssp_x_, -0.09 - 0.016, 0.12 + 0.016); 
     u0_y = DyrosMath::minmax_cut(P_ssp_y_, -0.06 - 0.016, 0.06 + 0.016);
 
@@ -11700,13 +11701,13 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     }
     
     // static int aa = 0;
-    // if(walking_tick_mj_mpc_ >= 6.0*2000 && aa == 0)
+    // if(walking_tick_mj_mpc_ >= 6.95*2000 && aa == 0)
     // {
     //     aa = 1;
 
     //     for(int i = 0; i < N_cp; i ++)
     //     {
-    //         MJ_graph << Z_y_ref_wo_offset_new(2*i) << "," << cpmpc_output_y_new_(2*i) << endl;
+    //         MJ_graph << Z_x_ref_wo_offset_new(2*i) << "," << cpmpc_output_x_new_(2*i) << "," << cp_x_ref_new(i) << "," << cpmpc_output_x_new_(2*N_cp) << endl;
     //     }
     // }
     
@@ -15563,7 +15564,8 @@ void AvatarController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(9) = q_des(9);
     q_des(10) = q_des(10);
     q_des(11) = atan2(R_r(1), R_r(2));
-
+    // MJ_graph << walking_tick_mj << "," <<  q_des(0) << "," << q_des(1) << "," << q_des(2) << "," << q_des(3) << "," << q_des(4) << "," << q_des(5) << endl; 
+    // MJ_graph1 << q_des(6) << "," << q_des(7) << "," << q_des(8) << "," << q_des(9) << "," << q_des(10) << "," << q_des(11) << endl; 
     if (walking_tick_mj == 0)
     {
         sc_joint_err.setZero();
@@ -15693,7 +15695,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 3.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
