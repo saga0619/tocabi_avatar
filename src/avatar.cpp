@@ -772,6 +772,7 @@ void AvatarController::computeSlow()
                 for (int i = 0; i < 12; i++)
                 {
                     // ref_q_(i) = q_des_(i);
+                    ref_q_pre_(i) = ref_q_(i);
                     ref_q_(i) = DOB_IK_output_(i);
                 }
                 //hip_compensator();
@@ -788,7 +789,7 @@ void AvatarController::computeSlow()
                 {
                     //for leg
                     for (int i = 0; i < 12; i++)
-                    {
+                    {                           
                         ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
                     }
                     //for waist
@@ -9036,7 +9037,7 @@ void AvatarController::computeCAMcontrol_HQP()
     cmm_support = cmm_support1.block<2, MODEL_DOF>(0,0);
     
     cmm_selected = cmm_support * sel_matrix;
-
+    
     Eigen::Vector2d del_ang_momentum_slow_2;
     del_ang_momentum_slow_2 = del_ang_momentum_slow_.segment(0, 2); 
     J_camhqp_[0] = cmm_selected;
@@ -9175,30 +9176,40 @@ void AvatarController::computeCAMcontrol_HQP()
     }
     // MJ_graph2 << motion_q_(25) << "," << motion_q_(26) << "," << motion_q_(27) << "," << motion_q_(28) << "," << motion_q_(29) << endl;
 
-    // // CAM calculation based on actual joint angular velocity    
-    // Eigen::VectorXd cam_a;
-    // Eigen::VectorXd real_q_dot_hqp_; 
-    // cam_a.setZero(3);
-    // real_q_dot_hqp_.setZero(8);
+    // CAM calculation based on actual joint angular velocity    
+    Eigen::VectorXd cam_a;
+    Eigen::VectorXd real_q_dot_hqp_; 
+    cam_a.setZero(3);
+    real_q_dot_hqp_.setZero(10);
     
-    // for(int i = 0; i < variable_size_camhqp_; i++)
-    // {
-    //   real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
-    // }
-    // cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
-
-    // // CAM calculation based on commanded joint angular velocity    
+    for(int i = 0; i < variable_size_camhqp_; i++)
+    {
+      real_q_dot_hqp_(i) = rd_.q_dot_(control_joint_idx_camhqp_[i]);  
+    }
+    cam_a = -J_camhqp_[0]*real_q_dot_hqp_;
+    CAM_real_.setZero();
+    CAM_real_(0) = cam_a(0);
+    CAM_real_(1) = cam_a(1);
+    // CAM_real_ = cam_a;
+    // CAM calculation based on commanded joint angular velocity    
     Eigen::VectorXd cam_c;
-    Eigen::VectorXd cmd_q_dot_hqp_;
+    Eigen::VectorXd cmd_q_dot_hqp;
     cam_c.setZero(3);
-    cmd_q_dot_hqp_.setZero(10);
+    cmd_q_dot_hqp.setZero(10);
 
     for(int i = 0; i < variable_size_camhqp_; i++)
     {
-      cmd_q_dot_hqp_(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
+      cmd_q_dot_hqp(i) = motion_q_dot_(control_joint_idx_camhqp_[i]);  
     }
-    cam_c = -J_camhqp_[0]*cmd_q_dot_hqp_;
-      
+    cam_c = -J_camhqp_[0]*cmd_q_dot_hqp;
+    // CAM_cmd_.setZero();
+    // CAM_cmd_ = cam_c;
+    // whole-body real _ CAM
+    cam_wholebody_.setZero();
+
+    cam_wholebody_ = cmm_support * rd_.q_dot_;
+
+    // MJ_graph << CAM_real_(0) << "," << CAM_real_(1) << endl;    
 }   
 
 // void AvatarController::CPMPC_bolt_Controller_MJ_ICRA()
@@ -9444,7 +9455,6 @@ void AvatarController::CPMPC_bolt_Controller_MJ()
     // u0_x = DyrosMath::minmax_cut(des_cmp_ssp_mpc_x_, -0.09 - 0.016, 0.12 + 0.016); 
     // u0_y = DyrosMath::minmax_cut(des_cmp_ssp_mpc_y_, -0.06 - 0.016, 0.06 + 0.016);         
 
-    // Using CP-MPC P_ssp instead of average P_ssp 0712
     u0_x = DyrosMath::minmax_cut(P_ssp_x_, -0.09 - 0.016, 0.12 + 0.016); 
     u0_y = DyrosMath::minmax_cut(P_ssp_y_, -0.06 - 0.016, 0.06 + 0.016);
 
@@ -11352,8 +11362,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         cpmpc_output_y_new_.setZero(2*N_cp + footprint_num);
         cpmpc_output_y_new_(0) = y_hat_(0); // Initial position of the CoM and ZMP is equal.
         
-        QP_cpmpc_x_new_.InitializeProblemSize(2*N_cp + footprint_num, 2*N_cp + footprint_num);
-        QP_cpmpc_y_new_.InitializeProblemSize(2*N_cp + footprint_num, 2*N_cp + footprint_num);
+        QP_cpmpc_x_new_.InitializeProblemSize(2*N_cp + footprint_num, 2*N_cp + footprint_num + 1);
+        QP_cpmpc_y_new_.InitializeProblemSize(2*N_cp + footprint_num, 2*N_cp + footprint_num + 1);
         New_CP_MPC_first_loop = 1;
         
         cout << "Initialization of New CP_MPC parameters is complete." << endl;
@@ -11368,8 +11378,8 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
         weighting_tau_damping_y_(i, i) = DyrosMath::cubic(abs(cpmpc_output_y_new_(2*i) - Z_y_ref_wo_offset_new(2*i)), 0.00, 0.03, 0.0000001, 0.0, 0.0, 0.0); 
     }      
 
-    // weighting_tau_damping_x_ = 0.0000002 * weighting_tau_damping_x_;
-    // weighting_tau_damping_y_ = 0.0000002 * weighting_tau_damping_y_;
+    // weighting_tau_damping_x_ = 0*0.0000002 * weighting_tau_damping_x_;
+    // weighting_tau_damping_y_ = 0*0.0000002 * weighting_tau_damping_y_;
     
     // for(int i = 0; i < N_cp; i++) 
     // {   
@@ -11478,7 +11488,9 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     g_cpStepping_mpc_y_new.segment(0, 2*N_cp) = g_cpmpc_y_new;
     
     // constraint formulation
-    Eigen::MatrixXd A_cpStepping_mpc_new(2*N_cp + footprint_num, 2*N_cp + footprint_num);
+    // Eigen::MatrixXd A_cpStepping_mpc_new(2*N_cp + footprint_num, 2*N_cp + footprint_num);
+    Eigen::MatrixXd A_cpStepping_mpc_new(2*N_cp + footprint_num + 1, 2*N_cp + footprint_num); // T-RO revision (2N + footstep + CP X 2N + footstep) (condition X variable)
+    A_cpStepping_mpc_new.setZero();
     Eigen::MatrixXd A_cp_mpc_new(2*N_cp, 2*N_cp);  
     A_cp_mpc_new.setIdentity();
 
@@ -11486,9 +11498,16 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // eye2_fake.setZero();
     // eye2_fake(0,0) = 1.0;
     A_cpStepping_mpc_new.block(0, 0, 2*N_cp, 2*N_cp) = A_cp_mpc_new;  
-    A_cpStepping_mpc_new.block(0, 2*N_cp, 2*N_cp, footprint_num) = -P_sel_new; //
+    A_cpStepping_mpc_new.block(0, 2*N_cp, 2*N_cp, footprint_num) = -P_sel_new; 
     A_cpStepping_mpc_new.block(2*N_cp, 0, footprint_num, 2*N_cp) = zeros_2Ncp_x_f.transpose();
     A_cpStepping_mpc_new.block(2*N_cp, 2*N_cp, footprint_num, footprint_num) = eye2;
+
+    // T-RO revision
+    for(int i = 0; i < 2*N_cp; i++) // prediction input matrix, N X 2N 
+    {   
+        A_cpStepping_mpc_new(2*N_cp + footprint_num, i) = F_cmp_new_(N_cp-1,i);
+    }  
+         
 
     Eigen::VectorXd ub_x_cp_mpc_new(2*N_cp);
     Eigen::VectorXd lb_x_cp_mpc_new(2*N_cp);
@@ -11500,11 +11519,19 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     Eigen::VectorXd ub_y_foot_cp_mpc_new(footprint_num);
     Eigen::VectorXd lb_y_foot_cp_mpc_new(footprint_num);   
 
-    Eigen::VectorXd ub_x_cpStepping_mpc_new(2*N_cp + footprint_num);
-    Eigen::VectorXd lb_x_cpStepping_mpc_new(2*N_cp + footprint_num);
-    Eigen::VectorXd ub_y_cpStepping_mpc_new(2*N_cp + footprint_num);
-    Eigen::VectorXd lb_y_cpStepping_mpc_new(2*N_cp + footprint_num);    
-       
+    // Eigen::VectorXd ub_x_cpStepping_mpc_new(2*N_cp + footprint_num);
+    // Eigen::VectorXd lb_x_cpStepping_mpc_new(2*N_cp + footprint_num);
+    // Eigen::VectorXd ub_y_cpStepping_mpc_new(2*N_cp + footprint_num);
+    // Eigen::VectorXd lb_y_cpStepping_mpc_new(2*N_cp + footprint_num);    
+    Eigen::VectorXd ub_x_cpStepping_mpc_new(2*N_cp + footprint_num + 1);
+    Eigen::VectorXd lb_x_cpStepping_mpc_new(2*N_cp + footprint_num + 1);
+    Eigen::VectorXd ub_y_cpStepping_mpc_new(2*N_cp + footprint_num + 1);
+    Eigen::VectorXd lb_y_cpStepping_mpc_new(2*N_cp + footprint_num + 1); 
+
+    ub_x_cpStepping_mpc_new.setZero();
+    lb_x_cpStepping_mpc_new.setZero();
+    ub_y_cpStepping_mpc_new.setZero();
+    lb_y_cpStepping_mpc_new.setZero();
         
     lb_x_cp_mpc_new = (Z_x_ref_wo_offset_new - zmp_bound_x_new * 0.9) - (Tau_y_limit);
     ub_x_cp_mpc_new = (Z_x_ref_wo_offset_new + zmp_bound_x_new * 1.2) + (Tau_y_limit);
@@ -11557,7 +11584,36 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     lb_y_cpStepping_mpc_new.segment(0, 2*N_cp) = lb_y_cp_mpc_new;
     lb_y_cpStepping_mpc_new.segment(2*N_cp, footprint_num) = lb_y_foot_cp_mpc_new;
     ub_y_cpStepping_mpc_new.segment(0, 2*N_cp) = ub_y_cp_mpc_new;
-    ub_y_cpStepping_mpc_new.segment(2*N_cp, footprint_num) = ub_y_foot_cp_mpc_new; 
+    ub_y_cpStepping_mpc_new.segment(2*N_cp, footprint_num) = ub_y_foot_cp_mpc_new;     
+    
+    // cout << cp_x_ref_new(N_cp-1) << "," << F_cp_new_(N_cp-1,0) << "," << cp_measured_mpc_(0) << endl;
+    // T-RO revision
+    lb_x_cpStepping_mpc_new(2*N_cp + footprint_num) =  cp_x_ref_new(N_cp-1) - F_cp_new_(N_cp-1,0)*cp_measured_mpc_(0);
+    ub_x_cpStepping_mpc_new(2*N_cp + footprint_num) =  cp_x_ref_new(N_cp-1) - F_cp_new_(N_cp-1,0)*cp_measured_mpc_(0);
+
+    lb_y_cpStepping_mpc_new(2*N_cp + footprint_num) =  cp_y_ref_new(N_cp-1) - F_cp_new_(N_cp-1,0)*cp_measured_mpc_(1);
+    ub_y_cpStepping_mpc_new(2*N_cp + footprint_num) =  cp_y_ref_new(N_cp-1) - F_cp_new_(N_cp-1,0)*cp_measured_mpc_(1);
+    // A_step(0,0) = 1; // U_T,x
+    // A_step(0,1) = 0; // U_T,y
+    // A_step(0,2) = -(cp_measured_(0)-u0_x)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    // A_step(0,3) = 1; // b_x
+    // A_step(0,4) = 0; // b_y
+
+    // A_step(1,0) = 0; // U_T,x
+    // A_step(1,1) = 1; // U_T,y 
+    // A_step(1,2) = -(cp_measured_(1)-u0_y)*exp(-wn*(walking_tick_mj - stepping_start_time)/hz_); // tau
+    // A_step(1,3) = 0; // b_x
+    // A_step(1,4) = 1; // b_y
+ 
+
+    // lb_step.setZero(7);
+    // ub_step.setZero(7);
+
+    // lb_step(0) = u0_x; // equality 
+    // lb_step(1) = u0_y; // equality  
+    
+    // ub_step(0) = u0_x;
+    // ub_step(1) = u0_y; 
     
     // Define QP problem for new CP-MPC  
     QP_cpmpc_x_new_.EnableEqualityCondition(equality_condition_eps_);
@@ -11618,7 +11674,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     Eigen::MatrixXd B_cpmpc(1,2);
     B_cpmpc(0,0) = 1 - exp(wn*T);
     B_cpmpc(0,1) = (1 - exp(wn*T))/(rd_.link_[COM_id].mass * GRAVITY);
-        
+    // MJ_graph << cp_predicted_x(N_cp-1) << "," << cp_predicted_y(N_cp-1) << "," << cp_x_ref_new(N_cp-1) << "," << cp_y_ref_new(N_cp-1) << endl;    
     double P_ssp_gain = 0;
     if(walking_tick_mj_mpc_ >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj_mpc_ < t_start_ + t_total_mpc_ - t_rest_last_ - t_double2_ && current_step_num_mpc_ > 0)
     {    
@@ -11707,7 +11763,7 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
 
     //     for(int i = 0; i < N_cp; i ++)
     //     {
-    //         MJ_graph << Z_x_ref_wo_offset_new(2*i) << "," << cpmpc_output_x_new_(2*i) << "," << cp_x_ref_new(i) << "," << cpmpc_output_x_new_(2*N_cp) << endl;
+    //         MJ_graph << cp_y_ref_new(i) << "," << cp_predicted_y(i) << "," << cp_x_ref_new(i) << "," << cp_predicted_x(i) << endl;
     //     }
     // }
     
@@ -11722,9 +11778,9 @@ void AvatarController::new_cpcontroller_MPC_MJDG(double MPC_freq, double preview
     // std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now(); cp_x_ref_new(0) cp_measured_mpc_(0)   
      
     
-    // // // CcmP-MPC Journal - CPMPC data (Ref.Des ZMP, Centroidal moment, CAM, Del F)
-    // MJ_graph  << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_x_new_(1) << "," << cam_mpc_init_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << endl; 
-    // MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << cpmpc_output_y_new_(1) << "," << cam_mpc_init_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << endl; 
+    // // // CP-MPC Journal - CPMPC data (Ref.Des ZMP, Centroidal moment, CAM, Del F)
+    // MJ_graph  << Z_x_ref_wo_offset_new(0) << "," << cpmpc_output_x_new_(0) << "," << cpmpc_output_x_new_(1) << "," << cam_mpc_init_(1) << "," << cpmpc_output_x_new_(2*N_cp) << "," << cp_x_ref_new(0) << "," << cp_measured_mpc_(0) << "," << del_ang_momentum_(1) << endl; 
+    // MJ_graph1 << Z_y_ref_wo_offset_new(0) << "," << cpmpc_output_y_new_(0) << "," << cpmpc_output_y_new_(1) << "," << cam_mpc_init_(0) << "," << cpmpc_output_y_new_(2*N_cp) << "," << cp_y_ref_new(0) << "," << cp_measured_mpc_(1) << "," << del_ang_momentum_(0) << endl; 
   
     // // // // CPMPC Journal foot trajecotry data
     // MJ_graph_foottra_x << del_F_(0) << "," << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << "," << u0_x_data_ << "," << t_total_/hz_ << endl;
@@ -15168,8 +15224,8 @@ void AvatarController::getComTrajectory_mpc()
         alpha_step_mpc_thread_ = alpha_step;        
         cp_measured_thread_ = cp_measured_;
 
-        cam_thread_(1) = del_ang_momentum_(1);
-        cam_thread_(0) = del_ang_momentum_(0);
+        cam_thread_(1) = del_ang_momentum_(1); // CAM_real_(1);// 
+        cam_thread_(0) = del_ang_momentum_(0); // CAM_real_(0);//  
 
         lfoot_support_current_thread_= lfoot_support_current_;
         rfoot_support_current_thread_= rfoot_support_current_;
@@ -15695,7 +15751,7 @@ void AvatarController::GravityCalculate_MJ()
 
 void AvatarController::parameterSetting()
 {       
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -16479,7 +16535,9 @@ void AvatarController::CentroidalMomentCalculator_new()
     }
 
     del_ang_momentum_prev_ = del_ang_momentum_;   
-    
+    // del_ang_momentum_prev_(1) = CAM_real_(1);
+    // del_ang_momentum_prev_(0) = CAM_real_(0); 
+
     // double recovery_damping = 2.0; //damping 20 is equivalent to 0,99 exp gain // 2정도 하면 반대방향으로 치는게 15Nm, 20하면 150Nm
     // 나중에 반대방향 토크 limit 걸어야됨.
     // X direction CP control  
@@ -16491,7 +16549,7 @@ void AvatarController::CentroidalMomentCalculator_new()
     //// Integrate Centroidal Moment
     del_ang_momentum_(1) = del_ang_momentum_prev_(1) + del_t * del_tau_(1);
     del_ang_momentum_(0) = del_ang_momentum_prev_(0) + del_t * del_tau_(0);
-
+    
     // del CAM output limitation (220118/ DLR's CAM output is an approximately 4 Nms and TORO has a weight of 79.2 kg)    
     double A_limit = 15.0;
        

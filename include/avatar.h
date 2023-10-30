@@ -1389,7 +1389,7 @@ public:
     Eigen::VectorVQd mob_integral_;
     Eigen::VectorVQd mob_residual_;
     ////////////////////////////////////////////////////////////////////////////////////////////
-
+    Eigen::Vector2d cam_wholebody_;
     //fallDetection variables
     Eigen::VectorQd fall_init_q_;
     double fall_start_time_;
@@ -1480,6 +1480,8 @@ public:
     Eigen::Vector12d DOB_IK_output_b_;
     Eigen::Vector12d DOB_IK_output_;
     Eigen::VectorQd ref_q_;
+    Eigen::VectorQd ref_q_pre_;
+    Eigen::VectorQd ref_q_dot_;
     Eigen::VectorQd ref_q_fast_;
     Eigen::VectorQd Kp;
     Eigen::VectorQd Kd;
@@ -1516,6 +1518,9 @@ public:
     Eigen::Vector3d del_tau_;
     Eigen::Vector3d del_ang_momentum_;
     Eigen::Vector3d del_ang_momentum_prev_;
+
+    Eigen::Vector3d CAM_real_;
+    Eigen::Vector3d CAM_cmd_;
 
     Eigen::Vector3d del_ang_momentum_slow_;
     Eigen::Vector3d del_ang_momentum_fast_;
