@@ -157,6 +157,7 @@ public:
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
 
+    void CPMPC_bolt_Controller_MJ_revision();
     void CPMPC_bolt_Controller_MJ_ICRA();
     void CPMPC_bolt_Controller_MJ();
     void BoltController_MJ();
@@ -1237,6 +1238,7 @@ public:
     double del_F_x_next_thread_ = 0;
     double del_F_y_next_thread_ = 0;
     
+    
     double cpmpc_des_zmp_x_thread_ = 0;
     double cpmpc_des_zmp_x_thread2_ = 0;
 
@@ -1302,6 +1304,11 @@ public:
     double des_tau_x_ = 0.0;
     double des_tau_y_thread_ = 0.0;
     double des_tau_y_ = 0.0;
+
+    // T-RO revision
+    Eigen::Vector2d del_F_revision_thread_;
+    Eigen::Vector2d del_F_error_revision_;
+
     //
     // Thread 3
     Eigen::VectorXd U_x_mpc_;
