@@ -1,6 +1,7 @@
 #include "tocabi_lib/robot_data.h"
 #include "wholebody_functions.h"
 #include <std_msgs/String.h>
+#include "gurobi/gurobi_c++.h"
 
 #include "math_type_define.h"
 #include <std_msgs/Float32MultiArray.h>
@@ -51,6 +52,8 @@ const std::string FILE_NAMES[FILE_CNT] =
 const std::string calibration_folder_dir_ = "/home/dyros/data/vive_tracker/calibration_log/dh";  //tocabi 
 // const std::string calibration_folder_dir_ = "/home/dg/data/vive_tracker/calibration_log/kaleem";    //dg pc
 //const std::string calibration_folder_dir_ = "/home/dh-sung/data/avatar/calibration_log/dg";  //master ubuntu 
+
+double thread3_hz_ = 0.0;
 
 class AvatarController
 {
@@ -115,6 +118,7 @@ public:
     std::atomic<bool> atb_walking_traj_update_{false};
     std::atomic<bool> atb_mpc_x_update_{false};
     std::atomic<bool> atb_mpc_y_update_{false};
+    std::atomic<bool> atb_mpc_z_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
     std::atomic<bool> atb_cpmpc_rcv_update_{false};
     std::atomic<bool> atb_cpmpc_x_update_{false};
@@ -153,12 +157,14 @@ public:
     void cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
     void new_cpcontroller_MPC_MJDG(double MPC_freq, double preview_window);
     void comGenerator_MPC_wieber(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
+    void comGenerator_MPC_qcqp2(double MPC_freq_qcqp_, double T_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_qcqp_);
     void comGenerator_MPC_joe(double MPC_freq, double T, double preview_window, int MPC_synchro_hz_);
 
     void CPMPC_bolt_Controller_MJ();
     void steptimingController_MJ();
     void BoltController_MJ();
     void getComTrajectory_mpc();
+    void getComTrajectory_mpc_ding();
     //estimator
     Eigen::VectorXd momentumObserver(VectorXd current_momentum, VectorXd current_torque, VectorXd nonlinear_term, VectorXd mob_residual_pre, double dt, double k);
     Eigen::MatrixXd getCMatrix(VectorXd q, VectorXd qdot);
@@ -684,6 +690,7 @@ public:
     Eigen::Vector3d zmp_measured_;
     Eigen::Vector3d zmp_measured_pre_;
     Eigen::Vector3d zmp_measured_ppre_;
+    Eigen::Vector3d zmp_estimated_;
     Eigen::Vector3d zmp_dot_measured_;
 
     Eigen::Vector3d zmp_measured_local_; //calc zmp with F/T sensors according to the Robot.ee_[0].contact
@@ -1317,8 +1324,16 @@ public:
     Eigen::Vector3d y_hat_r_p_;
     Eigen::Vector3d x_mpc_i_;
     Eigen::Vector3d y_mpc_i_; 
+    Eigen::Vector3d z_mpc_i_; 
+    double w_mpc_i_;
+    double w_dot_mpc_i_;
+    double lambda_mpc_i_;
     Eigen::Vector3d x_diff_;
     Eigen::Vector3d y_diff_;
+    Eigen::Vector3d z_diff_;
+    double w_diff_;
+    double w_dot_diff_;
+    double lambda_diff_;
     Eigen::Vector2d cpmpc_diff_;
     Eigen::Vector2d cpStepping_diff_;
 
@@ -1326,7 +1341,8 @@ public:
     int wieber_interpol_cnt_y_ = 0;
     int cpmpc_interpol_cnt_x_ = 0;
     int cpmpc_interpol_cnt_y_ = 0;
-    bool mpc_x_update_ {false}, mpc_y_update_ {false} ;
+    bool mpc_x_update_ {false}, mpc_y_update_ {false}, mpc_z_update_ {false}, mpc_qcqp_update_ {false};
+    bool mpc_cp_update_{false}, mpc_dcm_xyz_update_{false};
     bool cpmpc_x_update_ {false}, cpmpc_y_update_ {false} ;
     double W1_mpc_ = 0, W2_mpc_ = 0, W3_mpc_ = 0;
     int alpha_step_mpc_ = 0;
@@ -1525,8 +1541,31 @@ public:
     Eigen::Isometry3d pelv_support_start_;
     Eigen::Isometry3d pelv_support_init_;
     Eigen::Vector2d del_zmp;
+    double del_lambda0_;
+    double del_lambda1_;
     Eigen::Vector2d cp_desired_;
+    Eigen::Vector3d dcm_desired_;
     Eigen::Vector2d cp_measured_;
+    Eigen::Vector3d dcm_measured_;
+    Eigen::Vector3d dcm_measured_thread_;
+    Eigen::Vector3d dcm_measured_mpc_;
+
+    Eigen::Vector3d com_measured_;
+    Eigen::Vector3d com_measured_thread_;
+    Eigen::Vector3d com_measured_mpc_;
+
+    Eigen::Vector3d com_dot_measured_;
+    Eigen::Vector3d com_dot_measured_thread_;
+    Eigen::Vector3d com_dot_measured_mpc_;
+
+    double lambda_desired_;
+    double lambda_measured_;
+    double w_desired_;
+    double w_dot_desired_;
+    double w_dot_measured_;
+    double w_measured_;
+    Eigen::Vector3d com_imu_acc_;
+    Eigen::Vector3d com_imu_acc_lpf_;
     Eigen::Vector2d cp_measured_LPF;
     Eigen::Vector2d cp_measured_thread_;
     Eigen::Vector2d cp_measured_mpc_;
@@ -1535,6 +1574,7 @@ public:
     Eigen::Vector3d com_float_current_;
     Eigen::Vector3d com_support_current_;
     Eigen::Vector3d com_support_current_dot_;
+    Eigen::Vector3d com_support_current_ddot_;
     Eigen::Vector3d com_support_current_LPF;
     Eigen::Vector3d com_float_current_LPF;
     Eigen::Vector3d com_support_current_prev;
@@ -1544,6 +1584,11 @@ public:
     Eigen::Vector3d com_float_current_dot_prev;
     Eigen::Vector3d com_float_current_dot_LPF;
     Eigen::Vector3d com_support_current_dot_LPF;
+
+    Eigen::Vector3d com_float_current_ddot;
+    Eigen::Vector3d com_float_current_ddot_prev;
+    Eigen::Vector3d com_float_current_ddot_LPF;
+    Eigen::Vector3d com_support_current_ddot_LPF;
 
     Eigen::Vector3d pelv_rpy_current_mj_;
     Eigen::Vector3d rfoot_rpy_current_;
@@ -1593,6 +1638,8 @@ public:
     Eigen::MatrixXd ref_zmp_mj_wo_offset_;
     Eigen::MatrixXd ref_zmp_wo_offset_mpc_;
     Eigen::MatrixXd ref_zmp_wo_offset_thread_;
+    Eigen::MatrixXd ref_zmp_e_max_;
+    Eigen::MatrixXd ref_zmp_e_min_;
 
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_thread_;
@@ -1666,6 +1713,9 @@ public:
     int current_step_num_mpc_;
     int current_step_num_thread_;
     int current_step_num_thread2_;
+    int current_step_num_z_mpc_;
+    int current_step_num_z_thread_;
+    int current_step_num_z_thread2_;
     int current_step_num_mpc_prev_;   
     int current_step_num_mpc_new_prev_;   
     double step_length_x_;
@@ -1689,7 +1739,12 @@ public:
     Eigen::Vector3d com_desired_;
     Eigen::MatrixXd foot_step_;
     Eigen::MatrixXd foot_step_support_frame_;
+    Eigen::MatrixXd foot_step_support_frame_mpc_;
+    Eigen::MatrixXd foot_step_support_frame_thread_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
+    Eigen::MatrixXd foot_step_support_frame_offset_mpc_;
+    Eigen::MatrixXd foot_step_support_frame_offset_mpc_p_;
+    Eigen::MatrixXd foot_step_support_frame_offset_thread_;
     
     // Com damping control - ZMP tracking controller
     Eigen::MatrixXd A_y_ssp;
@@ -1741,11 +1796,680 @@ public:
 
     Eigen::VectorQd q_mj;
     Eigen::VectorQd q_mj_prev;
+
+    //////////////////////////////// Econom2 function
+    void writeDataTxt();
+    void getComTrajectory_Z_e();
+    void comRefGenerator_Z_e();
+    void comRefGenerator_Z_e_thread();
+    void comGenerator_MPC_Z_e(double MPC_z_freq, double T_z_, double preview_window_z_, int MPC_synchro_hz_);
+    void footTerrainInt(Eigen::MatrixXd& foot_terrain_int);
+    void footTerrainInt_thread(Eigen::MatrixXd& foot_terrain_int);
+    void comGenerator(const unsigned int norm_size, const unsigned planning_step_num);
+    void comGenerator_thread(const unsigned int norm_size, const unsigned planning_step_num);
+    void onestepComz(unsigned int current_step_number, Eigen::VectorXd& temp_cz);
+    void onestepComz_thread(unsigned int current_step_number, Eigen::VectorXd& temp_cz);
+    void footPrevGenerator(const unsigned int norm_size, const unsigned planning_step_num);
+    void footPrevGenerator_thread(const unsigned int norm_size, const unsigned planning_step_num);
+    void onestepFootPrev(unsigned int current_step_number, Eigen::VectorXd& temp_lfx, Eigen::VectorXd& temp_lfy, Eigen::VectorXd& temp_lfz,
+                                                           Eigen::VectorXd& temp_rfx, Eigen::VectorXd& temp_rfy, Eigen::VectorXd& temp_rfz);
+    void onestepFootPrev_thread(unsigned int current_step_number, Eigen::VectorXd& temp_lfx, Eigen::VectorXd& temp_lfy, Eigen::VectorXd& temp_lfz,
+                                                                  Eigen::VectorXd& temp_rfx, Eigen::VectorXd& temp_rfy, Eigen::VectorXd& temp_rfz);
+    //////////////////////////////// Econom2 variables
+    Eigen::Vector2d zmp_desired_;
+    Eigen::Vector2d zmp_max_;
+    Eigen::Vector2d zmp_min_;
+
+    int param_qcqp_int_;
+    double param_Qcpz_;
+    double param_Qcvz_;
+    double param_Qcaz_;
+    double param_Czref_calc_;
+    double param_target_x_;
+    double param_step_x_;
+    double ext_force_;
+    double ext_theta_;
+    double param_Q_dcm_x_;
+    double param_R_dcm_x_;
+    double param_R_f_x_;
+    double param_R_df_x_;
+    double param_Q_dcm_y_;
+    double param_R_dcm_y_;
+    double param_R_f_y_;
+    double param_R_df_y_;
+    double param_Q_dcm_z_;
+    double param_R_dcm_z_;
+    double param_ext_force_time_;
+    int param_ext_step_num_;
+    double econom2_calc;
+    double zmp_x_max = 0.13;
+    double zmp_x_min = 0.07;
+    double zmp_y_max = 0.07;
+    double zmp_y_min = 0.07;
+    double height_diff = 0.0;
+    double angle_diff = 0.0;
+    Eigen::MatrixXd ref_com_z_e_;
+    Eigen::MatrixXd ref_com_z_mpc_;
+    Eigen::MatrixXd ref_com_z_thread_;
+    Eigen::MatrixXd lfoot_prev_e_;
+    Eigen::MatrixXd rfoot_prev_e_;
+    Eigen::MatrixXd lfoot_prev_mpc_;
+    Eigen::MatrixXd rfoot_prev_mpc_;
+    Eigen::MatrixXd lfoot_prev_thread_;
+    Eigen::MatrixXd rfoot_prev_thread_;
+    Eigen::MatrixXd foot_terrain_int_;
+    
+    ///z mpc
+    Eigen::Vector3d MPC_z_;
+    Eigen::Vector3d MPC_z_p_;
+    Eigen::Vector3d MPC_z_r_;
+    Eigen::Vector3d MPC_z_r_sc_;
+    Eigen::Vector3d MPC_z_r_p_;
+    Eigen::Vector3d MPC_z_r_p_sc_;
+    Eigen::Vector3d MPC_z_thread_;
+    Eigen::Vector3d MPC_z_thread2_;
+    Eigen::Vector3d MPC_z_p_thread_;
+    Eigen::Vector3d MPC_z_p_thread2_;
+    Eigen::Vector3d MPC_z_r_thread_;
+    Eigen::Vector3d MPC_z_r_p_thread_;
+    Eigen::Vector3d MPC_z_mpc_;
+    Eigen::Vector3d MPC_z_p_mpc_;
+    Eigen::Vector3d MPC_z_r_mpc_;
+    Eigen::Vector3d MPC_z_r_p_mpc_;
+    Eigen::MatrixXd Az_mpc_;
+    Eigen::MatrixXd Bz_mpc_;
+    Eigen::MatrixXd Czp_mpc_;
+    Eigen::MatrixXd Czv_mpc_;
+    Eigen::MatrixXd Cza_mpc_;
+    Eigen::MatrixXd Czmp_mpc_;
+    Eigen::MatrixXd Qzp_mpc_;
+    Eigen::MatrixXd Qzv_mpc_;
+    Eigen::MatrixXd Qza_mpc_;
+    Eigen::MatrixXd Rz_mpc_;
+    Eigen::MatrixXd Pzps_mpc_;
+    Eigen::MatrixXd Pzvs_mpc_;
+    Eigen::MatrixXd Pzas_mpc_;
+    Eigen::MatrixXd Pzmps_mpc_e_;
+    Eigen::MatrixXd Pzpu_mpc_;
+    Eigen::MatrixXd Pzvu_mpc_;
+    Eigen::MatrixXd Pzau_mpc_;
+    Eigen::MatrixXd Pzmpu_mpc_e_;
+    Eigen::VectorXd z_com_pos_recur_;
+    Eigen::VectorXd z_com_vel_recur_;
+    Eigen::VectorXd z_com_acc_recur_;
+    Eigen::MatrixXd Qcalcz_mpc_;
+    Eigen::MatrixXd gcalcz_mpc_;
+    CQuadraticProgram QP_mpc_z_;
+    Eigen::VectorXd MPC_input_z_;
+    Eigen::VectorXd U_z_mpc_;
+    double com_start_tick_e_;
+    double com_start_tick_e_mpc_;
+    double com_start_tick_e_thread_;
+    int Z_e_interpol_cnt_ = 0;
+
+    double MPC_w_;
+    double MPC_w_p_;
+    double MPC_w_r_;
+    double MPC_w_r_sc_;
+    double MPC_w_r_p_;
+    double MPC_w_r_p_sc_;
+    double MPC_w_thread_;
+    double MPC_w_thread2_;
+    double MPC_w_p_thread_;
+    double MPC_w_p_thread2_;
+    double MPC_w_r_thread_;
+    double MPC_w_r_p_thread_;
+    double MPC_w_mpc_;
+    double MPC_w_p_mpc_;
+    double MPC_w_r_mpc_;
+    double MPC_w_r_p_mpc_;
+
+    double MPC_w_dot_;
+    double MPC_w_dot_p_;
+    double MPC_w_dot_r_;
+    double MPC_w_dot_r_sc_;
+    double MPC_w_dot_r_p_;
+    double MPC_w_dot_r_p_sc_;
+    double MPC_w_dot_thread_;
+    double MPC_w_dot_thread2_;
+    double MPC_w_dot_p_thread_;
+    double MPC_w_dot_p_thread2_;
+    double MPC_w_dot_r_thread_;
+    double MPC_w_dot_r_p_thread_;
+    double MPC_w_dot_mpc_;
+    double MPC_w_dot_p_mpc_;
+    double MPC_w_dot_r_mpc_;
+    double MPC_w_dot_r_p_mpc_;
+
+    double MPC_lambda_;
+    double MPC_lambda_p_;
+    double MPC_lambda_r_;
+    double MPC_lambda_r_sc_;
+    double MPC_lambda_r_p_;
+    double MPC_lambda_r_p_sc_;
+    double MPC_lambda_thread_;
+    double MPC_lambda_thread2_;
+    double MPC_lambda_p_thread_;
+    double MPC_lambda_p_thread2_;
+    double MPC_lambda_r_thread_;
+    double MPC_lambda_r_p_thread_;
+    double MPC_lambda_mpc_;
+    double MPC_lambda_p_mpc_;
+    double MPC_lambda_r_mpc_;
+    double MPC_lambda_r_p_mpc_;
+
+    double MPC_wf_;
+    int qcqp_int;
+
+    void onestepZmp_e(unsigned int current_step_number, Eigen::VectorXd& temp_px_max, Eigen::VectorXd& temp_py_max, Eigen::VectorXd& temp_px_min, Eigen::VectorXd& temp_py_min);
+    //3D DCM
+
+    //Van RAL QCQP
+    void comGenerator_MPC_qcqp(double mpc_qcqp_freq, double dt_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_);
+    void comGenerator_MPC_ding(double mpc_qcqp_freq, double dt_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_);
+    void dcmcontroller_MPC_e(double mpc_freq, double preview_window);
+    void dcmcontroller_MPC_qcqp_e(double mpc_freq, double preview_window);
+    void dcmcontroller_MPC_foot_e(double mpc_freq, double preview_window);
+    void dcmcontroller_MPC_foot_e2(double mpc_freq, double preview_window);
+    void cpcontroller_MPC_foot_e(double mpc_freq, double preview_window);
+    void getComFootTrajectory_mpc_qcqp();
+    void footRefGenerator();
+    void footGenerator(const unsigned int norm_size, const unsigned planning_step_num);
+    void onestepFoot(unsigned int current_step_number, Eigen::VectorXd& temp_fx, Eigen::VectorXd& temp_fy, Eigen::VectorXd& temp_fz, int foot_int);
+
+    int run_planner_ = 1;
+    CQuadraticProgram QCQP_mpc_;
+    CQuadraticProgram QCQP_mpc_temp_;
+    CQuadraticProgram CP_mpc_;
+    CQuadraticProgram DCM_mpc_t_;
+    CQuadraticProgram DCM_qcqp_mpc_t_;
+
+    //Matrix
+    Eigen::MatrixXd A_qcqp_;
+    Eigen::MatrixXd calc_A_qcqp_;
+    Eigen::MatrixXd A_dcm_;
+    Eigen::MatrixXd A_dcm_c_;
+    Eigen::MatrixXd A_dcm_qcqp_;
+    Eigen::MatrixXd A_cp_;
+    Eigen::MatrixXd B_qcqp_;
+    Eigen::MatrixXd calc_B_qcqp_;
+    Eigen::MatrixXd B_dcm_;
+    Eigen::MatrixXd B_dcm_c_;
+    Eigen::MatrixXd B_dcm_qcqp_;
+    Eigen::MatrixXd B_cp_;
+    Eigen::MatrixXd C_dcm_;
+    Eigen::MatrixXd C_dcm_dcm_;
+    Eigen::MatrixXd C_dcm_c_;
+    Eigen::MatrixXd C_dcm_cd_;
+    Eigen::MatrixXd C_dcm_qcqp_;
+    Eigen::MatrixXd C_dcm_dcm_qcqp_;
+    Eigen::MatrixXd C_dcm_c_qcqp_;
+    Eigen::MatrixXd C_dcm_cd_qcqp_;
+    Eigen::MatrixXd Czmp_qcqp_;
+    Eigen::MatrixXd Cp_qcqp_;
+    Eigen::MatrixXd Cv_qcqp_;
+    Eigen::MatrixXd Ca_qcqp_;
+    Eigen::MatrixXd Pzmps_qcqp_;
+    Eigen::MatrixXd F_psi_dcm_;
+    Eigen::MatrixXd F_psi_dcm_dcm_;
+    Eigen::MatrixXd F_psi_dcm_c_;
+    Eigen::MatrixXd F_psi_dcm_cd_;
+    Eigen::MatrixXd F_psi_dcm_qcqp_;
+    Eigen::MatrixXd F_psi_cp_;
+    Eigen::MatrixXd Pps_qcqp_;
+    Eigen::MatrixXd Pvs_qcqp_;
+    Eigen::MatrixXd Pas_qcqp_;
+    Eigen::MatrixXd Pzmpu_qcqp_;
+    Eigen::MatrixXd F_p_dcm_;
+    Eigen::MatrixXd F_p_dcm_dcm_;
+    Eigen::MatrixXd F_p_dcm_c_;
+    Eigen::MatrixXd F_p_dcm_cd_;
+    Eigen::MatrixXd F_p_dcm_qcqp_;
+    Eigen::MatrixXd F_p_cp_;
+    Eigen::MatrixXd Ppu_qcqp_;
+    Eigen::MatrixXd Pvu_qcqp_;
+    Eigen::MatrixXd Pau_qcqp_;
+    Eigen::MatrixXd Qmat_qcqp_;
+    Eigen::MatrixXd Qpy_mat_qcqp;
+    Eigen::MatrixXd Qvy_mat_qcqp; 
+    Eigen::MatrixXd Qay_mat_qcqp;
+    Eigen::MatrixXd Ry_mat_qcqp;
+    Eigen::MatrixXd Qmat_dcm_;
+    Eigen::MatrixXd Qmat_cp_;
+    Eigen::MatrixXd Qmat_f_qcqp_;
+    Eigen::MatrixXd theta_dcm_;
+    Eigen::MatrixXd theta_cp_;
+    Eigen::MatrixXd e1_dcm_;
+    Eigen::MatrixXd e1_cp_;
+    Eigen::MatrixXd Qcalc_th4_;
+    Eigen::MatrixXd Qxcalc_qcqp_;
+    Eigen::MatrixXd Qxcalc_f_qcqp_;
+    Eigen::MatrixXd Qycalc_qcqp_;
+    Eigen::MatrixXd Qycalc_f_qcqp_;
+    Eigen::MatrixXd Qzcalc_qcqp_;
+    Eigen::MatrixXd Qzcalc_f_qcqp_;
+    Eigen::MatrixXd Qcalc_qcqp_;
+    Eigen::MatrixXd Qcalc_f_qcqp_;
+    Eigen::MatrixXd Qcalc_dcm_;
+    Eigen::MatrixXd Qcalc_dcm_qcqp_;
+    Eigen::MatrixXd Qcalc_cp_;
+    Eigen::MatrixXd deldel_Cgoal_;
+    Eigen::MatrixXd deldel_Fgoal_;
+    Eigen::MatrixXd deldel_Tgoal_;
+    Eigen::MatrixXd deldel_Dgoal_;
+    Eigen::MatrixXd deldel_th4_;
+    Eigen::MatrixXd gxyzcalc_qcqp_;
+    Eigen::MatrixXd gcalc_th4_;
+    Eigen::MatrixXd gxcalc_qcqp_;
+    Eigen::MatrixXd gxcalc_f_qcqp_;
+    Eigen::MatrixXd gycalc_qcqp_;
+    Eigen::MatrixXd gycalc_f_qcqp_;
+    Eigen::MatrixXd gzcalc_qcqp_;
+    Eigen::MatrixXd gzcalc_f_qcqp_;
+    Eigen::MatrixXd gcalc_qcqp_;
+    Eigen::MatrixXd gcalc_dcm_;
+    Eigen::MatrixXd gcalc_dcm_qcqp_;
+    Eigen::MatrixXd gcalc_cp_;
+    Eigen::MatrixXd gcalc_f_qcqp_;
+    Eigen::MatrixXd del_th4_;
+    Eigen::MatrixXd del_cgoal_;
+    Eigen::MatrixXd del_fgoal_;
+    Eigen::MatrixXd del_lfgoal_;
+    Eigen::MatrixXd del_rfgoal_;
+    Eigen::MatrixXd del_tgoal_;
+    Eigen::MatrixXd del_dgoal_;
+    Eigen::MatrixXd SUx;
+    Eigen::MatrixXd SUy;
+    Eigen::MatrixXd SUz;
+    Eigen::MatrixXd dcm_SUx;
+    Eigen::MatrixXd dcm_SUy;
+    Eigen::MatrixXd dcm_SUz;
+    Eigen::MatrixXd SUc;
+    Eigen::MatrixXd dcm_SUc;
+    Eigen::MatrixXd SUf;
+    Eigen::MatrixXd dcm_SUf;
+    Eigen::MatrixXd SUlf;
+    Eigen::MatrixXd SUrf;
+    Eigen::MatrixXd dcm_Si3_;
+    Eigen::MatrixXd dcm_Sfx;
+    Eigen::MatrixXd dcm_Sfy;
+    Eigen::MatrixXd Si6;
+    Eigen::MatrixXd dcm_Si;
+    Eigen::MatrixXd Sx;
+    Eigen::MatrixXd Sy;
+    Eigen::MatrixXd Sz;
+    Eigen::MatrixXd ssx;
+    Eigen::MatrixXd ssy;
+    Eigen::MatrixXd ssz;
+    Eigen::MatrixXd dcm_ssx;
+    Eigen::MatrixXd dcm_ssy;
+    Eigen::MatrixXd dcm_ssz;
+    Eigen::MatrixXd sx6;
+    Eigen::MatrixXd sy6;
+    Eigen::MatrixXd sz6;
+    Eigen::MatrixXd sx3;
+    Eigen::MatrixXd sy3;
+    Eigen::MatrixXd sz3;
+    Eigen::MatrixXd sfx;
+    Eigen::MatrixXd sfy;
+    Eigen::MatrixXd sc;
+    Eigen::MatrixXd foot_constr_i_;
+    Eigen::MatrixXd dcm_Sf_i_;
+    int dcm_delf_fix_;
+    Eigen::MatrixXd Sip_foot_x_;
+    Eigen::MatrixXd Sip_foot_y_;
+    Eigen::MatrixXd Sip_foot_z_;
+    Eigen::MatrixXd Siv_foot_x_;
+    Eigen::MatrixXd Siv_foot_y_;
+    Eigen::MatrixXd Siv_foot_z_;
+    Eigen::MatrixXd Sia_foot_x_;
+    Eigen::MatrixXd Sia_foot_y_;
+    Eigen::MatrixXd Sia_foot_z_;
+    Eigen::MatrixXd si_foot_x_;
+    Eigen::MatrixXd si_foot_y_;
+    Eigen::MatrixXd si_foot_z_;
+
+    Eigen::VectorXd foot_desired_;
+
+    //Constraint
+    //zmp
+    Eigen::MatrixXd Const_Psi_zx;
+    Eigen::MatrixXd Const_Psi_zy;
+
+    Eigen::MatrixXd Const_Pi_zx_u;
+    Eigen::MatrixXd Const_Pi_zx_l;
+    Eigen::MatrixXd Const_Pi_zy_u;
+    Eigen::MatrixXd Const_Pi_zy_l;
+
+    Eigen::MatrixXd Const_pi_zx_calc;
+    Eigen::MatrixXd Const_pi_zx_u_tp;
+    Eigen::MatrixXd Const_pi_zx_l_tp;
+    Eigen::MatrixXd Const_pi_zy_calc;
+    Eigen::MatrixXd Const_pi_zy_u_tp;
+    Eigen::MatrixXd Const_pi_zy_l_tp;
+
+    Eigen::MatrixXd Const_ri_zx_calc;
+    Eigen::MatrixXd Const_ri_zx_u;
+    Eigen::MatrixXd Const_ri_zx_l;
+    Eigen::MatrixXd Const_ri_zy_calc;
+    Eigen::MatrixXd Const_ri_zy_u;
+    Eigen::MatrixXd Const_ri_zy_l;
+    
+    Eigen::MatrixXd Const_del_hi_zx_u;
+    Eigen::MatrixXd Const_del_hi_zx_l;
+    Eigen::MatrixXd Const_del_hi_zy_u;
+    Eigen::MatrixXd Const_del_hi_zy_l;
+
+    Eigen::MatrixXd Const_hi_zx_u;
+    Eigen::MatrixXd Const_hi_zx_l;
+    Eigen::MatrixXd Const_hi_zy_u;
+    Eigen::MatrixXd Const_hi_zy_l;
+
+    Eigen::MatrixXd Const_del_zmp_;
+    Eigen::MatrixXd Const_zmp_;
+
+    //foot
+    Eigen::MatrixXd Const_Psi_fz;
+
+    Eigen::MatrixXd Const_Pi_fz_u;
+    Eigen::MatrixXd Const_Pi_fz_l;
+
+    Eigen::MatrixXd Const_pi_fz_calc;
+    Eigen::MatrixXd Const_pi_fz_u_tp;
+    Eigen::MatrixXd Const_pi_fz_l_tp;
+
+    Eigen::MatrixXd Const_ri_fz_calc;
+    Eigen::MatrixXd Const_ri_fz_u;
+    Eigen::MatrixXd Const_ri_fz_l;
+    
+    Eigen::MatrixXd Const_del_hi_fz_u;
+    Eigen::MatrixXd Const_del_hi_fz_l;
+
+    Eigen::MatrixXd Const_hi_fz_u;
+    Eigen::MatrixXd Const_hi_fz_l;
+
+    Eigen::MatrixXd Const_del_fz_;
+    Eigen::MatrixXd Const_fz_;
+
+    Eigen::MatrixXd Const_del_z_;
+    Eigen::MatrixXd Const_z_;
+
+    //leg length
+    Eigen::MatrixXd Const_Psi_ll;
+
+    Eigen::MatrixXd Const_Pi_ll_u;
+    Eigen::MatrixXd Const_Pi_ll_l;
+
+    Eigen::MatrixXd Const_pi_ll_calc;
+    Eigen::MatrixXd Const_pi_ll_u_tp;
+    Eigen::MatrixXd Const_pi_ll_l_tp;
+    
+    Eigen::MatrixXd Const_ri_ll_calc;
+    Eigen::MatrixXd Const_ri_ll_u;
+    Eigen::MatrixXd Const_ri_ll_l;
+
+    Eigen::MatrixXd Const_del_hi_ll_u;
+    Eigen::MatrixXd Const_del_hi_ll_l;
+
+    Eigen::MatrixXd Const_hi_ll_u;
+    Eigen::MatrixXd Const_hi_ll_l;
+
+    Eigen::MatrixXd Const_del_ll_;
+    Eigen::MatrixXd Const_ll_;
+
+    //delf
+    Eigen::MatrixXd Const_Psi_delf;
+
+    Eigen::MatrixXd Const_Pi_delf_u;
+    Eigen::MatrixXd Const_Pi_delf_l;
+
+    Eigen::MatrixXd Const_pi_delf_calc;
+    Eigen::MatrixXd Const_pi_delf_u_tp;
+    Eigen::MatrixXd Const_pi_delf_l_tp;
+    
+    Eigen::MatrixXd Const_ri_delf_calc;
+    Eigen::MatrixXd Const_ri_delf_u;
+    Eigen::MatrixXd Const_ri_delf_l;
+
+    Eigen::MatrixXd Const_del_hi_delf_u;
+    Eigen::MatrixXd Const_del_hi_delf_l;
+
+    Eigen::MatrixXd Const_hi_delf_u;
+    Eigen::MatrixXd Const_hi_delf_l;
+
+    Eigen::MatrixXd Const_del_delf_;
+    Eigen::MatrixXd Const_delf_;
+
+    //dcm qcqp
+    Eigen::MatrixXd Const_Psi_dcm_zmpx;
+    Eigen::MatrixXd Const_Psi_dcm_zmpy;
+    Eigen::MatrixXd Const_Psi_dcm_ll;
+
+    Eigen::MatrixXd Const_Pi_dcm_zmpx_u;
+    Eigen::MatrixXd Const_Pi_dcm_zmpx_l;
+    Eigen::MatrixXd Const_Pi_dcm_zmpy_u;
+    Eigen::MatrixXd Const_Pi_dcm_zmpy_l;
+    Eigen::MatrixXd Const_Pi_dcm_ll_u;
+    Eigen::MatrixXd Const_Pi_dcm_ll_l;
+
+    Eigen::MatrixXd Const_pi_dcm_zmpx_calc;
+    Eigen::MatrixXd Const_pi_dcm_zmpx_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_zmpx_l_tp;
+    Eigen::MatrixXd Const_pi_dcm_zmpy_calc;
+    Eigen::MatrixXd Const_pi_dcm_zmpy_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_zmpy_l_tp;
+    Eigen::MatrixXd Const_pi_dcm_ll_calc;
+    Eigen::MatrixXd Const_pi_dcm_ll_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_ll_l_tp;
+    
+    Eigen::MatrixXd Const_ri_dcm_zmpx_calc;
+    Eigen::MatrixXd Const_ri_dcm_zmpx_u;
+    Eigen::MatrixXd Const_ri_dcm_zmpx_l;
+    Eigen::MatrixXd Const_ri_dcm_zmpy_calc;
+    Eigen::MatrixXd Const_ri_dcm_zmpy_u;
+    Eigen::MatrixXd Const_ri_dcm_zmpy_l;
+    Eigen::MatrixXd Const_ri_dcm_ll_calc;
+    Eigen::MatrixXd Const_ri_dcm_ll_u;
+    Eigen::MatrixXd Const_ri_dcm_ll_l;
+
+    Eigen::MatrixXd Const_del_hi_dcm_zmpx_u;
+    Eigen::MatrixXd Const_del_hi_dcm_zmpx_l;
+    Eigen::MatrixXd Const_del_hi_dcm_zmpy_u;
+    Eigen::MatrixXd Const_del_hi_dcm_zmpy_l;
+    Eigen::MatrixXd Const_del_hi_dcm_ll_u;
+    Eigen::MatrixXd Const_del_hi_dcm_ll_l;
+
+    Eigen::MatrixXd Const_hi_dcm_zmpx_u;
+    Eigen::MatrixXd Const_hi_dcm_zmpx_l;
+    Eigen::MatrixXd Const_hi_dcm_zmpy_u;
+    Eigen::MatrixXd Const_hi_dcm_zmpy_l;
+    Eigen::MatrixXd Const_hi_dcm_ll_u;
+    Eigen::MatrixXd Const_hi_dcm_ll_l;
+
+    Eigen::MatrixXd Const_del_dcm_zmp_;
+    Eigen::MatrixXd Const_del_dcm_ll_;
+    Eigen::MatrixXd Const_dcm_zmp_;
+    Eigen::MatrixXd Const_dcm_ll_;
+
+
+    //state
+    Eigen::VectorXd MPC_qcqp_dcm_foot_u_;
+    Eigen::VectorXd MPC_qcqp_;
+    Eigen::VectorXd MPC_th4_;
+    Eigen::VectorXd MPC_qcqp_gurobi_;
+
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_;          
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_thread_;   
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_thread2_;  
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_p_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_p_thread_; 
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_p_thread2_;
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_n_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_n_thread_; 
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_n_thread2_;
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_p_;    
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_n_;
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_sc_;     
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_p_sc_;
+    Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_;
+    Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_thread_;
+    Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_thread2_;
+    Eigen::VectorXd qcqp_sqp_com_calc_;
+    int MPC_qcqp_sqp_planner_hz_;
+
+    Eigen::Vector2d MPC_qcqp_zmp_;
+    Eigen::Vector2d MPC_qcqp_zmp_gurobi_;
+    Eigen::Vector2d MPC_qcqp_sqp_gurobi_zmp_;
+    Eigen::Vector2d MPC_qcqp_sqp_gurobi_zmp_p_;
+    Eigen::Vector3d MPC_qcqp_sqp_gurobi_dcm_;
+    double MPC_qcqp_sqp_gurobi_lambda_;
+    double MPC_qcqp_sqp_gurobi_b_;
+    Eigen::MatrixXd MPC_qcqp_sqp_gurobi_dcm_prev_;
+    Eigen::MatrixXd MPC_qcqp_sqp_gurobi_cp_prev_;
+    Eigen::MatrixXd MPC_qcqp_sqp_gurobi_com_prev_;
+    Eigen::MatrixXd MPC_qcqp_sqp_gurobi_com_prev_p_;
+    Eigen::VectorXd MPC_qcqp_sqp_u_;
+    Eigen::VectorXd MPC_qcqp_sqp_u_p_;
+    Eigen::VectorXd th4_u_;
+    Eigen::VectorXd MPC_qcqp_input_;
+    Eigen::VectorXd MPC_dcm_qcqp_sqp_del_u_;
+    Eigen::VectorXd MPC_dcm_qcqp_sqp_u_;
+    Eigen::Vector3d MPC_dcm_vrp_;
+    Eigen::Vector3d MPC_dcm_vrp_p_;
+    Eigen::Vector3d MPC_dcm_vrp_r_;
+    Eigen::Vector3d MPC_dcm_vrp_r_p_;
+    Eigen::Vector3d MPC_dcm_vrp_r_sc_;
+    Eigen::Vector3d MPC_dcm_vrp_r_p_sc_;
+    Eigen::Vector3d MPC_dcm_vrp_thread_;
+    Eigen::Vector3d MPC_dcm_vrp_p_thread_;
+    Eigen::Vector3d MPC_dcm_vrp_thread2_;
+    Eigen::Vector3d MPC_dcm_vrp_p_thread2_;
+    Eigen::Vector3d vrp_desired_;
+    Eigen::VectorXd vrp_u_b_;
+
+    double MPC_dcm_lambda_;
+    double MPC_dcm_lambda_p_;
+    double MPC_dcm_lambda_r_;
+    double MPC_dcm_lambda_r_p_;
+    double MPC_dcm_lambda_r_sc_;
+    double MPC_dcm_lambda_r_p_sc_;
+    double MPC_dcm_lambda_thread_;
+    double MPC_dcm_lambda_p_thread_;
+    double MPC_dcm_lambda_thread2_;
+    double MPC_dcm_lambda_p_thread2_;
+    Eigen::Vector2d MPC_dcm_zmp_;
+    Eigen::Vector2d MPC_dcm_zmp_p_;
+    Eigen::Vector2d MPC_dcm_zmp_r_;
+    Eigen::Vector2d MPC_dcm_zmp_r_p_;
+    Eigen::Vector2d MPC_dcm_zmp_r_sc_;
+    Eigen::Vector2d MPC_dcm_zmp_r_p_sc_;
+    Eigen::Vector2d MPC_dcm_zmp_thread_;
+    Eigen::Vector2d MPC_dcm_zmp_p_thread_;
+    Eigen::Vector2d MPC_dcm_zmp_thread2_;
+    Eigen::Vector2d MPC_dcm_zmp_p_thread2_;
+    Eigen::VectorXd MPC_dcm_delf_thread_;
+    Eigen::VectorXd MPC_dcm_delf_;
+    Eigen::VectorXd MPC_dcm_delf_fix_;
+    Eigen::VectorXd MPC_dcm_delf_fix_p_;
+    Eigen::VectorXd MPC_dcm_delf_p_;
+    Eigen::VectorXd delf_prev_step_;
+    Eigen::VectorXd MPC_dcm_delf_r_;
+    Eigen::VectorXd MPC_dcm_delf_r_p_;
+    
+    Eigen::Vector2d MPC_cp_zmp_;
+    Eigen::Vector2d MPC_cp_zmp_p_;
+    Eigen::Vector2d MPC_cp_zmp_r_;
+    Eigen::Vector2d MPC_cp_zmp_r_p_;
+    Eigen::Vector2d MPC_cp_zmp_thread2_;
+
+    //foot state
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_;     
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_thread_;   
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_thread2_;  
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_p_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_p_thread_; 
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_p_thread2_;
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_n_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_n_thread_; 
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_n_thread2_;
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_r_;        
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_r_p_;      
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_r_n_;      
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_r_sc_;     
+    Eigen::VectorXd MPC_qcqp_sqp_gurobi_foot_r_p_sc_;
+
+    Eigen::VectorXd MPC_qcqp_sqp_u_foot_;
+    Eigen::VectorXd MPC_qcqp_sqp_u_lfoot_;
+    Eigen::VectorXd MPC_qcqp_sqp_u_rfoot_;
+
+    std::atomic<bool> atb_mpc_qcqp_update_{false};
+    std::atomic<bool> atb_mpc_main_qcqp_update_{false};
+    std::atomic<bool> atb_mpc_cp_update_{false};
+    std::atomic<bool> atb_mpc_dcm_xyz_update_{false};
+
+    double com_start_tick_e_qcqp_;
+    double com_start_tick_e_qcqp_mpc_;
+    double com_start_tick_e_qcqp_thread_;
+
+    int current_step_num_qcqp_mpc_;
+    int current_step_num_qcqp_thread_;
+    int current_step_num_qcqp_thread2_;
+
+    Eigen::MatrixXd ref_zmp_e_;
+    Eigen::MatrixXd ref_zmp_e_mpc_;
+    Eigen::MatrixXd ref_zmp_e_thread_;
+
+    Eigen::MatrixXd ref_com_e_;
+    Eigen::MatrixXd ref_com_e_mpc_;
+    Eigen::MatrixXd ref_com_e_thread_;
+
+    Eigen::MatrixXd ref_lfoot_e_;
+    Eigen::MatrixXd ref_lfoot_e_mpc_;
+    Eigen::MatrixXd ref_lfoot_e_thread_;
+
+    Eigen::MatrixXd ref_rfoot_e_;
+    Eigen::MatrixXd ref_rfoot_e_mpc_;
+    Eigen::MatrixXd ref_rfoot_e_thread_;
+
+    Eigen::MatrixXd max_zmp_e_mpc_;
+    Eigen::MatrixXd max_zmp_e_thread_;
+    Eigen::MatrixXd min_zmp_e_mpc_;
+    Eigen::MatrixXd min_zmp_e_thread_;
+
+    int qcqp_e_interpol_cnt_ = 0;
+    int dcm_x_interpol_cnt_ = 0;
+    int dcm_y_interpol_cnt_ = 0;
+    int dcm_z_interpol_cnt_ = 0;
+    int dcm_xyz_interpol_cnt_ = 0;
+
+    Eigen::VectorXd qcqp_diff_;
+    double dcm_lambda_diff_;
+    Eigen::Vector2d dcm_zmp_diff_;
+
+    Eigen::VectorXd qcqp_foot_diff_;
+
+    Eigen::VectorXd qcqp_mpc_i_;
+    double dcm_lambda_i_;
+    Eigen::Vector2d dcm_zmp_i_;
+
+    Eigen::VectorXd qcqp_foot_mpc_i_;
+
+    Eigen::VectorXd qcqp_foot_mpc_cubic_calc_;
+    Eigen::VectorXd qcqp_foot_mpc_cubic_dot_calc_;
+
+    double qcqp_mpc_i_z_acc_b_ = 0.0;
+
+    double foot_step_end_cubic = 0.0;
+
 private:    
     //////////////////////////////// Myeong-Ju
     unsigned int walking_tick_mj = 0;
     unsigned int walking_tick_mj_mpc_ = 0;
     unsigned int walking_tick_mj_thread_ = 0;
+    unsigned int walking_tick_e_thread_ = 0;
+    unsigned int walking_tick_e_qcqp_mpc_ = 0;
+    unsigned int walking_tick_e_qcqp_thread_ = 0;
     unsigned int initial_tick_mj = 0;
     unsigned int initial_flag = 0;
     const double hz_ = 2000.0;  

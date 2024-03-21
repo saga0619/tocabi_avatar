@@ -35,6 +35,8 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
+  /opt/gurobi1001/linux64/lib/libgurobi_c++.a
+  /opt/gurobi1001/linux64/lib/libgurobi100.so
 )
 
 # target_link_libraries(${PROJECT_NAME} PUBLIC lexls::lexls)
