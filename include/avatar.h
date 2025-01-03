@@ -1638,8 +1638,6 @@ public:
     Eigen::MatrixXd ref_zmp_mj_wo_offset_;
     Eigen::MatrixXd ref_zmp_wo_offset_mpc_;
     Eigen::MatrixXd ref_zmp_wo_offset_thread_;
-    Eigen::MatrixXd ref_zmp_e_max_;
-    Eigen::MatrixXd ref_zmp_e_min_;
 
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_thread_;
@@ -1692,11 +1690,14 @@ public:
     double t_last_;
     double t_start_;
     double t_start_real_;
+    double t_start_mpc_;
+    double t_start_thread_;
     double t_temp_;  
     double t_rest_init_;
     double t_rest_last_;
     double t_double1_;
     double t_double2_;
+    double t_double2_const_;
     double t_total_;
     double t_total_const_;
     double t_total_thread_;
@@ -1726,6 +1727,9 @@ public:
     double target_z_;
     double com_height_;
     int is_right_foot_swing_;
+
+    int XmaxIndexIntp_;
+    int YmaxIndexIntp_;
 
     Eigen::Isometry3d lfoot_support_current_thread_;
     Eigen::Isometry3d rfoot_support_current_thread_;
@@ -1802,19 +1806,15 @@ public:
     void writeDataTxt();
     void getComTrajectory_Z_e();
     void comRefGenerator_Z_e();
-    void comRefGenerator_Z_e_thread();
+    void comfootRefGenerator_mpc();
     void comGenerator_MPC_Z_e(double MPC_z_freq, double T_z_, double preview_window_z_, int MPC_synchro_hz_);
     void footTerrainInt(Eigen::MatrixXd& foot_terrain_int);
-    void footTerrainInt_thread(Eigen::MatrixXd& foot_terrain_int);
+    void footTerrainInt_mpc(Eigen::MatrixXd& foot_terrain_int);
     void comGenerator(const unsigned int norm_size, const unsigned planning_step_num);
-    void comGenerator_thread(const unsigned int norm_size, const unsigned planning_step_num);
-    void onestepComz(unsigned int current_step_number, Eigen::VectorXd& temp_cz);
-    void onestepComz_thread(unsigned int current_step_number, Eigen::VectorXd& temp_cz);
-    void footPrevGenerator(const unsigned int norm_size, const unsigned planning_step_num);
-    void footPrevGenerator_thread(const unsigned int norm_size, const unsigned planning_step_num);
-    void onestepFootPrev(unsigned int current_step_number, Eigen::VectorXd& temp_lfx, Eigen::VectorXd& temp_lfy, Eigen::VectorXd& temp_lfz,
-                                                           Eigen::VectorXd& temp_rfx, Eigen::VectorXd& temp_rfy, Eigen::VectorXd& temp_rfz);
-    void onestepFootPrev_thread(unsigned int current_step_number, Eigen::VectorXd& temp_lfx, Eigen::VectorXd& temp_lfy, Eigen::VectorXd& temp_lfz,
+    void comGenerator_mpc(const unsigned int norm_size, const unsigned planning_step_num);
+    void onestepComz_mpc(unsigned int current_step_number, Eigen::VectorXd& temp_cz);
+    void footPrevGenerator_mpc(const unsigned int norm_size, const unsigned planning_step_num);
+    void onestepFootPrev_mpc(unsigned int current_step_number, Eigen::VectorXd& temp_lfx, Eigen::VectorXd& temp_lfy, Eigen::VectorXd& temp_lfz,
                                                                   Eigen::VectorXd& temp_rfx, Eigen::VectorXd& temp_rfy, Eigen::VectorXd& temp_rfz);
     //////////////////////////////// Econom2 variables
     Eigen::Vector2d zmp_desired_;
@@ -1825,7 +1825,7 @@ public:
     Eigen::VectorXd zmp_max_y_;
     Eigen::VectorXd zmp_min_y_;
 
-
+    int step_time_candidate_;
     bool param_sim_mode_;
     int param_qcqp_int_;
     int param_eng_int_;
@@ -1851,19 +1851,14 @@ public:
     double param_R_dcm_z_;
     double param_ext_force_time_;
     int param_ext_step_num_;
-    double econom2_calc;
-    //double zmp_x_max = 0.165;
+
     double zmp_x_max = 0.13;
-    //double zmp_x_min = 0.05;
-    //double zmp_x_min = 0.07;
     double zmp_x_min = 0.09;
-    //double zmp_x_min = 0.115;
-    //double zmp_y_max = 0.07;
-    double zmp_y_max = 0.065;
-    //double zmp_y_min = 0.07;
-    double zmp_y_min = 0.065;
+    double zmp_y_max = 0.075;
+    double zmp_y_min = 0.075;
     double height_diff = 0.0;
     double angle_diff = 0.0;
+
     Eigen::MatrixXd ref_com_z_e_;
     Eigen::MatrixXd ref_com_z_mpc_;
     Eigen::MatrixXd ref_com_z_thread_;
@@ -1989,16 +1984,20 @@ public:
     int qcqp_int_;
     int eng_int_;
 
-    void onestepZmp_e(unsigned int current_step_number, Eigen::VectorXd& temp_px_max, Eigen::VectorXd& temp_py_max, Eigen::VectorXd& temp_px_min, Eigen::VectorXd& temp_py_min);
     //3D DCM
 
     //Van RAL QCQP
     void comGenerator_MPC_qcqp(double mpc_qcqp_freq, double dt_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_);
+    //IS MPC QCQP
+    void IScomGenerator_MPC_qcqp(double mpc_qcqp_freq, double dt_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_);
     void comGenerator_MPC_ding(double mpc_qcqp_freq, double dt_qcqp_, double preview_window_qcqp_, int MPC_synchro_hz_);
     void dcmcontroller_MPC_e(double mpc_freq, double preview_window);
     void dcmcontroller_MPC_qcqp_e(double mpc_freq, double preview_window);
     void dcmcontroller_MPC_foot_e(double mpc_freq, double preview_window);
     void dcmcontroller_MPC_foot_e2(double mpc_freq, double preview_window);
+    void dcmcontroller_MPC_stepping(double mpc_freq, double preview_window);
+    void dcmcontroller_MPC_stepping2(double mpc_freq, double preview_window);
+    void econom2_thread_stepchange();
     void cpcontroller_MPC_foot_e(double mpc_freq, double preview_window);
     void getComFootTrajectory_mpc_qcqp();
     void footRefGenerator();
@@ -2007,7 +2006,6 @@ public:
 
     int run_planner_ = 1;
     CQuadraticProgram QCQP_mpc_;
-    CQuadraticProgram QCQP_mpc_temp_;
     CQuadraticProgram CP_mpc_;
     CQuadraticProgram DCM_mpc_t_;
     CQuadraticProgram DCM_qcqp_mpc_t_;
@@ -2037,6 +2035,9 @@ public:
     Eigen::MatrixXd Cp_qcqp_;
     Eigen::MatrixXd Cv_qcqp_;
     Eigen::MatrixXd Ca_qcqp_;
+    Eigen::MatrixXd Ccp_qcqp_;
+    Eigen::MatrixXd Ccv_qcqp_;
+    Eigen::MatrixXd Cvp_qcqp_;
     Eigen::MatrixXd Pzmps_qcqp_;
     Eigen::MatrixXd F_psi_dcm_;
     Eigen::MatrixXd F_psi_dcm_dcm_;
@@ -2047,7 +2048,14 @@ public:
     Eigen::MatrixXd Pps_qcqp_;
     Eigen::MatrixXd Pvs_qcqp_;
     Eigen::MatrixXd Pas_qcqp_;
+    Eigen::MatrixXd Pcps_qcqp_;
+    Eigen::MatrixXd Pcvs_qcqp_;
+    Eigen::MatrixXd Pvps_qcqp_;
     Eigen::MatrixXd Pzmpu_qcqp_;
+    Eigen::MatrixXd Pdps_dcm_;
+    Eigen::MatrixXd Pcps_dcm_;
+    Eigen::MatrixXd Pcvs_dcm_;
+    Eigen::MatrixXd Pvps_dcm_;
     Eigen::MatrixXd F_p_dcm_;
     Eigen::MatrixXd F_p_dcm_dcm_;
     Eigen::MatrixXd F_p_dcm_c_;
@@ -2057,19 +2065,33 @@ public:
     Eigen::MatrixXd Ppu_qcqp_;
     Eigen::MatrixXd Pvu_qcqp_;
     Eigen::MatrixXd Pau_qcqp_;
+    Eigen::MatrixXd Pcpu_qcqp_;
+    Eigen::MatrixXd Pcvu_qcqp_;
+    Eigen::MatrixXd Pvpu_qcqp_;
+    Eigen::MatrixXd Pdpu_dcm_;
+    Eigen::MatrixXd Pcpu_dcm_;
+    Eigen::MatrixXd Pcvu_dcm_;
+    Eigen::MatrixXd Pvpu_dcm_;
+    Eigen::MatrixXd P_is_qcqp_;
+    Eigen::MatrixXd P_is_qcqp_calc;
     Eigen::MatrixXd Qmat_qcqp_;
     Eigen::MatrixXd Qpy_mat_qcqp;
     Eigen::MatrixXd Qvy_mat_qcqp; 
     Eigen::MatrixXd Qay_mat_qcqp;
     Eigen::MatrixXd Ry_mat_qcqp;
     Eigen::MatrixXd Qmat_dcm_;
+    Eigen::MatrixXd Qmat_dcm_f_;
+    Eigen::MatrixXd Qmat_dcm_fs_;
     Eigen::MatrixXd Qmat_cp_;
     Eigen::MatrixXd Qmat_f_qcqp_;
     Eigen::MatrixXd theta_dcm_;
     Eigen::MatrixXd theta_cp_;
     Eigen::MatrixXd e1_dcm_;
     Eigen::MatrixXd e1_cp_;
-    Eigen::MatrixXd Qcalc_th4_;
+    Eigen::MatrixXd b_is_qcqp_;
+    Eigen::MatrixXd b_is_qcqp_calc;
+    Eigen::MatrixXd p_is_qcqp_;
+    Eigen::MatrixXd p_is_qcqp_calc;
     Eigen::MatrixXd Qxcalc_qcqp_;
     Eigen::MatrixXd Qxcalc_f_qcqp_;
     Eigen::MatrixXd Qycalc_qcqp_;
@@ -2079,49 +2101,55 @@ public:
     Eigen::MatrixXd Qcalc_qcqp_;
     Eigen::MatrixXd Qcalc_f_qcqp_;
     Eigen::MatrixXd Qcalc_dcm_;
+    Eigen::MatrixXd Qcalc_dcm_calc_;
     Eigen::MatrixXd Qcalc_dcm_qcqp_;
     Eigen::MatrixXd Qcalc_cp_;
     Eigen::MatrixXd deldel_Cgoal_;
     Eigen::MatrixXd deldel_Fgoal_;
     Eigen::MatrixXd deldel_Tgoal_;
     Eigen::MatrixXd deldel_Dgoal_;
-    Eigen::MatrixXd deldel_th4_;
     Eigen::MatrixXd gxyzcalc_qcqp_;
-    Eigen::MatrixXd gcalc_th4_;
     Eigen::MatrixXd gxcalc_qcqp_;
-    Eigen::MatrixXd gxcalc_f_qcqp_;
     Eigen::MatrixXd gycalc_qcqp_;
-    Eigen::MatrixXd gycalc_f_qcqp_;
     Eigen::MatrixXd gzcalc_qcqp_;
-    Eigen::MatrixXd gzcalc_f_qcqp_;
+    Eigen::MatrixXd gxcalc_qcqp2_;
+    Eigen::MatrixXd gycalc_qcqp2_;
+    Eigen::MatrixXd gzcalc_qcqp2_;
     Eigen::MatrixXd gcalc_qcqp_;
     Eigen::MatrixXd gcalc_dcm_;
+    Eigen::MatrixXd gcalc_dcm_cx_;
+    Eigen::MatrixXd gcalc_dcm_cy_;
+    Eigen::MatrixXd gcalc_dcm_cz_;
+    Eigen::MatrixXd gcalc_dcm_fx_;
+    Eigen::MatrixXd gcalc_dcm_fy_;
+    Eigen::MatrixXd gcalc_dcm_fsx_;
+    Eigen::MatrixXd gcalc_dcm_fsy_;
     Eigen::MatrixXd gcalc_dcm_qcqp_;
     Eigen::MatrixXd gcalc_cp_;
-    Eigen::MatrixXd gcalc_f_qcqp_;
-    Eigen::MatrixXd del_th4_;
     Eigen::MatrixXd del_cgoal_;
     Eigen::MatrixXd del_fgoal_;
-    Eigen::MatrixXd del_lfgoal_;
-    Eigen::MatrixXd del_rfgoal_;
     Eigen::MatrixXd del_tgoal_;
     Eigen::MatrixXd del_dgoal_;
     Eigen::MatrixXd SUx;
     Eigen::MatrixXd SUy;
     Eigen::MatrixXd SUz;
+    Eigen::MatrixXd dcm_Selection_;
     Eigen::MatrixXd dcm_SUx;
     Eigen::MatrixXd dcm_SUy;
     Eigen::MatrixXd dcm_SUz;
+    Eigen::MatrixXd dcm_eps_SUx;
+    Eigen::MatrixXd dcm_eps_SUy;
+    Eigen::MatrixXd dcm_eps_SUfx;
+    Eigen::MatrixXd dcm_eps_SUfy;
+    Eigen::MatrixXd dcm_eps_SUfs;
     Eigen::MatrixXd SUc;
     Eigen::MatrixXd dcm_SUc;
     Eigen::MatrixXd SUf;
     Eigen::MatrixXd dcm_SUf;
-    Eigen::MatrixXd SUlf;
-    Eigen::MatrixXd SUrf;
+    Eigen::MatrixXd dcm_SUfs;
     Eigen::MatrixXd dcm_Si3_;
     Eigen::MatrixXd dcm_Sfx;
     Eigen::MatrixXd dcm_Sfy;
-    Eigen::MatrixXd Si6;
     Eigen::MatrixXd dcm_Si;
     Eigen::MatrixXd Sx;
     Eigen::MatrixXd Sy;
@@ -2132,37 +2160,29 @@ public:
     Eigen::MatrixXd dcm_ssx;
     Eigen::MatrixXd dcm_ssy;
     Eigen::MatrixXd dcm_ssz;
-    Eigen::MatrixXd sx6;
-    Eigen::MatrixXd sy6;
-    Eigen::MatrixXd sz6;
-    Eigen::MatrixXd sx3;
-    Eigen::MatrixXd sy3;
-    Eigen::MatrixXd sz3;
     Eigen::MatrixXd sfx;
     Eigen::MatrixXd sfy;
     Eigen::MatrixXd sc;
-    Eigen::MatrixXd foot_constr_i_;
     Eigen::MatrixXd dcm_Sf_i_;
+    Eigen::MatrixXd dcm_Sf_i2_;
+    Eigen::MatrixXd calc_step_;
     int dcm_delf_fix_;
-    Eigen::MatrixXd Sip_foot_x_;
-    Eigen::MatrixXd Sip_foot_y_;
-    Eigen::MatrixXd Sip_foot_z_;
-    Eigen::MatrixXd Siv_foot_x_;
-    Eigen::MatrixXd Siv_foot_y_;
-    Eigen::MatrixXd Siv_foot_z_;
-    Eigen::MatrixXd Sia_foot_x_;
-    Eigen::MatrixXd Sia_foot_y_;
-    Eigen::MatrixXd Sia_foot_z_;
-    Eigen::MatrixXd si_foot_x_;
-    Eigen::MatrixXd si_foot_y_;
-    Eigen::MatrixXd si_foot_z_;
 
-    Eigen::VectorXd foot_desired_;
+    Eigen::VectorXd del_cu_;
 
+    Eigen::VectorXd calc_lbA_;
+    Eigen::MatrixXd calc_const_del_;
+    Eigen::MatrixXd calc_const_;
+
+    Eigen::MatrixXd Pv_dot_ref_;
     //Constraint
     //zmp
     Eigen::MatrixXd Const_Psi_zx;
     Eigen::MatrixXd Const_Psi_zy;
+    Eigen::MatrixXd Const_Psi_zx_N_;
+    Eigen::MatrixXd Const_Psi_zy_N_;
+    Eigen::MatrixXd Const_Pi_zx_N_;
+    Eigen::MatrixXd Const_Pi_zy_N_;
 
     Eigen::MatrixXd Const_Pi_zx_u;
     Eigen::MatrixXd Const_Pi_zx_l;
@@ -2172,9 +2192,21 @@ public:
     Eigen::MatrixXd Const_pi_zx_calc;
     Eigen::MatrixXd Const_pi_zx_u_tp;
     Eigen::MatrixXd Const_pi_zx_l_tp;
+    Eigen::MatrixXd Const_pi_zx_calc_N_;
+    Eigen::MatrixXd Const_pi_zx_N_;
+    Eigen::MatrixXd Const_pi_z_N_;
+
     Eigen::MatrixXd Const_pi_zy_calc;
     Eigen::MatrixXd Const_pi_zy_u_tp;
     Eigen::MatrixXd Const_pi_zy_l_tp;
+    Eigen::MatrixXd Const_pi_zy_calc_N_;
+    Eigen::MatrixXd Const_pi_zy_N_;
+
+    Eigen::MatrixXd Const_pi_zz_calc;
+    Eigen::MatrixXd Const_pi_zz_calc_N_;
+    Eigen::MatrixXd Const_pi_zz_u_tp;
+    Eigen::MatrixXd Const_pi_zz_l_tp;
+    Eigen::MatrixXd Const_pi_zz_N_;
 
     Eigen::MatrixXd Const_ri_zx_calc;
     Eigen::MatrixXd Const_ri_zx_u;
@@ -2182,45 +2214,47 @@ public:
     Eigen::MatrixXd Const_ri_zy_calc;
     Eigen::MatrixXd Const_ri_zy_u;
     Eigen::MatrixXd Const_ri_zy_l;
+    Eigen::MatrixXd Const_ri_zz_calc;
+    Eigen::MatrixXd Const_ri_zz_u;
+    Eigen::MatrixXd Const_ri_zz_l;
+    Eigen::MatrixXd Const_ri_z_calc;
     
+    Eigen::MatrixXd Const_del_hi_zx_calc_;
     Eigen::MatrixXd Const_del_hi_zx_u;
     Eigen::MatrixXd Const_del_hi_zx_l;
+    Eigen::MatrixXd Const_del_hi_zy_calc_;
     Eigen::MatrixXd Const_del_hi_zy_u;
     Eigen::MatrixXd Const_del_hi_zy_l;
+    Eigen::MatrixXd Const_del_hi_zz_u;
+    Eigen::MatrixXd Const_del_hi_zz_l;
+    Eigen::MatrixXd Const_del_hi_dcmx_calc_;
+    Eigen::MatrixXd Const_del_hi_dcmy_calc_;
 
+    Eigen::MatrixXd Const_hi_zx_calc_;
     Eigen::MatrixXd Const_hi_zx_u;
     Eigen::MatrixXd Const_hi_zx_l;
+    Eigen::MatrixXd Const_hi_zy_calc_;
     Eigen::MatrixXd Const_hi_zy_u;
     Eigen::MatrixXd Const_hi_zy_l;
+    Eigen::MatrixXd Const_hi_zz_calc_;
+    Eigen::MatrixXd Const_hi_zz_u;
+    Eigen::MatrixXd Const_hi_zz_l;
+    Eigen::MatrixXd Const_hi_dcmx_calc_;
+    Eigen::MatrixXd Const_hi_dcmy_calc_;
 
     Eigen::MatrixXd Const_del_zmp_;
     Eigen::MatrixXd Const_zmp_;
 
-    //foot
-    Eigen::MatrixXd Const_Psi_fz;
+    //IS MPC
+    Eigen::MatrixXd Const_Pi_is_eq_;
+    Eigen::MatrixXd Const_pi_is_eq_;
+    Eigen::MatrixXd Const_ri_is_eq_;
 
-    Eigen::MatrixXd Const_Pi_fz_u;
-    Eigen::MatrixXd Const_Pi_fz_l;
+    Eigen::MatrixXd Const_del_hi_is_eq_;
+    Eigen::MatrixXd Const_hi_is_eq_;
 
-    Eigen::MatrixXd Const_pi_fz_calc;
-    Eigen::MatrixXd Const_pi_fz_u_tp;
-    Eigen::MatrixXd Const_pi_fz_l_tp;
-
-    Eigen::MatrixXd Const_ri_fz_calc;
-    Eigen::MatrixXd Const_ri_fz_u;
-    Eigen::MatrixXd Const_ri_fz_l;
-    
-    Eigen::MatrixXd Const_del_hi_fz_u;
-    Eigen::MatrixXd Const_del_hi_fz_l;
-
-    Eigen::MatrixXd Const_hi_fz_u;
-    Eigen::MatrixXd Const_hi_fz_l;
-
-    Eigen::MatrixXd Const_del_fz_;
-    Eigen::MatrixXd Const_fz_;
-
-    Eigen::MatrixXd Const_del_z_;
-    Eigen::MatrixXd Const_z_;
+    Eigen::MatrixXd Const_del_is_eq_;
+    Eigen::MatrixXd Const_is_eq_;
 
     //leg length
     Eigen::MatrixXd Const_Psi_ll;
@@ -2270,25 +2304,35 @@ public:
 
     //dcm qcqp
     Eigen::MatrixXd Const_Psi_dcm_zmpx;
+    Eigen::MatrixXd Const_Psi_dcm_zmpx_calc;
+    Eigen::MatrixXd Const_Psi_dcm_zmpx_calc_N_;
     Eigen::MatrixXd Const_Psi_dcm_zmpy;
-    Eigen::MatrixXd Const_Psi_dcm_ll;
+    Eigen::MatrixXd Const_Psi_dcm_zmpy_calc;
+    Eigen::MatrixXd Const_Psi_dcm_zmpy_calc_N_;
 
     Eigen::MatrixXd Const_Pi_dcm_zmpx_u;
     Eigen::MatrixXd Const_Pi_dcm_zmpx_l;
     Eigen::MatrixXd Const_Pi_dcm_zmpy_u;
     Eigen::MatrixXd Const_Pi_dcm_zmpy_l;
-    Eigen::MatrixXd Const_Pi_dcm_ll_u;
-    Eigen::MatrixXd Const_Pi_dcm_ll_l;
 
     Eigen::MatrixXd Const_pi_dcm_zmpx_calc;
+    Eigen::MatrixXd Const_pi_dcm_zmpx_calc_N_;
     Eigen::MatrixXd Const_pi_dcm_zmpx_u_tp;
     Eigen::MatrixXd Const_pi_dcm_zmpx_l_tp;
     Eigen::MatrixXd Const_pi_dcm_zmpy_calc;
+    Eigen::MatrixXd Const_pi_dcm_zmpy_calc_N_;
     Eigen::MatrixXd Const_pi_dcm_zmpy_u_tp;
     Eigen::MatrixXd Const_pi_dcm_zmpy_l_tp;
-    Eigen::MatrixXd Const_pi_dcm_ll_calc;
-    Eigen::MatrixXd Const_pi_dcm_ll_u_tp;
-    Eigen::MatrixXd Const_pi_dcm_ll_l_tp;
+    Eigen::MatrixXd Const_pi_dcm_zmp_calc_N_;
+    Eigen::MatrixXd Const_pi_dcm_zmpz_calc_N_;
+    Eigen::MatrixXd Const_pi_dcm_zz_calc;
+    Eigen::MatrixXd Const_pi_dcm_zz_calc_N_;
+    Eigen::MatrixXd Const_pi_dcm_zz_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_zz_l_tp;
+    Eigen::MatrixXd Const_pi_dcm_epsx_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_epsx_l_tp;
+    Eigen::MatrixXd Const_pi_dcm_epsy_u_tp;
+    Eigen::MatrixXd Const_pi_dcm_epsy_l_tp;
     
     Eigen::MatrixXd Const_ri_dcm_zmpx_calc;
     Eigen::MatrixXd Const_ri_dcm_zmpx_u;
@@ -2296,32 +2340,46 @@ public:
     Eigen::MatrixXd Const_ri_dcm_zmpy_calc;
     Eigen::MatrixXd Const_ri_dcm_zmpy_u;
     Eigen::MatrixXd Const_ri_dcm_zmpy_l;
-    Eigen::MatrixXd Const_ri_dcm_ll_calc;
-    Eigen::MatrixXd Const_ri_dcm_ll_u;
-    Eigen::MatrixXd Const_ri_dcm_ll_l;
+    Eigen::MatrixXd Const_ri_dcm_zz_calc;
+    Eigen::MatrixXd Const_ri_dcm_zz_u_tp;
+    Eigen::MatrixXd Const_ri_dcm_zz_l_tp;
+    Eigen::MatrixXd Const_ri_dcm_epsx_u;
+    Eigen::MatrixXd Const_ri_dcm_epsx_l;
+    Eigen::MatrixXd Const_ri_dcm_epsy_u;
+    Eigen::MatrixXd Const_ri_dcm_epsy_l;
 
     Eigen::MatrixXd Const_del_hi_dcm_zmpx_u;
     Eigen::MatrixXd Const_del_hi_dcm_zmpx_l;
     Eigen::MatrixXd Const_del_hi_dcm_zmpy_u;
     Eigen::MatrixXd Const_del_hi_dcm_zmpy_l;
-    Eigen::MatrixXd Const_del_hi_dcm_ll_u;
-    Eigen::MatrixXd Const_del_hi_dcm_ll_l;
+    Eigen::MatrixXd Const_del_hi_dcm_zz_u;
+    Eigen::MatrixXd Const_del_hi_dcm_zz_l;
+    Eigen::MatrixXd Const_del_hi_dcm_epsx_u;
+    Eigen::MatrixXd Const_del_hi_dcm_epsx_l;
+    Eigen::MatrixXd Const_del_hi_dcm_epsy_u;
+    Eigen::MatrixXd Const_del_hi_dcm_epsy_l;
 
     Eigen::MatrixXd Const_hi_dcm_zmpx_u;
     Eigen::MatrixXd Const_hi_dcm_zmpx_l;
     Eigen::MatrixXd Const_hi_dcm_zmpy_u;
     Eigen::MatrixXd Const_hi_dcm_zmpy_l;
-    Eigen::MatrixXd Const_hi_dcm_ll_u;
-    Eigen::MatrixXd Const_hi_dcm_ll_l;
+    Eigen::MatrixXd Const_hi_dcm_zz_u;
+    Eigen::MatrixXd Const_hi_dcm_zz_l;
+    Eigen::MatrixXd Const_hi_dcm_epsx_u;
+    Eigen::MatrixXd Const_hi_dcm_epsx_l;
+    Eigen::MatrixXd Const_hi_dcm_epsy_u;
+    Eigen::MatrixXd Const_hi_dcm_epsy_l;
 
     Eigen::MatrixXd Const_del_dcm_zmp_;
-    Eigen::MatrixXd Const_del_dcm_ll_;
     Eigen::MatrixXd Const_dcm_zmp_;
-    Eigen::MatrixXd Const_dcm_ll_;
+
+    Eigen::MatrixXd Const_dcm_stepx_calc_;
+    Eigen::MatrixXd Const_dcm_stepy_calc_;
 
 
     //state
     Eigen::VectorXd MPC_qcqp_dcm_foot_u_;
+    Eigen::VectorXd MPC_qcqp_dcm_step_eps_u_;
     Eigen::VectorXd MPC_qcqp_;
     Eigen::VectorXd MPC_th4_;
     Eigen::VectorXd MPC_qcqp_gurobi_;
@@ -2341,9 +2399,14 @@ public:
     Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_sc_;     
     Eigen::VectorXd MPC_qcqp_sqp_gurobi_r_p_sc_;
     Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_;
+    Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_r_;
     Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_thread_;
-    Eigen::Vector3d MPC_qcqp_sqp_gurobi_u_thread2_;
     Eigen::VectorXd qcqp_sqp_com_calc_;
+    Eigen::VectorXd state_calc_;
+    Eigen::VectorXd vrp_state_calc_;
+    Eigen::VectorXd MPC_vrp_state_calc_thread_;
+    Eigen::VectorXd MPC_vrp_state_calc_r_;
+    Eigen::VectorXd MPC_vrp_state_calc_;
     int MPC_qcqp_sqp_planner_hz_;
 
     Eigen::Vector2d MPC_qcqp_zmp_;
@@ -2357,6 +2420,7 @@ public:
     Eigen::MatrixXd MPC_qcqp_sqp_gurobi_cp_prev_;
     Eigen::MatrixXd MPC_qcqp_sqp_gurobi_com_prev_;
     Eigen::MatrixXd MPC_qcqp_sqp_gurobi_com_prev_p_;
+    Eigen::MatrixXd MPC_dcm_com_prev_;
     Eigen::VectorXd MPC_qcqp_sqp_u_;
     Eigen::VectorXd MPC_qcqp_sqp_u_p_;
     Eigen::VectorXd th4_u_;
@@ -2373,6 +2437,9 @@ public:
     Eigen::Vector3d MPC_dcm_vrp_p_thread_;
     Eigen::Vector3d MPC_dcm_vrp_thread2_;
     Eigen::Vector3d MPC_dcm_vrp_p_thread2_;
+    Eigen::Vector3d MPC_dcm_vrp_dot_;
+    Eigen::Vector3d MPC_dcm_vrp_dot_thread_;
+    Eigen::Vector3d MPC_dcm_vrp_dot_r_;
     Eigen::Vector3d vrp_desired_;
     Eigen::VectorXd vrp_u_b_;
 
@@ -2401,6 +2468,11 @@ public:
     Eigen::VectorXd MPC_dcm_delf_fix_;
     Eigen::VectorXd MPC_dcm_delf_fix_p_;
     Eigen::VectorXd MPC_dcm_delf_p_;
+    Eigen::VectorXd MPC_dcm_eps_p_;
+    Eigen::VectorXd MPC_dcm_eps_;
+    Eigen::VectorXd MPC_dcm_eps_fix_;
+    Eigen::VectorXd MPC_dcm_eps_fix_thread_;
+    Eigen::VectorXd MPC_dcm_eps_fix_r_;
     Eigen::VectorXd delf_prev_step_;
     Eigen::VectorXd delf_calc_;
     Eigen::VectorXd MPC_dcm_delf_r_;
@@ -2461,11 +2533,6 @@ public:
     Eigen::MatrixXd ref_rfoot_e_mpc_;
     Eigen::MatrixXd ref_rfoot_e_thread_;
 
-    Eigen::MatrixXd max_zmp_e_mpc_;
-    Eigen::MatrixXd max_zmp_e_thread_;
-    Eigen::MatrixXd min_zmp_e_mpc_;
-    Eigen::MatrixXd min_zmp_e_thread_;
-
     int qcqp_e_interpol_cnt_ = 0;
     int dcm_x_interpol_cnt_ = 0;
     int dcm_y_interpol_cnt_ = 0;
@@ -2476,20 +2543,9 @@ public:
     double dcm_lambda_diff_;
     Eigen::Vector2d dcm_zmp_diff_;
 
-    Eigen::VectorXd qcqp_foot_diff_;
-
     Eigen::VectorXd qcqp_mpc_i_;
     double dcm_lambda_i_;
     Eigen::Vector2d dcm_zmp_i_;
-
-    Eigen::VectorXd qcqp_foot_mpc_i_;
-
-    Eigen::VectorXd qcqp_foot_mpc_cubic_calc_;
-    Eigen::VectorXd qcqp_foot_mpc_cubic_dot_calc_;
-
-    double qcqp_mpc_i_z_acc_b_ = 0.0;
-
-    double foot_step_end_cubic = 0.0;
 
 private:    
     //////////////////////////////// Myeong-Ju
