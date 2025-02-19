@@ -754,7 +754,7 @@ void AvatarController::computeSlow()
             atb_grav_update_ = true;
             Gravity_MJ_fast_ = Gravity_MJ_;
             atb_grav_update_ = false;
-        }  
+        }
 
         // edited by MJ (Initial upper body trajectory generation for CAM control /220110)
         //if(initial_tick_mj <= 2.0 * hz_)
