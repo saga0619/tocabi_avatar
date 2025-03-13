@@ -81,69 +81,6 @@ AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 
     bool urdfmode = false;
     std::string urdf_path, desc_package_path;
-    ros::param::get("/tocabi_controller/urdf_path", desc_package_path);
-    ros::param::get("/tocabi_controller/sim_mode", param_sim_mode_);
-    ros::param::get("/econom2_ext_time",param_ext_force_time_);
-    ros::param::get("/econom2_extforce",ext_force_);
-    ros::param::get("/econom2_exttheta",ext_theta_);
-    ros::param::get("/econom2_qcqp_int",param_qcqp_int_);
-
-    ros::param::get("/econom2_R_dcm_x",param_R_dcm_x_);
-    ros::param::get("/econom2_R_f_x",param_R_f_x_);
-    ros::param::get("/econom2_R_df_x",param_R_df_x_);
-    ros::param::get("/econom2_f_x_min",param_f_x_min_);
-
-    ros::param::get("/econom2_Q_dcm_y",param_Q_dcm_y_);
-    ros::param::get("/econom2_R_dcm_y",param_R_dcm_y_);
-    ros::param::get("/econom2_R_f_y",param_R_f_y_);
-    ros::param::get("/econom2_R_df_y",param_R_df_y_);
-    ros::param::get("/econom2_f_y_max",param_f_y_max_);
-
-    ros::param::get("/econom2_Q_dcm_z",param_Q_dcm_z_);
-    ros::param::get("/econom2_R_dcm_z",param_R_dcm_z_);
-    
-    /*
-    ros::param::get("/econom2_qcqp_int", param_qcqp_int_);
-    ros::param::get("/econom2_Qcpz", param_Qcpz_);
-    ros::param::get("/econom2_Qcvz", param_Qcvz_);
-    ros::param::get("/econom2_Qcaz", param_Qcaz_);
-    ros::param::get("/econom2_Czrefcalc", param_Czref_calc_);
-
-    ros::param::get("/econom2_target_x",param_target_x_);
-    ros::param::get("/econom2_step_x",param_step_x_);
-
-    ros::param::get("/econom2_ext_time",param_ext_force_time_);
-    ros::param::get("/econom2_ext_step_num",param_ext_step_num_);
-
-    ros::param::get("/econom2_extforce",ext_force_);
-    ros::param::get("/econom2_exttheta",ext_theta_);
-    
-    ros::param::get("/econom2_Q_dcm_x",param_Q_dcm_x_);
-    ros::param::get("/econom2_R_dcm_x",param_R_dcm_x_);
-    ros::param::get("/econom2_R_f_x",param_R_f_x_);
-    ros::param::get("/econom2_R_df_x",param_R_df_x_);
-    ros::param::get("/econom2_f_x_max",param_f_x_max_);
-
-    ros::param::get("/econom2_Q_dcm_y",param_Q_dcm_y_);
-    ros::param::get("/econom2_R_dcm_y",param_R_dcm_y_);
-    ros::param::get("/econom2_R_f_y",param_R_f_y_);
-    ros::param::get("/econom2_R_df_y",param_R_df_y_);
-    ros::param::get("/econom2_f_y_max",param_f_y_max_);
-
-    ros::param::get("/econom2_Q_dcm_z",param_Q_dcm_z_);
-    ros::param::get("/econom2_R_dcm_z",param_R_dcm_z_);
-
-    ros::param::get("/econom2_R_df_y_calc",param_R_df_y_calc_);
-    ros::param::get("/econom2_R_df_y_error",param_R_df_y_error_);
-    */
-    // if (urdfmode)
-    // {
-    //     urdf_path = desc_package_path + "/dyros_tocabi_ankleRollDamping.urdf";
-    // }
-    // else
-    // {
-    //     urdf_path = desc_package_path + "/dyros_tocabi.urdf";
-    // }
 
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_d_, true, false);
     RigidBodyDynamics::Addons::URDFReadFromFile(desc_package_path.c_str(), &model_c_, true, false);
