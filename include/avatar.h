@@ -1803,7 +1803,6 @@ public:
     Eigen::VectorQd q_mj_prev;
 
     //////////////////////////////// Econom2 function
-    void writeDataTxt();
     void getComTrajectory_Z_e();
     void comRefGenerator_Z_e();
     void comfootRefGenerator_mpc();
