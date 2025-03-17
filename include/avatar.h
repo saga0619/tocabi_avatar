@@ -1631,6 +1631,26 @@ public:
     Eigen::Vector2d zmp_measured_FT_;
     Eigen::Vector2d zmp_measured_FT_LPF_;
 
+    double Tau_L_x_error_ = 0;
+    double Tau_L_x_error_pre_ = 0;
+    double Tau_L_x_error_dot_ = 0;    
+
+    double Tau_L_y_error_ = 0;
+    double Tau_L_y_error_pre_ = 0;
+    double Tau_L_y_error_dot_ = 0;    
+
+    double Tau_R_x_error_ = 0;
+    double Tau_R_x_error_pre_ = 0;
+    double Tau_R_x_error_dot_ = 0;    
+
+    double Tau_R_y_error_ = 0;
+    double Tau_R_y_error_pre_ = 0;
+    double Tau_R_y_error_dot_ = 0;    
+
+    double F_F_error_ = 0;
+    double F_F_error_pre_ = 0;
+    double F_F_error_dot_ = 0;
+    
     double P_angle_i = 0;
     double P_angle = 0;
     double P_angle_input_dot = 0;
