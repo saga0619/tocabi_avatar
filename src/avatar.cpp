@@ -9,8 +9,8 @@ ofstream e_mpc_time_graph2("/home/econom2-20/data/e_mpc_time_graph2.txt");
 ofstream e_mpc_time_graph11("/home/econom2-20/data/e_mpc_time_graph11.txt");
 ofstream e_mpc_time_graph12("/home/econom2-20/data/e_mpc_time_graph12.txt");
 
-//ofstream e_tmp_graph1("/home/econom2-20/data/e_tmp_graph1.txt");
-//ofstream e_tmp_graph2("/home/econom2-20/data/e_tmp_graph2.txt");
+ofstream e_tmp_graph1("/home/econom2-20/data/e_tmp_graph1.txt");
+ofstream e_tmp_graph2("/home/econom2-20/data/e_tmp_graph2.txt");
 ofstream e_tmp_graph3("/home/econom2-20/data/e_tmp_graph3.txt");
 ofstream e_tmp_graph4("/home/econom2-20/data/e_tmp_graph4.txt");
 ofstream e_tmp_graph5("/home/econom2-20/data/e_tmp_graph5.txt");
@@ -35,6 +35,8 @@ ofstream e_tmp_graph23("/home/econom2-20/data/e_tmp_graph23.txt");
 ofstream e_tmp_graph24("/home/econom2-20/data/e_tmp_graph24.txt");
 ofstream e_tmp_graph25("/home/econom2-20/data/e_tmp_graph25.txt");
 ofstream e_tmp_graph26("/home/econom2-20/data/e_tmp_graph26.txt");
+ofstream e_tmp_graph27("/home/econom2-20/data/e_tmp_graph27.txt");
+ofstream e_tmp_graph28("/home/econom2-20/data/e_tmp_graph28.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -585,21 +587,15 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
-if(walking_tick_ == 0) { cout << "00" << endl; }
+
             updateInitialState();     
-if(walking_tick_ == 0) { cout << "00" << endl; }
             getRobotState(); 
-if(walking_tick_ == 0) { cout << "00" << endl; }
             floatToSupportFootstep();      
-if(walking_tick_ == 0) { cout << "00" << endl; }
+
             if (current_step_num_ < total_step_num_)
             {   
-if(walking_tick_ == 0) { cout << "00" << endl; }
                 getZmpTrajectory();
-if(walking_tick_ == 0) { cout << "00" << endl; }
-if(walking_tick_ == 0) { cout << endl; }
                 getComTrajectory_mpc();
-
                 getFootTrajectory_stepping();
 
                 getPelvTrajectory();           
@@ -5494,17 +5490,22 @@ void AvatarController::computeThread3()
     {
         atb_mpc_to_main_update_ = true;
 
-        MPC_Planner_state_container_from_mpc_    = MPC_Planner_state_mpc_;
+        step_enable_bool_container_from_mpc_               = step_enable_bool_mpc_;
 
-        MPC_Planner_u_container_from_mpc_        = MPC_Planner_u_mpc_;
+        MPC_Stabilizer_time_adj_tick_x_container_from_mpc_ = MPC_Stabilizer_time_adj_tick_x_mpc_;
+        MPC_Stabilizer_time_adj_tick_y_container_from_mpc_ = MPC_Stabilizer_time_adj_tick_y_mpc_;
 
-        current_step_num_container_from_mpc_     = current_step_num_mpc_;
+        MPC_Planner_state_container_from_mpc_              = MPC_Planner_state_mpc_;
 
-        MPC_Stabilizer_state_container_from_mpc_ = MPC_Stabilizer_state_mpc_;
+        MPC_Planner_u_container_from_mpc_                  = MPC_Planner_u_mpc_;
 
-        MPC_Stabilizer_u_container_from_mpc_     = MPC_Stabilizer_u_mpc_;
+        current_step_num_container_from_mpc_               = current_step_num_mpc_;
 
-        MPC_Stabilizer_delf_container_from_mpc_  = MPC_Stabilizer_delf_mpc_;
+        MPC_Stabilizer_state_container_from_mpc_           = MPC_Stabilizer_state_mpc_;
+
+        MPC_Stabilizer_u_container_from_mpc_               = MPC_Stabilizer_u_mpc_;
+
+        MPC_Stabilizer_delf_container_from_mpc_            = MPC_Stabilizer_delf_mpc_;
 
         atb_mpc_to_main_update_ = false;
     }
@@ -5518,8 +5519,7 @@ void AvatarController::computeThread3()
 
 void AvatarController::econom2_thread_stepchange()
 {
-    //foot_step_support_frame_mpc_(current_step_num_mpc_, 0) += MPC_Stabilizer_delf_mpc_(0*step_time_candidate_) - foot_step_support_frame_mpc_(current_step_num_mpc_, 0);
-    //foot_step_support_frame_mpc_(current_step_num_mpc_, 1) += MPC_Stabilizer_delf_mpc_(1*step_time_candidate_) - foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
+    foot_step_support_frame_mpc_(current_step_num_mpc_, 1) += MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, step_time_candidate_).sum() - foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
     if((walking_tick_mpc_ - (t_start_mpc_ + t_total_const_) >= -hz_/thread3_hz_) && (current_step_num_mpc_ < total_step_num_ - 1))
     {
         Eigen::Vector3d var_after_step_change, var_before_step_change, frame_pos_diff;
@@ -5594,8 +5594,7 @@ void AvatarController::econom2_thread_stepchange()
         MPC_Stabilizer_state_mpc_(5) = var_after_step_change(1);
         MPC_Stabilizer_state_mpc_(8) = var_after_step_change(2);
     }
-    //foot_step_support_frame_mpc_(current_step_num_mpc_, 0) -= MPC_Stabilizer_delf_mpc_(0*step_time_candidate_) - foot_step_support_frame_mpc_(current_step_num_mpc_, 0);
-    //foot_step_support_frame_mpc_(current_step_num_mpc_, 1) -= MPC_Stabilizer_delf_mpc_(1*step_time_candidate_) - foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
+    foot_step_support_frame_mpc_(current_step_num_mpc_, 1) -= MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, step_time_candidate_).sum() - foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
 }
 
 void AvatarController::savePreData()
@@ -7239,8 +7238,8 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.01; //mj
-    rfoot_zmp_offset_ =  0.01;
+    lfoot_zmp_offset_ = -0.02; //mj
+    rfoot_zmp_offset_ =  0.02;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -7281,15 +7280,17 @@ void AvatarController::getZmpTrajectory()
     if (current_step_num_ == 0)
     { planning_zmp_size = planning_zmp_size + t_temp_ + 1; }
 
-
-if(walking_tick_ == 0) { cout << "11" << endl; }
     addZmpOffset(); 
-if(walking_tick_ == 0) { cout << "11" << endl; }
+
+    foot_step_support_frame_.block(current_step_num_, 0, 1, 2)        += del_F_.transpose();
+    foot_step_support_frame_offset_.block(current_step_num_, 0, 1, 2) += del_F_.transpose();
     zmpGenerator(planning_zmp_size, planning_step_number);
-if(walking_tick_ == 0) { cout << "11" << endl; }
+    foot_step_support_frame_.block(current_step_num_, 0, 1, 2)        -= del_F_.transpose(); 
+    foot_step_support_frame_offset_.block(current_step_num_, 0, 1, 2) -= del_F_.transpose();
+
     zmp_desired_(0) = ref_zmp_(walking_tick_ - (bool)current_step_num_*t_start_,0);
     zmp_desired_(1) = ref_zmp_(walking_tick_ - (bool)current_step_num_*t_start_,1);
-if(walking_tick_ == 0) { cout << "11" << endl; }
+
     ref_zmp_wo_offset_mpc_.resize(planning_zmp_size, 2);
     ref_zmp_mpc_.resize(planning_zmp_size, 2);
     ref_zmp_container_to_mpc_.resize(planning_zmp_size,2);
@@ -7305,39 +7306,34 @@ void AvatarController::zmpGenerator(const unsigned int norm_size, const unsigned
 
     unsigned int index = 0;
     double t_total_zmp = t_total_;
-if(walking_tick_ == 0) { cout << "22" << endl; }
-if(walking_tick_ == 0) { cout << norm_size << endl; }
+    
+    e_tmp_graph28 << t_total_zmp                                     << "," << t_total_                                        << "," 
+                  << t_total_ - MPC_Stabilizer_time_adj_tick_x_main_ << "," << t_total_ - MPC_Stabilizer_time_adj_tick_y_main_ << ","
+                  << endl;
+
     if (current_step_num_ == 0)  
     {
-if(walking_tick_ == 0) { cout << "33" << endl; }
-if(walking_tick_ == 0) { cout << com_support_init_.transpose() << endl; }
         ref_zmp_.block(0, 0, 1.0*hz_, 1).setConstant(com_support_init_(0));
-if(walking_tick_ == 0) { cout << "33" << endl; }
         ref_zmp_.block(0, 1, 1.0*hz_, 1).setConstant(com_support_init_(1));
-if(walking_tick_ == 0) { cout << "33" << endl; }
+
         ref_zmp_wo_offset_.block(0, 0, 1.0*hz_, 1).setConstant(com_support_init_(0));
-if(walking_tick_ == 0) { cout << "33" << endl; }
         ref_zmp_wo_offset_.block(0, 1, 1.0*hz_, 1).setConstant(com_support_init_(1));
 
         index = index + 1.0*hz_;
-if(walking_tick_ == 0) { cout << "33" << endl; }
+
         for (int i = 1.0*hz_; i < 2.0*hz_; i++)
         {
             double del_x = i - 1.0 * hz_;
-if(walking_tick_ == 0) { cout << i << endl; }
-if(walking_tick_ == 0) { cout << norm_size << endl; }
-if(walking_tick_ == 0) { cout << "3333" << endl; }
-if(walking_tick_ == 0) { cout << ref_zmp_.rows() << endl; }
+
             ref_zmp_(i, 0) = com_support_init_(0) - del_x * com_support_init_(0) / (1.0 * hz_);
             ref_zmp_(i, 1) = com_support_init_(1);
-if(walking_tick_ == 0) { cout << "3333" << endl; }
+
             ref_zmp_wo_offset_(i, 0) = com_support_init_(0) - del_x * com_support_init_(0) / (1.0 * hz_);
             ref_zmp_wo_offset_(i, 1) = com_support_init_(1);
 
             index++;
         }
-if(walking_tick_ == 0) { cout << endl; }
-if(walking_tick_ == 0) { cout << "33" << endl; }
+
         ref_zmp_.block(2.0*hz_, 0, t_temp_ - 2.0*hz_, 1).setConstant(0.0);
         ref_zmp_.block(2.0*hz_, 1, t_temp_ - 2.0*hz_, 1).setConstant(com_support_init_(1));
         ref_zmp_wo_offset_.block(2.0*hz_, 0, t_temp_ - 2.0*hz_, 1).setConstant(0.0);
@@ -7346,7 +7342,7 @@ if(walking_tick_ == 0) { cout << "33" << endl; }
         index = index + t_temp_ - 2.0*hz_;
     }
     /////////////////////////////////////////////////////////////////////.
-if(walking_tick_ == 0) { cout << "22" << endl; }
+
     if(current_step_num_ >= total_step_num_ - planning_step_num)
     {   
         for(unsigned int i = current_step_num_; i < total_step_num_; i++)
@@ -7374,18 +7370,11 @@ if(walking_tick_ == 0) { cout << "22" << endl; }
     {       
         for (unsigned int i = current_step_num_; i < current_step_num_ + planning_step_num; i++)
         {   
-if(walking_tick_ == 0) { cout << i << endl; }
-if(walking_tick_ == 0) { cout << "44" << endl; }
             onestepZmp_wo_offset(i, t_total_zmp, temp_px, temp_py, temp_px_wo_offset, temp_py_wo_offset); // temp px, py에 1 step의 ZMP를 planning step num 번 담는다.
-if(walking_tick_ == 0) { cout << "44" << endl; }
-if(walking_tick_ == 0) { cout << index << endl; }
-if(walking_tick_ == 0) { cout << ref_zmp_.rows() << endl; }
-if(walking_tick_ == 0) { cout << temp_px.rows() << endl; }
-if(walking_tick_ == 0) { cout << temp_py.rows() << endl; }
-if(walking_tick_ == 0) { cout << t_total_zmp << endl; }
+
             ref_zmp_.block(index, 0, t_total_zmp, 1) = temp_px.block(0, 0, t_total_zmp, 1);
             ref_zmp_.block(index, 1, t_total_zmp, 1) = temp_py.block(0, 0, t_total_zmp, 1);
-if(walking_tick_ == 0) { cout << "44" << endl; }
+
             ref_zmp_wo_offset_.block(index, 0, t_total_zmp, 1) = temp_px_wo_offset.block(0, 0, t_total_zmp, 1);
             ref_zmp_wo_offset_.block(index, 1, t_total_zmp, 1) = temp_py_wo_offset.block(0, 0, t_total_zmp, 1);
 
@@ -7751,8 +7740,8 @@ void AvatarController::getFootTrajectory_stepping()
         fixed_swing_foot(0) = desired_swing_foot(0); 
         fixed_swing_foot(1) = desired_swing_foot(1);
 
-        modified_del_zmp_(current_step_num_,0) = del_F_(0);// - target_swing_foot(0);
-        modified_del_zmp_(current_step_num_,1) = del_F_(1);// - target_swing_foot(1);                         
+        modified_del_zmp_(current_step_num_,0) = 0.0;//del_F_(0);// - target_swing_foot(0);
+        modified_del_zmp_(current_step_num_,1) = 0.0;//del_F_(1);// - target_swing_foot(1);
     }
 
     if(current_step_num_ > 0)
@@ -8425,12 +8414,17 @@ void AvatarController::getComTrajectory_mpc()
                 MPC_Stabilizer_state_main_.segment(6,3) = A_mpc_*MPC_Stabilizer_state_main_.segment(6,3) + B_mpc_*MPC_Stabilizer_u_main_(2);
             }
 
-            Planner_state_main_calc_ = MPC_Planner_state_main_;
-            Stabilizer_state_main_calc_ = MPC_Stabilizer_state_main_;
+            Planner_state_main_calc_             = MPC_Planner_state_main_;
+            Stabilizer_state_main_calc_          = MPC_Stabilizer_state_main_;
 
-            MPC_Stabilizer_delf_main_ = MPC_Stabilizer_delf_container_from_mpc_;
+            MPC_Stabilizer_delf_main_            = MPC_Stabilizer_delf_container_from_mpc_;
 
-            atb_mpc_to_main_update_ = false;
+            step_enable_bool_main_               = step_enable_bool_container_from_mpc_;
+
+            MPC_Stabilizer_time_adj_tick_x_main_ = MPC_Stabilizer_time_adj_tick_x_container_from_mpc_;
+            MPC_Stabilizer_time_adj_tick_y_main_ = MPC_Stabilizer_time_adj_tick_y_container_from_mpc_;
+
+            atb_mpc_to_main_update_     = false;
         }
 
         mpc_update_ = false;
@@ -8477,13 +8471,30 @@ void AvatarController::getComTrajectory_mpc()
     dcm_desired_(0) = Planner_state_main_calc_(0) + Planner_state_main_calc_(1)/w_mpc;
     dcm_desired_(1) = Planner_state_main_calc_(3) + Planner_state_main_calc_(4)/w_mpc;
     dcm_desired_(2) = Planner_state_main_calc_(6) + Planner_state_main_calc_(7)/w_mpc;
+    
+    if(walking_tick_ == t_start_)
+    {
+        MPC_Stabilizer_delf_main_.setZero();
+        MPC_Stabilizer_delf_main_(0*step_time_candidate_) = foot_step_support_frame_(current_step_num_, 0);
+        MPC_Stabilizer_delf_main_(1*step_time_candidate_) = foot_step_support_frame_(current_step_num_, 1);
 
-    del_F_(0) = 0.0;//MPC_Stabilizer_delf_main_(0) - foot_step_support_frame_(current_step_num_mpc_, 0);
-    del_F_(1) = 0.0;//MPC_Stabilizer_delf_main_(8) - foot_step_support_frame_(current_step_num_mpc_, 1);
+        MPC_Stabilizer_time_adj_tick_x_main_ = 0.0;
+        MPC_Stabilizer_time_adj_tick_y_main_ = 0.0;
+    }
+    
+    e_tmp_graph26 << MPC_Stabilizer_delf_main_.transpose() << endl;
+    e_tmp_graph27 << MPC_Stabilizer_delf_main_.segment(step_time_candidate_, step_time_candidate_).sum() << endl;
+
+    del_F_(0) = 0.0;
+    del_F_(1) = MPC_Stabilizer_delf_main_.segment(step_time_candidate_, step_time_candidate_).sum() - foot_step_support_frame_(current_step_num_, 1);
+
+    e_tmp_graph1  << step_enable_bool_main_               << "," << 0                                    << ","
+                  << del_F_(0)                            << "," << del_F_(1)                            << ","
+                  << MPC_Stabilizer_time_adj_tick_x_main_ << "," << MPC_Stabilizer_time_adj_tick_y_main_ << ","
+                  << endl;    
 
     //step change
-    foot_step_support_frame_(current_step_num_,0) += del_F_(0);
-    foot_step_support_frame_(current_step_num_,1) += del_F_(1);
+    foot_step_support_frame_.block(current_step_num_, 0, 2, 1) += del_F_;
     if(walking_tick_ == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
     {
         Eigen::Vector3d var_after_step_change, var_before_step_change, frame_pos_diff;
@@ -8568,8 +8579,7 @@ void AvatarController::getComTrajectory_mpc()
         Stabilizer_state_main_calc_(5) = var_after_step_change(1);
         Stabilizer_state_main_calc_(8) = var_after_step_change(2);
     }
-    foot_step_support_frame_(current_step_num_,0) -= del_F_(0);
-    foot_step_support_frame_(current_step_num_,1) -= del_F_(1);
+    foot_step_support_frame_.block(current_step_num_, 0, 2, 1) -= del_F_;
 }
 
 ////////////////////// Econom2 function
@@ -8813,23 +8823,24 @@ void AvatarController::IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, d
     }
 
     e_qcqp_gurobi_graph << setprecision(10)
-                        << Pv_x_ref(0)             << "," << Pv_y_ref(0)             << "," << 0 <<","
+                        << Pv_x_ref(0)               << "," << Pv_y_ref(0)               << "," << 0 <<","
                         << MPC_Planner_state_mpc_(0) << "," << MPC_Planner_state_mpc_(3) << "," << 0 <<","
                         << MPC_Planner_state_mpc_(1) << "," << MPC_Planner_state_mpc_(4) << "," << 0 <<","
                         << MPC_Planner_state_mpc_(2) << "," << MPC_Planner_state_mpc_(5) << "," << 0 <<","
-                        << zmp_max_x_mpc_(0)           << "," << zmp_max_y_mpc_(0)           << "," << 0 <<","
+                        << zmp_max_x_mpc_(0)         << "," << zmp_max_y_mpc_(0)         << "," << 0 <<","
                         << endl;
 
     e_tmp_graph4 << setprecision(10) << Pv_y_ref.transpose() << endl;
     e_tmp_graph5 << setprecision(10) << Planner_State_Prev_mpc_.row(3) << endl;
     e_tmp_graph6 << setprecision(10) << Planner_State_Prev_mpc_.row(5) << endl;
+    e_tmp_graph2 << setprecision(10) << zmp_max_y_mpc_.transpose() << endl;
 }
 
 void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double preview_window)
 {
     double Q_dcm_x, Q_dcm_y, R_dcm_x, R_dcm_y, R_f_x, R_f_y, R_df_x, R_df_y, R_t_x, R_t_y, R_dt_x, R_dt_y;
-    Q_dcm_x = 1e-0, R_dcm_x = 1e-2, R_f_x = 1e-1, R_df_x = 1e-2, R_t_x = 1e-1, R_dt_x = 1e-2;
-    Q_dcm_y = 1e-0, R_dcm_y = 1e-2, R_f_y = 1e-1, R_df_y = 1e-2, R_t_y = 1e-1, R_dt_y = 1e-2;
+    Q_dcm_x = 1e-0, R_dcm_x = 1e-2, R_f_x = 1e-3, R_df_x = 1e+2, R_t_x = 1e-1, R_dt_x = 1e-2;
+    Q_dcm_y = 1e-0, R_dcm_y = 1e-2, R_f_y = 1e-3, R_df_y = 1e+4, R_t_y = 1e-1, R_dt_y = 1e-2;
 
     static int MPC_first_loop = 0;
     int mpc_tick = walking_tick_mpc_ - com_start_tick_mpc_;
@@ -8841,7 +8852,6 @@ void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double previe
 
     double lambda_is_calc = exp(-w_*dt_stab_mpc);
     double step_enable_time = 0.15*hz_;
-    bool step_enable_bool = 1;
     step_time_candidate_ = int((step_enable_time/MPC_synchro_hz_ + 1));
 
     int input_num = 2*N_stab_mpc + 4*step_time_candidate_; //ZMP, delf, eps
@@ -8891,7 +8901,6 @@ void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double previe
         Qmat_stab_mpc_.setIdentity();
 
         Qmat_step_norm_stab_mpc_.setIdentity(step_time_candidate_, step_time_candidate_);
-        Qmat_step_norm_stab_mpc_(0,0) = 1e-6;
 
         Qmat_step_derv_stab_mpc_.setIdentity(step_time_candidate_, step_time_candidate_);
 
@@ -8902,20 +8911,13 @@ void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double previe
         gypcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
 
         gxfdervcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gxfnormcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
         gyfdervcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gyfnormcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gxtdervcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gxtnormcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gytdervcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
-        gytnormcalc_stab_mpc_.setZero(input_num, N_stab_mpc);
 
         MPC_Stabilizer_u_mpc_.setZero(input_num); // VRP, delf, eps
 
         MPC_Stabilizer_delf_mpc_.setZero(2*step_time_candidate_);
-        MPC_Stabilizer_alpha_mpc_.setZero(2*step_time_candidate_);
-        MPC_Stabilizer_alpha_mpc_(0*step_time_candidate_) = 1.0;
-        MPC_Stabilizer_alpha_mpc_(1*step_time_candidate_) = 1.0;
+        MPC_Stabilizer_delf_mpc_(0*step_time_candidate_) = foot_step_support_frame_mpc_(current_step_num_mpc_, 0);
+        MPC_Stabilizer_delf_mpc_(1*step_time_candidate_) = foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
 
         ssx_stab_mpc_ = ssx_plan_mpc_;
         ssy_stab_mpc_ = ssy_plan_mpc_;
@@ -8938,26 +8940,18 @@ void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double previe
         Qcalc_stab_mpc_ = SUp_stab_mpc_.transpose()*(SUpx_stab_mpc_.transpose()*(Pdpu_stab_mpc_.transpose()*Q_dcm_x*Qmat_stab_mpc_*Pdpu_stab_mpc_ + R_dcm_x*Qmat_stab_mpc_)*SUpx_stab_mpc_
                                                     +SUpy_stab_mpc_.transpose()*(Pdpu_stab_mpc_.transpose()*Q_dcm_y*Qmat_stab_mpc_*Pdpu_stab_mpc_ + R_dcm_y*Qmat_stab_mpc_)*SUpy_stab_mpc_)*SUp_stab_mpc_
                         + SUf_stab_mpc_.transpose()*(SUfx_stab_mpc_.transpose()*(R_f_x *Qmat_step_norm_stab_mpc_)*SUfx_stab_mpc_
-                                                    +SUfy_stab_mpc_.transpose()*(R_f_y *Qmat_step_norm_stab_mpc_)*SUfy_stab_mpc_)*SUf_stab_mpc_;
-                        //+ SUt_stab_mpc_.transpose()*(SUtx_stab_mpc_.transpose()*(R_t_x *Qmat_step_norm_stab_mpc_)*SUtx_stab_mpc_
-                        //                            +SUty_stab_mpc_.transpose()*(R_t_y *Qmat_step_norm_stab_mpc_)*SUty_stab_mpc_)*SUt_stab_mpc_
-                        //+ SUf_stab_mpc_.transpose()*(SUfx_stab_mpc_.transpose()*(R_df_x*Qmat_step_derv_stab_mpc_)*SUfx_stab_mpc_
-                        //                            +SUfy_stab_mpc_.transpose()*(R_df_y*Qmat_step_derv_stab_mpc_)*SUfy_stab_mpc_)*SUf_stab_mpc_;
-                        //+ SUt_stab_mpc_.transpose()*(SUtx_stab_mpc_.transpose()*(R_dt_x*Qmat_step_derv_stab_mpc_)*SUtx_stab_mpc_
-                        //                            +SUty_stab_mpc_.transpose()*(R_dt_y*Qmat_step_derv_stab_mpc_)*SUty_stab_mpc_)*SUt_stab_mpc_;
+                                                    +SUfy_stab_mpc_.transpose()*(R_f_y *Qmat_step_norm_stab_mpc_)*SUfy_stab_mpc_)*SUf_stab_mpc_
+                        + SUf_stab_mpc_.transpose()*(SUfx_stab_mpc_.transpose()*(R_df_x*Qmat_step_derv_stab_mpc_)*SUfx_stab_mpc_
+                                                    +SUfy_stab_mpc_.transpose()*(R_df_y*Qmat_step_derv_stab_mpc_)*SUfy_stab_mpc_)*SUf_stab_mpc_;
 
         gxpcalc_stab_mpc_ = SUp_stab_mpc_.transpose()*SUpx_stab_mpc_.transpose()*Pdpu_stab_mpc_.transpose()*Q_dcm_x*Qmat_stab_mpc_;
         gypcalc_stab_mpc_ = SUp_stab_mpc_.transpose()*SUpy_stab_mpc_.transpose()*Pdpu_stab_mpc_.transpose()*Q_dcm_y*Qmat_stab_mpc_;
 
-        gxfnormcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfx_stab_mpc_.transpose()*R_f_x *Qmat_step_norm_stab_mpc_;
-        gxfdervcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfx_stab_mpc_.transpose()*R_df_x*Qmat_step_derv_stab_mpc_;
-        gyfnormcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfy_stab_mpc_.transpose()*R_f_y *Qmat_step_norm_stab_mpc_;
-        gyfdervcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfy_stab_mpc_.transpose()*R_df_y*Qmat_step_derv_stab_mpc_;
+        gxfnormcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfx_stab_mpc_.transpose()*R_f_x*Qmat_step_norm_stab_mpc_;
+        gyfnormcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfy_stab_mpc_.transpose()*R_f_y*Qmat_step_norm_stab_mpc_;
 
-        gxtnormcalc_stab_mpc_ = SUt_stab_mpc_.transpose()*SUtx_stab_mpc_.transpose()*R_t_x *Qmat_step_norm_stab_mpc_;
-        gxtdervcalc_stab_mpc_ = SUt_stab_mpc_.transpose()*SUtx_stab_mpc_.transpose()*R_dt_x*Qmat_step_derv_stab_mpc_;
-        gytnormcalc_stab_mpc_ = SUt_stab_mpc_.transpose()*SUty_stab_mpc_.transpose()*R_t_y *Qmat_step_norm_stab_mpc_;
-        gytdervcalc_stab_mpc_ = SUt_stab_mpc_.transpose()*SUty_stab_mpc_.transpose()*R_dt_y*Qmat_step_derv_stab_mpc_;
+        gxfdervcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfx_stab_mpc_.transpose()*R_df_x*Qmat_step_derv_stab_mpc_;
+        gyfdervcalc_stab_mpc_ = SUf_stab_mpc_.transpose()*SUfy_stab_mpc_.transpose()*R_df_y*Qmat_step_derv_stab_mpc_;
 
         Sf_stab_mpc_.setZero(N_stab_mpc, step_time_candidate_);
 
@@ -8969,21 +8963,22 @@ void AvatarController::IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double previe
     
 e_tmp_graph15 << zmp_max_y_mpc_.segment(0, N_stab_mpc).transpose() << endl;
 
+    step_enable_bool_mpc_ = (bool)(mpc_tick < t_total_const_ - t_rest_last_ - t_double2_ - step_enable_time - 0.15*hz_);
+
     for(int i = 0; i < N_stab_mpc; i++)
     {
         for(int j = 0; j < 1; j++)
         { 
             int dsp_length_calc = int((t_rest_last_ + t_double2_ + t_rest_init_ + t_double1_)/MPC_synchro_hz_);
             int next_step_start_prev_tick = max(ceil(((j+1)*(t_total_const_ - t_rest_last_ - t_double2_) - mpc_tick)/MPC_synchro_hz_), 0.0);
-            bool step_enable_bool = (bool)(mpc_tick < t_total_const_ - t_rest_last_ - t_double2_ - step_enable_time - 0.15*hz_);
             bool next_step_prev_bool = (bool)(mpc_tick + MPC_synchro_hz_*(i + 2) > (j+1)*(t_total_const_ - t_rest_last_ - t_double2_));
             
             if(walking_tick_mpc_ > t_temp_)
             {
-                Sf_stab_mpc_(i,0) = step_enable_bool*next_step_prev_bool*min((i + 2 - next_step_start_prev_tick)/double(dsp_length_calc), 1.0);
+                Sf_stab_mpc_(i,0) = step_enable_bool_mpc_*next_step_prev_bool*min((i + 2 - next_step_start_prev_tick)/double(dsp_length_calc), 1.0);
 
-                zmp_max_y_mpc_(i) = step_enable_bool*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool)*zmp_max_y_mpc_(i);
-                zmp_min_y_mpc_(i) = step_enable_bool*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool)*zmp_min_y_mpc_(i);
+                zmp_max_y_mpc_(i) = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_y_mpc_(i);
+                zmp_min_y_mpc_(i) = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_y_mpc_(i);
             }
         }
     }
@@ -9018,38 +9013,28 @@ e_tmp_graph24 << setprecision(10) << zmp_max_y_mpc_.transpose() << endl;
     MPC_Stabilizer_state_mpc_(1) = com_dot_measured_mpc_(0);
     MPC_Stabilizer_state_mpc_(3) = com_measured_mpc_(1);
     MPC_Stabilizer_state_mpc_(4) = com_dot_measured_mpc_(1);
+    
+    if(mpc_tick < mpc_freq)
+    {
+        MPC_Stabilizer_delf_mpc_.setZero();
+        MPC_Stabilizer_delf_mpc_(0*step_time_candidate_) = foot_step_support_frame_mpc_(current_step_num_mpc_, 0);
+        MPC_Stabilizer_delf_mpc_(1*step_time_candidate_) = foot_step_support_frame_mpc_(current_step_num_mpc_, 1);
+    }
 
     gcalc_stab_mpc_ = gxpcalc_stab_mpc_    *(Pdps_stab_mpc_*ssx_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6) - dcm_refx)
-                     +gypcalc_stab_mpc_    *(Pdps_stab_mpc_*ssy_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6) - dcm_refy);
-                     //+gxfnormcalc_stab_mpc_*( - step_x_norm*MatrixXd::Identity(step_time_candidate_, 1))
-                     //+gyfnormcalc_stab_mpc_*( - step_y_norm*MatrixXd::Identity(step_time_candidate_, 1));
-                     //+gxtnormcalc_stab_mpc_*( - MatrixXd::Identity(step_time_candidate_, 1))
-                     //+gytnormcalc_stab_mpc_*( - MatrixXd::Identity(step_time_candidate_, 1))
-                     //+gxfdervcalc_stab_mpc_*( - MPC_Stabilizer_delf_mpc_.segment(0*step_time_candidate_, step_time_candidate_))
-                     //+gyfdervcalc_stab_mpc_*( - MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, step_time_candidate_));
-                     //+gxtdervcalc_stab_mpc_*( - MPC_Stabilizer_alpha_mpc_.segment(0*step_time_candidate_, step_time_candidate_))
-                     //+gytdervcalc_stab_mpc_*( - MPC_Stabilizer_alpha_mpc_.segment(1*step_time_candidate_, step_time_candidate_));
-cout << MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_).transpose() << endl;
-cout << step_y_norm*MatrixXd::Identity(step_time_candidate_, 1).transpose() << endl;
-cout << endl;
-//cout << MPC_Stabilizer_alpha_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_).transpose() << endl;
-//cout << MatrixXd::Identity(step_time_candidate_, 1).transpose() << endl;
-//cout << endl;
-//cout << endl;
+                     +gypcalc_stab_mpc_    *(Pdps_stab_mpc_*ssy_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6) - dcm_refy)
+                     +gxfnormcalc_stab_mpc_*( - step_x_norm*MatrixXd::Identity(step_time_candidate_, 1))
+                     +gyfnormcalc_stab_mpc_*( - step_y_norm*MatrixXd::Identity(step_time_candidate_, 1))
+                     +gxfdervcalc_stab_mpc_*( - MPC_Stabilizer_delf_mpc_.segment(0*step_time_candidate_, 1*step_time_candidate_))
+                     +gyfdervcalc_stab_mpc_*( - MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_));
+
     const_A_mpc_.setZero(const_num, input_num);
     const_lb_mpc_.setZero(const_num, 1);
     const_ub_mpc_.setZero(const_num, 1);
 
     //ZMP inequality
-    const_A_mpc_.block(0*N_stab_mpc, 0, 1*N_stab_mpc, input_num) = Pvpu_stab_mpc_*SUpx_stab_mpc_*SUp_stab_mpc_ - Sf_stab_mpc_.col(0)*SUfx_stab_mpc_.row(0)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(1)*SUfx_stab_mpc_.row(1)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(2)*SUfx_stab_mpc_.row(2)*SUf_stab_mpc_;
-
-    const_A_mpc_.block(1*N_stab_mpc, 0, 1*N_stab_mpc, input_num) = Pvpu_stab_mpc_*SUpy_stab_mpc_*SUp_stab_mpc_ - Sf_stab_mpc_.col(0)*SUfy_stab_mpc_.row(0)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(1)*SUfy_stab_mpc_.row(1)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(2)*SUfy_stab_mpc_.row(2)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(3)*SUfy_stab_mpc_.row(3)*SUf_stab_mpc_
-                                                                                                               - Sf_stab_mpc_.col(4)*SUfy_stab_mpc_.row(4)*SUf_stab_mpc_;
+    const_A_mpc_.block(0*N_stab_mpc, 0, 1*N_stab_mpc, input_num) = Pvpu_stab_mpc_*SUpx_stab_mpc_*SUp_stab_mpc_ - Sf_stab_mpc_*SUfx_stab_mpc_*SUf_stab_mpc_;
+    const_A_mpc_.block(1*N_stab_mpc, 0, 1*N_stab_mpc, input_num) = Pvpu_stab_mpc_*SUpy_stab_mpc_*SUp_stab_mpc_ - Sf_stab_mpc_*SUfy_stab_mpc_*SUf_stab_mpc_;
 
     const_ub_mpc_.block(0*N_stab_mpc, 0, 1*N_stab_mpc, 1) = zmp_max_x_mpc_.segment(0, N_stab_mpc) - Pvps_stab_mpc_*ssx_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6);
     const_lb_mpc_.block(0*N_stab_mpc, 0, 1*N_stab_mpc, 1) = zmp_min_x_mpc_.segment(0, N_stab_mpc) - Pvps_stab_mpc_*ssx_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6);
@@ -9057,94 +9042,44 @@ cout << endl;
     const_ub_mpc_.block(1*N_stab_mpc, 0, 1*N_stab_mpc, 1) = zmp_max_y_mpc_.segment(0, N_stab_mpc) - Pvps_stab_mpc_*ssy_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6);
     const_lb_mpc_.block(1*N_stab_mpc, 0, 1*N_stab_mpc, 1) = zmp_min_y_mpc_.segment(0, N_stab_mpc) - Pvps_stab_mpc_*ssy_stab_mpc_*MPC_Stabilizer_state_mpc_.segment(0,6);
 
-    /*
     //delf inequality
-    Eigen::MatrixXd delfy_max_calc; delfy_max_calc.setZero(step_time_candidate_, step_time_candidate_);
-    Eigen::MatrixXd delfy_min_calc; delfy_min_calc.setZero(step_time_candidate_, step_time_candidate_);
+    Eigen::MatrixXd delfy_max_calc; delfy_max_calc.setZero(step_time_candidate_, 1);
+    Eigen::MatrixXd delf_sum_calc;  delf_sum_calc.setZero(1, step_time_candidate_);
     if(foot_step_(current_step_num_mpc_, 6) == 1) //왼발
     {
-        delfy_max_calc = 1*step_y_norm*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-        
-        delfy_min_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-        delfy_min_calc(0,0) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_min_calc(1,1) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_min_calc(2,2) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        
-        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) =   SUfy_stab_mpc_*SUf_stab_mpc_ - delfy_max_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
+        delfy_max_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(step_time_candidate_, 1);
+        delfy_max_calc(0,0) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
+        delfy_max_calc(1,0) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
+        delfy_max_calc(2,0) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
 
-        const_A_mpc_.block( 2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = - SUfy_stab_mpc_*SUf_stab_mpc_ + delfy_min_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
+        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = SUfy_stab_mpc_*SUf_stab_mpc_;
+        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
+        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = delfy_max_calc;
+
+        const_A_mpc_.block( 2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, input_num) = MatrixXd::Ones(1, step_time_candidate_)*SUfy_stab_mpc_*SUf_stab_mpc_;
+        const_ub_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, 1        ) = (0.00 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(1, 1);
+        const_lb_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, 1        ) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(1, 1);
     }
     else
     {
-        delfy_max_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
+        delfy_max_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(step_time_candidate_, 1);
         delfy_max_calc(0,0) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_max_calc(1,1) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_max_calc(2,2) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
+        delfy_max_calc(1,0) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
+        delfy_max_calc(2,0) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
 
-        delfy_min_calc = 1*step_y_norm*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
+        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = SUfy_stab_mpc_*SUf_stab_mpc_;
+        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = delfy_max_calc;
+        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
 
-        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) =   SUfy_stab_mpc_*SUf_stab_mpc_ - delfy_max_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
-
-        const_A_mpc_.block( 2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = - SUfy_stab_mpc_*SUf_stab_mpc_ + delfy_min_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
+        const_A_mpc_.block( 2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, input_num) = MatrixXd::Ones(1, step_time_candidate_)*SUfy_stab_mpc_*SUf_stab_mpc_;
+        const_ub_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, 1        ) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(1, 1);
+        const_lb_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 0, 0, 1, 1        ) = (0.00 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Ones(1, 1);
     }
 
-    //alpha inequality & equality
-    const_A_mpc_.block( 2*N_stab_mpc + 5*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = SUty_stab_mpc_*SUt_stab_mpc_;
-    const_ub_mpc_.block(2*N_stab_mpc + 5*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1);
-    const_lb_mpc_.block(2*N_stab_mpc + 5*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
+//cout << MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_).transpose() << endl;
+//cout << step_y_norm*MatrixXd::Identity(step_time_candidate_, 1).transpose() << endl;
+//cout << endl;
 
-    //const_A_mpc_.block( 2*N_stab_mpc + 6*step_time_candidate_ + 1, 0, 1, input_num) = MatrixXd::Ones(1, step_time_candidate_)*SUty_stab_mpc_*SUt_stab_mpc_;
-    const_A_mpc_.block( 2*N_stab_mpc + 6*step_time_candidate_ + 1, 0, 1, input_num) = MatrixXd::Ones(1, 2)*SUty_stab_mpc_.block(0, 0, 2, 2*step_time_candidate_)*SUt_stab_mpc_;
-    const_ub_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 1, 0, 1, 1        ) = MatrixXd::Ones(1, 1);
-    const_lb_mpc_.block(2*N_stab_mpc + 6*step_time_candidate_ + 1, 0, 1, 1        ) = MatrixXd::Ones(1, 1);
-    */
-
-    //delf inequality
-    Eigen::MatrixXd delfy_max_calc; delfy_max_calc.setZero(step_time_candidate_, step_time_candidate_);
-    Eigen::MatrixXd delfy_min_calc; delfy_min_calc.setZero(step_time_candidate_, step_time_candidate_);
-    if(foot_step_(current_step_num_mpc_, 6) == 1) //왼발
-    {
-        delfy_max_calc = 1*step_y_norm*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-        
-        delfy_min_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-        delfy_min_calc(0,0) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_min_calc(1,1) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_min_calc(2,2) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        
-        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) =   SUfy_stab_mpc_*SUf_stab_mpc_ - delfy_max_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
-
-        const_A_mpc_.block( 2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = - SUfy_stab_mpc_*SUf_stab_mpc_ + delfy_min_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
-    }
-    else
-    {
-        delfy_max_calc      = (0.12 + abs(step_y_norm))*step_y_norm/abs(step_y_norm)*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-        delfy_max_calc(0,0) = (0.15 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_max_calc(1,1) = (0.14 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-        delfy_max_calc(2,2) = (0.13 + abs(step_y_norm))*step_y_norm/abs(step_y_norm);
-
-        delfy_min_calc = 1*step_y_norm*MatrixXd::Identity(step_time_candidate_, step_time_candidate_);
-
-        const_A_mpc_.block( 2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, input_num) =   SUfy_stab_mpc_*SUf_stab_mpc_ - delfy_max_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 2*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
-
-        const_A_mpc_.block( 2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, input_num) = - SUfy_stab_mpc_*SUf_stab_mpc_ + delfy_min_calc*SUty_stab_mpc_*SUt_stab_mpc_;
-        const_ub_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Zero(step_time_candidate_, 1);
-        const_lb_mpc_.block(2*N_stab_mpc + 3*step_time_candidate_, 0, 1*step_time_candidate_, 1        ) = MatrixXd::Ones(step_time_candidate_, 1)*(-1e+3);
-    }
-    
     //IS equality
     Eigen::MatrixXd b_IS_stab_mpc;
     b_IS_stab_mpc.resize(N_stab_mpc,1);
@@ -9193,8 +9128,6 @@ cout << endl;
         MPC_Stabilizer_state_mpc_.segment(3,3) = A_mpc_*MPC_Stabilizer_state_mpc_.segment(3,3) + B_mpc_*MPC_Stabilizer_u_mpc_(1*N_stab_mpc);
 
         MPC_Stabilizer_delf_mpc_ = SUf_stab_mpc_*MPC_Stabilizer_u_mpc_;
-
-        MPC_Stabilizer_alpha_mpc_ = SUt_stab_mpc_*MPC_Stabilizer_u_mpc_;
     }
     else
     {
@@ -9213,8 +9146,6 @@ cout << endl;
         MPC_Stabilizer_state_mpc_.segment(3,3) = A_mpc_*MPC_Stabilizer_state_mpc_.segment(3,3) + B_mpc_*MPC_Stabilizer_u_mpc_(1*N_stab_mpc);
 
         MPC_Stabilizer_delf_mpc_ = SUf_stab_mpc_*MPC_Stabilizer_u_mpc_;
-
-        MPC_Stabilizer_alpha_mpc_ = SUt_stab_mpc_*MPC_Stabilizer_u_mpc_;
     }
 
     e_tmp_graph9  << setprecision(10) << dcm_refy.transpose()                              << endl;
@@ -9223,19 +9154,38 @@ cout << endl;
     e_tmp_graph14 << setprecision(10) << zmp_max_y_mpc_.segment(0, N_stab_mpc).transpose() << endl;
 
     e_tmp_graph25 << setprecision(10) << MPC_Stabilizer_delf_mpc_.transpose() << endl;
-    e_tmp_graph26 << setprecision(10) << MPC_Stabilizer_alpha_mpc_.transpose() << endl;
+
+    MPC_Stabilizer_delf_x_ = MPC_Stabilizer_delf_mpc_.segment(0*step_time_candidate_, 1*step_time_candidate_).transpose().sum();
+    MPC_Stabilizer_delf_y_ = MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_).transpose().sum();
+
+    Eigen::VectorXd MPC_Stabilizer_step_time_y_calc_mpc;
+    MPC_Stabilizer_step_time_y_calc_mpc = MPC_Stabilizer_delf_mpc_.segment(1*step_time_candidate_, 1*step_time_candidate_)/MPC_Stabilizer_delf_y_;
 
     double calc_time_adj_x = 0.0;
-    double calc_time_adj_y = 0.0;
+    double calc_time_adj_y = 0*MPC_Stabilizer_step_time_y_calc_mpc(0)
+                            +1*MPC_Stabilizer_step_time_y_calc_mpc(1)
+                            +2*MPC_Stabilizer_step_time_y_calc_mpc(2)
+                            +3*MPC_Stabilizer_step_time_y_calc_mpc(3)
+                            +4*MPC_Stabilizer_step_time_y_calc_mpc(4)
+                            +5*MPC_Stabilizer_step_time_y_calc_mpc(5)
+                            +6*MPC_Stabilizer_step_time_y_calc_mpc(6)
+                            +7*MPC_Stabilizer_step_time_y_calc_mpc(7);
+
+    MPC_Stabilizer_time_adj_tick_x_mpc_ = round(calc_time_adj_x + 0.2);
+    MPC_Stabilizer_time_adj_tick_y_mpc_ = round(calc_time_adj_y + 0.2);
 
     e_tmp_graph3 << setprecision(10)
-                 << dcm_measured_mpc_(0)         << "," << dcm_measured_mpc_(1)         << "," << 0 << ","
-                 << dcm_refx(0)                  << "," << dcm_refy(0)                  << "," << 0 << ","
-                 << MPC_Stabilizer_state_mpc_(0) << "," << MPC_Stabilizer_state_mpc_(3) << "," << 0 << ","
-                 << MPC_Stabilizer_state_mpc_(1) << "," << MPC_Stabilizer_state_mpc_(4) << "," << 0 << ","
-                 << MPC_Stabilizer_state_mpc_(2) << "," << MPC_Stabilizer_state_mpc_(5) << "," << 0 << ","
-                 << zmp_max_x_mpc_(0)            << "," << zmp_max_y_mpc_(0)            << "," << 0 << ","
-                 << step_x_norm                  << "," << step_y_norm                  << "," << 0 << ","
+                 << dcm_measured_mpc_(0)                << "," << dcm_measured_mpc_(1)                << "," << 0 << ","
+                 << dcm_refx(0)                         << "," << dcm_refy(0)                         << "," << 0 << ","
+                 << MPC_Stabilizer_state_mpc_(0)        << "," << MPC_Stabilizer_state_mpc_(3)        << "," << 0 << ","
+                 << MPC_Stabilizer_state_mpc_(1)        << "," << MPC_Stabilizer_state_mpc_(4)        << "," << 0 << ","
+                 << MPC_Stabilizer_state_mpc_(2)        << "," << MPC_Stabilizer_state_mpc_(5)        << "," << 0 << ","
+                 << zmp_max_x_mpc_(0)                   << "," << zmp_max_y_mpc_(0)                   << "," << 0 << ","
+                 << step_x_norm                         << "," << step_y_norm                         << "," << 0 << ","
+                 << MPC_Stabilizer_delf_x_              << "," << MPC_Stabilizer_delf_y_              << "," << 0 << ","
+                 << calc_time_adj_x                     << "," << calc_time_adj_y                     << "," << 0 << ","
+                 << MPC_Stabilizer_time_adj_tick_x_mpc_ << "," << MPC_Stabilizer_time_adj_tick_y_mpc_ << "," << 0 << ","
+                 << step_enable_bool_mpc_               << "," << 0                                   << "," << 0 << ","
                  << endl;
 }
 

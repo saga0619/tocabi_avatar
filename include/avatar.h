@@ -1492,11 +1492,24 @@ public:
     Eigen::VectorXd MPC_Stabilizer_alpha_container_from_mpc_;
     Eigen::VectorXd MPC_Stabilizer_alpha_main_;
 
-
     Eigen::Vector3d MPC_Stabilizer_p_mpc_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_;
     Eigen::Vector3d MPC_Stabilizer_u_main_;
     Eigen::VectorXd MPC_Stabilizer_u_container_from_mpc_;
+
+    bool step_enable_bool_mpc_;
+    bool step_enable_bool_container_from_mpc_;
+    bool step_enable_bool_main_;
+
+    double MPC_Stabilizer_delf_x_;
+    double MPC_Stabilizer_delf_y_;
+
+    int MPC_Stabilizer_time_adj_tick_x_mpc_;
+    int MPC_Stabilizer_time_adj_tick_x_container_from_mpc_;
+    int MPC_Stabilizer_time_adj_tick_x_main_;
+    int MPC_Stabilizer_time_adj_tick_y_mpc_;
+    int MPC_Stabilizer_time_adj_tick_y_container_from_mpc_;
+    int MPC_Stabilizer_time_adj_tick_y_main_;
 
 private:    
     unsigned int walking_tick_ = 0;
