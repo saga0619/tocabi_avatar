@@ -63,6 +63,7 @@ public:
     std::atomic<bool> atb_grav_update_{false};
     std::atomic<bool> atb_desired_q_update_{false};
     std::atomic<bool> atb_walking_traj_update_{false};
+    std::atomic<bool> atb_desired_torque_update_{false};
     std::atomic<bool> atb_mpc_update_{false};
 
     RigidBodyDynamics::Model model_d_;  //updated by desired q
@@ -1198,6 +1199,8 @@ public:
     Eigen::Isometry3d pelv_support_current_;
     Eigen::Isometry3d lfoot_support_current_;
     Eigen::Isometry3d rfoot_support_current_;
+    Eigen::Vector6d   lfoot_support_current_dot_;
+    Eigen::Vector6d   rfoot_support_current_dot_;
 
     Eigen::Isometry3d lfoot_support_init_;
     Eigen::Isometry3d rfoot_support_init_;
@@ -1268,6 +1271,13 @@ public:
     double t_rest_last_;
     double t_double1_;
     double t_double2_;
+    double t_dsp1_;
+    double t_dsp2_;
+    double t_dsp1_const_;
+    double t_dsp2_const_;
+    double t_dsp1_foot_traj_;
+    double t_dsp2_foot_traj_;
+    double t_ssp_;
     double t_total_;
     double t_total_const_;
     double t_total_container_to_mpc_;
@@ -1339,11 +1349,15 @@ public:
     Eigen::VectorXd zmp_max_y_mpc_;
     Eigen::VectorXd zmp_min_y_mpc_;
 
-    int step_time_candidate_;
+    Eigen::Vector3d vrp_desired_;
+
+    double step_enable_time_fwd_;
+    double step_enable_time_bwd_;
+    int step_time_adj_candidate_num_;
     bool param_sim_mode_;
     double param_ext_force_time_;
-    double ext_force_;
-    double ext_theta_;
+    double param_ext_force_;
+    double param_ext_theta_;
 
     double zmp_x_max = 0.13;
     double zmp_x_min = 0.09;
@@ -1352,6 +1366,7 @@ public:
 
     //IS MPC QCQP
     void IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
+    void IS_LIPM_CoM_sep_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double preview_window);
     void econom2_thread_stepchange();
 
@@ -1371,6 +1386,8 @@ public:
     Eigen::MatrixXd ref_com_mpc_;
     Eigen::MatrixXd ref_com_container_to_mpc_;
 
+    Eigen::MatrixXd A_main_;
+    Eigen::MatrixXd B_main_;
     Eigen::MatrixXd A_mpc_;
     Eigen::MatrixXd B_mpc_;
     Eigen::MatrixXd Cdp_mpc_;
@@ -1426,6 +1443,7 @@ public:
     Eigen::VectorXd MPC_Planner_state_from_mpc_to_main_;
     
     Eigen::VectorXd MPC_Planner_u_mpc_;
+    Eigen::VectorXd MPC_Planner_u_mpc_sep_;
     Eigen::VectorXd MPC_Planner_u_main_;
     Eigen::VectorXd MPC_Planner_u_container_from_mpc_;
     
@@ -1445,57 +1463,69 @@ public:
     Eigen::MatrixXd Pvpu_stab_mpc_;
 
     Eigen::MatrixXd Qmat_stab_mpc_;
-    Eigen::MatrixXd Qmat_step_derv_stab_mpc_;
-    Eigen::MatrixXd Qmat_step_norm_stab_mpc_;
+    Eigen::MatrixXd Qmat_stab_alpha_mpc_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
     Eigen::MatrixXd gcalc_stab_mpc_;
     Eigen::MatrixXd gxpcalc_stab_mpc_;
     Eigen::MatrixXd gypcalc_stab_mpc_;
     Eigen::MatrixXd gzpcalc_stab_mpc_;
 
-    Eigen::MatrixXd gxfdervcalc_stab_mpc_;
-    Eigen::MatrixXd gxfnormcalc_stab_mpc_;
-    Eigen::MatrixXd gyfdervcalc_stab_mpc_;
-    Eigen::MatrixXd gyfnormcalc_stab_mpc_;
-
-    Eigen::MatrixXd gxtdervcalc_stab_mpc_;
-    Eigen::MatrixXd gxtnormcalc_stab_mpc_;
-    Eigen::MatrixXd gytdervcalc_stab_mpc_;
-    Eigen::MatrixXd gytnormcalc_stab_mpc_;
+    Eigen::MatrixXd gxacalc_stab_mpc_;
+    Eigen::MatrixXd gyacalc_stab_mpc_;
     
+    Eigen::MatrixXd gxdacalc_stab_mpc_;
+    Eigen::MatrixXd gydacalc_stab_mpc_;
+
+    Eigen::MatrixXd gxdascalc_stab_mpc_;
+    Eigen::MatrixXd gydascalc_stab_mpc_;
+
     Eigen::MatrixXd SUpx_stab_mpc_;
     Eigen::MatrixXd SUpy_stab_mpc_;
     Eigen::MatrixXd SUpz_stab_mpc_;
     Eigen::MatrixXd SUp_stab_mpc_;
 
-    Eigen::MatrixXd SUfx_stab_mpc_;
-    Eigen::MatrixXd SUfy_stab_mpc_;
-    Eigen::MatrixXd SUf_stab_mpc_;
+    Eigen::MatrixXd SUax_stab_mpc_;
+    Eigen::MatrixXd SUay_stab_mpc_;
+    Eigen::MatrixXd SUa_stab_mpc_;
 
-    Eigen::MatrixXd SUtx_stab_mpc_;
-    Eigen::MatrixXd SUty_stab_mpc_;
-    Eigen::MatrixXd SUt_stab_mpc_;
+    Eigen::MatrixXd SUsax_stab_mpc_;
+    Eigen::MatrixXd SUsay_stab_mpc_;
+    Eigen::MatrixXd SUsa_stab_mpc_;
     
     Eigen::MatrixXd ssx_stab_mpc_;
     Eigen::MatrixXd ssy_stab_mpc_;
     Eigen::MatrixXd ssz_stab_mpc_;
-    Eigen::MatrixXd Sf_stab_mpc_;
+    Eigen::MatrixXd Sf1_stab_mpc_;
+    Eigen::MatrixXd Sf2_stab_mpc_;
 
     Eigen::VectorXd MPC_Stabilizer_state_container_from_mpc_;
     Eigen::VectorXd MPC_Stabilizer_state_main_;
     Eigen::VectorXd MPC_Stabilizer_state_mpc_;
     Eigen::VectorXd Stabilizer_state_main_calc_; 
     Eigen::VectorXd MPC_Stabilizer_delf_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_delf_mpc_x_;
+    Eigen::VectorXd MPC_Stabilizer_delf_mpc_y_;
     Eigen::VectorXd MPC_Stabilizer_delf_container_from_mpc_;
     Eigen::VectorXd MPC_Stabilizer_delf_main_;
     Eigen::VectorXd MPC_Stabilizer_alpha_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_mpc_x_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_mpc_y_;
     Eigen::VectorXd MPC_Stabilizer_alpha_container_from_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_container_from_mpc_x_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_container_from_mpc_y_;
     Eigen::VectorXd MPC_Stabilizer_alpha_main_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_main_x_;
+    Eigen::VectorXd MPC_Stabilizer_alpha_main_y_;
 
-    Eigen::Vector3d MPC_Stabilizer_p_mpc_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_u_mpc_sep_;
     Eigen::Vector3d MPC_Stabilizer_u_main_;
     Eigen::VectorXd MPC_Stabilizer_u_container_from_mpc_;
+
+    Eigen::MatrixXd sum_alpha_x_;
+    Eigen::MatrixXd sum_alpha_y_;
+
+    Eigen::VectorXd zmp_time_calc_y_;
 
     bool step_enable_bool_mpc_;
     bool step_enable_bool_container_from_mpc_;
@@ -1510,6 +1540,85 @@ public:
     int MPC_Stabilizer_time_adj_tick_y_mpc_;
     int MPC_Stabilizer_time_adj_tick_y_container_from_mpc_;
     int MPC_Stabilizer_time_adj_tick_y_main_;
+
+    //wbd
+    void stateMachine();
+
+    void getVirtualJointState(const Eigen::Isometry3d& transform_global_to_float, const Eigen::Isometry3d& transform_float_to_support);
+    
+    Eigen::VectorQd MitWholebodyInverseDynamicsController(const Eigen::VectorQd &torque_prev, const Eigen::VectorVQd &qddot_cmd, const Eigen::Vector12d &f_c_cmd);
+
+    Eigen::VectorVQd q_virtual_;
+    Eigen::VectorVQd qdot_virtual_;
+    Eigen::VectorVQd qddot_virtual_;
+
+    Eigen::VectorVQd q_error_virtual_;
+    Eigen::VectorVQd q_desired_virtual_;
+    Eigen::VectorVQd q_desired_virtual_pre_;
+
+    Eigen::VectorVQd qdot_desired_virtual_;
+    Eigen::VectorVQd qddot_desired_virtual_;
+    Eigen::VectorVQd qddot_desired_virtual_container_to_fast_;
+    Eigen::VectorVQd qddot_desired_virtual_fast_;
+
+    Eigen::VectorVQd Kp_virtual_;
+    Eigen::VectorVQd Kd_virtual_;
+
+    Eigen::Isometry3d lhand_trajectory_float_;
+    Eigen::Isometry3d rhand_trajectory_float_;
+    Eigen::Isometry3d chest_trajectory_float_;
+
+    Eigen::Isometry3d lhand_trajectory_support_;
+    Eigen::Isometry3d rhand_trajectory_support_;
+    Eigen::Isometry3d chest_trajectory_support_;
+
+    Eigen::VectorQd torque_wbd_;
+    Eigen::VectorQd torque_wbd_container_to_fast_;
+    Eigen::VectorQd torque_wbd_fast_;
+    
+    Eigen::VectorQd torque_desired_prev_;
+    Eigen::VectorQd torque_desired_prev_container_to_fast_;
+    Eigen::VectorQd torque_desired_prev_fast_;
+
+    Eigen::Vector6d lfoot_contact_wrench_;
+    Eigen::Vector6d rfoot_contact_wrench_;
+
+    Eigen::Vector12d contact_wrench_;
+    Eigen::Vector12d contact_wrench_container_to_fast_;
+    Eigen::Vector12d contact_wrench_fast_;
+
+    //state machine
+    bool is_wbid_init_ = true;
+
+    bool is_lfoot_support_ = false;
+    bool is_lfoot_support_container_to_fast_ = false;
+    bool is_lfoot_support_fast_ = false;
+
+    bool is_rfoot_support_ = false;
+    bool is_rfoot_support_container_to_fast_ = false;
+    bool is_rfoot_support_fast_ = false;
+
+    bool is_ssp_ = false;
+    bool is_ssp_container_to_fast_ = false;
+    bool is_ssp_fast_ = false;
+
+    bool is_dsp_ = false;
+    bool is_dsp_container_to_fast_ = false;
+    bool is_dsp_fast_ = false;
+
+    unsigned int num_contact_;
+
+    CQuadraticProgram QP_wbid;
+
+    Eigen::Matrix6Vd J_lfoot_;
+    Eigen::Matrix6Vd J_lfoot_pre_;
+    Eigen::Matrix6Vd J_lfoot_dot_;
+    Eigen::Matrix6Vd J_rfoot_;
+    Eigen::Matrix6Vd J_rfoot_pre_;
+    Eigen::Matrix6Vd J_rfoot_dot_;
+
+    Eigen::VectorQd torque_min;
+    Eigen::VectorQd torque_max;
 
 private:    
     unsigned int walking_tick_ = 0;
