@@ -1180,6 +1180,7 @@ public:
     Eigen::Isometry3d rfoot_float_init_;
     double b_ = 0.0;
     double w_ = 0.0;
+    double w_mpc_ = 0.0;
     
     Eigen::Vector2d del_F_;
     Eigen::Vector2d sc_err_before;
@@ -1199,6 +1200,8 @@ public:
     Eigen::Isometry3d pelv_support_current_;
     Eigen::Isometry3d lfoot_support_current_;
     Eigen::Isometry3d rfoot_support_current_;
+    Eigen::Isometry3d lfoot_support_current_calc_;
+    Eigen::Isometry3d rfoot_support_current_calc_;
     Eigen::Vector6d   lfoot_support_current_dot_;
     Eigen::Vector6d   rfoot_support_current_dot_;
 
@@ -1263,14 +1266,9 @@ public:
 
     double t_last_;
     double t_start_;
-    double t_start_real_;
     double t_start_mpc_;
     double t_start_container_to_mpc_;
     double t_temp_;  
-    double t_rest_init_;
-    double t_rest_last_;
-    double t_double1_;
-    double t_double2_;
     double t_dsp1_;
     double t_dsp2_;
     double t_dsp1_const_;
@@ -1283,6 +1281,7 @@ public:
     double t_total_container_to_mpc_;
     double t_total_mpc_;
     double foot_height_;
+    double foot_width_;
     double step_length_x_;
     double step_length_y_;
     double target_theta_;
@@ -1353,16 +1352,19 @@ public:
 
     double step_enable_time_fwd_;
     double step_enable_time_bwd_;
+    double step_enable_fix_time_pre_;
     int step_time_adj_candidate_num_;
     bool param_sim_mode_;
     double param_ext_force_time_;
     double param_ext_force_;
     double param_ext_theta_;
 
-    double zmp_x_max = 0.13;
-    double zmp_x_min = 0.09;
-    double zmp_y_max = 0.075;
-    double zmp_y_min = 0.075;
+    double zmp_x_max = 0.18;
+    double zmp_x_min = 0.12;
+    double zmp_y_max = 0.10;
+    double zmp_y_min = 0.10;
+    double zmp_y_max_foot_width_ = 0.075;
+    double zmp_y_min_foot_width_ = 0.075;
 
     //IS MPC QCQP
     void IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
@@ -1389,8 +1391,10 @@ public:
     Eigen::MatrixXd A_main_;
     Eigen::MatrixXd B_main_;
     Eigen::MatrixXd A_mpc_;
+    Eigen::MatrixXd A_mpc_calc_;
     Eigen::MatrixXd B_mpc_;
     Eigen::MatrixXd Cdp_mpc_;
+    Eigen::MatrixXd Cdp_mpc_calc_;
     Eigen::MatrixXd Ccp_mpc_;
     Eigen::MatrixXd Ccv_mpc_;
     Eigen::MatrixXd Cvp_mpc_;
@@ -1462,7 +1466,8 @@ public:
     Eigen::MatrixXd Pcvu_stab_mpc_;
     Eigen::MatrixXd Pvpu_stab_mpc_;
 
-    Eigen::MatrixXd Qmat_stab_mpc_;
+    Eigen::MatrixXd Qmat_stab_mpc_Q_;
+    Eigen::MatrixXd Qmat_stab_mpc_R_;
     Eigen::MatrixXd Qmat_stab_alpha_mpc_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
     Eigen::MatrixXd gcalc_stab_mpc_;
@@ -1472,7 +1477,10 @@ public:
 
     Eigen::MatrixXd gxacalc_stab_mpc_;
     Eigen::MatrixXd gyacalc_stab_mpc_;
-    
+        
+    Eigen::MatrixXd gxascalc_stab_mpc_;
+    Eigen::MatrixXd gyascalc_stab_mpc_;
+
     Eigen::MatrixXd gxdacalc_stab_mpc_;
     Eigen::MatrixXd gydacalc_stab_mpc_;
 
