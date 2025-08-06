@@ -1183,6 +1183,7 @@ public:
     double w_mpc_ = 0.0;
     
     Eigen::Vector2d del_F_;
+    Eigen::Vector2d del_F_prev_;
     Eigen::Vector2d sc_err_before;
     Eigen::Vector2d sc_err_after;
     Eigen::Vector2d SC_com;
@@ -1360,11 +1361,16 @@ public:
     double param_ext_theta_;
 
     double zmp_x_max = 0.18;
-    double zmp_x_min = 0.12;
+    double zmp_x_min = 0.10;
+    double zmp_x_max_foot_width_ = 0.18;
+    double zmp_x_min_foot_width_ = 0.12;
     double zmp_y_max = 0.10;
     double zmp_y_min = 0.10;
     double zmp_y_max_foot_width_ = 0.075;
     double zmp_y_min_foot_width_ = 0.075;
+
+    Eigen::Vector3d foot_pos_compen_;
+    Eigen::Vector3d foot_ori_compen_;
 
     //IS MPC QCQP
     void IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
@@ -1487,6 +1493,9 @@ public:
     Eigen::MatrixXd gxdascalc_stab_mpc_;
     Eigen::MatrixXd gydascalc_stab_mpc_;
 
+    Eigen::MatrixXd gxdtcalc_stab_mpc_;
+    Eigen::MatrixXd gydtcalc_stab_mpc_;
+
     Eigen::MatrixXd SUpx_stab_mpc_;
     Eigen::MatrixXd SUpy_stab_mpc_;
     Eigen::MatrixXd SUpz_stab_mpc_;
@@ -1499,6 +1508,10 @@ public:
     Eigen::MatrixXd SUsax_stab_mpc_;
     Eigen::MatrixXd SUsay_stab_mpc_;
     Eigen::MatrixXd SUsa_stab_mpc_;
+
+    Eigen::MatrixXd SUtax_stab_mpc_;
+    Eigen::MatrixXd SUtay_stab_mpc_;
+    Eigen::MatrixXd SUta_stab_mpc_;
     
     Eigen::MatrixXd ssx_stab_mpc_;
     Eigen::MatrixXd ssy_stab_mpc_;
@@ -1533,6 +1546,7 @@ public:
     Eigen::MatrixXd sum_alpha_x_;
     Eigen::MatrixXd sum_alpha_y_;
 
+    Eigen::VectorXd zmp_time_calc_x_;
     Eigen::VectorXd zmp_time_calc_y_;
 
     bool step_enable_bool_mpc_;
@@ -1543,6 +1557,7 @@ public:
     double MPC_Stabilizer_delf_y_;
 
     int MPC_Stabilizer_time_adj_tick_x_mpc_;
+    double MPC_Stabilizer_time_adj_tick_x_mpc_LPF_ = 0;
     int MPC_Stabilizer_time_adj_tick_x_container_from_mpc_;
     int MPC_Stabilizer_time_adj_tick_x_main_;
     int MPC_Stabilizer_time_adj_tick_y_mpc_;
