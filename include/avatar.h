@@ -1360,7 +1360,7 @@ public:
     double param_ext_force_;
     double param_ext_theta_;
 
-    double zmp_x_max = 0.18;
+    double zmp_x_max = 0.16;
     double zmp_x_min = 0.10;
     double zmp_x_max_foot_width_ = 0.18;
     double zmp_x_min_foot_width_ = 0.12;

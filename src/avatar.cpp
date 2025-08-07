@@ -9748,14 +9748,11 @@ e_tmp_graph18 << Sf2_stab_mpc_.transpose() << endl;
     double delf_x_min_calc =  0.15;
     double delf_y_max_calc =  0.14;
     double delf_y_min_calc =  0.05;
-    bool x_step_direction_inplace = false;
-    if (dcm_measured_mpc_(0) > dcm_refx(0)) { x_step_direction_inplace = true; }
 
-    //alpha ineq min max
     //alpha X
     const_A_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, input_num) = SUax_stab_mpc_*SUa_stab_mpc_;
-    const_ub_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, 1) = MatrixXd::Constant(step_time_adj_candidate_num_, 1, step_x_norm +      x_step_direction_inplace *delf_x_max_calc);
-    const_lb_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, 1) = MatrixXd::Constant(step_time_adj_candidate_num_, 1,             - (1 - x_step_direction_inplace)*delf_x_min_calc);
+    const_ub_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, 1) = MatrixXd::Constant(step_time_adj_candidate_num_, 1, + delf_x_max_calc);
+    const_lb_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, 1) = MatrixXd::Constant(step_time_adj_candidate_num_, 1, - delf_x_min_calc);
     constraint_index += step_time_adj_candidate_num_;
 
     //alpha Y
@@ -9771,7 +9768,7 @@ e_tmp_graph18 << Sf2_stab_mpc_.transpose() << endl;
         const_lb_mpc_.block(constraint_index, 0, step_time_adj_candidate_num_, 1) = MatrixXd::Constant(step_time_adj_candidate_num_, 1, 0.0);
     }
     constraint_index += step_time_adj_candidate_num_;
-    
+
     //alpha eq sum
     //alpha X
     const_A_mpc_.block(constraint_index, 0, 1, input_num) = MatrixXd::Constant(1, step_time_adj_candidate_num_, 1)*SUax_stab_mpc_*SUa_stab_mpc_ - SUsax_stab_mpc_*SUsa_stab_mpc_;
@@ -9787,8 +9784,8 @@ e_tmp_graph18 << Sf2_stab_mpc_.transpose() << endl;
     //alpha ieq sum min max
     //alpha X
     const_A_mpc_.block(constraint_index, 0, 1, input_num) = SUsax_stab_mpc_*SUsa_stab_mpc_;
-    const_ub_mpc_.block(constraint_index, 0, 1, 1) = MatrixXd::Constant(1, 1, step_x_norm +      x_step_direction_inplace *delf_x_max_calc);
-    const_lb_mpc_.block(constraint_index, 0, 1, 1) = MatrixXd::Constant(1, 1, step_x_norm - (1 - x_step_direction_inplace)*delf_x_min_calc);
+    const_ub_mpc_.block(constraint_index, 0, 1, 1) = MatrixXd::Constant(1, 1, + delf_x_max_calc);
+    const_lb_mpc_.block(constraint_index, 0, 1, 1) = MatrixXd::Constant(1, 1, - delf_x_min_calc);
     constraint_index += 1;
     //alpha Y
     const_A_mpc_.block(constraint_index, 0, 1, input_num) = SUsay_stab_mpc_*SUsa_stab_mpc_;
@@ -9871,12 +9868,16 @@ e_tmp_graph18 << Sf2_stab_mpc_.transpose() << endl;
     double calc_time_adj_y = 0.0;
 
     for (int i = 0; i < step_time_adj_candidate_num_; i++)
-    {
-        if(abs(MPC_Stabilizer_alpha_mpc_x_(i)) < 1e-3) { MPC_Stabilizer_alpha_mpc_x_(i) = 0.0; }
-        if(abs(MPC_Stabilizer_alpha_mpc_y_(i)) < 1e-4) { MPC_Stabilizer_alpha_mpc_y_(i) = 0.0; }
+    {   
+        if(abs(MPC_Stabilizer_alpha_mpc_x_(i)) > 1e-3)
+        {
+            calc_time_adj_x += i*MPC_Stabilizer_alpha_mpc_x_(i)/MPC_Stabilizer_alpha_mpc_x_.sum();
+        }
 
-        calc_time_adj_x += i*MPC_Stabilizer_alpha_mpc_x_(i)/(MPC_Stabilizer_alpha_mpc_x_.sum() + 1e-10);
-        calc_time_adj_y += i*MPC_Stabilizer_alpha_mpc_y_(i)/MPC_Stabilizer_alpha_mpc_y_.sum();
+        if(abs(MPC_Stabilizer_alpha_mpc_y_(i)) > 1e-4)
+        {
+            calc_time_adj_y += i*MPC_Stabilizer_alpha_mpc_y_(i)/MPC_Stabilizer_alpha_mpc_y_.sum();
+        }
     }
 
     MPC_Stabilizer_time_adj_tick_x_mpc_ = round(calc_time_adj_x + 0.1);
@@ -9898,7 +9899,6 @@ e_tmp_graph18 << Sf2_stab_mpc_.transpose() << endl;
                           << MPC_Stabilizer_time_adj_tick_x_mpc_ << "," << MPC_Stabilizer_time_adj_tick_y_mpc_ << "," << 0 << ","
                           << sum_alpha_x_(0,0)                   << "," << sum_alpha_y_(0,0)                   << "," << 0 << ","
                           << step_enable_bool_mpc_               << "," << 0                                   << "," << 0 << ","
-                          << x_step_direction_inplace                    << ","
                           << endl;
 
     data_save_calc.setZero(2*N_stab_mpc);
