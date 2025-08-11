@@ -1474,44 +1474,40 @@ public:
 
     Eigen::MatrixXd Qmat_stab_mpc_Q_;
     Eigen::MatrixXd Qmat_stab_mpc_R_;
-    Eigen::MatrixXd Qmat_stab_alpha_mpc_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
     Eigen::MatrixXd gcalc_stab_mpc_;
     Eigen::MatrixXd gxpcalc_stab_mpc_;
     Eigen::MatrixXd gypcalc_stab_mpc_;
     Eigen::MatrixXd gzpcalc_stab_mpc_;
 
+    Eigen::MatrixXd gxfcalc_stab_mpc_;
+    Eigen::MatrixXd gyfcalc_stab_mpc_;
+
+    Eigen::MatrixXd gxdfcalc_stab_mpc_;
+    Eigen::MatrixXd gydfcalc_stab_mpc_;
+
     Eigen::MatrixXd gxacalc_stab_mpc_;
     Eigen::MatrixXd gyacalc_stab_mpc_;
-        
-    Eigen::MatrixXd gxascalc_stab_mpc_;
-    Eigen::MatrixXd gyascalc_stab_mpc_;
 
     Eigen::MatrixXd gxdacalc_stab_mpc_;
     Eigen::MatrixXd gydacalc_stab_mpc_;
-
-    Eigen::MatrixXd gxdascalc_stab_mpc_;
-    Eigen::MatrixXd gydascalc_stab_mpc_;
-
-    Eigen::MatrixXd gxdtcalc_stab_mpc_;
-    Eigen::MatrixXd gydtcalc_stab_mpc_;
 
     Eigen::MatrixXd SUpx_stab_mpc_;
     Eigen::MatrixXd SUpy_stab_mpc_;
     Eigen::MatrixXd SUpz_stab_mpc_;
     Eigen::MatrixXd SUp_stab_mpc_;
 
+    Eigen::MatrixXd SUfx_stab_mpc_;
+    Eigen::MatrixXd SUfy_stab_mpc_;
+    Eigen::MatrixXd SUf_stab_mpc_;
+
     Eigen::MatrixXd SUax_stab_mpc_;
     Eigen::MatrixXd SUay_stab_mpc_;
     Eigen::MatrixXd SUa_stab_mpc_;
 
-    Eigen::MatrixXd SUsax_stab_mpc_;
-    Eigen::MatrixXd SUsay_stab_mpc_;
-    Eigen::MatrixXd SUsa_stab_mpc_;
-
-    Eigen::MatrixXd SUtax_stab_mpc_;
-    Eigen::MatrixXd SUtay_stab_mpc_;
-    Eigen::MatrixXd SUta_stab_mpc_;
+    Eigen::MatrixXd SUmx_stab_mpc_;
+    Eigen::MatrixXd SUmy_stab_mpc_;
+    Eigen::MatrixXd SUm_stab_mpc_;
     
     Eigen::MatrixXd ssx_stab_mpc_;
     Eigen::MatrixXd ssy_stab_mpc_;
@@ -1537,6 +1533,9 @@ public:
     Eigen::VectorXd MPC_Stabilizer_alpha_main_;
     Eigen::VectorXd MPC_Stabilizer_alpha_main_x_;
     Eigen::VectorXd MPC_Stabilizer_alpha_main_y_;
+    Eigen::VectorXd MPC_Stabilizer_mcCormick_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_mcCormick_mpc_x_;
+    Eigen::VectorXd MPC_Stabilizer_mcCormick_mpc_y_;
 
     Eigen::VectorXd MPC_Stabilizer_u_mpc_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_sep_;
