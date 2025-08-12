@@ -1070,6 +1070,7 @@ public:
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
     void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
     void onestepZmp_wo_offset(unsigned int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py, Eigen::VectorXd& temp_px_wo_offset, Eigen::VectorXd& temp_py_wo_offset);
+    void onestepVrpZ(unsigned int current_step_number, double t_total_zmp, Eigen::VectorXd& temp_pz);
     void getComTrajectory();
     void getFootTrajectory();
     void getFootTrajectory_stepping();
@@ -1223,6 +1224,10 @@ public:
     Eigen::MatrixXd ref_zmp_mpc_;
     Eigen::MatrixXd ref_zmp_container_to_mpc_;
 
+    Eigen::MatrixXd ref_vrp_;
+    Eigen::MatrixXd ref_vrp_mpc_;
+    Eigen::MatrixXd ref_vrp_container_to_mpc_;
+
     Eigen::Vector3d xs_mj_;
     Eigen::Vector3d ys_mj_;
     Eigen::Vector3d xd_mj_;
@@ -1375,7 +1380,9 @@ public:
     //IS MPC QCQP
     void IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_LIPM_CoM_sep_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
+    void IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double preview_window);
+    void IS_FIPM_3D_DCM_Stabililzer_MPC(double mpc_freq, double preview_window);
     void econom2_thread_stepchange();
 
     //Matrix
@@ -1409,9 +1416,19 @@ public:
     Eigen::MatrixXd b_IS_step_mpc_;
     Eigen::MatrixXd p_IS_step_mpc_;
 
+    Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_mpc_;
+    Eigen::MatrixXd const_SQP_phi_mpc_;
     Eigen::MatrixXd const_A_mpc_;
+    Eigen::MatrixXd const_SQP_pi_mpc_;
     Eigen::MatrixXd const_ub_mpc_;
     Eigen::MatrixXd const_lb_mpc_;
+    Eigen::MatrixXd const_SQP_ri_mpc_;
+    Eigen::MatrixXd const_SQP_hi_mpc_;
 
     Eigen::MatrixXd Pv_dot_ref_mpc_;
 
@@ -1430,11 +1447,13 @@ public:
     Eigen::MatrixXd Qycalc_plan_mpc_;
     Eigen::MatrixXd Qzcalc_plan_mpc_;
     Eigen::MatrixXd Qcalc_plan_mpc_;
+    Eigen::MatrixXd SQP_deldel_Qcalc_plan_mpc_;
 
-    Eigen::MatrixXd gcalc_plan_mpc_;
     Eigen::MatrixXd gxcalc_plan_mpc_;
     Eigen::MatrixXd gycalc_plan_mpc_;
     Eigen::MatrixXd gzcalc_plan_mpc_;
+    Eigen::MatrixXd gcalc_plan_mpc_;
+    Eigen::MatrixXd SQP_del_g_calc_plan_mpc_;
 
     Eigen::MatrixXd SUx_plan_mpc_;
     Eigen::MatrixXd SUy_plan_mpc_;
@@ -1454,6 +1473,7 @@ public:
     
     Eigen::VectorXd MPC_Planner_u_mpc_;
     Eigen::VectorXd MPC_Planner_u_mpc_sep_;
+    Eigen::VectorXd MPC_Planner_SQP_du_mpc_;
     Eigen::VectorXd MPC_Planner_u_main_;
     Eigen::VectorXd MPC_Planner_u_container_from_mpc_;
     
