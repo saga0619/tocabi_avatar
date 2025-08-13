@@ -1416,12 +1416,18 @@ public:
     Eigen::MatrixXd b_IS_step_mpc_;
     Eigen::MatrixXd p_IS_step_mpc_;
 
-    Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_mpc_;
-    Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_mpc_;
-    Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_mpc_;
-    Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_mpc_;
-    Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_mpc_;
-    Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_stab_mpc_;
     Eigen::MatrixXd const_SQP_phi_mpc_;
     Eigen::MatrixXd const_A_mpc_;
     Eigen::MatrixXd const_SQP_pi_mpc_;
@@ -1495,10 +1501,13 @@ public:
     Eigen::MatrixXd Qmat_stab_mpc_Q_;
     Eigen::MatrixXd Qmat_stab_mpc_R_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
-    Eigen::MatrixXd gcalc_stab_mpc_;
+    Eigen::MatrixXd SQP_deldel_Qcalc_stab_mpc_;
+    
     Eigen::MatrixXd gxpcalc_stab_mpc_;
     Eigen::MatrixXd gypcalc_stab_mpc_;
     Eigen::MatrixXd gzpcalc_stab_mpc_;
+    Eigen::MatrixXd gcalc_stab_mpc_;
+    Eigen::MatrixXd SQP_del_g_calc_stab_mpc_;
 
     Eigen::MatrixXd gxfcalc_stab_mpc_;
     Eigen::MatrixXd gyfcalc_stab_mpc_;
@@ -1559,6 +1568,7 @@ public:
 
     Eigen::VectorXd MPC_Stabilizer_u_mpc_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_sep_;
+    Eigen::VectorXd MPC_Stabilizer_SQP_du_mpc_;
     Eigen::Vector3d MPC_Stabilizer_u_main_;
     Eigen::VectorXd MPC_Stabilizer_u_container_from_mpc_;
 
