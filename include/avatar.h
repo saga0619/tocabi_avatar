@@ -1362,6 +1362,7 @@ public:
     int step_time_adj_candidate_num_;
     bool param_sim_mode_;
     double param_ext_force_time_;
+    int    param_ext_force_step_;
     double param_ext_force_;
     double param_ext_theta_;
 
@@ -1417,17 +1418,47 @@ public:
     Eigen::MatrixXd p_IS_step_mpc_;
 
     Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_plan_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi2_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi3_N_plan_mpc_;
+    
     Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri2_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri3_N_plan_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_plan_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi2_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi3_N_plan_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri2_N_plan_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri3_N_plan_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_x_phi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_phi2_N_stab_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi2_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi3_N_stab_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri2_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_ri3_N_stab_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_phi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_phi2_N_stab_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi2_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi3_N_stab_mpc_;
+
     Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri2_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_ri3_N_stab_mpc_;
+
     Eigen::MatrixXd const_SQP_phi_mpc_;
     Eigen::MatrixXd const_A_mpc_;
     Eigen::MatrixXd const_SQP_pi_mpc_;
@@ -1514,6 +1545,9 @@ public:
 
     Eigen::MatrixXd gxdfcalc_stab_mpc_;
     Eigen::MatrixXd gydfcalc_stab_mpc_;
+
+    Eigen::MatrixXd gxsfcalc_stab_mpc_;
+    Eigen::MatrixXd gysfcalc_stab_mpc_;
 
     Eigen::MatrixXd gxacalc_stab_mpc_;
     Eigen::MatrixXd gyacalc_stab_mpc_;
