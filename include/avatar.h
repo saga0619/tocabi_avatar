@@ -1443,6 +1443,7 @@ public:
     Eigen::MatrixXd IS_FIPM_SQP_x_pi_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_x_pi2_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_x_pi3_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_x_pi4_N_stab_mpc_;
 
     Eigen::MatrixXd IS_FIPM_SQP_x_ri_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_x_ri2_N_stab_mpc_;
@@ -1454,18 +1455,35 @@ public:
     Eigen::MatrixXd IS_FIPM_SQP_y_pi_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_y_pi2_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_y_pi3_N_stab_mpc_;
+    Eigen::MatrixXd IS_FIPM_SQP_y_pi4_N_stab_mpc_;
 
     Eigen::MatrixXd IS_FIPM_SQP_y_ri_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_y_ri2_N_stab_mpc_;
     Eigen::MatrixXd IS_FIPM_SQP_y_ri3_N_stab_mpc_;
 
     Eigen::MatrixXd const_SQP_phi_mpc_;
+    Eigen::MatrixXd const_SQP_phi_mpc_x_max_;
+    Eigen::MatrixXd const_SQP_phi_mpc_x_min_;
+    Eigen::MatrixXd const_SQP_phi_mpc_y_max_;
+    Eigen::MatrixXd const_SQP_phi_mpc_y_min_;
     Eigen::MatrixXd const_A_mpc_;
     Eigen::MatrixXd const_SQP_pi_mpc_;
+    Eigen::MatrixXd const_SQP_pi_mpc_x_max_;
+    Eigen::MatrixXd const_SQP_pi_mpc_x_min_;
+    Eigen::MatrixXd const_SQP_pi_mpc_y_max_;
+    Eigen::MatrixXd const_SQP_pi_mpc_y_min_;
     Eigen::MatrixXd const_ub_mpc_;
     Eigen::MatrixXd const_lb_mpc_;
     Eigen::MatrixXd const_SQP_ri_mpc_;
+    Eigen::MatrixXd const_SQP_ri_mpc_x_max_;
+    Eigen::MatrixXd const_SQP_ri_mpc_x_min_;
+    Eigen::MatrixXd const_SQP_ri_mpc_y_max_;
+    Eigen::MatrixXd const_SQP_ri_mpc_y_min_;
     Eigen::MatrixXd const_SQP_hi_mpc_;
+    Eigen::MatrixXd const_SQP_hi_mpc_x_max_;
+    Eigen::MatrixXd const_SQP_hi_mpc_x_min_;
+    Eigen::MatrixXd const_SQP_hi_mpc_y_max_;
+    Eigen::MatrixXd const_SQP_hi_mpc_y_min_;
 
     Eigen::MatrixXd Pv_dot_ref_mpc_;
 
@@ -1531,6 +1549,7 @@ public:
 
     Eigen::MatrixXd Qmat_stab_mpc_Q_;
     Eigen::MatrixXd Qmat_stab_mpc_R_;
+    Eigen::MatrixXd Qmat_stab_mpc_fx_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
     Eigen::MatrixXd SQP_deldel_Qcalc_stab_mpc_;
     
@@ -1561,7 +1580,9 @@ public:
     Eigen::MatrixXd SUp_stab_mpc_;
 
     Eigen::MatrixXd SUfx_stab_mpc_;
+    Eigen::MatrixXd SUfxf_stab_mpc_;
     Eigen::MatrixXd SUfy_stab_mpc_;
+    Eigen::MatrixXd SUfyf_stab_mpc_;
     Eigen::MatrixXd SUf_stab_mpc_;
 
     Eigen::MatrixXd SUax_stab_mpc_;
