@@ -1370,8 +1370,10 @@ public:
     double zmp_x_min = 0.10;
     double zmp_x_max_foot_width_ = 0.18;
     double zmp_x_min_foot_width_ = 0.12;
-    double zmp_y_max = 0.10;
-    double zmp_y_min = 0.10;
+    //double zmp_y_max = 0.10;
+    //double zmp_y_min = 0.10;
+    double zmp_y_max = 0.075;
+    double zmp_y_min = 0.075;
     double zmp_y_max_foot_width_ = 0.075;
     double zmp_y_min_foot_width_ = 0.075;
 
@@ -1634,8 +1636,11 @@ public:
     Eigen::VectorXd zmp_time_calc_y_;
 
     bool step_enable_bool_mpc_;
+    bool step_enable_bool_one_tick_mpc_;
     bool step_enable_bool_container_from_mpc_;
+    bool step_enable_bool_one_tick_container_from_mpc_;
     bool step_enable_bool_main_;
+    bool step_enable_bool_one_tick_main_;
 
     double MPC_Stabilizer_delf_x_;
     double MPC_Stabilizer_delf_y_;
@@ -1729,6 +1734,7 @@ public:
 
 private:    
     unsigned int walking_tick_ = 0;
+    unsigned int scenario_tick_ = 0;
     unsigned int walking_tick_mpc_ = 0;
     unsigned int walking_tick_container_to_mpc_ = 0;
     unsigned int initial_tick_ = 0;
