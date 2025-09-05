@@ -1359,14 +1359,16 @@ public:
     double step_enable_time_fwd_;
     double step_enable_time_bwd_;
     double step_enable_fix_time_pre_;
-    int step_time_adj_candidate_num_;
-    bool param_sim_mode_;
+    int    step_time_adj_candidate_num_;
+    bool   param_sim_mode_;
     double param_ext_force_time_;
     int    param_ext_force_step_;
     double param_ext_force_;
     double param_ext_theta_;
+    int    param_scenario_;
 
     double zmp_x_max = 0.16;
+    //double zmp_x_min = 0.10;
     double zmp_x_min = 0.10;
     double zmp_x_max_foot_width_ = 0.18;
     double zmp_x_min_foot_width_ = 0.12;
