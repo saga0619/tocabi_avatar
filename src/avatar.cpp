@@ -7958,7 +7958,10 @@ void AvatarController::getFootTrajectory_stepping()
         }
     }
 
-    target_swing_foot(2) = target_swing_foot(2) + 0.0*foot_pos_compen_(2);
+    if(abs(del_F_(1)) > 1e-2)
+    {
+        target_swing_foot(2) = target_swing_foot(2) + 0.5*foot_pos_compen_(2);
+    }
 
     double admittance_cubic_l_calc = 0.0;
     double admittance_cubic_r_calc = 0.0;
@@ -9666,7 +9669,7 @@ void AvatarController::IS_FIPM_3D_DCM_Stabililzer_MPC(double mpc_freq, double pr
 {
     double Q_dcm_x, Q_dcm_y, Q_dcm_z, R_dcm_x, R_dcm_y, R_dcm_z, R_dalp, R_df_x, R_df_y;
 
-    //Q_dcm_x = 1e-0; R_dcm_x = 1e-2; R_dalp = 5e+0; R_df_x = 1e+2;
+    //Q_dcm_x = 1e-0; R_dcm_x = 1e-2; R_dalp = 3e+0; R_df_x = 1e+2;
     //Q_dcm_y = 1e-0; R_dcm_y = 1e-2;                R_df_y = 2e+1;
     //Q_dcm_z = 1e-0; R_dcm_z = 1e-2; //for 0.9 step time
 
@@ -9969,11 +9972,11 @@ void AvatarController::IS_FIPM_3D_DCM_Stabililzer_MPC(double mpc_freq, double pr
 
             if(walking_tick_mpc_ > t_temp_)
             {
-                //Sf1_stab_mpc_(i,0) = step_enable_bool_mpc_*next_step_prev_bool*(zmp_max_y_mpc_(i) - zmp_max_y_mpc_(int(t_dsp1_const_/MPC_synchro_hz_)))/(MPC_Stabilizer_delf_mpc_y_(0));
-                //zmp_max_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_x_mpc_(i);
-                //zmp_min_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_x_mpc_(i);
-                //zmp_max_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_y_mpc_(i);
-                //zmp_min_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_y_mpc_(i);
+                Sf1_stab_mpc_(i,0) = step_enable_bool_mpc_*next_step_prev_bool*(zmp_max_y_mpc_(i) - zmp_max_y_mpc_(int(t_dsp1_const_/MPC_synchro_hz_)))/(MPC_Stabilizer_delf_mpc_y_(0));
+                zmp_max_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_x_mpc_(i);
+                zmp_min_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_x_mpc_(i);
+                zmp_max_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_y_mpc_(i);
+                zmp_min_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_y_mpc_(i);
             }
         }
     }
