@@ -7748,10 +7748,11 @@ void AvatarController::onestepVrpZ(unsigned int current_step_number, double t_to
 
     double height_diff = 0.0;
 
-    if(current_step_number ==  0) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
-    if(current_step_number ==  1) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
-    if(current_step_number ==  2) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
-    if(current_step_number ==  3) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
+    if(current_step_number ==  0) { height_diff = - 0.10*param_scenario_ - 0.05*(1 - param_scenario_); }
+    if(current_step_number ==  1) { height_diff = - 0.10*param_scenario_ - 0.10*(1 - param_scenario_); }
+    if(current_step_number ==  2) { height_diff = - 0.10*param_scenario_ - 0.15*(1 - param_scenario_); }
+    if(current_step_number ==  3) { height_diff = - 0.10*param_scenario_ - 0.10*(1 - param_scenario_); }
+    if(current_step_number ==  4) { height_diff = - 0.00*param_scenario_ - 0.05*(1 - param_scenario_); }
 
     //foot_step_support_frame_(current_step_number, 2) = height_diff;
 
@@ -9406,7 +9407,8 @@ void AvatarController::IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, d
         Si_mpc(0, i) = 1;
 
         //X max
-        const_SQP_phi_mpc_ = IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc);
+        const_SQP_phi_mpc_ = 0.5*(IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc)
+                                 +IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc).transpose());
 
         const_SQP_pi_mpc_  = IS_FIPM_SQP_x_pi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_state)*MPC_Planner_state_mpc_
 
@@ -9430,7 +9432,8 @@ void AvatarController::IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, d
         constraint_index += 1;
 
         //X min
-        const_SQP_phi_mpc_ = IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc);
+        const_SQP_phi_mpc_ = 0.5*(IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc)
+                                 +IS_FIPM_SQP_x_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc).transpose());
 
         const_SQP_pi_mpc_  = IS_FIPM_SQP_x_pi_N_plan_mpc_.block (calc_index, 0, 3*N_plan_mpc, 3*N_state)*MPC_Planner_state_mpc_
 
@@ -9455,7 +9458,8 @@ void AvatarController::IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, d
 
         //Y direction
         //Y max
-        const_SQP_phi_mpc_ = IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc);
+        const_SQP_phi_mpc_ = 0.5*(IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc)
+                                 +IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc).transpose());
 
         const_SQP_pi_mpc_  = IS_FIPM_SQP_y_pi_N_plan_mpc_.block (calc_index, 0, 3*N_plan_mpc, 3*N_state)*MPC_Planner_state_mpc_
 
@@ -9479,7 +9483,8 @@ void AvatarController::IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, d
         constraint_index += 1;
 
         //Y min
-        const_SQP_phi_mpc_ = IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc);
+        const_SQP_phi_mpc_ = 0.5*(IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc)
+                                 +IS_FIPM_SQP_y_phi_N_plan_mpc_.block(calc_index, 0, 3*N_plan_mpc, 3*N_plan_mpc).transpose());
 
         const_SQP_pi_mpc_  = IS_FIPM_SQP_y_pi_N_plan_mpc_.block (calc_index, 0, 3*N_plan_mpc, 3*N_state)*MPC_Planner_state_mpc_
 
@@ -9986,7 +9991,7 @@ e_tmp_graph24 << data_save_calc.transpose() << endl;
 
     SQP_deldel_Qcalc_stab_mpc_ = Qcalc_stab_mpc_;
 
-    int sqp_iter = 3;
+    int sqp_iter = 2;
 
     const_A_mpc_.setZero(const_num, input_num);
     const_lb_mpc_.setZero(const_num, 1);
