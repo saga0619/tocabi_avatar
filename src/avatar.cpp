@@ -7748,10 +7748,10 @@ void AvatarController::onestepVrpZ(unsigned int current_step_number, double t_to
 
     double height_diff = 0.0;
 
-    if(current_step_number ==  0) { height_diff = - 0.10; }
-    if(current_step_number ==  1) { height_diff = - 0.05; }
-    if(current_step_number ==  2) { height_diff = - 0.00; }
-    if(current_step_number ==  3) { height_diff = - 0.05; }
+    if(current_step_number ==  0) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
+    if(current_step_number ==  1) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
+    if(current_step_number ==  2) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
+    if(current_step_number ==  3) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
 
     //foot_step_support_frame_(current_step_number, 2) = height_diff;
 
@@ -9641,7 +9641,7 @@ void AvatarController::IS_FIPM_3D_DCM_Stabililzer_MPC(double mpc_freq, double pr
     //Q_dcm_y = 1e-0; R_dcm_y = 1e-2;                R_df_y = 2e+1;
     //Q_dcm_z = 1e-0; R_dcm_z = 1e-2; //for 0.9 step time
 
-    Q_dcm_x = 1e-0; R_dcm_x = 1e-2; R_dalp = 1e+0; R_df_x = 1e+2;
+    Q_dcm_x = 1e-0; R_dcm_x = 1e-2; R_dalp = 3e+0; R_df_x = 1e+2;
     Q_dcm_y = 1e-0; R_dcm_y = 1e-2;                R_df_y = 2e+1;
     Q_dcm_z = 1e-0; R_dcm_z = 1e-2; //for 0.9 step time
 
@@ -10744,13 +10744,13 @@ void AvatarController::parameterSetting()
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
     
-    t_dsp1_        = 0.15 * hz_;
-    t_dsp2_        = 0.05 * hz_;
-    t_total_       = 1.0 * hz_;
+    t_dsp1_        = 0.10 * hz_;
+    t_dsp2_        = 0.10 * hz_;
+    t_total_       = 0.9 * hz_;
 
-    t_dsp1_const_  = 0.15 * hz_;
-    t_dsp2_const_  = 0.05 * hz_;
-    t_total_const_ = 1.0 * hz_;
+    t_dsp1_const_  = 0.10 * hz_;
+    t_dsp2_const_  = 0.10 * hz_;
+    t_total_const_ = 0.9 * hz_;
 
     t_ssp_ = t_total_ - t_dsp1_ - t_dsp2_;
     //foot_width_  = zmp_y_max;
