@@ -606,12 +606,13 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-                getComTrajectory_mpc();
+                //getComTrajectory_mpc();
+                getComTrajectory();
                 getFootTrajectory_stepping();
                 getPelvTrajectory(); 
                 supportToFloatPattern();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
-                
+
                 if(walking_tick_ == 1999 && param_scenario_ == 1)
                 {
                     double calc_13_1 = DyrosMath::cubic(scenario_tick_ - walking_tick_, 1.0*hz_, 3.0*hz_, 0.1, 0.4, 0.0, 0.0);
@@ -5534,6 +5535,7 @@ Eigen::VectorQd AvatarController::ikBalanceControlCompute()
 
 void AvatarController::computeThread3()
 {   
+    /*
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     if(atb_main_to_mpc_update_ == false)
     {
@@ -5600,6 +5602,7 @@ void AvatarController::computeThread3()
     std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
     e_mpc_time_graph << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count()*1e-6 << endl;
+    */
 }
 
 void AvatarController::econom2_thread_stepchange()
@@ -7971,7 +7974,8 @@ void AvatarController::getFootTrajectory_stepping()
     time_adj_tick_main_foot_traj = min(time_adj_tick_main_foot_traj, double(step_time_adj_candidate_num_ - 1));
 
     double t_total_foot_traj_;
-    t_total_foot_traj_ = t_total_const_ - time_adj_tick_main_foot_traj*hz_/thread3_hz_;
+    //t_total_foot_traj_ = t_total_const_ - time_adj_tick_main_foot_traj*hz_/thread3_hz_;
+    t_total_foot_traj_ = t_total_const_;
 
     Eigen::Vector3d lfoot_float_current_euler;
     Eigen::Vector3d rfoot_float_current_euler;
@@ -10553,6 +10557,8 @@ void AvatarController::getComTrajectory()
         UX_mj_ = 0;
         UY_mj_ = 0;
         xd_mj_ = xs_mj_;
+
+        MPC_Stabilizer_state_main_.setZero(9);
     }
 
     zmp_start_time_ = ((bool)current_step_num_)*t_start_;
@@ -10564,8 +10570,16 @@ void AvatarController::getComTrajectory()
 
     com_desired_(0) = xd_mj_(0);
     com_desired_(1) = yd_mj_(0);
-    com_desired_(2) = 0.77172;
-    
+    com_desired_(2) = zc_mj_;
+
+    MPC_Stabilizer_state_main_(0) = com_desired_(0);
+    MPC_Stabilizer_state_main_(3) = com_desired_(1);
+    MPC_Stabilizer_state_main_(6) = com_desired_(2);
+
+    MPC_Stabilizer_state_main_(2) = zmp_desired_(0) + 1.20*(dcm_measured_(0) - cp_desired_(0));
+    MPC_Stabilizer_state_main_(5) = zmp_desired_(1) + 1.10*(dcm_measured_(1) - cp_desired_(1));
+    MPC_Stabilizer_state_main_(8) = zc_mj_          + 1.01*(dcm_measured_(2) - zc_mj_);
+
     if (walking_tick_ == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
     {
         Eigen::Vector3d com_pos_prev;
@@ -10876,7 +10890,7 @@ void AvatarController::CP_compen_MJ_FT()
     ZMP_Y_DES_CALC = (ZMP_calc_real(1) - (1 - lambda_desired*b_*b_)*MPC_Stabilizer_state_main_(3))/(lambda_desired*b_*b_);
 
     vrp_desired_ << ZMP_calc_real(0), ZMP_calc_real(1), MPC_Stabilizer_state_main_(8);
-
+                 
     double real_robot_mass_offset_ = 52/GRAVITY; // 42 75
     if(param_sim_mode_) { real_robot_mass_offset_ = 0.0; }
 
@@ -11395,7 +11409,7 @@ Eigen::VectorQd AvatarController::MitWholebodyInverseDynamicsController(const Ei
     W_q(5,5) = W_qb_yaw;
 
     for(int i = 6; i < control_size_qddot; ++i) {W_q(i,i) = W_qa;}
-    H_wbid.block(H_idx, H_idx, control_size_qddot, control_size_qddot) = W_q;
+    H_wbid.block(H_idx, H_idx, control_size_qddot, control_size_qddot) = W_q + 0.1*rd_.A_;
     H_idx += control_size_qddot;
     H_wbid.block(H_idx, H_idx, control_size_torque, control_size_torque) = (W_torque_1 + W_torque_2)*Eigen::MatrixXd::Identity(control_size_torque, control_size_torque);
     H_idx += control_size_torque;
@@ -11491,16 +11505,15 @@ Eigen::VectorQd AvatarController::MitWholebodyInverseDynamicsController(const Ei
     QP_wbid.UpdateSubjectToAx(A_wbid, lbA_wbid, ubA_wbid);
     Eigen::VectorXd X_opt_; X_opt_.setZero(variable_size);    
     Eigen::VectorXd torque_opt_; torque_opt_.setZero(MODEL_DOF);    
-    if (QP_wbid.SolveQPoases(200, X_opt_))
-    {
-        torque_opt_ = X_opt_.segment(MODEL_DOF_VIRTUAL, MODEL_DOF);
-    }
-    else
-    {
-        torque_opt_.setZero();
-
-        std::cout << "WBD CONTROLLER CANNOT BE SOLVED!" << std::endl;
-    }
+    //if (QP_wbid.SolveQPoases(200, X_opt_))
+    //{
+    //    torque_opt_ = X_opt_.segment(MODEL_DOF_VIRTUAL, MODEL_DOF);
+    //}
+    //else
+    //{
+    //    torque_opt_.setZero();
+    //    std::cout << "WBD CONTROLLER CANNOT BE SOLVED!" << std::endl;
+    //}
 
     return (torque_opt_);
 }
