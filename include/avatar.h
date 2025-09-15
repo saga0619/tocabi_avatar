@@ -595,6 +595,8 @@ public:
     Eigen::Vector6d opto_ft_raw_;
     Eigen::Vector6d opto_ft_;
 
+    double alpha_lpf_ = 0.0;
+
     double F_F_input_dot = 0;
     double F_F_input = 0;
 
@@ -1554,8 +1556,11 @@ public:
     Eigen::MatrixXd gdalpcalc_stab_mpc_;
 
     Eigen::MatrixXd SUpx_stab_mpc_;
+    Eigen::MatrixXd SUpxp_stab_mpc_;
     Eigen::MatrixXd SUpy_stab_mpc_;
+    Eigen::MatrixXd SUpyp_stab_mpc_;
     Eigen::MatrixXd SUpz_stab_mpc_;
+    Eigen::MatrixXd SUpzp_stab_mpc_;
     Eigen::MatrixXd SUp_stab_mpc_;
 
     Eigen::MatrixXd SUfx_stab_mpc_;
