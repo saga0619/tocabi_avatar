@@ -8633,8 +8633,8 @@ void AvatarController::getComTrajectory_mpc()
         foot_step_support_frame_offset_mpc_              = foot_step_support_frame_offset_;
         foot_step_support_frame_offset_container_to_mpc_ = foot_step_support_frame_offset_;
 
-        //thread3_hz_ = 50.0;
-        thread3_hz_ = 40.0;
+        thread3_hz_ = 50.0;
+        //thread3_hz_ = 40.0;
         //thread3_hz_ = 30.0;
 
         step_enable_time_fwd_ = 0.15;
