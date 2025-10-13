@@ -1388,8 +1388,10 @@ public:
     void IS_LIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_LIPM_CoM_sep_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_FIPM_CoM_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
+    void IS_FIPM_CoM_Seq_Planner_MPC(double mpc_freq, double mpc_dt, double mpc_preview_window, int mpc_synchro_hz);
     void IS_LIPM_DCM_Stabilizer_MPC(double mpc_freq, double preview_window);
     void IS_FIPM_3D_DCM_Stabililzer_MPC(double mpc_freq, double preview_window);
+    void IS_FIPM_3D_DCM_Seq_Stabilizer_MPC(double mpc_freq, double preview_window);
     void econom2_thread_stepchange();
 
     //Matrix
@@ -1480,6 +1482,7 @@ public:
 
     //Planner
     CQuadraticProgram QP_MPC_Planner_;
+    CQuadraticProgram QP_SEQ_MPC_Planner_;
 
     Eigen::MatrixXd Pcps_plan_mpc_;
     Eigen::MatrixXd Pcvs_plan_mpc_;
@@ -1499,6 +1502,7 @@ public:
     Eigen::MatrixXd gycalc_plan_mpc_;
     Eigen::MatrixXd gzcalc_plan_mpc_;
     Eigen::MatrixXd gcalc_plan_mpc_;
+    Eigen::MatrixXd gcalc_plan_seq_mpc_;
     Eigen::MatrixXd SQP_del_g_calc_plan_mpc_;
 
     Eigen::MatrixXd SUx_plan_mpc_;
@@ -1518,8 +1522,10 @@ public:
     Eigen::VectorXd MPC_Planner_state_from_mpc_to_main_;
     
     Eigen::VectorXd MPC_Planner_u_mpc_;
+    Eigen::VectorXd MPC_Planner_u_seq_mpc_;
     Eigen::VectorXd MPC_Planner_u_mpc_sep_;
     Eigen::VectorXd MPC_Planner_SQP_du_mpc_;
+    Eigen::VectorXd MPC_Planner_SQP_du_seq_mpc_;
     Eigen::VectorXd MPC_Planner_u_main_;
     Eigen::VectorXd MPC_Planner_u_container_from_mpc_;
     
@@ -1527,6 +1533,7 @@ public:
 
     //Stabilizer
     CQuadraticProgram QP_MPC_Stabilizer_;
+    CQuadraticProgram QP_MPC_Stabilizer_z_;
 
     Eigen::MatrixXd Pdps_stab_mpc_;
     Eigen::MatrixXd Pcps_stab_mpc_;
@@ -1542,12 +1549,14 @@ public:
     Eigen::MatrixXd Qmat_stab_mpc_R_;
     Eigen::MatrixXd Qmat_stab_mpc_alp_;
     Eigen::MatrixXd Qcalc_stab_mpc_;
+    Eigen::MatrixXd Qcalc_stab_mpc_z_;
     Eigen::MatrixXd SQP_deldel_Qcalc_stab_mpc_;
     
     Eigen::MatrixXd gxpcalc_stab_mpc_;
     Eigen::MatrixXd gypcalc_stab_mpc_;
     Eigen::MatrixXd gzpcalc_stab_mpc_;
     Eigen::MatrixXd gcalc_stab_mpc_;
+    Eigen::MatrixXd gcalc_stab_mpc_z_;
     Eigen::MatrixXd SQP_del_g_calc_stab_mpc_;
 
     Eigen::MatrixXd gxdfcalc_stab_mpc_;
@@ -1604,6 +1613,7 @@ public:
     Eigen::VectorXd MPC_Stabilizer_aux_mpc_y_;
     Eigen::VectorXd MPC_Stabilizer_aux_main_;
 
+    Eigen::VectorXd MPC_Stabilizer_u_mpc_z_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_;
     Eigen::VectorXd MPC_Stabilizer_u_mpc_sep_;
     Eigen::VectorXd MPC_Stabilizer_SQP_du_mpc_;
