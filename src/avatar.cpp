@@ -2,41 +2,41 @@
 #include <fstream>
 using namespace TOCABI;
 
-ofstream e_mpc_time_graph("/home/econom2-20/data/e_mpc_time_graph.txt");
-ofstream e_mpc_time_graph3("/home/econom2-20/data/e_mpc_time_graph3.txt");
-ofstream e_mpc_time_graph4("/home/econom2-20/data/e_mpc_time_graph4.txt");
-ofstream e_main_time_graph("/home/econom2-20/data/e_main_time_graph.txt");
-ofstream e_mpc_planner_data("/home/econom2-20/data/e_mpc_planner_data.txt");
+ofstream e_mpc_time_graph     ("/home/econom2-20/data/e_mpc_time_graph.txt");
+ofstream e_mpc_time_graph3    ("/home/econom2-20/data/e_mpc_time_graph3.txt");
+ofstream e_mpc_time_graph4    ("/home/econom2-20/data/e_mpc_time_graph4.txt");
+ofstream e_main_time_graph    ("/home/econom2-20/data/e_main_time_graph.txt");
+ofstream e_mpc_planner_data   ("/home/econom2-20/data/e_mpc_planner_data.txt");
 ofstream e_mpc_stabilizer_data("/home/econom2-20/data/e_mpc_stabilizer_data.txt");
 
-ofstream e_tmp_graph1("/home/econom2-20/data/e_tmp_graph1.txt");
-ofstream e_tmp_graph2("/home/econom2-20/data/e_tmp_graph2.txt");
-ofstream e_tmp_graph3("/home/econom2-20/data/e_tmp_graph3.txt");
-ofstream e_tmp_graph4("/home/econom2-20/data/e_tmp_graph4.txt");
-ofstream e_tmp_graph5("/home/econom2-20/data/e_tmp_graph5.txt");
-ofstream e_tmp_graph6("/home/econom2-20/data/e_tmp_graph6.txt");
-ofstream e_tmp_graph7("/home/econom2-20/data/e_tmp_graph7.txt");
-ofstream e_tmp_graph8("/home/econom2-20/data/e_tmp_graph8.txt");
-ofstream e_tmp_graph9("/home/econom2-20/data/e_tmp_graph9.txt");
-ofstream e_tmp_graph10("/home/econom2-20/data/e_tmp_graph10.txt");
-ofstream e_tmp_graph11("/home/econom2-20/data/e_tmp_graph11.txt");
-ofstream e_tmp_graph12("/home/econom2-20/data/e_tmp_graph12.txt");
-ofstream e_tmp_graph13("/home/econom2-20/data/e_tmp_graph13.txt");
-ofstream e_tmp_graph14("/home/econom2-20/data/e_tmp_graph14.txt");
-ofstream e_tmp_graph15("/home/econom2-20/data/e_tmp_graph15.txt");
-ofstream e_tmp_graph16("/home/econom2-20/data/e_tmp_graph16.txt");
-ofstream e_tmp_graph17("/home/econom2-20/data/e_tmp_graph17.txt");
-ofstream e_tmp_graph18("/home/econom2-20/data/e_tmp_graph18.txt");
-ofstream e_tmp_graph19("/home/econom2-20/data/e_tmp_graph19.txt");
-ofstream e_tmp_graph20("/home/econom2-20/data/e_tmp_graph20.txt");
-ofstream e_tmp_graph21("/home/econom2-20/data/e_tmp_graph21.txt");
-ofstream e_tmp_graph22("/home/econom2-20/data/e_tmp_graph22.txt");
-ofstream e_tmp_graph23("/home/econom2-20/data/e_tmp_graph23.txt");
-ofstream e_tmp_graph24("/home/econom2-20/data/e_tmp_graph24.txt");
-ofstream e_tmp_graph25("/home/econom2-20/data/e_tmp_graph25.txt");
-ofstream e_tmp_graph26("/home/econom2-20/data/e_tmp_graph26.txt");
-ofstream e_tmp_graph27("/home/econom2-20/data/e_tmp_graph27.txt");
-ofstream e_tmp_graph28("/home/econom2-20/data/e_tmp_graph28.txt");
+ofstream e_tmp_graph1         ("/home/econom2-20/data/e_tmp_graph1.txt");
+ofstream e_tmp_graph2         ("/home/econom2-20/data/e_tmp_graph2.txt");
+ofstream e_tmp_graph3         ("/home/econom2-20/data/e_tmp_graph3.txt");
+ofstream e_tmp_graph4         ("/home/econom2-20/data/e_tmp_graph4.txt");
+ofstream e_tmp_graph5         ("/home/econom2-20/data/e_tmp_graph5.txt");
+ofstream e_tmp_graph6         ("/home/econom2-20/data/e_tmp_graph6.txt");
+ofstream e_tmp_graph7         ("/home/econom2-20/data/e_tmp_graph7.txt");
+ofstream e_tmp_graph8         ("/home/econom2-20/data/e_tmp_graph8.txt");
+ofstream e_tmp_graph9         ("/home/econom2-20/data/e_tmp_graph9.txt");
+ofstream e_tmp_graph10        ("/home/econom2-20/data/e_tmp_graph10.txt");
+ofstream e_tmp_graph11        ("/home/econom2-20/data/e_tmp_graph11.txt");
+ofstream e_tmp_graph12        ("/home/econom2-20/data/e_tmp_graph12.txt");
+ofstream e_tmp_graph13        ("/home/econom2-20/data/e_tmp_graph13.txt");
+ofstream e_tmp_graph14        ("/home/econom2-20/data/e_tmp_graph14.txt");
+ofstream e_tmp_graph15        ("/home/econom2-20/data/e_tmp_graph15.txt");
+ofstream e_tmp_graph16        ("/home/econom2-20/data/e_tmp_graph16.txt");
+ofstream e_tmp_graph17        ("/home/econom2-20/data/e_tmp_graph17.txt");
+ofstream e_tmp_graph18        ("/home/econom2-20/data/e_tmp_graph18.txt");
+ofstream e_tmp_graph19        ("/home/econom2-20/data/e_tmp_graph19.txt");
+ofstream e_tmp_graph20        ("/home/econom2-20/data/e_tmp_graph20.txt");
+ofstream e_tmp_graph21        ("/home/econom2-20/data/e_tmp_graph21.txt");
+ofstream e_tmp_graph22        ("/home/econom2-20/data/e_tmp_graph22.txt");
+ofstream e_tmp_graph23        ("/home/econom2-20/data/e_tmp_graph23.txt");
+ofstream e_tmp_graph24        ("/home/econom2-20/data/e_tmp_graph24.txt");
+ofstream e_tmp_graph25        ("/home/econom2-20/data/e_tmp_graph25.txt");
+ofstream e_tmp_graph26        ("/home/econom2-20/data/e_tmp_graph26.txt");
+ofstream e_tmp_graph27        ("/home/econom2-20/data/e_tmp_graph27.txt");
+ofstream e_tmp_graph28        ("/home/econom2-20/data/e_tmp_graph28.txt");
 
 AvatarController::AvatarController(RobotData &rd) : rd_(rd)
 {
@@ -606,9 +606,14 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-                getComTrajectory_mpc();
-                //getComTrajectory();
-                getFootTrajectory_stepping();
+                //mpc_on_bool_ = false;
+                if(mpc_on_bool_)
+                {
+                    getComTrajectory_mpc();
+                }
+                getComTrajectory();
+                //getFootTrajectory_stepping();
+                getFootTrajectory();
                 getPelvTrajectory(); 
                 supportToFloatPattern();
                 computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des_);
@@ -5549,6 +5554,8 @@ Eigen::VectorQd AvatarController::ikBalanceControlCompute()
 
 void AvatarController::computeThread3()
 {   
+    if(mpc_on_bool_)
+    {
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     if(atb_main_to_mpc_update_ == false)
     {
@@ -5617,6 +5624,7 @@ void AvatarController::computeThread3()
     std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
 
     e_mpc_time_graph << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count()*1e-6 << endl;
+    }
 }
 
 void AvatarController::econom2_thread_stepchange()
@@ -7475,11 +7483,13 @@ void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    //lfoot_zmp_offset_ = -0.02;
-    //rfoot_zmp_offset_ =  0.02;
-    
-    lfoot_zmp_offset_ = -(0.03 + 0.005*(1 - (bool)current_step_num_)); //0.02 for preview
-    rfoot_zmp_offset_ =  (0.03 + 0.005*(1 - (bool)current_step_num_)); //0.02 for preview
+    lfoot_zmp_offset_ = -0.02;
+    rfoot_zmp_offset_ =  0.02;
+    if(mpc_on_bool_)
+    {
+        lfoot_zmp_offset_ = -(0.02 + 0.005*(1 - (bool)current_step_num_));
+        rfoot_zmp_offset_ =  (0.02 + 0.005*(1 - (bool)current_step_num_));
+    }
     
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -7874,7 +7884,7 @@ void AvatarController::onestepVrpZ(unsigned int current_step_number, double t_to
     if(current_step_number ==  1) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
     if(current_step_number ==  2) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
     if(current_step_number ==  3) { height_diff = - 0.10*param_scenario_ - 0.00*(1 - param_scenario_); }
-    if(current_step_number ==  4) { height_diff = - 0.00*param_scenario_ - 0.05*(1 - param_scenario_); }
+    if(current_step_number ==  4) { height_diff = - 0.00*param_scenario_ - 0.00*(1 - param_scenario_); }
 
     //foot_step_support_frame_(current_step_number, 2) = height_diff;
 
@@ -8542,7 +8552,7 @@ void AvatarController::getPelvTrajectory()
     double z_rot = foot_step_support_frame_(current_step_num_, 5);
 
     pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - com_support_current_(0));
-    pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.9 * (com_desired_(1) - com_support_current_(1));
+    pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - com_support_current_(1));
     pelv_trajectory_support_.translation()(2) = pelv_support_current_.translation()(2) + 1.0 * (com_desired_(2) - com_support_current_(2));
 
     Eigen::Vector3d Trunk_trajectory_euler;
@@ -11201,11 +11211,11 @@ void AvatarController::IS_FIPM_3D_DCM_Seq_Stabilizer_MPC(double mpc_freq, double
 
             if(walking_tick_mpc_ > t_temp_)
             {
-                Sf1_stab_mpc_(i,0) = step_enable_bool_mpc_* next_step_prev_bool*(zmp_max_y_mpc_(i) - zmp_max_y_mpc_(int(t_dsp1_const_/MPC_synchro_hz_)))/(MPC_Stabilizer_delf_mpc_y_(0));
-                zmp_max_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_x_mpc_(i);
-                zmp_min_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_x_mpc_(i);
-                zmp_max_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_y_mpc_(i);
-                zmp_min_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_y_mpc_(i);
+                //Sf1_stab_mpc_(i,0) = step_enable_bool_mpc_* next_step_prev_bool*(zmp_max_y_mpc_(i) - zmp_max_y_mpc_(int(t_dsp1_const_/MPC_synchro_hz_)))/(MPC_Stabilizer_delf_mpc_y_(0));
+                //zmp_max_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_x_mpc_(i);
+                //zmp_min_x_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_x_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_x_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_x_mpc_(i);
+                //zmp_max_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_max_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_max_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_max_y_mpc_(i);
+                //zmp_min_y_mpc_(i)  = step_enable_bool_mpc_*(next_step_prev_bool*zmp_min_y_mpc_(max(0, next_step_start_prev_tick - 2)) + (1 - next_step_prev_bool)*zmp_min_y_mpc_(i)) + (1 - step_enable_bool_mpc_)*zmp_min_y_mpc_(i);
             }
         }
     }
@@ -11665,9 +11675,9 @@ void AvatarController::getComTrajectory()
     MPC_Stabilizer_state_main_(3) = com_desired_(1);
     MPC_Stabilizer_state_main_(6) = com_desired_(2);
 
-    MPC_Stabilizer_state_main_(2) = zmp_desired_(0) + 1.20*(dcm_measured_(0) - cp_desired_(0));
-    MPC_Stabilizer_state_main_(5) = zmp_desired_(1) + 1.10*(dcm_measured_(1) - cp_desired_(1));
-    MPC_Stabilizer_state_main_(8) = zc_mj_          + 1.01*(dcm_measured_(2) - zc_mj_);
+    MPC_Stabilizer_state_main_(2) = zmp_desired_(0) + 1.40*(dcm_measured_(0) - cp_desired_(0));
+    MPC_Stabilizer_state_main_(5) = zmp_desired_(1) + 1.30*(dcm_measured_(1) - cp_desired_(1));
+    MPC_Stabilizer_state_main_(8) = zc_mj_          + 1.00*(dcm_measured_(2) - zc_mj_);
 
     if (walking_tick_ == t_start_ + t_total_ - 1 && current_step_num_ != total_step_num_ - 1)
     {
@@ -11962,7 +11972,7 @@ void AvatarController::CP_compen_MJ()
 void AvatarController::CP_compen_MJ_FT() 
 {
     double alpha = 0;
-    double fr = 0, fl = 0;
+    double F_R = 0, F_L = 0;
     double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0;
     double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0;
 
@@ -11970,51 +11980,52 @@ void AvatarController::CP_compen_MJ_FT()
     double ZMP_Y_DES_CALC = 0.0;
     double lambda_desired = 0.0;
 
+    ZMP_Y_REF_alpha_ = ref_zmp_wo_offset_(walking_tick_ - ((bool)current_step_num_)*t_start_, 1);
+
+    del_zmp(0) = MPC_Stabilizer_state_main_(2) - ZMP_X_REF_;
+    del_zmp(1) = MPC_Stabilizer_state_main_(5) - ZMP_Y_REF_alpha_;
+
+    del_zmp(0) = DyrosMath::minmax_cut(del_zmp(0), - zmp_x_min_foot_width_, zmp_x_max_foot_width_);
+    del_zmp(1) = DyrosMath::minmax_cut(del_zmp(1), - zmp_y_min_foot_width_, zmp_y_max_foot_width_); 
+
     Eigen::Vector2d ZMP_calc_real; ZMP_calc_real.setZero();
-    ZMP_calc_real(0) = DyrosMath::minmax_cut(MPC_Stabilizer_state_main_(2), ref_zmp_wo_offset_(walking_tick_ - ((bool)current_step_num_)*t_start_, 0) - zmp_x_min_foot_width_, ref_zmp_wo_offset_(walking_tick_ - ((bool)current_step_num_)*t_start_, 0) + zmp_x_max_foot_width_); 
-    ZMP_calc_real(1) = DyrosMath::minmax_cut(MPC_Stabilizer_state_main_(5), ref_zmp_wo_offset_(walking_tick_ - ((bool)current_step_num_)*t_start_, 1) - zmp_y_min_foot_width_, ref_zmp_wo_offset_(walking_tick_ - ((bool)current_step_num_)*t_start_, 1) + zmp_y_max_foot_width_); 
+    ZMP_calc_real(0) = ZMP_X_REF_       + del_zmp(0);
+    ZMP_calc_real(1) = ZMP_Y_REF_alpha_ + del_zmp(1);
 
-    lambda_desired = (MPC_Stabilizer_state_main_(6) - MPC_Stabilizer_state_main_(8) + GRAVITY*b_*b_)/(MPC_Stabilizer_state_main_(6)*b_*b_);
-    ZMP_X_DES_CALC = (ZMP_calc_real(0) - (1 - lambda_desired*b_*b_)*MPC_Stabilizer_state_main_(0))/(lambda_desired*b_*b_);
-    ZMP_Y_DES_CALC = (ZMP_calc_real(1) - (1 - lambda_desired*b_*b_)*MPC_Stabilizer_state_main_(3))/(lambda_desired*b_*b_);
+    lambda_desired = (com_support_current_(2) - MPC_Stabilizer_state_main_(8) + GRAVITY*b_*b_)/(com_support_current_(2)*b_*b_);
+    lambda_desired = GRAVITY/com_desired_(2);
+    ZMP_X_DES_CALC = (ZMP_calc_real(0) - (1 - lambda_desired*b_*b_)*com_support_current_(0))/(lambda_desired*b_*b_);
+    ZMP_Y_DES_CALC = (ZMP_calc_real(1) - (1 - lambda_desired*b_*b_)*com_support_current_(1))/(lambda_desired*b_*b_);
 
-    vrp_desired_ << ZMP_calc_real(0), ZMP_calc_real(1), MPC_Stabilizer_state_main_(8);
-    
-    e_tmp_graph1 << com_desired_(0)  << "," << com_desired_(1)  << "," << com_desired_(2)  << ","
-                 << dcm_desired_(0)  << "," << dcm_desired_(1)  << "," << dcm_desired_(2)  << ","
-                 << dcm_measured_(0) << "," << dcm_measured_(1) << "," << dcm_measured_(2) << ","
-                 << com_measured_(0) << "," << com_measured_(1) << "," << com_measured_(2) << ","
-                 << ZMP_X_DES_CALC   << "," << ZMP_Y_DES_CALC   << "," << 0                << ","
-                 << endl;
-    double real_robot_mass_offset_ = 52/GRAVITY; // 42 75
-    if(param_sim_mode_) { real_robot_mass_offset_ = 0.0; }
+    //lambda_desired = (MPC_Stabilizer_state_main_(6) - MPC_Stabilizer_state_main_(8) + GRAVITY*b_*b_)/(MPC_Stabilizer_state_main_(6)*b_*b_);
+    //ZMP_X_DES_CALC = (ZMP_calc_real(0) - (1 - lambda_desired*b_*b_)*MPC_Stabilizer_state_main_(0))/(lambda_desired*b_*b_);
+    //ZMP_Y_DES_CALC = (ZMP_calc_real(1) - (1 - lambda_desired*b_*b_)*MPC_Stabilizer_state_main_(3))/(lambda_desired*b_*b_);
 
-    Eigen::Vector3d foot_force;
-    foot_force(0) = (rd_.link_[COM_id].mass + real_robot_mass_offset_)* w_*w_*(com_desired_(0) - vrp_desired_(0));
-    foot_force(1) = (rd_.link_[COM_id].mass + real_robot_mass_offset_)* w_*w_*(com_desired_(1) - vrp_desired_(1));
-    foot_force(2) = (rd_.link_[COM_id].mass + real_robot_mass_offset_)*(w_*w_*(com_desired_(2) - vrp_desired_(2)) + GRAVITY);
-
-    //double calc_z_max = foot_width_;
-    double calc_z_max = 0.085;
-
+    double calc_z_max = 0.075;
     alpha = (ZMP_Y_DES_CALC - (rfoot_support_current_.translation()(1) + calc_z_max)) / ((lfoot_support_current_.translation()(1) - calc_z_max) - (rfoot_support_current_.translation()(1) + calc_z_max));
-
-    alpha      = DyrosMath::minmax_cut(alpha,      0.0, 1.0);
-
-    if(walking_tick_ == 0) { alpha_lpf_ = alpha; }
+    ZMP_Y_DES_CALC = ZMP_Y_REF_alpha_ + del_zmp(1);
+    e_tmp_graph1 << cp_desired_(1) << "," << cp_measured_(1) << "," << ZMP_Y_DES_CALC << "," << com_support_current_(1) << "," << ZMP_calc_real(1) << ","
+                 << lfoot_trajectory_support_.translation()(2) << "," << rfoot_trajectory_support_.translation()(2) << ","
+                 << endl;
+    if(walking_tick_ == 0)
+    {
+        alpha_lpf_ = alpha;
+    }
     alpha_lpf_ = 1 / (1 + 2 * M_PI * 6.0 * del_t) * alpha_lpf_ + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * alpha;
+    
+    alpha = DyrosMath::minmax_cut(alpha, 0.0, 1.0);
 
     alpha_lpf_ = DyrosMath::minmax_cut(alpha_lpf_, 0.0, 1.0);
 
-    fr = - (1 - alpha_lpf_)*foot_force(2);
-    rfoot_contact_wrench_(0) = -(1 - alpha_lpf_)*foot_force(0) + (-(1 - alpha_lpf_)*foot_force(0) - rd_.RF_FT(0));
-    rfoot_contact_wrench_(1) = -(1 - alpha_lpf_)*foot_force(1) + (-(1 - alpha_lpf_)*foot_force(1) - rd_.RF_FT(1));
-    rfoot_contact_wrench_(2) = -(1 - alpha_lpf_)*foot_force(2) + (-(1 - alpha_lpf_)*foot_force(2) - rd_.RF_FT(2));
+    double real_robot_mass_offset_ = 6.2; // 81: no baterry, no hands, w/ avatar head and backpack, 129: w battery
+    if(param_sim_mode_) { real_robot_mass_offset_ = 0.0; }
 
-    fl =      - alpha_lpf_ *foot_force(2);
-    lfoot_contact_wrench_(0) =     - alpha_lpf_ *foot_force(0) + (    - alpha_lpf_ *foot_force(0) - rd_.LF_FT(0));
-    lfoot_contact_wrench_(1) =     - alpha_lpf_ *foot_force(1) + (    - alpha_lpf_ *foot_force(1) - rd_.LF_FT(1));
-    lfoot_contact_wrench_(2) =     - alpha_lpf_ *foot_force(2) + (    - alpha_lpf_ *foot_force(2) - rd_.LF_FT(2));
+    double right_left_force_diff = -0.0; // heavy foot: 15, small foot: -15
+
+    double dcm_mpc_i_z_acc = lambda_desired*com_desired_(2);
+
+    F_R = -(1 - alpha_lpf_) * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc;
+    F_L = -     alpha_lpf_  * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc; // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
 
     if (walking_tick_ == 0)
     {
@@ -12025,64 +12036,63 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = 0.0;
     }
 
+    F_F_error_pre_ = F_F_error_;
+    
+    F_F_error_ = (l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R);    
+    
+    F_F_error_dot_ = (F_F_error_ - F_F_error_pre_)*hz_;
+
     //////////// Force
-    F_F_input_dot = 0.0001 * ((l_ft_(2) - r_ft_(2)) - (fl - fr)) - 3.0 * F_F_input;
+    F_F_input_dot = 0.0001 * F_F_error_  + 0.00000001*F_F_error_dot_ - 3.0 * F_F_input;  //DG's code Kp : 0.00005
+
     F_F_input = F_F_input + F_F_input_dot * del_t;
-    F_F_input = DyrosMath::minmax_cut(F_F_input, -0.02, 0.02);
+    F_F_input = DyrosMath::minmax_cut(F_F_input, -0.04, 0.04);
 
-    //////////// Torque
-    Tau_all_x = -((rfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * fr + (lfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * fl);
-    Tau_all_y = -((rfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * fr + (lfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * fl);
-    Tau_all_x = DyrosMath::minmax_cut(Tau_all_x, - 100.0, 100.0);
-    Tau_all_y = DyrosMath::minmax_cut(Tau_all_y, - 100.0, 100.0);
+    //////////// Torque 
+    Tau_all_x = -((rfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * F_R + (lfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * F_L);
+    Tau_all_y = -((rfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * F_R + (lfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * F_L);
 
-    Tau_R_x = (1 - alpha) * Tau_all_x;
-    rfoot_contact_wrench_(3) = Tau_R_x;
-    Tau_L_x = (    alpha) * Tau_all_x;
-    lfoot_contact_wrench_(3) = Tau_L_x;
+    Tau_all_x = DyrosMath::minmax_cut(Tau_all_x, -100.0, 100.0);
+    Tau_all_y = DyrosMath::minmax_cut(Tau_all_y, -100.0, 100.0);
 
-    Tau_R_y = -(1 - alpha) * Tau_all_y;
-    rfoot_contact_wrench_(4) = Tau_R_y;
-    Tau_L_y = -     alpha  * Tau_all_y;
-    lfoot_contact_wrench_(4) = Tau_L_y;
+    Tau_R_x = (1 - alpha_lpf_) * Tau_all_x;
+    Tau_L_x = (alpha_lpf_)*Tau_all_x;
 
-    contact_wrench_.segment(0,6) = -lfoot_contact_wrench_;
-    contact_wrench_.segment(6,6) = -rfoot_contact_wrench_;
-
-    // Roll 방향 (-0.02/-30 0.9초)
-    double Kp_mj_ft = 0.04;
-    double Kd_mj_ft = 40.0;
-    double F_T_minmaxcut_mj_ft = 0.20;
+    Tau_L_y = -alpha_lpf_ * Tau_all_y;
+    Tau_R_y = -(1 - alpha_lpf_) * Tau_all_y;
     
-    if(param_sim_mode_)
-    {
-        Kp_mj_ft = 0.04;
-        Kd_mj_ft = 40.0;
-        F_T_minmaxcut_mj_ft = 0.15;
-    }
+    Tau_L_x_error_pre_ = Tau_L_x_error_;
+    Tau_L_x_error_ = -(Tau_L_x - l_ft_LPF(3));
+    Tau_L_x_error_dot_ = (Tau_L_x_error_ - Tau_L_x_error_pre_)*hz_;
 
-    F_T_L_x_input_dot = - Kp_mj_ft * (Tau_L_x - l_ft_LPF(3)) - Kd_mj_ft * F_T_L_x_input;
+    Tau_R_x_error_pre_ = Tau_R_x_error_;
+    Tau_R_x_error_ = -(Tau_R_x - r_ft_LPF(3));
+    Tau_R_x_error_dot_ = (Tau_R_x_error_ - Tau_R_x_error_pre_)*hz_;
+
+    Tau_L_y_error_pre_ = Tau_L_y_error_;
+    Tau_L_y_error_ = Tau_L_y - l_ft_LPF(4);
+    Tau_L_y_error_dot_ = (Tau_L_y_error_ - Tau_L_y_error_pre_)*hz_;
+
+    Tau_R_y_error_pre_ = Tau_R_y_error_;
+    Tau_R_y_error_ = Tau_R_y - r_ft_LPF(4);
+    Tau_R_y_error_dot_ = (Tau_R_y_error_ - Tau_R_y_error_pre_)*hz_;
+
+    F_T_L_x_input_dot = 0.03 * (Tau_L_x_error_) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
-    F_T_L_x_input = DyrosMath::minmax_cut(F_T_L_x_input, - F_T_minmaxcut_mj_ft, F_T_minmaxcut_mj_ft);
 
-    F_T_R_x_input_dot = - Kp_mj_ft * (Tau_R_x - r_ft_LPF(3)) - Kd_mj_ft * F_T_R_x_input;
+    F_T_R_x_input_dot = 0.03 * (Tau_R_x_error_) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
-    F_T_R_x_input = DyrosMath::minmax_cut(F_T_R_x_input, - F_T_minmaxcut_mj_ft, F_T_minmaxcut_mj_ft);
-    
-    F_T_L_y_input_dot =   Kp_mj_ft * (Tau_L_y - l_ft_LPF(4)) - Kd_mj_ft * F_T_L_y_input;
+
+    F_T_L_y_input_dot = 0.03 * (Tau_L_y_error_) + 0.0005*Tau_L_y_error_dot_ - 10.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
-    F_T_L_y_input = DyrosMath::minmax_cut(F_T_L_y_input, - F_T_minmaxcut_mj_ft, F_T_minmaxcut_mj_ft);
 
-    F_T_R_y_input_dot =   Kp_mj_ft * (Tau_R_y - r_ft_LPF(4)) - Kd_mj_ft * F_T_R_y_input;
+    F_T_R_y_input_dot = 0.03 * (Tau_R_y_error_) + 0.0005*Tau_R_y_error_dot_ - 10.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
-    F_T_R_y_input = DyrosMath::minmax_cut(F_T_R_y_input, - F_T_minmaxcut_mj_ft, F_T_minmaxcut_mj_ft);
 
-    e_tmp_graph18 << ZMP_Y_DES_CALC << "," << alpha         << "," << alpha_lpf_ << ","
-                  << Tau_all_x      << "," << Tau_L_x       << "," << Tau_R_x    << ","
-                  << F_T_L_x_input  << "," << F_T_R_x_input << ","
-                  << lfoot_support_current_.translation()(1) << "," << rfoot_support_current_.translation()(1) << ","
-                  << fl << "," << fr << ","
-                  << endl;
+    F_T_L_x_input = DyrosMath::minmax_cut(F_T_L_x_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_R_x_input = DyrosMath::minmax_cut(F_T_R_x_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_L_y_input = DyrosMath::minmax_cut(F_T_L_y_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_R_y_input = DyrosMath::minmax_cut(F_T_R_y_input, -20*DEG2RAD, 20*DEG2RAD);
 }
 
 void AvatarController::updateInitialStateJoy()

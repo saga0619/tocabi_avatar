@@ -599,16 +599,33 @@ public:
 
     double F_F_input_dot = 0;
     double F_F_input = 0;
+    double F_F_error_ = 0;
+    double F_F_error_pre_ = 0;
+    double F_F_error_dot_ = 0;
 
     double F_T_L_x_input = 0;
     double F_T_L_x_input_dot = 0;
+    double Tau_L_x_error_ = 0;
+    double Tau_L_x_error_pre_ = 0;
+    double Tau_L_x_error_dot_ = 0;
+
     double F_T_R_x_input = 0;
-    double F_T_R_x_input_dot = 0;  
+    double F_T_R_x_input_dot = 0; 
+    double Tau_R_x_error_ = 0;
+    double Tau_R_x_error_pre_ = 0;
+    double Tau_R_x_error_dot_ = 0; 
 
     double F_T_L_y_input = 0;
     double F_T_L_y_input_dot = 0;
+    double Tau_L_y_error_ = 0;
+    double Tau_L_y_error_pre_ = 0;
+    double Tau_L_y_error_dot_ = 0;
+
     double F_T_R_y_input = 0;
     double F_T_R_y_input_dot = 0;
+    double Tau_R_y_error_ = 0;
+    double Tau_R_y_error_pre_ = 0;
+    double Tau_R_y_error_dot_ = 0;
 
     Eigen::Vector2d f_star_xy_;
     Eigen::Vector2d f_star_xy_pre_;
@@ -1644,6 +1661,8 @@ public:
     int MPC_Stabilizer_time_adj_tick_y_container_from_mpc_;
     int MPC_Stabilizer_time_adj_tick_y_main_;
 
+    bool mpc_on_bool_ = true;
+    
     //wbd
     void stateMachine();
 
