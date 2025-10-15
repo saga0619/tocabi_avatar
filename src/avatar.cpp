@@ -7546,6 +7546,8 @@ void AvatarController::getZmpTrajectory()
     foot_step_support_frame_offset_.block(min(current_step_num_ + 2, total_step_num_ - 1), 0, 1, 2) += del_F_.transpose();
 
     zmpGenerator(planning_zmp_size, planning_step_number);
+    
+    ref_vrp_.block(0, 0, planning_zmp_size, 1) += 0.01*MatrixXd::Ones(planning_zmp_size, 1);
 
     if(walking_tick_ - t_start_ < t_dsp1_const_)
     {
@@ -7906,14 +7908,16 @@ void AvatarController::getFootTrajectory()
             lfoot_trajectory_euler_support_.setZero();
             
             rfoot_trajectory_support_.translation() = rfoot_support_init_.translation();
+            rfoot_trajectory_support_.translation()(2) = 0;
             rfoot_trajectory_euler_support_ = rfoot_support_euler_init_;
         }
         else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
         {
-            rfoot_trajectory_euler_support_.setZero();
             rfoot_trajectory_support_.translation().setZero();
+            rfoot_trajectory_euler_support_.setZero();
 
             lfoot_trajectory_support_.translation() = lfoot_support_init_.translation();
+            lfoot_trajectory_support_.translation()(2) = 0;
             lfoot_trajectory_euler_support_ = lfoot_support_euler_init_;            
         }
 
@@ -7932,12 +7936,13 @@ void AvatarController::getFootTrajectory()
 
             if (walking_tick_ < t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0)
             {
-
                 rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, rfoot_support_init_.translation()(2), rfoot_support_init_.translation()(2) + foot_height_, 0.0, 0.0);
+                rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, 0.0, foot_height_, 0.0, 0.0);
             }
             else
             {
                 rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, t_start_ + t_total_ - t_dsp2_, rfoot_support_init_.translation()(2) + foot_height_, target_swing_foot(2), 0.0, 0.0);
+                rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, t_start_ + t_total_ - t_dsp2_, foot_height_, target_swing_foot(2), 0.0, 0.0);
             }
 
             for (int i = 0; i < 2; i++)
@@ -7960,10 +7965,12 @@ void AvatarController::getFootTrajectory()
             if (walking_tick_ < t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0)
             {
                 lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, lfoot_support_init_.translation()(2), lfoot_support_init_.translation()(2) + foot_height_, 0.0, 0.0);
+                lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, 0.0, foot_height_, 0.0, 0.0);
             }
             else
             {
                 lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, t_start_ + t_total_ - t_dsp2_, lfoot_support_init_.translation()(2) + foot_height_, target_swing_foot(2), 0.0, 0.0);
+                lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_, t_start_ + t_dsp1_ + (t_total_ - t_dsp1_ - t_dsp2_) / 2.0, t_start_ + t_total_ - t_dsp2_, foot_height_, target_swing_foot(2), 0.0, 0.0);
             }
 
             for (int i = 0; i < 2; i++)
@@ -8614,14 +8621,18 @@ void AvatarController::getComTrajectory_mpc()
     {
         MPC_Planner_state_mpc_.setZero(9);
         MPC_Planner_state_container_from_mpc_.setZero(9);
+        MPC_Planner_state_main_p_.setZero(9);
         MPC_Planner_state_main_.setZero(9);
+        MPC_Planner_state_main_i_.setZero(9);
         
         Planner_state_main_calc_.setZero(9);
         Stabilizer_state_main_calc_.setZero(9);
 
         MPC_Stabilizer_state_mpc_.setZero(9);
         MPC_Stabilizer_state_container_from_mpc_.setZero(9);
+        MPC_Stabilizer_state_main_p_.setZero(9);
         MPC_Stabilizer_state_main_.setZero(9);
+        MPC_Stabilizer_state_main_i_.setZero(9);
 
         MPC_Planner_state_mpc_(0) = com_support_current_(0); 
         MPC_Planner_state_mpc_(2) = com_support_current_(0); 
@@ -8631,10 +8642,12 @@ void AvatarController::getComTrajectory_mpc()
         MPC_Planner_state_mpc_(8) = zc_mj_;
 
         MPC_Planner_state_container_from_mpc_     = MPC_Planner_state_mpc_;
+        MPC_Planner_state_main_p_                 = MPC_Planner_state_mpc_;
         MPC_Planner_state_main_                   = MPC_Planner_state_mpc_;
         Planner_state_main_calc_                  = MPC_Planner_state_mpc_;
         Stabilizer_state_main_calc_               = MPC_Planner_state_mpc_;
         MPC_Stabilizer_state_container_from_mpc_  = MPC_Planner_state_mpc_;
+        MPC_Stabilizer_state_main_p_              = MPC_Planner_state_mpc_;
         MPC_Stabilizer_state_main_                = MPC_Planner_state_mpc_;
         MPC_Stabilizer_state_mpc_                 = MPC_Planner_state_mpc_;
 
@@ -8730,9 +8743,12 @@ void AvatarController::getComTrajectory_mpc()
             MPC_Stabilizer_u_main_(1) = MPC_Stabilizer_u_container_from_mpc_(1);
             MPC_Stabilizer_u_main_(2) = 0.0;
 
+            MPC_Planner_state_main_p_    = MPC_Planner_state_main_;
+            MPC_Stabilizer_state_main_p_ = MPC_Stabilizer_state_main_;
+
             if(current_step_num_container_from_mpc_ == current_step_num_)
             {
-                MPC_Planner_state_main_ = MPC_Planner_state_container_from_mpc_;
+                MPC_Planner_state_main_   = MPC_Planner_state_container_from_mpc_;
                 
                 MPC_Stabilizer_state_main_ = MPC_Stabilizer_state_container_from_mpc_;
             }
@@ -8757,23 +8773,38 @@ void AvatarController::getComTrajectory_mpc()
 
             step_enable_bool_one_tick_main_      = step_enable_bool_one_tick_container_from_mpc_;
 
+            MPC_interpol_ = 1;
+
             atb_mpc_to_main_update_     = false;
         }
 
         mpc_update_ = false;
     }
 
-    Planner_state_main_calc_.segment(0,3) = A_main_*Planner_state_main_calc_.segment(0,3) + B_main_*MPC_Planner_u_main_(0);
-    Planner_state_main_calc_.segment(3,3) = A_main_*Planner_state_main_calc_.segment(3,3) + B_main_*MPC_Planner_u_main_(1);
-    Planner_state_main_calc_.segment(6,3) = A_main_*Planner_state_main_calc_.segment(6,3) + B_main_*MPC_Planner_u_main_(2);
+    //Planner_state_main_calc_.segment(0,3) = A_main_*Planner_state_main_calc_.segment(0,3) + B_main_*MPC_Planner_u_main_(0);
+    //Planner_state_main_calc_.segment(3,3) = A_main_*Planner_state_main_calc_.segment(3,3) + B_main_*MPC_Planner_u_main_(1);
+    //Planner_state_main_calc_.segment(6,3) = A_main_*Planner_state_main_calc_.segment(6,3) + B_main_*MPC_Planner_u_main_(2);
     
-    Stabilizer_state_main_calc_.segment(0,3) = A_main_*Stabilizer_state_main_calc_.segment(0,3) + B_main_*MPC_Stabilizer_u_main_(0);
-    Stabilizer_state_main_calc_.segment(3,3) = A_main_*Stabilizer_state_main_calc_.segment(3,3) + B_main_*MPC_Stabilizer_u_main_(1);
-    Stabilizer_state_main_calc_.segment(6,3) = A_main_*Stabilizer_state_main_calc_.segment(6,3) + B_main_*MPC_Stabilizer_u_main_(2);
+    //Stabilizer_state_main_calc_.segment(0,3) = A_main_*Stabilizer_state_main_calc_.segment(0,3) + B_main_*MPC_Stabilizer_u_main_(0);
+    //Stabilizer_state_main_calc_.segment(3,3) = A_main_*Stabilizer_state_main_calc_.segment(3,3) + B_main_*MPC_Stabilizer_u_main_(1);
+    //Stabilizer_state_main_calc_.segment(6,3) = A_main_*Stabilizer_state_main_calc_.segment(6,3) + B_main_*MPC_Stabilizer_u_main_(2);
 
-    com_desired_(0) = Planner_state_main_calc_(0);
-    com_desired_(1) = Planner_state_main_calc_(3);
-    com_desired_(2) = Planner_state_main_calc_(6);
+    //com_desired_(0) = Planner_state_main_calc_(0);
+    //com_desired_(1) = Planner_state_main_calc_(3);
+    //com_desired_(2) = Planner_state_main_calc_(6);
+
+    double lin_spline = (thread3_hz_/hz_)*MPC_interpol_;
+
+    lin_spline = DyrosMath::minmax_cut(lin_spline, 0.0, 1.0);
+
+    MPC_Planner_state_main_i_    = lin_spline*(MPC_Planner_state_main_    - MPC_Planner_state_main_p_   ) + MPC_Planner_state_main_p_;
+    MPC_Stabilizer_state_main_i_ = lin_spline*(MPC_Stabilizer_state_main_ - MPC_Stabilizer_state_main_p_) + MPC_Stabilizer_state_main_p_;
+
+    MPC_interpol_++;
+
+    com_desired_(0) = MPC_Planner_state_main_i_(0);
+    com_desired_(1) = MPC_Planner_state_main_i_(3);
+    com_desired_(2) = MPC_Planner_state_main_i_(6);
 
     dcm_desired_(0) = Planner_state_main_calc_(0) + Planner_state_main_calc_(1)/w_;
     dcm_desired_(1) = Planner_state_main_calc_(3) + Planner_state_main_calc_(4)/w_;
@@ -8828,22 +8859,6 @@ void AvatarController::getComTrajectory_mpc()
     {
         del_F_prev_ = del_F_;
     }
-
-//e_tmp_graph1 << step_enable_bool_main_                         << "," << t_start_                                       << ","
-//             << t_total_                                       << "," << current_step_num_                              << ","
-//             << com_desired_(0)                                << "," << com_desired_(1)                                << "," 
-//             << zmp_desired_(0)                                << "," << zmp_desired_(1)                                << "," 
-//             << dcm_desired_(0)                                << "," << dcm_desired_(1)                                << "," 
-//             << dcm_measured_(0)                               << "," << dcm_measured_(1)                               << "," 
-//             << MPC_Stabilizer_state_main_(2)                  << "," << MPC_Stabilizer_state_main_(5)                  << "," 
-//             << del_F_(0)                                      << "," << del_F_(1)                                      << "," 
-//             << Planner_state_main_calc_(0)                    << "," << Planner_state_main_calc_(3)                    << ","
-//             << MPC_Stabilizer_state_main_(0)                  << "," << MPC_Stabilizer_state_main_(3)                  << ","
-//             << foot_step_support_frame_(current_step_num_, 0) << "," << foot_step_support_frame_(current_step_num_, 1) << ","
-//             << del_F_prev_(0)                                 << "," << del_F_prev_(1)                                 << ","
-//             << MPC_Stabilizer_time_adj_tick_x_main_           << "," << MPC_Stabilizer_time_adj_tick_y_main_           << ","
-//             << lfoot_trajectory_support_.translation()(2)     << "," << rfoot_trajectory_support_.translation()(2)     << ","
-//             << endl;
 
     //step change
     if(current_step_num_ != total_step_num_ - 1)
@@ -8901,6 +8916,32 @@ void AvatarController::getComTrajectory_mpc()
         MPC_Planner_state_main_(2) = var_after_step_change(0);
         MPC_Planner_state_main_(5) = var_after_step_change(1);
         MPC_Planner_state_main_(8) = var_after_step_change(2);
+        
+        //previous com step change
+        var_before_step_change(0) = MPC_Planner_state_main_p_(0);
+        var_before_step_change(1) = MPC_Planner_state_main_p_(3);
+        var_before_step_change(2) = MPC_Planner_state_main_p_(6);
+        var_after_step_change = frame_rot_diff*(var_before_step_change - frame_pos_diff);
+        MPC_Planner_state_main_p_(0) = var_after_step_change(0);
+        MPC_Planner_state_main_p_(3) = var_after_step_change(1);
+        MPC_Planner_state_main_p_(6) = var_after_step_change(2);
+
+        var_before_step_change(0) = MPC_Planner_state_main_p_(1);
+        var_before_step_change(1) = MPC_Planner_state_main_p_(4);
+        var_before_step_change(2) = MPC_Planner_state_main_p_(7);
+        var_after_step_change = frame_rot_diff*var_before_step_change;
+        MPC_Planner_state_main_p_(1) = var_after_step_change(0);
+        MPC_Planner_state_main_p_(4) = var_after_step_change(1);
+        MPC_Planner_state_main_p_(7) = var_after_step_change(2);
+
+        var_before_step_change(0) = MPC_Planner_state_main_p_(2);
+        var_before_step_change(1) = MPC_Planner_state_main_p_(5);
+        var_before_step_change(2) = MPC_Planner_state_main_p_(8);
+        var_after_step_change = frame_rot_diff*(var_before_step_change - frame_pos_diff);
+        MPC_Planner_state_main_p_(2) = var_after_step_change(0);
+        MPC_Planner_state_main_p_(5) = var_after_step_change(1);
+        MPC_Planner_state_main_p_(8) = var_after_step_change(2);
+
 
         var_before_step_change(0) = MPC_Stabilizer_state_main_(0);
         var_before_step_change(1) = MPC_Stabilizer_state_main_(3);
@@ -11993,7 +12034,7 @@ void AvatarController::CP_compen_MJ_FT()
     ZMP_calc_real(1) = ZMP_Y_REF_alpha_ + del_zmp(1);
 
     lambda_desired = (com_support_current_(2) - MPC_Stabilizer_state_main_(8) + GRAVITY*b_*b_)/(com_support_current_(2)*b_*b_);
-    lambda_desired = GRAVITY/com_desired_(2);
+    //lambda_desired = GRAVITY/com_desired_(2);
     ZMP_X_DES_CALC = (ZMP_calc_real(0) - (1 - lambda_desired*b_*b_)*com_support_current_(0))/(lambda_desired*b_*b_);
     ZMP_Y_DES_CALC = (ZMP_calc_real(1) - (1 - lambda_desired*b_*b_)*com_support_current_(1))/(lambda_desired*b_*b_);
 
@@ -12004,9 +12045,16 @@ void AvatarController::CP_compen_MJ_FT()
     double calc_z_max = 0.075;
     alpha = (ZMP_Y_DES_CALC - (rfoot_support_current_.translation()(1) + calc_z_max)) / ((lfoot_support_current_.translation()(1) - calc_z_max) - (rfoot_support_current_.translation()(1) + calc_z_max));
     ZMP_Y_DES_CALC = ZMP_Y_REF_alpha_ + del_zmp(1);
-    e_tmp_graph1 << cp_desired_(1) << "," << cp_measured_(1) << "," << ZMP_Y_DES_CALC << "," << com_support_current_(1) << "," << ZMP_calc_real(1) << ","
+    
+    e_tmp_graph1 << lfoot_trajectory_support_.translation()(0) << "," << rfoot_trajectory_support_.translation()(0) << ","
+                 << lfoot_trajectory_support_.translation()(1) << "," << rfoot_trajectory_support_.translation()(1) << ","
                  << lfoot_trajectory_support_.translation()(2) << "," << rfoot_trajectory_support_.translation()(2) << ","
+                 << lfoot_support_current_.translation()(0)    << "," << rfoot_support_current_.translation()(0)    << "," 
+                 << lfoot_support_current_.translation()(1)    << "," << rfoot_support_current_.translation()(1)    << "," 
+                 << lfoot_support_current_.translation()(2)    << "," << rfoot_support_current_.translation()(2)    << "," 
+                 << com_desired_(0)                            << "," << com_desired_(1)                            << ","
                  << endl;
+
     if(walking_tick_ == 0)
     {
         alpha_lpf_ = alpha;
@@ -12055,11 +12103,11 @@ void AvatarController::CP_compen_MJ_FT()
     Tau_all_x = DyrosMath::minmax_cut(Tau_all_x, -100.0, 100.0);
     Tau_all_y = DyrosMath::minmax_cut(Tau_all_y, -100.0, 100.0);
 
-    Tau_R_x = (1 - alpha_lpf_) * Tau_all_x;
-    Tau_L_x = (alpha_lpf_)*Tau_all_x;
+    Tau_R_x =   (1 - alpha_lpf_) * Tau_all_x;
+    Tau_L_x =   (    alpha_lpf_) * Tau_all_x;
 
-    Tau_L_y = -alpha_lpf_ * Tau_all_y;
-    Tau_R_y = -(1 - alpha_lpf_) * Tau_all_y;
+    Tau_L_y = -      alpha_lpf_  * Tau_all_y;
+    Tau_R_y = - (1 - alpha_lpf_) * Tau_all_y;
     
     Tau_L_x_error_pre_ = Tau_L_x_error_;
     Tau_L_x_error_ = -(Tau_L_x - l_ft_LPF(3));

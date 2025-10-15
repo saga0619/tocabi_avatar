@@ -1534,7 +1534,9 @@ public:
 
     Eigen::VectorXd MPC_Planner_state_mpc_;          
     Eigen::VectorXd MPC_Planner_state_container_from_mpc_;   
+    Eigen::VectorXd MPC_Planner_state_main_p_; 
     Eigen::VectorXd MPC_Planner_state_main_; 
+    Eigen::VectorXd MPC_Planner_state_main_i_;
     Eigen::VectorXd Planner_state_main_calc_;
     Eigen::VectorXd MPC_Planner_state_from_mpc_to_main_;
     
@@ -1608,7 +1610,9 @@ public:
     Eigen::MatrixXd Sf2_stab_mpc_;
 
     Eigen::VectorXd MPC_Stabilizer_state_container_from_mpc_;
+    Eigen::VectorXd MPC_Stabilizer_state_main_p_; 
     Eigen::VectorXd MPC_Stabilizer_state_main_;
+    Eigen::VectorXd MPC_Stabilizer_state_main_i_;
     Eigen::VectorXd MPC_Stabilizer_state_mpc_;
     Eigen::VectorXd Stabilizer_state_main_calc_; 
     Eigen::VectorXd MPC_Stabilizer_delf_mpc_;
@@ -1662,6 +1666,8 @@ public:
     int MPC_Stabilizer_time_adj_tick_y_main_;
 
     bool mpc_on_bool_ = true;
+
+    int MPC_interpol_ = 0;
     
     //wbd
     void stateMachine();
