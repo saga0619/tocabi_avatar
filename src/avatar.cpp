@@ -695,17 +695,12 @@ void AvatarController::computeSlow()
             // edited by MJ (Initial upper body trajectory generation for CAM control /220110)
             CAM_upper_init_q_.setZero();
             Initial_ref_upper_q_.setZero();
-            Initial_ref_lower_q_.setZero();
             for (int i = 12; i < MODEL_DOF; i++)
             {
                 Initial_ref_upper_q_(i) = ref_q_(i);
-                Initial_ref_lower_q_(i - 12) = ref_q_(i - 12);
-
-                CAM_upper_init_q_(i - 12) = ref_q_(i - 12);
             }
 
-            //CAM_upper_init_q_(13) = 0.1;
-            CAM_upper_init_q_(13) = 0.0;
+            CAM_upper_init_q_(13) = 0.15;
 
             CAM_upper_init_q_(15) = + 15.0 * DEG2RAD; // Left Shoulder Yaw joint // 17 deg
             CAM_upper_init_q_(16) = + 10.0 * DEG2RAD; // Left Shoulder Pitch joint // 17 deg
@@ -809,15 +804,6 @@ void AvatarController::computeSlow()
                 cout << "parameter setting OK" << endl;
                 cout << "mode = 11" << endl;
             }
-            
-            if(walking_tick_mj > t_temp_ && walking_tick_mj < t_temp_ + (total_step_num_ - 1)*t_total_)
-            {
-                eng_int_ = 0;
-            }
-            else
-            {
-                eng_int_ = 1;
-            }
 
             updateInitialState();     
             getRobotState(); 
@@ -826,36 +812,12 @@ void AvatarController::computeSlow()
             if (current_step_num_ < total_step_num_)
             {   
                 getZmpTrajectory();
-
-                // getComTrajectory(); // 조현민꺼에서 프리뷰에서 CP 궤적을 생성하기 때문에 필요
-                if(qcqp_int_ == 0)
-                {
-                    //getComTrajectory_Z_e();
-                    getComTrajectory_mpc(); // working with thread3 (MPC thread)                    
-                    //getComTrajectory_mpc_ding();
-                }
-                else if (qcqp_int_ == 1)
-                {
-                    //getComTrajectory_mpc(); // working with thread3 (MPC thread)
-                    getComFootTrajectory_mpc_qcqp();
-                }
-                else if (qcqp_int_ == 2)
-                {
-                    getComTrajectory_mpc_ding();
-                }
+                getComFootTrajectory_mpc_qcqp();
 
                 // MJDG CMP control
                 CentroidalMomentCalculator_new(); // working with computefast() (CAM controller)   
 
-                if(qcqp_int_ == 0)
-                { getFootTrajectory_stepping(); }
-                //{ getFootTrajectory(); }
-                else if (qcqp_int_ == 1)
-                { getFootTrajectory_stepping(); }
-                //{ getFootTrajectory(); }
-                else if (qcqp_int_ == 2)
-                { getFootTrajectory_stepping(); }
-                //{ getFootTrajectory(); }
+                getFootTrajectory_stepping();
 
                 getPelvTrajectory();           
                 supportToFloatPattern();
@@ -894,14 +856,6 @@ void AvatarController::computeSlow()
                     {
                         ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(i), q_des_(i), 0.0, 0.0);
                     }
-                    //for waist
-                    // ref_q_(13) = Initial_ref_q_(13);
-                    // ref_q_(14) = Initial_ref_q_(14);
-                    // //for arm
-                    // ref_q_(16) = Initial_ref_q_(16);
-                    // ref_q_(26) = Initial_ref_q_(26);
-                    // ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(17), 50.0 * DEG2RAD, 0.0, 0.0);  // + direction angle makes the left arm down.
-                    // ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0 * hz_, Initial_ref_q_(27), -50.0 * DEG2RAD, 0.0, 0.0); // - direction angle makes the right arm down.
                 }
 
                 CP_compen_MJ();         
@@ -992,18 +946,6 @@ void AvatarController::computeSlow()
 
         ///////////////////////////////FINAL TORQUE COMMAND/////////////////////////////
         rd_.torque_desired = torque_lower_ + torque_upper_;
-        // e_tmp_graph1 << rd_.torque_desired(0) << ","
-        //              << rd_.torque_desired(1) << ","
-        //              << rd_.torque_desired(2) << ","
-        //              << rd_.torque_desired(3) << ","
-        //              << rd_.torque_desired(4) << ","
-        //              << rd_.torque_desired(5) << ","
-        //              << rd_.torque_desired(6) << ","
-        //              << rd_.torque_desired(7) << ","
-        //              << rd_.torque_desired(8) << ","
-        //              << rd_.torque_desired(9) << ","
-        //              << rd_.torque_desired(10) << ","
-        //              << rd_.torque_desired(11) << endl;
         ///////////////////////////////////////////////////////////////////////////////
     }
     else if (rd_.tc_.mode == 12)
@@ -12245,12 +12187,7 @@ void AvatarController::updateInitialState()
 
         xi_mj_ = com_support_init_(0); // preview parameter
         yi_mj_ = com_support_init_(1);
-        if(qcqp_int_ == 0)
-        { zc_mj_ = com_support_init_(2); }
-        else if (qcqp_int_ == 1)
-        { zc_mj_ = com_support_init_(2); }
-        else if (qcqp_int_ == 2)
-        { zc_mj_ = com_support_init_(2); }
+        zc_mj_ = com_support_init_(2);
     }
     else if (current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
     {
@@ -12355,22 +12292,15 @@ void AvatarController::getRobotState()
 
     com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[COM_id].xpos); // 지면에서 CoM 위치
     com_float_current_dot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.link_[COM_id].v);
-    com_float_current_ddot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_mj_), rd_.imu_lin_acc);
 
     if (walking_tick_mj == 0)
     {
         com_float_current_dot_LPF = com_float_current_dot;
         com_float_current_dot_prev = com_float_current_dot;
-
-        com_float_current_ddot_LPF = com_float_current_ddot;
-        com_float_current_ddot_prev = com_float_current_ddot;
     }
 
     com_float_current_dot_prev = com_float_current_dot;
     com_float_current_dot_LPF = 1 / (1 + 2 * M_PI * 3.0 * del_t) * com_float_current_dot_LPF + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * com_float_current_dot;
-
-    com_float_current_ddot_prev = com_float_current_ddot;
-    com_float_current_ddot_LPF = 1 / (1 + 2 * M_PI * 3.0 * del_t) * com_float_current_ddot_LPF + (2 * M_PI * 3.0 * del_t) / (1 + 2 * M_PI * 3.0 * del_t) * com_float_current_ddot;
     
     // modified cut off freq. of CP error for joe's MPC 
     if (walking_tick_mj == 0)
@@ -12411,24 +12341,12 @@ void AvatarController::getRobotState()
     com_support_current_dot_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot);
     com_support_current_dot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_dot_LPF);
 
-    com_support_current_ddot_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_ddot);
-    com_support_current_ddot_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_yaw_only), com_float_current_ddot_LPF);
-
     SC_err_compen(com_support_current_(0), com_support_current_(1));
     
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0) / wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1) / wn;
 
-    lambda_measured_ = (rd_.imu_lin_acc(2))/(com_support_current_(2));
-    lambda_measured_ = (com_float_current_ddot_LPF(2))/(com_support_current_(2));
-    w_measured_ = sqrt(lambda_measured_ + w_dot_desired_);
-
-    //dcm_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/w_measured_;
-    //dcm_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/w_measured_;
-    //dcm_measured_(2) = com_support_current_(2) + com_float_current_dot_LPF(2)/w_measured_;
-    //double w_vhip_ = sqrt(com_support_current_ddot_LPF(2)/com_support_current_(2));
     double b_fip = sqrt(zc_mj_/GRAVITY);
-    //dcm_measured_(0) = com_support_cp_(0)      + b_fip*com_float_current_dot_LPF(0);
     dcm_measured_(0) = com_support_current_(0) + b_fip*com_float_current_dot_LPF(0);
     dcm_measured_(1) = com_support_current_(1) + b_fip*com_float_current_dot_LPF(1);
     dcm_measured_(2) = com_support_current_(2) + b_fip*com_float_current_dot_LPF(2);
@@ -13197,169 +13115,169 @@ void AvatarController::floatToSupportFootstep()
 void AvatarController::Joint_gain_set_MJ()
 {
     //simulation gains
-    Kp(0) = 1800.0;
-    Kd(0) = 70.0; // Left Hip yaw
-    Kp(1) = 2100.0;
-    Kd(1) = 90.0; // Left Hip roll
-    Kp(2) = 2100.0;
-    Kd(2) = 90.0; // Left Hip pitch
-    Kp(3) = 2100.0;
-    Kd(3) = 90.0; // Left Knee pitch
-    Kp(4) = 2100.0;
-    Kd(4) = 90.0; // Left Ankle pitch
-    Kp(5) = 2100.0;
-    Kd(5) = 90.0; // Left Ankle roll
+    if(param_sim_mode_)
+    {
+        Kp(0) = 1800.0;
+        Kd(0) = 70.0; // Left Hip yaw
+        Kp(1) = 2100.0;
+        Kd(1) = 90.0; // Left Hip roll
+        Kp(2) = 2100.0;
+        Kd(2) = 90.0; // Left Hip pitch
+        Kp(3) = 2100.0;
+        Kd(3) = 90.0; // Left Knee pitch
+        Kp(4) = 2100.0;
+        Kd(4) = 90.0; // Left Ankle pitch
+        Kp(5) = 2100.0;
+        Kd(5) = 90.0; // Left Ankle roll
 
-    Kp(6) = 1800.0;
-    Kd(6) = 70.0; // Right Hip yaw
-    Kp(7) = 2100.0;
-    Kd(7) = 90.0; // Right Hip roll
-    Kp(8) = 2100.0;
-    Kd(8) = 90.0; // Right Hip pitch
-    Kp(9) = 2100.0;
-    Kd(9) = 90.0; // Right Knee pitch
-    Kp(10) = 2100.0;
-    Kd(10) = 90.0; // Right Ankle pitch
-    Kp(11) = 2100.0;
-    Kd(11) = 90.0; // Right Ankle roll
+        Kp(6) = 1800.0;
+        Kd(6) = 70.0; // Right Hip yaw
+        Kp(7) = 2100.0;
+        Kd(7) = 90.0; // Right Hip roll
+        Kp(8) = 2100.0;
+        Kd(8) = 90.0; // Right Hip pitch
+        Kp(9) = 2100.0;
+        Kd(9) = 90.0; // Right Knee pitch
+        Kp(10) = 2100.0;
+        Kd(10) = 90.0; // Right Ankle pitch
+        Kp(11) = 2100.0;
+        Kd(11) = 90.0; // Right Ankle roll
 
-    Kp(12) = 2200.0;
-    Kd(12) = 90.0; // Waist yaw
-    Kp(13) = 2200.0;
-    Kd(13) = 90.0; // Waist pitch
-    Kp(14) = 2200.0;
-    Kd(14) = 90.0; // Waist roll
+        Kp(12) = 2200.0;
+        Kd(12) = 90.0; // Waist yaw
+        Kp(13) = 2200.0;
+        Kd(13) = 90.0; // Waist pitch
+        Kp(14) = 2200.0;
+        Kd(14) = 90.0; // Waist roll
 
-    Kp(15) = 400.0;
-    Kd(15) = 10.0;
-    Kp(16) = 800.0;
-    Kd(16) = 10.0;
-    Kp(17) = 400.0;
-    Kd(17) = 10.0;
-    Kp(18) = 400.0;
-    Kd(18) = 10.0;
-    Kp(19) = 250.0;
-    Kd(19) = 2.5;
-    Kp(20) = 250.0;
-    Kd(20) = 2.0;
-    Kp(21) = 50.0;
-    Kd(21) = 2.0; // Left Wrist
-    Kp(22) = 50.0;
-    Kd(22) = 2.0; // Left Wrist
+        Kp(15) = 400.0;
+        Kd(15) = 10.0;
+        Kp(16) = 800.0;
+        Kd(16) = 10.0;
+        Kp(17) = 400.0;
+        Kd(17) = 10.0;
+        Kp(18) = 400.0;
+        Kd(18) = 10.0;
+        Kp(19) = 250.0;
+        Kd(19) = 2.5;
+        Kp(20) = 250.0;
+        Kd(20) = 2.0;
+        Kp(21) = 50.0;
+        Kd(21) = 2.0; // Left Wrist
+        Kp(22) = 50.0;
+        Kd(22) = 2.0; // Left Wrist
 
-    Kp(23) = 50.0;
-    Kd(23) = 2.0; // Neck
-    Kp(24) = 50.0;
-    Kd(24) = 2.0; // Neck
+        Kp(23) = 50.0;
+        Kd(23) = 2.0; // Neck
+        Kp(24) = 50.0;
+        Kd(24) = 2.0; // Neck
 
-    Kp(25) = 400.0;
-    Kd(25) = 10.0;
-    Kp(26) = 800.0;
-    Kd(26) = 10.0;
-    Kp(27) = 400.0;
-    Kd(27) = 10.0;
-    Kp(28) = 400.0;
-    Kd(28) = 10.0;
-    Kp(29) = 250.0;
-    Kd(29) = 2.5;
-    Kp(30) = 250.0;
-    Kd(30) = 2.0;
-    Kp(31) = 50.0;
-    Kd(31) = 2.0; // Right Wrist
-    Kp(32) = 50.0;
-    Kd(32) = 2.0; // Right Wrist
-    //real robot experiment
-    // Kp(0) = 2000.0;
-    // Kd(0) = 20.0; // Left Hip yaw
-    // Kp(1) = 5000.0;
-    // Kd(1) = 55.0; // Left Hip roll //55
-    // Kp(2) = 4000.0;
-    // Kd(2) = 45.0; // Left Hip pitch
-    // Kp(3) = 3700.0;
-    // Kd(3) = 40.0; // Left Knee pitch
-    // Kp(4) = 4000.0; // 5000
-    // Kd(4) = 65.0; // Left Ankle pitch /5000 / 30  //55
-    // Kp(5) = 4000.0; // 5000
-    // Kd(5) = 65.0; // Left Ankle roll /5000 / 30 //55
+        Kp(25) = 400.0;
+        Kd(25) = 10.0;
+        Kp(26) = 800.0;
+        Kd(26) = 10.0;
+        Kp(27) = 400.0;
+        Kd(27) = 10.0;
+        Kp(28) = 400.0;
+        Kd(28) = 10.0;
+        Kp(29) = 250.0;
+        Kd(29) = 2.5;
+        Kp(30) = 250.0;
+        Kd(30) = 2.0;
+        Kp(31) = 50.0;
+        Kd(31) = 2.0; // Right Wrist
+        Kp(32) = 50.0;
+        Kd(32) = 2.0; // Right Wrist
+    }
+    else 
+    {
+        //real robot experiment
+        Kp(0) = 2000.0;
+        Kd(0) = 20.0; // Left Hip yaw
+        Kp(1) = 5000.0;
+        Kd(1) = 55.0; // Left Hip roll //55
+        Kp(2) = 4000.0;
+        Kd(2) = 45.0; // Left Hip pitch
+        Kp(3) = 3700.0;
+        Kd(3) = 40.0; // Left Knee pitch
+        Kp(4) = 4000.0; // 5000
+        Kd(4) = 65.0; // Left Ankle pitch /5000 / 30  //55
+        Kp(5) = 4000.0; // 5000
+        Kd(5) = 65.0; // Left Ankle roll /5000 / 30 //55
 
-    // Kp(6) = 2000.0;
-    // Kd(6) = 20.0; // Right Hip yaw
-    // Kp(7) = 5000.0;
-    // Kd(7) = 55.0; // Right Hip roll  //55
-    // Kp(8) = 4000.0;
-    // Kd(8) = 45.0; // Right Hip pitch
-    // Kp(9) = 3700.0;
-    // Kd(9) = 40.0; // Right Knee pitch
-    // Kp(10) = 4000.0; // 5000
-    // Kd(10) = 65.0; // Right Ankle pitch //55
-    // Kp(11) = 4000.0; // 5000
-    // Kd(11) = 65.0; // Right Ankle roll //55
+        Kp(6) = 2000.0;
+        Kd(6) = 20.0; // Right Hip yaw
+        Kp(7) = 5000.0;
+        Kd(7) = 55.0; // Right Hip roll  //55
+        Kp(8) = 4000.0;
+        Kd(8) = 45.0; // Right Hip pitch
+        Kp(9) = 3700.0;
+        Kd(9) = 40.0; // Right Knee pitch
+        Kp(10) = 4000.0; // 5000
+        Kd(10) = 65.0; // Right Ankle pitch //55
+        Kp(11) = 4000.0; // 5000
+        Kd(11) = 65.0; // Right Ankle roll //55
 
-    // Kp(12) = 6000.0;
-    // Kd(12) = 200.0; // Waist yaw
-    // Kp(13) = 10000.0;
-    // Kd(13) = 100.0; // Waist pitch
-    // Kp(14) = 10000.0;
-    // Kd(14) = 100.0; // Waist roll
+        //Kp(12) = 6000.0;
+        //Kd(12) = 200.0; // Waist yaw
+        //Kp(13) = 10000.0;
+        //Kd(13) = 100.0; // Waist pitch
+        //Kp(14) = 10000.0;
+        //Kd(14) = 100.0; // Waist roll
+        Kp(12) = 2200.0;
+        Kd(12) = 90.0; // Waist yaw
+        Kp(13) = 2200.0;
+        Kd(13) = 90.0; // Waist pitch
+        Kp(14) = 2200.0;
+        Kd(14) = 90.0; // Waist roll
 
-    // Kp(15) = 400.0;
-    // Kd(15) = 10.0;
-    // Kp(16) = 800.0;
-    // Kd(16) = 10.0;
-    // Kp(17) = 400.0;
-    // Kd(17) = 10.0;
-    // Kp(18) = 400.0;
-    // Kd(18) = 10.0;
-    // Kp(19) = 250.0;
-    // Kd(19) = 2.5;
-    // Kp(20) = 250.0;
-    // Kd(20) = 2.0;
-    // Kp(21) = 50.0;
-    // Kd(21) = 2.0; // Left Wrist
-    // Kp(22) = 50.0;
-    // Kd(22) = 2.0; // Left Wrist
+        Kp(15) = 400.0;
+        Kd(15) = 10.0;
+        Kp(16) = 800.0;
+        Kd(16) = 10.0;
+        Kp(17) = 400.0;
+        Kd(17) = 10.0;
+        Kp(18) = 400.0;
+        Kd(18) = 10.0;
+        Kp(19) = 250.0;
+        Kd(19) = 2.5;
+        Kp(20) = 250.0;
+        Kd(20) = 2.0;
+        Kp(21) = 50.0;
+        Kd(21) = 2.0; // Left Wrist
+        Kp(22) = 50.0;
+        Kd(22) = 2.0; // Left Wrist
 
-    // Kp(23) = 50.0;
-    // Kd(23) = 2.0; // Neck
-    // Kp(24) = 50.0;
-    // Kd(24) = 2.0; // Neck
+        Kp(23) = 50.0;
+        Kd(23) = 2.0; // Neck
+        Kp(24) = 50.0;
+        Kd(24) = 2.0; // Neck
 
-    // Kp(25) = 400.0;
-    // Kd(25) = 10.0;
-    // Kp(26) = 800.0;
-    // Kd(26) = 10.0;
-    // Kp(27) = 400.0;
-    // Kd(27) = 10.0;
-    // Kp(28) = 400.0;
-    // Kd(28) = 10.0;
-    // Kp(29) = 250.0;
-    // Kd(29) = 2.5;
-    // Kp(30) = 250.0;
-    // Kd(30) = 2.0;
-    // Kp(31) = 50.0;
-    // Kd(31) = 2.0; // Right Wrist
-    // Kp(32) = 50.0;
-    // Kd(32) = 2.0; // Right Wrist
+        Kp(25) = 400.0;
+        Kd(25) = 10.0;
+        Kp(26) = 800.0;
+        Kd(26) = 10.0;
+        Kp(27) = 400.0;
+        Kd(27) = 10.0;
+        Kp(28) = 400.0;
+        Kd(28) = 10.0;
+        Kp(29) = 250.0;
+        Kd(29) = 2.5;
+        Kp(30) = 250.0;
+        Kd(30) = 2.0;
+        Kp(31) = 50.0;
+        Kd(31) = 2.0; // Right Wrist
+        Kp(32) = 50.0;
+        Kd(32) = 2.0; // Right Wrist
+    }
 }
 
 void AvatarController::addZmpOffset()
 {
     double lfoot_zmp_offset_, rfoot_zmp_offset_;
 
-    lfoot_zmp_offset_ = -0.01; //mj
-    rfoot_zmp_offset_ =  0.01;
-
-    if (qcqp_int_ == 1)
-    {
-        //lfoot_zmp_offset_ = -0.01 + (1 - (bool)current_step_num_)*0.005;
-        lfoot_zmp_offset_ = -0.015 + (1 - (bool)current_step_num_)*0.01;
-        rfoot_zmp_offset_ =  0.015 - (1 - (bool)current_step_num_)*0.01;
-    }
-    else if (qcqp_int_ == 2)
-    {
-        lfoot_zmp_offset_ = -0.02;
-        rfoot_zmp_offset_ =  0.02;
-    }
+    lfoot_zmp_offset_ = -0.045 + (1 - (bool)current_step_num_)*0.04;
+    rfoot_zmp_offset_ =  0.045 - (1 - (bool)current_step_num_)*0.04;
 
     foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -14002,6 +13920,7 @@ void AvatarController::getFootTrajectory()
             lfoot_trajectory_euler_support_.setZero();
             
             rfoot_trajectory_support_.translation() = rfoot_support_init_.translation();
+            rfoot_trajectory_support_.translation()(2) = 0;
             rfoot_trajectory_euler_support_ = rfoot_support_euler_init_;
         }
         else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
@@ -14010,6 +13929,7 @@ void AvatarController::getFootTrajectory()
             rfoot_trajectory_support_.translation().setZero();
 
             lfoot_trajectory_support_.translation() = lfoot_support_init_.translation();
+            lfoot_trajectory_support_.translation()(2) = 0;
             lfoot_trajectory_euler_support_ = lfoot_support_euler_init_;            
         }
 
@@ -14196,7 +14116,7 @@ void AvatarController::getFootTrajectory_stepping()
             lfoot_trajectory_euler_support_.setZero();
 
             rfoot_trajectory_support_.translation() = rfoot_support_init_.translation();
-            //rfoot_trajectory_support_.translation()(2) = 0;
+            rfoot_trajectory_support_.translation()(2) = 0;
             rfoot_trajectory_euler_support_ = rfoot_support_euler_init_;
         }
         else if (foot_step_(current_step_num_, 6) == 0) // 오른발 지지
@@ -14205,7 +14125,7 @@ void AvatarController::getFootTrajectory_stepping()
             rfoot_trajectory_euler_support_.setZero();
 
             lfoot_trajectory_support_.translation() = lfoot_support_init_.translation();
-            //lfoot_trajectory_support_.translation()(2) = 0;
+            lfoot_trajectory_support_.translation()(2) = 0;
             lfoot_trajectory_euler_support_ = lfoot_support_euler_init_;
         }
 
@@ -14729,26 +14649,10 @@ void AvatarController::getPelvTrajectory()
     //pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0)); 
     //pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.9 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0));     
     //pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.9 * (com_desired_(0) - com_support_current_(0)) + 0.1*(MPC_qcqp_sqp_gurobi_r_(1) - com_float_current_dot_LPF(0));
-    pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 1.0 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0));
-
-    if(qcqp_int_ == 0)
-    { 
-        //pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - 0*0.6 * damping_y - com_support_current_(1));
-        pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 1.0 * (com_desired_(1) - com_support_current_(1)) + 0.05*(MPC_qcqp_sqp_gurobi_r_(4) - com_float_current_dot_LPF(1));
-        //pelv_trajectory_support_.translation()(2) = com_desired_(2);
-        pelv_trajectory_support_.translation()(2) = pelv_support_current_.translation()(2) + 1.0 * (com_desired_(2) - com_support_current_(2)) + 0.05*(MPC_qcqp_sqp_gurobi_r_(7) - com_float_current_dot_LPF(2));
-    }
-    else if(qcqp_int_ == 1)
-    {
-        //pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - com_support_current_(1));
-        pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 1.0 * (com_desired_(1) - com_support_current_(1));
-        pelv_trajectory_support_.translation()(2) = pelv_support_current_.translation()(2) + 1.0 * (com_desired_(2) - com_support_current_(2));
-    }
-    else if(qcqp_int_ == 2)
-    {
-        pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 1.0 * (com_desired_(1) - com_support_current_(1));
-        pelv_trajectory_support_.translation()(2) = pelv_support_current_.translation()(2) + 1.0 * (com_desired_(2) - com_support_current_(2));
-    }
+    pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7 * (com_desired_(0) - 0*0.15 * damping_x - com_support_current_(0));
+    pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7 * (com_desired_(1) - com_support_current_(1));
+    //pelv_trajectory_support_.translation()(2) = pelv_support_current_.translation()(2) + 1.0 * (com_desired_(2) - com_support_current_(2));
+    pelv_trajectory_support_.translation()(2) = com_desired_(2) + 0.06;
 
 e_tmp_graph8 << pelv_trajectory_support_.translation()(0) << "," << pelv_trajectory_support_.translation()(1) << "," << pelv_trajectory_support_.translation()(2) << ","
              << com_desired_(0)                           << "," << com_desired_(1)                           << "," << com_desired_(2)                           << ","
@@ -14796,7 +14700,7 @@ e_tmp_graph8 << pelv_trajectory_support_.translation()(0) << "," << pelv_traject
     { P_angle_input = 5 * DEG2RAD; }
     else if (P_angle_input < -5 * DEG2RAD)
     { P_angle_input = -5 * DEG2RAD; }
-    Trunk_trajectory_euler(0) = R_angle_input;
+    //Trunk_trajectory_euler(0) = R_angle_input;
     Trunk_trajectory_euler(1) = P_angle_input;
     //Trunk_trajectory_euler(1) = P_angle_input + DyrosMath::cubic(walking_tick_mj, 0.0*hz_, 2.0*hz_, 0.0, 0.05, 0.0, 0.0);
 
@@ -14811,27 +14715,8 @@ void AvatarController::supportToFloatPattern()
     lfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * lfoot_trajectory_support_;
     rfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_) * rfoot_trajectory_support_;
 
-    
-    if(walking_tick_mj >= t_start_ + t_double1_ + t_rest_init_ && walking_tick_mj <= t_start_ + t_total_ - t_double2_ - t_rest_last_)
-    {
-        if(foot_step_(current_step_num_,6) == 1) // left foot support
-        {
-            //lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 1.0;
-            lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
-            rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
-        }
-        else
-        {
-            //rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 1.0;
-            lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
-            rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
-        }
-    }
-    else
-    {
-        rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
-        lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
-    }
+    rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
+    lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5;
 }
 
     
@@ -15666,7 +15551,7 @@ void AvatarController::comGenerator(const unsigned int norm_size, const unsigned
     Eigen::VectorXd temp_cx, temp_cy, temp_cz;
     double com_x_offset_ = 0.0 + 0.02*(bool)step_length_x_;
 
-    double h_diff = - param_Czref_calc_;
+    double h_diff = 0.0;
 
     ref_com_e_.block(0,0, norm_size,2) = ref_zmp_mj_.block(0,0, norm_size,2);
     ref_com_e_.block(0,2, norm_size,1).setConstant(zc_mj_ + h_diff);
@@ -15677,14 +15562,7 @@ void AvatarController::comGenerator_thread(const unsigned int norm_size, const u
     ref_com_e_.resize(norm_size,3);
     Eigen::VectorXd temp_cx, temp_cy, temp_cz;
 
-    double h_diff = - (zc_mj_ - 0.712);
-
-    if(walking_tick_e_qcqp_mpc_ <= 0.25*t_temp_)
-    { h_diff = - 0.0*(zc_mj_ - 0.712); }
-    else if (walking_tick_e_qcqp_mpc_ <= 0.75*t_temp_)
-    { h_diff = - 1.0*(zc_mj_ - 0.712); }
-
-    h_diff = 0.0;
+    double h_diff = 0.0;
 
     ref_com_e_.block(0,0, norm_size,2) = ref_zmp_e_mpc_.block(0,0, norm_size,2);
     ref_com_e_.block(0,2, norm_size,1).setConstant(zc_mj_ + h_diff);
@@ -15733,19 +15611,8 @@ void AvatarController::onestepComz_thread(unsigned int current_step_number, Eige
     temp_cz.setZero();
     double h_diff = 0.0;
 
-    h_diff = foot_step_support_frame_mpc_(current_step_number, 2)*(bool)(foot_terrain_int_(current_step_number,0)-1); //for stair walking
-
-    if(current_step_number ==  3) { h_diff = -0.05; }
-    if(current_step_number ==  4) { h_diff = -0.10; }
-    if(current_step_number ==  5) { h_diff = -0.15; }
-    if(current_step_number ==  6) { h_diff = -0.20; }
-    if(current_step_number ==  8) { h_diff = -0.15; }
-    if(current_step_number == 10) { h_diff = -0.10; }
-    if(current_step_number == 12) { h_diff = -0.05; }
-    if(current_step_number == 14) { h_diff = -0.00; }
-
     h_diff = DyrosMath::minmax_cut(h_diff, -0.2, 0.2);
-    temp_cz.block(0,0, t_total_, 1).setConstant(0.712 + h_diff);
+    temp_cz.block(0,0, t_total_, 1).setConstant(zc_mj_);
 }
 
 void AvatarController::onestepComz(unsigned int current_step_number, Eigen::VectorXd& temp_cz)
@@ -15754,10 +15621,7 @@ void AvatarController::onestepComz(unsigned int current_step_number, Eigen::Vect
     temp_cz.setZero();
     double h_diff = 0.0;
 
-    //h_diff = foot_step_support_frame_(current_step_number,2)*(bool)(foot_terrain_int_(current_step_number,0)-1) - 0.01; //for stair walking
-    h_diff = sqrt(pow(zc_mj_,2) - pow(0.0*MPC_dcm_delf_r_(0),2) - pow(0.0*MPC_dcm_delf_r_(1),2)) - zc_mj_ - param_Czref_calc_*(bool)current_step_number;
     h_diff = DyrosMath::minmax_cut(h_diff, -0.2, 0.2);
-    if(qcqp_int_ == 2) { h_diff = 0.0; }
 
     temp_cz.setConstant(zc_mj_ + h_diff);
 }
@@ -21059,7 +20923,7 @@ void AvatarController::parameterSetting()
 {       
     //target_x_ = param_target_x_;
     //target_x_ = 0.40;
-    target_x_ = 10.00;
+    target_x_ = 0.00;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -21361,10 +21225,6 @@ void AvatarController::CP_compen_MJ_FT()
     double alpha_new = 0;
 
     zmp_offset = 0.0; // econom2
-    if(qcqp_int_ == 0)
-    {
-        zmp_offset = -0.01;
-    }
 
     // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
     // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
@@ -21417,178 +21277,48 @@ void AvatarController::CP_compen_MJ_FT()
     double ZMP_Y_DES_CALC = 0.0;
     double lambda_desired = 0.0;
 
-    if(qcqp_int_ == 0)
-    {
-        del_zmp(0) = cp_des_zmp_x_ - ZMP_X_REF_;
-        del_zmp(1) = cp_des_zmp_y_ - ZMP_Y_REF_alpha_;
-        //del_zmp(0) = des_zmp_interpol_(0) - ZMP_X_REF_;
-        //del_zmp(1) = des_zmp_interpol_(1) - ZMP_Y_REF_alpha_;
-
-        ZMP_X_DES_CALC = ZMP_X_REF_ + del_zmp(0);
-        ZMP_Y_DES_CALC = ZMP_Y_REF_alpha_ + del_zmp(1);
-    }
-    else if (qcqp_int_ == 1)
-    {
-        lambda_desired = MPC_dcm_lambda_r_;
-        ZMP_X_DES_CALC = MPC_dcm_zmp_r_(0);
-        ZMP_Y_DES_CALC = MPC_dcm_zmp_r_(1);
-
-        double b_mpc = sqrt(zc_mj_/GRAVITY);
-        lambda_desired = (com_support_current_(2) - MPC_dcm_vrp_r_(2) + GRAVITY*b_mpc*b_mpc)/(com_support_current_(2)*b_mpc*b_mpc);
-        ZMP_X_DES_CALC = (MPC_dcm_vrp_r_(0) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(0))/(lambda_desired*b_mpc*b_mpc);
-        ZMP_Y_DES_CALC = (MPC_dcm_vrp_r_(1) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(1))/(lambda_desired*b_mpc*b_mpc);
-
-        bool englesberger_dcm_ankle = 1;
-        englesberger_dcm_ankle = 1;
-
-        if(englesberger_dcm_ankle)
-        {
-            double b_mpc = sqrt(zc_mj_/GRAVITY);
-
-            double lambda_ref = 0.0;
-            lambda_ref = (qcqp_mpc_i_(8) + GRAVITY)/qcqp_mpc_i_(6);
-            Eigen::VectorXd vrp_ref; vrp_ref.setZero(3);
-
-            //vrp_ref(0) = lambda_ref*b_mpc*b_mpc*ZMP_X_REF_ + (1 - lambda_ref*b_mpc*b_mpc)*qcqp_mpc_i_(0);
-            vrp_ref(1) = lambda_ref*b_mpc*b_mpc*ZMP_Y_REF_ + (1 - lambda_ref*b_mpc*b_mpc)*qcqp_mpc_i_(3);
-            vrp_ref(2) =                                     (1 - lambda_ref*b_mpc*b_mpc)*qcqp_mpc_i_(6) + GRAVITY*b_mpc*b_mpc;
-
-            vrp_ref(0) = ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,0);
-            //vrp_ref(1) = ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,1);
-            //vrp_ref(2) = zc_mj_;
-
-            Eigen::VectorXd del_vrp; del_vrp.setZero(3);
-            del_vrp(0) = 4.5*(dcm_measured_(0) - dcm_desired_(0));
-            //del_vrp(0) = 1.05*(dcm_measured_(0) - dcm_desired_(0));
-            del_vrp(1) = 1.5*(dcm_measured_(1) - dcm_desired_(1));
-            del_vrp(2) = 2.5*(dcm_measured_(2) - dcm_desired_(2));
-
-            vrp_desired_(0) = vrp_ref(0) + del_vrp(0);
-            vrp_desired_(1) = vrp_ref(1) + del_vrp(1);
-            vrp_desired_(2) = vrp_ref(2) + del_vrp(2);
-
-            if(eng_int_ == 1)
-            {
-                lambda_desired = (com_support_current_(2) - vrp_desired_(2) + GRAVITY*b_mpc*b_mpc)/(com_support_current_(2)*b_mpc*b_mpc);
-                ZMP_X_DES_CALC = (vrp_desired_(0) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(0))/(lambda_desired*b_mpc*b_mpc);
-                ZMP_Y_DES_CALC = (vrp_desired_(1) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(1))/(lambda_desired*b_mpc*b_mpc);
-            }
-
-            Eigen::VectorXd ecmp_desired; ecmp_desired.setZero(3);
-            ecmp_desired = vrp_desired_; ecmp_desired(2) = vrp_desired_(2) - GRAVITY*b_mpc*b_mpc;
-
-            Eigen::VectorXd ecmp_desired_feasible; ecmp_desired_feasible.setZero(3);
-            Eigen::VectorXd zmp_calc_vector;       zmp_calc_vector.setZero(3);
-
-            zmp_calc_vector << ZMP_X_DES_CALC, ZMP_Y_DES_CALC, 0;
-            if(eng_next_step_(0) > 0.05)
-            { ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,0) + eng_next_step_(0); }
-            if(ZMP_X_DES_CALC < ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,0) -zmp_x_min)
-            { zmp_calc_vector(0) = ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,0) -zmp_x_min; }
-            if(ZMP_X_DES_CALC > zmp_x_max)
-            { zmp_calc_vector(0) =  zmp_x_max; }
-            if(eng_next_step_(0) > 0.05)
-            { ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,0) - eng_next_step_(0); }
-
-            //if(ZMP_Y_DES_CALC < ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,1) - zmp_y_min)
-            //{ zmp_calc_vector(1) = -zmp_y_min; }
-            //if(ZMP_Y_DES_CALC > ref_zmp_mj_wo_offset_(walking_tick_mj - (bool)current_step_num_*t_start_,1) + zmp_y_max)
-            //{ zmp_calc_vector(1) =  zmp_y_max; }
-
-            Eigen::VectorXd zmp_com_calc_vector; zmp_com_calc_vector.setZero(3);
-            zmp_com_calc_vector = zmp_calc_vector - com_support_current_;
-            double zmp_calc_vector_size = sqrt(pow(zmp_com_calc_vector(0),2) + pow(zmp_com_calc_vector(1),2) + pow(zmp_com_calc_vector(2),2));
-            zmp_com_calc_vector(0) = zmp_com_calc_vector(0)/zmp_calc_vector_size;
-            zmp_com_calc_vector(1) = zmp_com_calc_vector(1)/zmp_calc_vector_size;
-            zmp_com_calc_vector(2) = zmp_com_calc_vector(2)/zmp_calc_vector_size;
-
-            ecmp_desired_feasible = com_support_current_ + zmp_com_calc_vector*(zmp_com_calc_vector(0)*(ecmp_desired(0) - com_support_current_(0)) + zmp_com_calc_vector(1)*(ecmp_desired(1) - com_support_current_(1)) + zmp_com_calc_vector(2)*(ecmp_desired(2) - com_support_current_(2)));
-
-            Eigen::VectorXd vrp_desired_feasible; vrp_desired_feasible.setZero(3);
-            vrp_desired_feasible = ecmp_desired_feasible; vrp_desired_feasible(2) = ecmp_desired_feasible(2) + GRAVITY*b_mpc*b_mpc;
-
-            if(eng_int_ == 1)
-            {
-                ZMP_X_DES_CALC = zmp_calc_vector(0);
-                lambda_desired = (vrp_desired_feasible(0) - com_support_current_(0))/(b_mpc*b_mpc*(ZMP_X_DES_CALC - com_support_current_(0)));
-                ZMP_Y_DES_CALC = (vrp_desired_feasible(1) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(1))/(lambda_desired*b_mpc*b_mpc);
-            }
-
-            e_tmp_graph13 << vrp_desired_(0)         << "," << vrp_desired_(1)         << "," << vrp_desired_(2)         << "," 
-                          << vrp_desired_feasible(0) << "," << vrp_desired_feasible(1) << "," << vrp_desired_feasible(2) << "," 
-                          << vrp_ref(0)              << "," << vrp_ref(1)              << "," << vrp_ref(2)              << ","
-                          << MPC_dcm_vrp_r_(0)       << "," << MPC_dcm_vrp_r_(1)       << "," << MPC_dcm_vrp_r_(2)       << "," 
-                          << endl;
-        }
-    }
-    else if(qcqp_int_ == 2)
-    {
-        del_zmp.setZero();
-        ZMP_X_DES_CALC = ZMP_X_REF_;
-        ZMP_Y_DES_CALC = ZMP_Y_REF_alpha_;
-    }
+    double b_mpc = sqrt(zc_mj_/GRAVITY);
+    lambda_desired = (com_support_current_(2) - MPC_dcm_vrp_r_(2) + GRAVITY*b_mpc*b_mpc)/(com_support_current_(2)*b_mpc*b_mpc);
+    ZMP_X_DES_CALC = (MPC_dcm_vrp_r_(0) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(0))/(lambda_desired*b_mpc*b_mpc);
+    ZMP_Y_DES_CALC = (MPC_dcm_vrp_r_(1) - (1 - lambda_desired*b_mpc*b_mpc)*com_support_current_(1))/(lambda_desired*b_mpc*b_mpc);
 
     double calc_z_max = 0.08;
     double alpha_zmp_calc = ZMP_Y_DES_CALC;
 
     alpha = (alpha_zmp_calc - (rfoot_support_current_.translation()(1) + calc_z_max)) / ((lfoot_support_current_.translation()(1) - calc_z_max) - (rfoot_support_current_.translation()(1) + calc_z_max));
-    
-    double b_mpc = sqrt(zc_mj_/GRAVITY);
+    if (alpha > 1)
+    {
+        alpha = 1.0;
+    } // 왼발 지지때 alpha = 1
+    else if (alpha < 0)
+    {
+        alpha = 0.0;
+    }
+
+    if(walking_tick_mj == 0)
+    {
+        alpha_lpf_ = alpha;
+    }
+
+    alpha_lpf_ = 1 / (1 + 2 * M_PI * 6.0 * del_t) * alpha_lpf_ + (2 * M_PI * 6.0 * del_t) / (1 + 2 * M_PI * 6.0 * del_t) * alpha;
 
     Eigen::VectorXd vrp_measured; vrp_measured.setZero(3);
     double lambda_measured = (com_acc_current_(2) + GRAVITY)/com_support_current_(2);
     vrp_measured(0) = lambda_measured*b_mpc*b_mpc*zmp_measured_LPF_(0) + (1 - lambda_measured*b_mpc*b_mpc)*com_support_current_(0);
     vrp_measured(1) = lambda_measured*b_mpc*b_mpc*zmp_measured_LPF_(1) + (1 - lambda_measured*b_mpc*b_mpc)*com_support_current_(1);
     vrp_measured(2) =                                                  + (1 - lambda_measured*b_mpc*b_mpc)*com_support_current_(2) + GRAVITY*b_mpc*b_mpc;
-    
-    e_tmp_graph11 << zmp_measured_LPF_(0) << "," << zmp_measured_LPF_(1) << ","
-                  << lambda_desired*com_desired_(2) << "," << l_ft_LPF(2) + r_ft_LPF(2) << ","
-                  << dcm_desired_(0)         << "," << dcm_desired_(1)         << "," << dcm_desired_(2)         << ","
-                  << dcm_measured_(0)        << "," << dcm_measured_(1)        << "," << dcm_measured_(2)        << ","
-                  << vrp_desired_(0)         << "," << vrp_desired_(1)         << "," << vrp_desired_(2)         << ","
-                  << ZMP_X_DES_CALC          << "," << ZMP_Y_DES_CALC          << "," << 0                       << ","
-                  << vrp_measured(0)         << "," << vrp_measured(1)         << "," << vrp_measured(2)         << ","
-                  << com_support_current_(0) << "," << com_support_current_(1) << "," << com_support_current_(2) << ","
-                  << endl;
-
-    //alpha = (ZMP_Y_REF_alpha_ + 1 * del_zmp(1) - rfoot_support_current_.translation()(1)) / (lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
-    //  로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
-    if (alpha > 1)
-    {
-        alpha = 1;
-    } // 왼발 지지때 alpha = 1
-    else if (alpha < 0)
-    {
-        alpha = 0;
-    }
 
     //double real_robot_mass_offset_ = 52; // 42 75
     double real_robot_mass_offset_ = 52/GRAVITY; // 42 75
     if(param_sim_mode_) { real_robot_mass_offset_ = 0.0; }
 
-    F_R = -(1 - alpha) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 0*15);
-    F_L = -alpha * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 0*15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
+    F_R = -(1 - alpha_lpf_) * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ + 0*15);
+    F_L =     - alpha_lpf_  * (rd_.link_[COM_id].mass * GRAVITY + real_robot_mass_offset_ - 0*15); // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
 
     double fr, fl;
-    if(qcqp_int_ == 0)
-    {
-        fr = -(1 - alpha) * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * GRAVITY;
-        fl = -alpha * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * GRAVITY;
-    }
-    else if(qcqp_int_ == 1)
-    {
-        //double dcm_mpc_i_z_acc = lambda_desired*qcqp_mpc_i_(6);
-        //double dcm_mpc_i_z_acc = GRAVITY;
-        //double dcm_mpc_i_z_acc = lambda_desired*com_support_current_(2);
-        double dcm_mpc_i_z_acc = lambda_desired*com_desired_(2);
-        fr = -(1 - alpha) * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc;
-        fl = -alpha * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc;
-    }
-    else if(qcqp_int_ == 2)
-    {
-        fr = -(1 - alpha) * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * GRAVITY;
-        fl = -alpha * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * GRAVITY;
-    }
+    double dcm_mpc_i_z_acc = lambda_desired*com_desired_(2);
+    fr = -(1 - alpha_lpf_) * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc;
+    fl =     - alpha_lpf_  * (rd_.link_[COM_id].mass + real_robot_mass_offset_) * dcm_mpc_i_z_acc;
 
     if (walking_tick_mj == 0)
     {
@@ -21599,16 +21329,18 @@ void AvatarController::CP_compen_MJ_FT()
         F_T_R_y_input = 0.0;
     }
 
-    //////////// Force
+    F_F_error_pre_ = F_F_error_;
+    
+    //F_F_error_ = (l_ft_LPF(2) - r_ft_LPF(2)) - (F_L - F_R);    
+    F_F_error_ = (l_ft_LPF(2) - r_ft_LPF(2)) - (fl - fr);
+    
+    F_F_error_dot_ = (F_F_error_ - F_F_error_pre_)*hz_;
 
-    //F_F_input_dot = 0.0005 * ((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 3.0 * F_F_input; // F_F_input이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
-    F_F_input_dot = 0.0001 * ((l_ft_(2) - r_ft_(2)) - (fl - fr)) - 3.0 * F_F_input;
-    //if(param_sim_mode_) { F_F_input_dot = 0.0005 * ((l_ft_(2) - r_ft_(2)) - (fl - fr)) - 3.0 * F_F_input; }
-    //if(param_sim_mode_) { F_F_input_dot = 0.0010 * ((l_ft_(2) - r_ft_(2)) - (fl - fr)) - 1.5 * F_F_input; }
+    //////////// Force
+    F_F_input_dot = 0.0001 * F_F_error_  + 0.00000001*F_F_error_dot_ - 3.0 * F_F_input;  //DG's code Kp : 0.00005
 
     F_F_input = F_F_input + F_F_input_dot * del_t;
     double F_F_input_cut = 0.02;
-    //F_F_input_cut = 0.05;
 
     if (F_F_input >= F_F_input_cut)
     { F_F_input = F_F_input_cut; }
@@ -21619,81 +21351,60 @@ void AvatarController::CP_compen_MJ_FT()
     Tau_all_x = -((rfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * fr + (lfoot_support_current_.translation()(1) - ZMP_Y_DES_CALC) * fl);
     Tau_all_y = -((rfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * fr + (lfoot_support_current_.translation()(0) - ZMP_X_DES_CALC) * fl);
 
-    if (Tau_all_x > 100)
-    {
-        Tau_all_x = 100;
-    }
-    else if (Tau_all_x < -100)
-    {
-        Tau_all_x = -100;
-    }
+    Tau_all_x = DyrosMath::minmax_cut(Tau_all_x, -100.0, 100.0);
+    Tau_all_y = DyrosMath::minmax_cut(Tau_all_y, -100.0, 100.0);
 
-    if (Tau_all_y > 100)
-    {
-        Tau_all_y = 100;
-    }
-    else if (Tau_all_y < -100)
-    {
-        Tau_all_y = -100;
-    }
+    Tau_R_x = (1 - alpha_lpf_) * Tau_all_x;
+    Tau_L_x = (alpha_lpf_)*Tau_all_x;
 
-    Tau_R_x = (1 - alpha) * Tau_all_x;
-    Tau_L_x = (alpha)*Tau_all_x;
+    Tau_L_y = -alpha_lpf_ * Tau_all_y;
+    Tau_R_y = -(1 - alpha_lpf_) * Tau_all_y;
 
-    Tau_L_y = -alpha * Tau_all_y;
-    Tau_R_y = -(1 - alpha) * Tau_all_y;
+    Tau_L_x_error_pre_ = Tau_L_x_error_;
+    Tau_L_x_error_ = -(Tau_L_x - l_ft_LPF(3));
+    Tau_L_x_error_dot_ = (Tau_L_x_error_ - Tau_L_x_error_pre_)*hz_;
 
-    // Roll 방향 (-0.02/-30 0.9초)
+    Tau_R_x_error_pre_ = Tau_R_x_error_;
+    Tau_R_x_error_ = -(Tau_R_x - r_ft_LPF(3));
+    Tau_R_x_error_dot_ = (Tau_R_x_error_ - Tau_R_x_error_pre_)*hz_;
+
+    Tau_L_y_error_pre_ = Tau_L_y_error_;
+    Tau_L_y_error_ = Tau_L_y - l_ft_LPF(4);
+    Tau_L_y_error_dot_ = (Tau_L_y_error_ - Tau_L_y_error_pre_)*hz_;
+
+
+    Tau_R_y_error_pre_ = Tau_R_y_error_;
+    Tau_R_y_error_ = Tau_R_y - r_ft_LPF(4);
+    Tau_R_y_error_dot_ = (Tau_R_y_error_ - Tau_R_y_error_pre_)*hz_;
+    
+ 
+    // Roll: 0.030, 0.0005, 10 Pitch: 0.030, 0.0005, 5 -> 3 Degree slope
+    // Roll 방향 (-0.02/-30 0.9초) large foot(blue pad): 0.05/50 / small foot(orange pad): 0.07/50
     //   F_T_L_x_input_dot = -0.015*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input;
-    F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input;
-    if(param_sim_mode_) { F_T_L_x_input_dot = -0.1 * (Tau_L_x - l_ft_LPF(3)) - 50.0 * F_T_L_x_input; }
-    if(walking_tick_mj < 4.0*hz_) { F_T_L_x_input_dot = -0.04 * (Tau_L_x - l_ft_LPF(3)) - 40.0 * F_T_L_x_input; }
-
+    // 0.025/0.0005/-10 : DG data collection
+    F_T_L_x_input_dot = 0.02 * (Tau_L_x_error_) +0.0005*Tau_L_x_error_dot_ - 10.0 * F_T_L_x_input;
     F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot * del_t;
     //   F_T_L_x_input = 0;
-    // F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
-    F_T_R_x_input_dot = -0.04 * (Tau_R_x - r_ft_LPF(3)) - 40.0 * F_T_R_x_input;
-    if(param_sim_mode_) { F_T_R_x_input_dot = -0.1 * (Tau_R_x - r_ft_LPF(3)) - 50.0 * F_T_R_x_input; }
-
+    //   F_T_R_x_input_dot = -0.015*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input;
+    F_T_R_x_input_dot = 0.02 * (Tau_R_x_error_) +0.0005*Tau_R_x_error_dot_ - 10.0 * F_T_R_x_input;
     F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot * del_t;
     //   F_T_R_x_input = 0;
-    
-    // Pitch 방향  (0.005/-30 0.9초)
-    // F_T_L_y_input_dot = 0.01*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
-    F_T_L_y_input_dot = 0.04 * (Tau_L_y - l_ft_LPF(4)) - 40.0 * F_T_L_y_input;
-    //F_T_L_y_input_dot = 0.01 * (Tau_L_y - l_ft_LPF(4)) - 40.0 * F_T_L_y_input;
-    if(param_sim_mode_) { F_T_L_y_input_dot = 0.1 * (Tau_L_y - l_ft_LPF(4)) - 50.0 * F_T_L_y_input; }
-    
 
+    // Pitch 방향  (0.005/-30 0.9초) large foot(blue pad): 0.04/50 small foot(orange pad): 0.06/50
+    //   F_T_L_y_input_dot = 0.005*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input;
+    // 0.035/0.0005/-5: 3degree slope possilbe
+    // 0.02/0.0005/-5 : DG data collection
+    F_T_L_y_input_dot = 0.02 * (Tau_L_y_error_) + 0.0005*Tau_L_y_error_dot_ - 10.0 * F_T_L_y_input;
     F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot * del_t;
     //   F_T_L_y_input = 0;
-    // F_T_R_y_input_dot = 0.01*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
-    F_T_R_y_input_dot = 0.04 * (Tau_R_y - r_ft_LPF(4)) - 40.0 * F_T_R_y_input;
-    //F_T_R_y_input_dot = 0.01 * (Tau_R_y - r_ft_LPF(4)) - 40.0 * F_T_R_y_input;
-    if(param_sim_mode_) { F_T_R_y_input_dot = 0.1 * (Tau_R_y - r_ft_LPF(4)) - 50.0 * F_T_R_y_input; }
-
+    //   F_T_R_y_input_dot = 0.005*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input;
+    F_T_R_y_input_dot = 0.02 * (Tau_R_y_error_) + 0.0005*Tau_R_y_error_dot_ - 10.0 * F_T_R_y_input;
     F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot * del_t;
-    //   F_T_R_y_input = 0;
-
-    if (F_T_L_x_input >= 0.2) // 5 deg limit
-    { F_T_L_x_input = 0.2; }
-    else if (F_T_L_x_input < -0.2)
-    { F_T_L_x_input = -0.2; }
-
-    if (F_T_R_x_input >= 0.2) // 5 deg limit
-    { F_T_R_x_input = 0.2; }
-    else if (F_T_R_x_input < -0.2)
-    { F_T_R_x_input = -0.2; }
-
-    if (F_T_L_y_input >= 0.2) // 5 deg limit
-    { F_T_L_y_input = 0.2; }
-    else if (F_T_L_y_input < -0.2)
-    { F_T_L_y_input = -0.2; }
-
-    if (F_T_R_y_input >= 0.2) // 5 deg limit
-    { F_T_R_y_input = 0.2; }
-    else if (F_T_R_y_input < -0.2)
-    { F_T_R_y_input = -0.2; }
+  
+    F_T_L_x_input = DyrosMath::minmax_cut(F_T_L_x_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_R_x_input = DyrosMath::minmax_cut(F_T_R_x_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_L_y_input = DyrosMath::minmax_cut(F_T_L_y_input, -20*DEG2RAD, 20*DEG2RAD);
+    F_T_R_y_input = DyrosMath::minmax_cut(F_T_R_y_input, -20*DEG2RAD, 20*DEG2RAD);
 }
 
 /*
